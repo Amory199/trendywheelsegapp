@@ -1,16 +1,27 @@
 import { colors, spacing, typography, borderRadius } from "@trendywheels/ui-tokens";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+
+import { useAuth } from "../../lib/auth-store";
 
 export default function OtpScreen(): JSX.Element {
   const router = useRouter();
   const { phone } = useLocalSearchParams<{ phone: string }>();
+  const verifyOtp = useAuth((s) => s.verifyOtp);
   const [otp, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleVerify = (): void => {
-    // TODO: Call API to verify OTP, then navigate
-    router.replace("/(tabs)/rent");
+  const handleVerify = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      await verifyOtp(phone ?? "", otp);
+      router.replace("/(tabs)/rent");
+    } catch (err) {
+      Alert.alert("Verification failed", err instanceof Error ? err.message : "Try again");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -31,12 +42,12 @@ export default function OtpScreen(): JSX.Element {
         />
 
         <TouchableOpacity
-          style={[styles.button, otp.length !== 6 && styles.buttonDisabled]}
-          onPress={handleVerify}
-          disabled={otp.length !== 6}
+          style={[styles.button, (otp.length !== 6 || loading) && styles.buttonDisabled]}
+          onPress={() => void handleVerify()}
+          disabled={otp.length !== 6 || loading}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>Verify</Text>
+          <Text style={styles.buttonText}>{loading ? "Verifying…" : "Verify"}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -1,15 +1,26 @@
 import { colors, spacing, typography, borderRadius } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+
+import { useAuth } from "../../lib/auth-store";
 
 export default function PhoneScreen(): JSX.Element {
   const router = useRouter();
+  const sendOtp = useAuth((s) => s.sendOtp);
   const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSendOtp = (): void => {
-    // TODO: Call API to send OTP
-    router.push({ pathname: "/(auth)/otp", params: { phone } });
+  const handleSendOtp = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      await sendOtp(phone);
+      router.push({ pathname: "/(auth)/otp", params: { phone } });
+    } catch (err) {
+      Alert.alert("Could not send OTP", err instanceof Error ? err.message : "Try again");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -29,12 +40,12 @@ export default function PhoneScreen(): JSX.Element {
         />
 
         <TouchableOpacity
-          style={[styles.button, !phone && styles.buttonDisabled]}
-          onPress={handleSendOtp}
-          disabled={!phone}
+          style={[styles.button, (!phone || loading) && styles.buttonDisabled]}
+          onPress={() => void handleSendOtp()}
+          disabled={!phone || loading}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>Send OTP</Text>
+          <Text style={styles.buttonText}>{loading ? "Sending…" : "Send OTP"}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -7,7 +7,7 @@
     "dev": "expo start",
     "build:ios": "eas build --platform ios",
     "build:android": "eas build --platform android",
-    "lint": "eslint app/",
+    "lint": "eslint app/ lib/",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
     "clean": "rm -rf .expo dist"

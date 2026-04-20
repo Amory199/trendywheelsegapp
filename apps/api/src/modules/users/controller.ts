@@ -3,6 +3,25 @@ import type { Request, Response } from "express";
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
 
+export async function list(_req: Request, res: Response): Promise<void> {
+  const users = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      phone: true,
+      email: true,
+      name: true,
+      avatarUrl: true,
+      accountType: true,
+      status: true,
+      loyaltyTier: true,
+      loyaltyPoints: true,
+      createdAt: true,
+    },
+  });
+  res.json({ data: users });
+}
+
 export async function getMe(req: Request, res: Response): Promise<void> {
   const user = await prisma.user.findUnique({
     where: { id: req.user!.userId },

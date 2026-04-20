@@ -25,3 +25,9 @@ export async function logout(req: Request, res: Response): Promise<void> {
   await authService.logout(userId);
   res.json({ success: true });
 }
+
+export async function login(req: Request, res: Response): Promise<void> {
+  const { email, password } = req.body;
+  const result = await authService.loginWithPassword(email, password);
+  res.json(result);
+}

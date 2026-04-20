@@ -5,5 +5,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["app", "src", "*.ts", "*.tsx"]
+  "include": ["app", "lib", "src", "*.ts", "*.tsx"]
 }

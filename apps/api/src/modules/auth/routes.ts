@@ -1,4 +1,9 @@
-import { sendOtpSchema, verifyOtpSchema, refreshTokenSchema } from "@trendywheels/validators";
+import {
+  sendOtpSchema,
+  verifyOtpSchema,
+  refreshTokenSchema,
+  staffLoginSchema,
+} from "@trendywheels/validators";
 import { Router, type Router as RouterType } from "express";
 
 import { authenticate } from "../../middleware/auth.js";
@@ -10,6 +15,7 @@ const router: RouterType = Router();
 
 router.post("/send-otp", validate({ body: sendOtpSchema }), authController.sendOtp);
 router.post("/verify-otp", validate({ body: verifyOtpSchema }), authController.verifyOtp);
+router.post("/login", validate({ body: staffLoginSchema }), authController.login);
 router.post("/refresh-token", validate({ body: refreshTokenSchema }), authController.refreshToken);
 router.post("/logout", authenticate, authController.logout);
 
