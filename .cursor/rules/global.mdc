@@ -1,0 +1,31 @@
+---
+description: TrendyWheels monorepo global rules
+globs: "**/*"
+---
+
+# TrendyWheels Rules
+
+## Monorepo
+- pnpm workspaces + Turborepo. Never install deps without `-w` flag for root or in the correct app/package dir.
+- Import shared code from `@trendywheels/*` packages. Never duplicate types, validators, or UI tokens.
+
+## TypeScript
+- Strict mode. No `any` without ESLint-disable + explanation comment.
+- Use `import type` for type-only imports.
+- Explicit return types on all public functions.
+
+## Security
+- No secrets in code. Use `.env` files.
+- Validate inputs at boundaries with zod.
+- Never log PII or tokens.
+- Parameterized queries only (Prisma).
+
+## Design System
+- Blue gradient: #1E50B4 → #3B82F6
+- Neon green accent: #00FF00
+- Dark bg: #0F172A
+- Use @trendywheels/ui-tokens, never hardcode colors.
+
+## Git
+- Conventional Commits with scope: feat(api):, fix(mobile):, chore(deps):
+- PR required for main branch.

@@ -1,0 +1,23 @@
+{
+  "name": "@trendywheels/validators",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@trendywheels/eslint-config": "workspace:*",
+    "@trendywheels/tsconfig": "workspace:*",
+    "typescript": "^5.0.0",
+    "eslint": "^8.57.0",
+    "vitest": "^2.0.0"
+  }
+}

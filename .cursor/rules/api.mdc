@@ -1,0 +1,12 @@
+---
+description: Backend API rules
+globs: "apps/api/**/*"
+---
+
+# API Rules
+- Layered: routes → controllers → services → repositories (Prisma).
+- Validate all inputs with zod middleware using @trendywheels/validators.
+- Log with pino structured JSON. Never log PII.
+- Auth: JWT RS256. Rate limit: 100 req/min/user via Redis.
+- Central error handler → Sentry.
+- Background jobs: BullMQ on Redis.

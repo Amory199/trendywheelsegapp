@@ -1,0 +1,92 @@
+const en = {
+  common: {
+    loading: "Loading...",
+    error: "Something went wrong",
+    retry: "Retry",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    save: "Save",
+    delete: "Delete",
+    edit: "Edit",
+    back: "Back",
+    next: "Next",
+    search: "Search",
+    filter: "Filter",
+    sort: "Sort",
+    noResults: "No results found",
+    viewAll: "View All",
+  },
+  auth: {
+    enterPhone: "Enter your phone number",
+    sendOtp: "Send OTP",
+    enterOtp: "Enter the verification code",
+    verifyOtp: "Verify",
+    otpSent: "Verification code sent to your WhatsApp",
+    invalidOtp: "Invalid verification code",
+    logout: "Log Out",
+    welcome: "Welcome to TrendyWheels",
+  },
+  tabs: {
+    rent: "Rent",
+    sell: "Sell",
+    repair: "Repair",
+    profile: "Profile",
+  },
+  rent: {
+    browse: "Browse Vehicles",
+    bookNow: "Book Now",
+    reserveNow: "Reserve Now",
+    perDay: "/day",
+    available: "Available",
+    rented: "Rented",
+    myBookings: "My Bookings",
+    activeBookings: "Active",
+    completedBookings: "Completed",
+    cancelledBookings: "Cancelled",
+    pickupDate: "Pickup Date",
+    returnDate: "Return Date",
+    totalCost: "Total Cost",
+    confirmBooking: "Confirm Booking",
+    bookingConfirmed: "Booking Confirmed!",
+  },
+  sell: {
+    browse: "Browse Listings",
+    createListing: "Create Listing",
+    myListings: "My Listings",
+    askingPrice: "Asking Price",
+    mileage: "Mileage",
+    year: "Year",
+    contactSeller: "Contact Seller",
+    views: "Views",
+    inquiries: "Inquiries",
+  },
+  repair: {
+    requestRepair: "Request Repair",
+    repairStatus: "Repair Status",
+    issueDescription: "Describe the issue",
+    category: "Category",
+    priority: "Priority",
+    submitRequest: "Submit Request",
+    mechanical: "Mechanical",
+    electrical: "Electrical",
+    cosmetic: "Cosmetic",
+    other: "Other",
+  },
+  profile: {
+    myProfile: "My Profile",
+    editProfile: "Edit Profile",
+    preferences: "Preferences",
+    loyaltyPoints: "Loyalty Points",
+    communicationCenter: "Messages",
+    interactionHistory: "History",
+    settings: "Settings",
+  },
+} as const;
+
+export default en;
+
+type DeepStringify<T> = {
+  [K in keyof T]: T[K] extends object ? DeepStringify<T[K]> : string;
+};
+
+export type TranslationKeys = DeepStringify<typeof en>;

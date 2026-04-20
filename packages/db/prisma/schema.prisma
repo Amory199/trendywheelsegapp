@@ -1,0 +1,453 @@
+// This is your Prisma schema file.
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users ───────────────────────────────────────────────────
+
+enum AccountType {
+  customer
+  staff
+  admin
+}
+
+enum UserStatus {
+  active
+  inactive
+  suspended
+}
+
+enum LoyaltyTier {
+  bronze
+  silver
+  gold
+  platinum
+}
+
+model User {
+  id            String      @id @default(uuid()) @db.Uuid
+  phone         String      @unique
+  email         String?     @unique
+  name          String      @default("")
+  avatarUrl     String?     @map("avatar_url")
+  accountType   AccountType @default(customer) @map("account_type")
+  status        UserStatus  @default(active)
+  preferences   Json?
+  loyaltyTier   LoyaltyTier @default(bronze) @map("loyalty_tier")
+  loyaltyPoints Int         @default(0) @map("loyalty_points")
+  passwordHash  String?     @map("password_hash")
+  totpSecret    String?     @map("totp_secret")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  bookings         Booking[]
+  sentMessages     Message[]       @relation("SentMessages")
+  receivedMessages Message[]       @relation("ReceivedMessages")
+  repairRequests   RepairRequest[] @relation("UserRepairs")
+  assignedRepairs  RepairRequest[] @relation("MechanicRepairs")
+  salesListings    SalesListing[]
+  supportTickets   SupportTicket[] @relation("UserTickets")
+  assignedTickets  SupportTicket[] @relation("AgentTickets")
+  refreshTokens    RefreshToken[]
+  otpCodes         OtpCode[]
+  auditLogs        AuditLog[]
+  notifications    Notification[]
+  loyaltyTxns      LoyaltyTransaction[]
+
+  @@map("users")
+}
+
+// ─── Auth ────────────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model OtpCode {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  phone     String
+  code      String
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone, code])
+  @@map("otp_codes")
+}
+
+// ─── Vehicles ────────────────────────────────────────────────
+
+enum VehicleType {
+  FOUR_SEATER @map("4-seater")
+  SIX_SEATER  @map("6-seater")
+  LED
+}
+
+enum FuelType {
+  electric
+  gasoline
+  hybrid
+}
+
+enum Transmission {
+  automatic
+  manual
+}
+
+enum VehicleStatus {
+  available
+  rented
+  maintenance
+  inactive
+}
+
+model Vehicle {
+  id            String        @id @default(uuid()) @db.Uuid
+  name          String
+  type          VehicleType
+  seating       Int
+  fuelType      FuelType      @map("fuel_type")
+  transmission  Transmission
+  dailyRate     Decimal       @map("daily_rate") @db.Decimal(10, 2)
+  location      String
+  status        VehicleStatus @default(available)
+  totalBookings Int           @default(0) @map("total_bookings")
+  averageRating Decimal       @default(0) @map("average_rating") @db.Decimal(3, 2)
+  features      Json          @default("[]")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  images           VehicleImage[]
+  bookings         Booking[]
+  repairRequests   RepairRequest[]
+  maintenanceLogs  VehicleMaintenance[]
+
+  @@index([status])
+  @@index([type])
+  @@map("vehicles")
+}
+
+model VehicleImage {
+  id        String   @id @default(uuid()) @db.Uuid
+  vehicleId String   @map("vehicle_id") @db.Uuid
+  url       String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_images")
+}
+
+// ─── Bookings ────────────────────────────────────────────────
+
+enum BookingStatus {
+  confirmed
+  completed
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  refunded
+}
+
+model Booking {
+  id            String        @id @default(uuid()) @db.Uuid
+  userId        String        @map("user_id") @db.Uuid
+  vehicleId     String        @map("vehicle_id") @db.Uuid
+  startDate     DateTime      @map("start_date") @db.Date
+  endDate       DateTime      @map("end_date") @db.Date
+  status        BookingStatus @default(confirmed)
+  totalCost     Decimal       @map("total_cost") @db.Decimal(10, 2)
+  paymentStatus PaymentStatus @default(pending) @map("payment_status")
+  notes         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id])
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("bookings")
+}
+
+// ─── Messages ────────────────────────────────────────────────
+
+model Conversation {
+  id            String   @id @default(uuid()) @db.Uuid
+  lastMessageAt DateTime @default(now()) @map("last_message_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  messages     Message[]
+  participants ConversationParticipant[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String @id @default(uuid()) @db.Uuid
+  conversationId String @map("conversation_id") @db.Uuid
+  userId         String @map("user_id") @db.Uuid
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String   @id @default(uuid()) @db.Uuid
+  senderId       String   @map("sender_id") @db.Uuid
+  recipientId    String   @map("recipient_id") @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  message        String
+  attachments    Json     @default("[]")
+  readAt         DateTime? @map("read_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  sender       User         @relation("SentMessages", fields: [senderId], references: [id])
+  recipient    User         @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([recipientId])
+  @@map("messages")
+}
+
+// ─── Repair Requests ─────────────────────────────────────────
+
+enum RepairCategory {
+  mechanical
+  electrical
+  cosmetic
+  other
+}
+
+enum RepairPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum RepairStatus {
+  submitted
+  assigned
+  in_progress @map("in-progress")
+  completed
+}
+
+model RepairRequest {
+  id                 String         @id @default(uuid()) @db.Uuid
+  userId             String         @map("user_id") @db.Uuid
+  vehicleId          String         @map("vehicle_id") @db.Uuid
+  description        String
+  category           RepairCategory
+  priority           RepairPriority
+  status             RepairStatus   @default(submitted)
+  assignedMechanicId String?        @map("assigned_mechanic_id") @db.Uuid
+  estimatedCost      Decimal?       @map("estimated_cost") @db.Decimal(10, 2)
+  actualCost         Decimal?       @map("actual_cost") @db.Decimal(10, 2)
+  preferredDate      DateTime?      @map("preferred_date")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  user     User    @relation("UserRepairs", fields: [userId], references: [id])
+  vehicle  Vehicle @relation(fields: [vehicleId], references: [id])
+  mechanic User?   @relation("MechanicRepairs", fields: [assignedMechanicId], references: [id])
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@index([status])
+  @@map("repair_requests")
+}
+
+// ─── Sales Listings ──────────────────────────────────────────
+
+enum ListingStatus {
+  active
+  sold
+  pending
+}
+
+model SalesListing {
+  id             String        @id @default(uuid()) @db.Uuid
+  userId         String        @map("user_id") @db.Uuid
+  title          String
+  make           String
+  model          String
+  year           Int
+  mileage        Int
+  price          Decimal       @db.Decimal(10, 2)
+  transmission   Transmission
+  fuelType       FuelType      @map("fuel_type")
+  color          String
+  description    String
+  images         Json          @default("[]")
+  status         ListingStatus @default(active)
+  viewsCount     Int           @default(0) @map("views_count")
+  inquiriesCount Int           @default(0) @map("inquiries_count")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([price])
+  @@map("sales_listings")
+}
+
+// ─── Support ─────────────────────────────────────────────────
+
+enum TicketStatus {
+  open
+  in_progress @map("in-progress")
+  resolved
+  closed
+}
+
+enum TicketPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+model SupportTicket {
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @map("user_id") @db.Uuid
+  subject        String
+  status         TicketStatus   @default(open)
+  priority       TicketPriority @default(medium)
+  assignedAgentId String?       @map("assigned_agent_id") @db.Uuid
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  user  User  @relation("UserTickets", fields: [userId], references: [id])
+  agent User? @relation("AgentTickets", fields: [assignedAgentId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@map("support_tickets")
+}
+
+model KBArticle {
+  id           String   @id @default(uuid()) @db.Uuid
+  title        String
+  content      String
+  category     String
+  viewsCount   Int      @default(0) @map("views_count")
+  helpfulCount Int      @default(0) @map("helpful_count")
+  searchVector Unsupported("tsvector")? @map("search_vector")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@map("kb_articles")
+}
+
+// ─── Vehicle Maintenance ─────────────────────────────────────
+
+model VehicleMaintenance {
+  id          String   @id @default(uuid()) @db.Uuid
+  vehicleId   String   @map("vehicle_id") @db.Uuid
+  type        String
+  description String?
+  scheduledAt DateTime @map("scheduled_at")
+  completedAt DateTime? @map("completed_at")
+  cost        Decimal? @db.Decimal(10, 2)
+  notes       String?
+  photos      Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId])
+  @@index([scheduledAt])
+  @@map("vehicle_maintenance")
+}
+
+// ─── Notifications ───────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  type      String
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([readAt])
+  @@map("notifications")
+}
+
+// ─── Audit Logging ───────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ─── Loyalty ─────────────────────────────────────────────────
+
+model LoyaltyTransaction {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  points    Int
+  type      String   // "earned", "redeemed", "expired"
+  reason    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("loyalty_transactions")
+}

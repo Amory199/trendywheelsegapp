@@ -1,0 +1,9 @@
+{
+  "extends": "@trendywheels/tsconfig/react-native.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["app", "src", "*.ts", "*.tsx"]
+}

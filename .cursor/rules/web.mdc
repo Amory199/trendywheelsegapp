@@ -1,0 +1,12 @@
+---
+description: Web dashboard rules
+globs: "apps/admin/**/*,apps/support/**/*,apps/inventory/**/*"
+---
+
+# Web Dashboard Rules
+- Next.js 14 App Router. Use Server Components where possible.
+- UI: Shadcn/ui from @trendywheels/ui-web + Tailwind with @trendywheels/ui-tokens preset.
+- Charts: Recharts only.
+- State: TanStack Query (server), Zustand (client).
+- RBAC enforced both server-side (API) and client-side (route guards).
+- Lighthouse ≥90 target.

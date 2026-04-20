@@ -1,0 +1,14 @@
+---
+description: Mobile app rules
+globs: "apps/mobile/**/*"
+---
+
+# Mobile Rules
+- Expo SDK 51 + Expo Router v3 for navigation.
+- Animations: Reanimated 2 worklets only. 60 FPS target.
+- Lists: FlashList, never FlatList.
+- Images: expo-image with caching. Compress before upload (max 2MB).
+- State: TanStack Query (server), Zustand (client).
+- Tokens: expo-secure-store. Never AsyncStorage for secrets.
+- Touch targets: minimum 44px.
+- All strings through @trendywheels/i18n.

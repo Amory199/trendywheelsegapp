@@ -1,0 +1,14 @@
+# TrendyWheels Windsurf Rules
+
+## Monorepo: pnpm workspaces + Turborepo at /opt/trendywheels
+## Apps: api (Express+TS), mobile (Expo), admin/support/inventory (Next.js 14)
+## Packages: @trendywheels/{db,types,api-client,validators,ui-tokens,ui-web,ui-mobile,i18n}
+
+## TypeScript strict. No `any`. Use `import type`. Explicit return types.
+## Security: no secrets in code, zod validation at boundaries, no PII in logs.
+## Design: blue gradient #1E50B4→#3B82F6, neon green #00FF00, dark #0F172A. Use ui-tokens.
+## Mobile: Reanimated 2, FlashList, expo-image, expo-secure-store, 44px touch targets.
+## Web: Shadcn/ui, Tailwind, Recharts, Server Components, Lighthouse ≥90.
+## API: layered (routes→controllers→services→repos), pino logs, JWT RS256, rate limit.
+## Git: Conventional Commits with scope. PR required for main.
+## Testing: ≥70% coverage global, ≥85% on auth/booking/payments.
