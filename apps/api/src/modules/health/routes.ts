@@ -1,9 +1,9 @@
-import { Router } from "express";
+import { Router, type Router as RouterType } from "express";
 
 import { prisma } from "../../config/database.js";
 import { redis } from "../../config/redis.js";
 
-const router = Router();
+const router: RouterType = Router();
 
 router.get("/healthz", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

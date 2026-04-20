@@ -4,14 +4,14 @@ import {
   updateVehicleSchema,
   idParamSchema,
 } from "@trendywheels/validators";
-import { Router } from "express";
+import { Router, type Router as RouterType } from "express";
 
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 
 import * as vehicleController from "./controller.js";
 
-const router = Router();
+const router: RouterType = Router();
 
 router.get("/", validate({ query: vehicleFiltersSchema }), vehicleController.list);
 router.get("/:id", validate({ params: idParamSchema }), vehicleController.getById);

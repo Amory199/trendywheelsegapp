@@ -1,12 +1,12 @@
 import { idParamSchema, updateUserSchema } from "@trendywheels/validators";
-import { Router } from "express";
+import { Router, type Router as RouterType } from "express";
 
 import { authenticate } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 
 import * as userController from "./controller.js";
 
-const router = Router();
+const router: RouterType = Router();
 
 router.get("/me", authenticate, userController.getMe);
 router.get("/:id", authenticate, validate({ params: idParamSchema }), userController.getById);
