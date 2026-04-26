@@ -72,9 +72,14 @@ router.get("/pipeline", async (req, res) => {
     isAdmin ? Promise.resolve(null) : computeAgentTargets(userId),
   ]);
 
+  type StatusBucket = {
+    status: string;
+    _count: { _all: number };
+    _sum: { estimatedValue: unknown };
+  };
   res.json({
     data: {
-      byStatus: byStatus.map((b) => ({
+      byStatus: (byStatus as unknown as StatusBucket[]).map((b) => ({
         status: b.status,
         count: b._count._all,
         value: Number(b._sum.estimatedValue ?? 0),
@@ -112,14 +117,30 @@ router.get("/team", async (_req, res) => {
     _sum: { estimatedValue: true },
   });
 
-  const enriched = team.map((member) => {
-    const memberStats = stats.filter((s) => s.ownerId === member.id);
-    const won = memberStats.filter((s) => s.status === "won");
-    const wonAmount = won.reduce((acc, s) => acc + Number(s._sum.estimatedValue ?? 0), 0);
-    const wonCount = won.reduce((acc, s) => acc + s._count._all, 0);
+  type TeamMember = {
+    id: string;
+    name: string;
+    email: string | null;
+    staffRole: string | null;
+    salesTargetMonthly: unknown;
+    salesAssignmentWeight: number;
+  };
+  type LeadStat = {
+    ownerId: string | null;
+    status: string;
+    _count: { _all: number };
+    _sum: { estimatedValue: unknown };
+  };
+  const teamTyped = team as unknown as TeamMember[];
+  const statsTyped = stats as unknown as LeadStat[];
+  const enriched = teamTyped.map((member: TeamMember) => {
+    const memberStats = statsTyped.filter((s: LeadStat) => s.ownerId === member.id);
+    const won = memberStats.filter((s: LeadStat) => s.status === "won");
+    const wonAmount = won.reduce((acc: number, s: LeadStat) => acc + Number(s._sum.estimatedValue ?? 0), 0);
+    const wonCount = won.reduce((acc: number, s: LeadStat) => acc + s._count._all, 0);
     const openCount = memberStats
-      .filter((s) => !["won", "lost"].includes(s.status))
-      .reduce((acc, s) => acc + s._count._all, 0);
+      .filter((s: LeadStat) => !["won", "lost"].includes(s.status))
+      .reduce((acc: number, s: LeadStat) => acc + s._count._all, 0);
     return {
       ...member,
       monthWonAmount: wonAmount,

@@ -128,16 +128,18 @@ router.get("/revenue-breakdown", async (_req, res) => {
     _sum: { totalCost: true },
   });
 
-  const vehicleIds = grouped.map((g) => g.vehicleId);
+  const vehicleIds = grouped.map((g: { vehicleId: string }) => g.vehicleId);
   const vehicles = await prisma.vehicle.findMany({
     where: { id: { in: vehicleIds } },
     select: { id: true, type: true },
   });
-  const typeById = new Map(vehicles.map((v) => [v.id, v.type]));
+  const typeById = new Map<string, string>(
+    vehicles.map((v: { id: string; type: string }) => [v.id, String(v.type)] as const),
+  );
 
   const byType = new Map<string, number>();
   for (const row of grouped) {
-    const type = typeById.get(row.vehicleId) ?? "OTHER";
+    const type: string = typeById.get(row.vehicleId) ?? "OTHER";
     const amount = Number(row._sum.totalCost ?? 0);
     byType.set(type, (byType.get(type) ?? 0) + amount);
   }

@@ -1,8 +1,11 @@
+import { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
 import { redis } from "../../config/redis.js";
 import { AppError } from "../../utils/errors.js";
+
+type Tx = Prisma.TransactionClient;
 
 const VEHICLES_CACHE_TTL = 5 * 60; // 5 minutes
 const VEHICLES_CACHE_PREFIX = "vehicles:list:";
@@ -66,8 +69,8 @@ export async function getById(req: Request, res: Response): Promise<void> {
 export async function create(req: Request, res: Response): Promise<void> {
   const { images = [], ...vehicleData } = req.body as { images?: string[]; [k: string]: unknown };
 
-  const vehicle = await prisma.$transaction(async (tx) => {
-    const created = await tx.vehicle.create({ data: vehicleData as Parameters<typeof tx.vehicle.create>[0]["data"] });
+  const vehicle = await prisma.$transaction(async (tx: Tx) => {
+    const created = await tx.vehicle.create({ data: vehicleData as Prisma.VehicleCreateInput });
     if (images.length > 0) {
       await tx.vehicleImage.createMany({
         data: images.map((url: string, idx: number) => ({
@@ -96,10 +99,10 @@ export async function update(req: Request, res: Response): Promise<void> {
   const existing = await prisma.vehicle.findUnique({ where: { id: req.params.id } });
   if (!existing) throw AppError.notFound("Vehicle not found");
 
-  const vehicle = await prisma.$transaction(async (tx) => {
+  const vehicle = await prisma.$transaction(async (tx: Tx) => {
     const updated = await tx.vehicle.update({
       where: { id: req.params.id },
-      data: vehicleData as Parameters<typeof tx.vehicle.update>[0]["data"],
+      data: vehicleData as Prisma.VehicleUpdateInput,
     });
     if (Array.isArray(images)) {
       await tx.vehicleImage.deleteMany({ where: { vehicleId: req.params.id } });
