@@ -61,6 +61,33 @@ export async function update(req: Request, res: Response): Promise<void> {
   res.json({ data: updated });
 }
 
+const STAFF_TYPES = new Set(["admin", "staff"]);
+
+async function setStatus(
+  req: Request,
+  res: Response,
+  status: "active" | "sold" | "pending",
+): Promise<void> {
+  if (!STAFF_TYPES.has(req.user!.accountType)) throw AppError.forbidden();
+  const listing = await prisma.salesListing.update({
+    where: { id: req.params.id },
+    data: { status },
+  });
+  res.json({ data: listing });
+}
+
+export async function markSold(req: Request, res: Response): Promise<void> {
+  await setStatus(req, res, "sold");
+}
+
+export async function takeDown(req: Request, res: Response): Promise<void> {
+  await setStatus(req, res, "pending");
+}
+
+export async function restore(req: Request, res: Response): Promise<void> {
+  await setStatus(req, res, "active");
+}
+
 export async function remove(req: Request, res: Response): Promise<void> {
   const listing = await prisma.salesListing.findUnique({ where: { id: req.params.id } });
   if (!listing) throw AppError.notFound("Listing not found");

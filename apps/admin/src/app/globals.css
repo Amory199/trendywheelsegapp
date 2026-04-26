@@ -3,19 +3,127 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #1f2937;
+  --tw-bg: #f7f7fb;
+  --tw-text: #02011f;
+  --tw-blue: #2b0ff8;
+  --tw-pink: #ff0065;
+  --tw-lime: #a9f453;
+  --tw-pool: #00c7ea;
+  --tw-red: #ff0000;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f3f4f6;
-  }
+html, body {
+  background: var(--tw-bg);
+  color: var(--tw-text);
+  font-family: "Source Sans 3", "Source Sans Pro", "Myriad Pro", system-ui, sans-serif;
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Inter, system-ui, sans-serif;
+/* Hide scrollbars on specific surfaces */
+.tw-scrollbar-none::-webkit-scrollbar { display: none; }
+.tw-scrollbar-none { scrollbar-width: none; }
+
+/* Entrance stagger for list children — fade up with 50ms stagger */
+@keyframes twFadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+.tw-stagger > * {
+  opacity: 0;
+  animation: twFadeInUp 420ms cubic-bezier(.2,.7,.3,1) forwards;
+}
+.tw-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.tw-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.tw-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.tw-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.tw-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.tw-stagger > *:nth-child(6) { animation-delay: 250ms; }
+.tw-stagger > *:nth-child(7) { animation-delay: 300ms; }
+.tw-stagger > *:nth-child(8) { animation-delay: 350ms; }
+
+/* Skeleton shimmer */
+@keyframes twShimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+.tw-skeleton {
+  background: linear-gradient(90deg, #e8e8ee 0%, #f4f4f7 50%, #e8e8ee 100%);
+  background-size: 200px 100%;
+  animation: twShimmer 1.4s linear infinite;
+}
+
+/* Pink pulse for unread badges */
+@keyframes twPinkPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,0,101,0.6); }
+  50%      { box-shadow: 0 0 0 6px rgba(255,0,101,0); }
+}
+.tw-pulse { animation: twPinkPulse 1.6s ease-out infinite; }
+
+/* Haptic-feel press: subtle scale on active */
+.tw-press { transition: transform 160ms cubic-bezier(.2,.7,.3,1); }
+.tw-press:active { transform: scale(0.96); transition: transform 80ms ease-out; }
+
+/* Chat typing dots */
+@keyframes twDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Confetti (for booking success screens if ever ported to web) */
+@keyframes twConfettiFall {
+  0%   { transform: translateY(-40px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(380px) rotate(540deg); opacity: 0; }
+}
+
+/* Loyalty tier shimmer gradient */
+@keyframes twTierShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* ─── Animated popover (TWSelect, dropdowns, drawers) ────────── */
+@keyframes twPopIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes twPopOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-6px) scale(0.96); }
+}
+.tw-popover {
+  animation: twPopIn 180ms cubic-bezier(.2,.7,.3,1) forwards;
+  transform-origin: top center;
+}
+
+/* Drawer slide-in from right */
+@keyframes twSlideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.tw-drawer-in { animation: twSlideInRight 280ms cubic-bezier(.2,.7,.3,1) forwards; }
+
+/* Backdrop fade-in */
+@keyframes twBackdropFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.tw-backdrop { animation: twBackdropFade 220ms ease-out forwards; }
+
+/* Hover lift for cards/rows */
+.tw-lift { transition: transform 200ms cubic-bezier(.2,.7,.3,1), box-shadow 200ms ease; }
+.tw-lift:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(2,1,31,0.10); }
+
+/* Spring scale on chip/select trigger when option changes */
+@keyframes twSpring {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.tw-spring { animation: twSpring 280ms cubic-bezier(.2,.7,.3,1); }
+
+/* Number ticker (KPI counters) */
+@keyframes twTickerFlash {
+  0%   { color: inherit; }
+  20%  { color: #FF0065; }
+  100% { color: inherit; }
+}
+.tw-ticker { animation: twTickerFlash 600ms ease-out; }

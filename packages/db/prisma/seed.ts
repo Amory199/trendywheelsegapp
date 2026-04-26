@@ -12,6 +12,8 @@ async function main() {
   console.log("🌱 Seeding TrendyWheels database...");
 
   // Clean slate (dev only)
+  await prisma.leadActivity.deleteMany();
+  await prisma.lead.deleteMany();
   await prisma.loyaltyTransaction.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.auditLog.deleteMany();
@@ -31,8 +33,12 @@ async function main() {
   await prisma.user.deleteMany();
 
   // ─── Users ───────────────────────────────────────────────
-  const adminPassword = await bcrypt.hash("Admin@123!", 12);
-  const staffPassword = await bcrypt.hash("Staff@123!", 12);
+  const [adminPassword, supportPassword, inventoryPassword, mechanicPassword] = await Promise.all([
+    bcrypt.hash("Admin@123!", 12),
+    bcrypt.hash("Support@123!", 12),
+    bcrypt.hash("Inventory@123!", 12),
+    bcrypt.hash("Mechanic@123!", 12),
+  ]);
 
   const admin = await prisma.user.create({
     data: {
@@ -40,9 +46,12 @@ async function main() {
       email: "admin@trendywheelseg.com",
       name: "Mostafa Admin",
       accountType: "admin",
+      staffRole: "admin",
       status: "active",
       passwordHash: adminPassword,
       loyaltyTier: "platinum",
+      salesTargetMonthly: 250000,
+      salesAssignmentWeight: 1,
     },
   });
 
@@ -52,8 +61,22 @@ async function main() {
       email: "support@trendywheelseg.com",
       name: "Sara Support",
       accountType: "staff",
+      staffRole: "support",
       status: "active",
-      passwordHash: staffPassword,
+      passwordHash: supportPassword,
+      loyaltyTier: "gold",
+    },
+  });
+
+  const inventoryManager = await prisma.user.create({
+    data: {
+      phone: "+201000000004",
+      email: "inventory@trendywheelseg.com",
+      name: "Hassan Fleet",
+      accountType: "staff",
+      staffRole: "inventory",
+      status: "active",
+      passwordHash: inventoryPassword,
       loyaltyTier: "gold",
     },
   });
@@ -64,15 +87,43 @@ async function main() {
       email: "mechanic@trendywheelseg.com",
       name: "Ahmed Mechanic",
       accountType: "staff",
+      staffRole: "mechanic",
       status: "active",
-      passwordHash: staffPassword,
+      passwordHash: mechanicPassword,
       loyaltyTier: "gold",
     },
   });
 
+  // ─── Sales Agents ────────────────────────────────────────
+  const salesPassword = await bcrypt.hash("Sales@123!", 12);
+  const salesAgents = await Promise.all(
+    [
+      { phone: "+201000000010", email: "amira@trendywheelseg.com", name: "Amira Hassan", weight: 2, target: 180000 },
+      { phone: "+201000000011", email: "youssef@trendywheelseg.com", name: "Youssef Maged", weight: 1, target: 120000 },
+      { phone: "+201000000012", email: "rana@trendywheelseg.com", name: "Rana Adel", weight: 1, target: 120000 },
+    ].map((s) =>
+      prisma.user.create({
+        data: {
+          phone: s.phone,
+          email: s.email,
+          name: s.name,
+          accountType: "staff",
+          staffRole: "sales",
+          status: "active",
+          passwordHash: salesPassword,
+          loyaltyTier: "gold",
+          salesTargetMonthly: s.target,
+          salesAssignmentWeight: s.weight,
+        },
+      }),
+    ),
+  );
+
+  const customerPassword = await bcrypt.hash("Customer@123!", 12);
+
   const customers = await Promise.all(
     [
-      { phone: "+201112223344", name: "Mohamed Hassan", email: "mohamed@example.com" },
+      { phone: "+201112223344", name: "Mohamed Hassan", email: "mohamed@example.com", passwordHash: customerPassword, licenseNumber: "EG-LIC-2025-001" },
       { phone: "+201223334455", name: "Nour Ibrahim", email: "nour@example.com" },
       { phone: "+201334445566", name: "Omar Khaled", email: "omar@example.com" },
       { phone: "+201445556677", name: "Yasmin Abdallah", email: "yasmin@example.com" },
@@ -90,7 +141,8 @@ async function main() {
     ),
   );
 
-  console.log(`✓ Created ${2 + 1 + customers.length} users`);
+  void inventoryManager; // referenced to avoid unused warning; user is needed for inventory dashboard auth
+  console.log(`✓ Created ${4 + salesAgents.length + customers.length} users`);
 
   // ─── Vehicles ────────────────────────────────────────────
   const vehiclesData = [
@@ -339,9 +391,64 @@ async function main() {
   });
 
   console.log("✓ Seeded sales, repairs, support, KB");
+
+  // ─── CRM: leads from existing customers + assigned to sales ─
+  const leadStatuses: Array<"new" | "contacted" | "qualified" | "proposal" | "won" | "lost"> = [
+    "new",
+    "contacted",
+    "qualified",
+    "proposal",
+    "won",
+  ];
+  await Promise.all(
+    customers.map(async (c, i) => {
+      const owner = salesAgents[i % salesAgents.length];
+      const status = leadStatuses[i % leadStatuses.length];
+      const value = 4000 + Math.floor(Math.random() * 60000);
+      const ttl = 24 * 60 * 60 * 1000;
+      const lead = await prisma.lead.create({
+        data: {
+          customerId: c.id,
+          contactName: c.name,
+          contactPhone: c.phone,
+          contactEmail: c.email,
+          source: "signup",
+          status,
+          estimatedValue: value,
+          ownerId: owner.id,
+          assignedAt: new Date(),
+          claimDeadline: new Date(Date.now() + ttl),
+          lastActivityAt: new Date(Date.now() - i * 60 * 60 * 1000),
+          closedAt: status === "won" ? new Date() : null,
+        },
+      });
+      await prisma.leadActivity.createMany({
+        data: [
+          { leadId: lead.id, actorId: null, type: "created", body: "Auto-created from signup" },
+          { leadId: lead.id, actorId: null, type: "assigned", body: `Auto-assigned to ${owner.name}` },
+          ...(status !== "new"
+            ? [{ leadId: lead.id, actorId: owner.id, type: "call", body: "Initial outreach call" }]
+            : []),
+          ...(status === "won"
+            ? [{ leadId: lead.id, actorId: owner.id, type: "won", body: "Closed-won — booking confirmed" }]
+            : []),
+        ],
+      });
+    }),
+  );
+  console.log("✓ Seeded CRM leads + activities");
+
   console.log("\n🎉 Seed complete!\n");
-  console.log("Admin login: admin@trendywheelseg.com / Admin@123!");
-  console.log("Customer phones: +20111222334, +20122333445, +20133444556");
+  console.log("Staff logins:");
+  console.log("  admin@trendywheelseg.com      / Admin@123!");
+  console.log("  support@trendywheelseg.com    / Support@123!");
+  console.log("  inventory@trendywheelseg.com  / Inventory@123!");
+  console.log("  mechanic@trendywheelseg.com   / Mechanic@123!");
+  console.log("  amira@trendywheelseg.com      / Sales@123!  (sales)");
+  console.log("  youssef@trendywheelseg.com    / Sales@123!  (sales)");
+  console.log("  rana@trendywheelseg.com       / Sales@123!  (sales)");
+  console.log("Customer logins:");
+  console.log("  mohamed@example.com           / Customer@123!");
 }
 
 main()

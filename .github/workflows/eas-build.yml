@@ -1,0 +1,56 @@
+name: EAS Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - "packages/**"
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to build"
+        required: true
+        default: "all"
+        type: choice
+        options: [all, ios, android]
+      profile:
+        description: "Build profile"
+        required: true
+        default: "preview"
+        type: choice
+        options: [development, preview, production]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build with EAS
+        working-directory: apps/mobile
+        run: |
+          eas build \
+            --platform ${{ github.event.inputs.platform || 'all' }} \
+            --profile ${{ github.event.inputs.profile || 'preview' }} \
+            --non-interactive \
+            --no-wait
+        env:
+          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}

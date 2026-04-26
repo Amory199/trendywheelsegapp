@@ -33,5 +33,23 @@ router.delete(
   validate({ params: idParamSchema }),
   salesController.remove,
 );
+router.post(
+  "/:id/mark-sold",
+  authenticate,
+  validate({ params: idParamSchema }),
+  salesController.markSold,
+);
+router.post(
+  "/:id/take-down",
+  authenticate,
+  validate({ params: idParamSchema }),
+  salesController.takeDown,
+);
+router.post(
+  "/:id/restore",
+  authenticate,
+  validate({ params: idParamSchema }),
+  salesController.restore,
+);
 
 export { router as salesRoutes };

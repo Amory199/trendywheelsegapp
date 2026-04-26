@@ -8,6 +8,7 @@ import { env } from "../../config/env.js";
 import type { AuthPayload } from "../../middleware/auth.js";
 import { AppError } from "../../utils/errors.js";
 import { logger } from "../../utils/logger.js";
+import { assignLeadRoundRobin, recordActivity } from "../crm/service.js";
 
 function generateOtp(): string {
   return crypto.randomInt(100000, 999999).toString();
@@ -74,6 +75,7 @@ export async function verifyOtp(
 
   // Find or create user
   let user = await prisma.user.findUnique({ where: { phone } });
+  let isNewSignup = false;
   if (!user) {
     user = await prisma.user.create({
       data: {
@@ -84,6 +86,28 @@ export async function verifyOtp(
         loyaltyPoints: 0,
       },
     });
+    isNewSignup = true;
+  }
+
+  // Auto-create + assign lead for new signups (customer-only).
+  if (isNewSignup && user.accountType === "customer") {
+    try {
+      const lead = await prisma.lead.create({
+        data: {
+          customerId: user.id,
+          contactName: user.name || `Customer ${user.phone.slice(-4)}`,
+          contactPhone: user.phone,
+          contactEmail: user.email,
+          source: "signup",
+          status: "new",
+          estimatedValue: 0,
+        },
+      });
+      await recordActivity(lead.id, null, "created", "Lead auto-created from signup");
+      await assignLeadRoundRobin(lead.id);
+    } catch (err) {
+      logger.warn({ err, userId: user.id }, "Failed to create signup lead");
+    }
   }
 
   // Generate tokens

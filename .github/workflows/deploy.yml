@@ -28,10 +28,4 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd /opt/trendywheels
-            git pull origin main
-            pnpm install --frozen-lockfile
-            pnpm turbo run build
-            npx prisma migrate deploy --schema=packages/db/prisma/schema.prisma
-            pm2 reload infra/ecosystem.config.js --env production
+          script: /opt/trendywheels/infra/scripts/deploy.sh

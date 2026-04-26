@@ -31,6 +31,32 @@ enum LoyaltyTier {
   platinum
 }
 
+enum StaffRole {
+  admin
+  sales
+  support
+  inventory
+  mechanic
+}
+
+enum LeadStatus {
+  new
+  contacted
+  qualified
+  proposal
+  won
+  lost
+}
+
+enum LeadSource {
+  signup
+  rent_inquiry  @map("rent-inquiry")
+  sell_inquiry  @map("sell-inquiry")
+  repair_inquiry @map("repair-inquiry")
+  manual
+  imported
+}
+
 model User {
   id            String      @id @default(uuid()) @db.Uuid
   phone         String      @unique
@@ -44,6 +70,12 @@ model User {
   loyaltyPoints Int         @default(0) @map("loyalty_points")
   passwordHash  String?     @map("password_hash")
   totpSecret    String?     @map("totp_secret")
+  licenseNumber  String?    @map("license_number")
+  licenseExpiry  DateTime?  @map("license_expiry")
+  licensePhotoUrl String?   @map("license_photo_url")
+  staffRole          StaffRole? @map("staff_role")
+  salesTargetMonthly Decimal?   @map("sales_target_monthly") @db.Decimal(12, 2)
+  salesAssignmentWeight Int     @default(1) @map("sales_assignment_weight")
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
@@ -60,6 +92,13 @@ model User {
   auditLogs        AuditLog[]
   notifications    Notification[]
   loyaltyTxns      LoyaltyTransaction[]
+  conditionReports VehicleConditionReport[] @relation("ConditionReporter")
+  conversationParticipants ConversationParticipant[]
+  customerNotes    CustomerNote[]           @relation("CustomerNotes")
+  authoredNotes    CustomerNote[]           @relation("AuthorNotes")
+  ownedLeads       Lead[]                    @relation("LeadOwner")
+  customerLead     Lead?                     @relation("LeadCustomer")
+  leadActivities   LeadActivity[]            @relation("LeadActivityActor")
 
   @@map("users")
 }
@@ -142,6 +181,8 @@ model Vehicle {
   bookings         Booking[]
   repairRequests   RepairRequest[]
   maintenanceLogs  VehicleMaintenance[]
+  conditionReports VehicleConditionReport[]
+  alertEvents      AlertEvent[]
 
   @@index([status])
   @@index([type])
@@ -217,8 +258,10 @@ model ConversationParticipant {
   userId         String @map("user_id") @db.Uuid
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
+  @@index([userId])
   @@map("conversation_participants")
 }
 
@@ -263,6 +306,7 @@ enum RepairStatus {
   assigned
   in_progress @map("in-progress")
   completed
+  cancelled
 }
 
 model RepairRequest {
@@ -450,4 +494,126 @@ model LoyaltyTransaction {
 
   @@index([userId])
   @@map("loyalty_transactions")
+}
+
+model SystemConfig {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyName     String   @default("TrendyWheels") @map("company_name")
+  companyEmail    String?  @map("company_email")
+  companyPhone    String?  @map("company_phone")
+  companyAddress  String?  @map("company_address")
+  companyHours    String?  @map("company_hours")
+  currency        String   @default("EGP")
+  taxRatePct      Decimal  @default(14.0) @db.Decimal(5, 2) @map("tax_rate_pct")
+  emailTemplates  Json     @default("{}") @map("email_templates")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  updatedById     String?  @map("updated_by_id") @db.Uuid
+
+  @@map("system_config")
+}
+
+model AlertConfig {
+  id                   String   @id @default(uuid()) @db.Uuid
+  utilizationMaxPct    Int      @default(80) @map("utilization_max_pct")
+  maintenanceDueDays   Int      @default(7)  @map("maintenance_due_days")
+  maxConcurrentRepairs Int      @default(5)  @map("max_concurrent_repairs")
+  updatedAt            DateTime @updatedAt   @map("updated_at")
+  updatedById          String?  @map("updated_by_id") @db.Uuid
+
+  @@map("alert_config")
+}
+
+model VehicleConditionReport {
+  id          String   @id @default(uuid()) @db.Uuid
+  vehicleId   String   @map("vehicle_id") @db.Uuid
+  reporterId  String   @map("reporter_id") @db.Uuid
+  notes       String
+  photos      Json     @default("[]")
+  severity    String   @default("minor")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  vehicle  Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  reporter User    @relation("ConditionReporter", fields: [reporterId], references: [id])
+
+  @@index([vehicleId, createdAt])
+  @@map("vehicle_condition_reports")
+}
+
+model CustomerNote {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  authorId   String   @map("author_id") @db.Uuid
+  body       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  customer User @relation("CustomerNotes", fields: [customerId], references: [id], onDelete: Cascade)
+  author   User @relation("AuthorNotes", fields: [authorId], references: [id])
+
+  @@index([customerId, createdAt])
+  @@map("customer_notes")
+}
+
+// ─── CRM / Sales Cycle ───────────────────────────────────────
+
+model Lead {
+  id                String      @id @default(uuid()) @db.Uuid
+  customerId        String?     @unique @map("customer_id") @db.Uuid
+  contactName       String      @map("contact_name")
+  contactPhone      String?     @map("contact_phone")
+  contactEmail      String?     @map("contact_email")
+  source            LeadSource  @default(signup)
+  status            LeadStatus  @default(new)
+  estimatedValue    Decimal     @default(0) @map("estimated_value") @db.Decimal(12, 2)
+  notes             String?
+  ownerId           String?     @map("owner_id") @db.Uuid
+  assignedAt        DateTime?   @map("assigned_at")
+  claimDeadline     DateTime?   @map("claim_deadline")
+  lastActivityAt    DateTime    @default(now()) @map("last_activity_at")
+  reassignmentCount Int         @default(0) @map("reassignment_count")
+  closedAt          DateTime?   @map("closed_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  customer    User?           @relation("LeadCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  owner       User?           @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  activities  LeadActivity[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([claimDeadline])
+  @@index([lastActivityAt])
+  @@map("leads")
+}
+
+model LeadActivity {
+  id        String   @id @default(uuid()) @db.Uuid
+  leadId    String   @map("lead_id") @db.Uuid
+  actorId   String?  @map("actor_id") @db.Uuid
+  type      String   // "created" | "assigned" | "reassigned" | "status-change" | "note" | "call" | "email" | "won" | "lost"
+  body      String
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lead  Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor User? @relation("LeadActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+  @@map("lead_activities")
+}
+
+model AlertEvent {
+  id         String    @id @default(uuid()) @db.Uuid
+  type       String
+  severity   String    @default("warning")
+  message    String
+  vehicleId  String?   @map("vehicle_id") @db.Uuid
+  resolvedAt DateTime? @map("resolved_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  @@index([type])
+  @@index([resolvedAt])
+  @@index([createdAt])
+  @@map("alert_events")
 }

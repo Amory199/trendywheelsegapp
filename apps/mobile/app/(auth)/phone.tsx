@@ -1,7 +1,7 @@
 import { colors, spacing, typography, borderRadius } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Linking } from "react-native";
 
 import { useAuth } from "../../lib/auth-store";
 
@@ -10,8 +10,13 @@ export default function PhoneScreen(): JSX.Element {
   const sendOtp = useAuth((s) => s.sendOtp);
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [consented, setConsented] = useState(false);
 
   const handleSendOtp = async (): Promise<void> => {
+    if (!consented) {
+      Alert.alert("Required", "Please accept the Privacy Policy to continue.");
+      return;
+    }
     setLoading(true);
     try {
       await sendOtp(phone);
@@ -40,9 +45,29 @@ export default function PhoneScreen(): JSX.Element {
         />
 
         <TouchableOpacity
-          style={[styles.button, (!phone || loading) && styles.buttonDisabled]}
+          style={styles.consentRow}
+          onPress={() => setConsented((v) => !v)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.checkbox, consented && styles.checkboxChecked]}>
+            {consented && <Text style={styles.checkmark}>✓</Text>}
+          </View>
+          <Text style={styles.consentText}>
+            I agree to the{" "}
+            <Text
+              style={styles.consentLink}
+              onPress={() => void Linking.openURL("https://trendywheelseg.com/privacy")}
+            >
+              Privacy Policy
+            </Text>
+            {" "}and consent to processing my personal data.
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, (!phone || loading || !consented) && styles.buttonDisabled]}
           onPress={() => void handleSendOtp()}
-          disabled={!phone || loading}
+          disabled={!phone || loading || !consented}
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>{loading ? "Sending…" : "Send OTP"}</Text>
@@ -86,6 +111,43 @@ const styles = StyleSheet.create({
     color: colors.text.light,
     backgroundColor: colors.dark.card,
     marginBottom: spacing.lg,
+  },
+  consentRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    width: "100%",
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: colors.dark.border,
+    borderRadius: 4,
+    marginTop: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary[700],
+    borderColor: colors.primary[700],
+  },
+  checkmark: {
+    color: colors.text.light,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  consentText: {
+    flex: 1,
+    fontSize: typography.fontSize.caption,
+    color: colors.text.secondary,
+    lineHeight: 18,
+  },
+  consentLink: {
+    color: colors.primary[300],
+    textDecorationLine: "underline",
   },
   button: {
     width: "100%",

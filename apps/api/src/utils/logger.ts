@@ -12,7 +12,20 @@ export const logger = pino({
         }
       : undefined,
   redact: {
-    paths: ["req.headers.authorization", "*.password", "*.token", "*.refreshToken", "*.otp"],
+    paths: [
+      "req.headers.authorization",
+      "req.headers.cookie",
+      "*.password",
+      "*.passwordHash",
+      "*.token",
+      "*.tokenHash",
+      "*.refreshToken",
+      "*.otp",
+      "*.otpHash",
+      "*.phone",
+      "*.phoneNumber",
+      "*.email",
+    ],
     censor: "[REDACTED]",
   },
 });

@@ -22,5 +22,23 @@ router.put(
   bookingController.update,
 );
 router.delete("/:id", authenticate, validate({ params: idParamSchema }), bookingController.remove);
+router.post(
+  "/:id/cancel",
+  authenticate,
+  validate({ params: idParamSchema }),
+  bookingController.cancel,
+);
+router.post(
+  "/:id/mark-paid",
+  authenticate,
+  validate({ params: idParamSchema }),
+  bookingController.markPaid,
+);
+router.post(
+  "/:id/refund",
+  authenticate,
+  validate({ params: idParamSchema }),
+  bookingController.refund,
+);
 
 export { router as bookingRoutes };

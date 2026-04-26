@@ -2,8 +2,18 @@
   "extends": "@trendywheels/tsconfig/react-native.json",
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["app", "lib", "src", "*.ts", "*.tsx"]
+  "include": [
+    "app",
+    "lib",
+    "src",
+    "*.ts",
+    "*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
 }

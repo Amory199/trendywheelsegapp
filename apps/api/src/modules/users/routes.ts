@@ -23,5 +23,31 @@ router.get(
   validate({ params: idParamSchema }),
   userController.getInteractions,
 );
+router.get(
+  "/:id/export",
+  authenticate,
+  validate({ params: idParamSchema }),
+  userController.exportData,
+);
+router.delete(
+  "/:id",
+  authenticate,
+  validate({ params: idParamSchema }),
+  userController.deleteAccount,
+);
+router.post(
+  "/:id/disable",
+  authenticate,
+  authorize("admin", "staff"),
+  validate({ params: idParamSchema }),
+  userController.disable,
+);
+router.post(
+  "/:id/enable",
+  authenticate,
+  authorize("admin", "staff"),
+  validate({ params: idParamSchema }),
+  userController.enable,
+);
 
 export { router as userRoutes };

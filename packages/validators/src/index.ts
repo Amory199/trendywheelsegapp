@@ -44,6 +44,7 @@ export const createVehicleSchema = z.object({
   dailyRate: z.number().positive(),
   location: z.string().min(1).max(200),
   features: z.array(z.string()).default([]),
+  images: z.array(z.string().url()).max(10).default([]),
 });
 
 export const updateVehicleSchema = createVehicleSchema.partial().extend({
@@ -56,7 +57,7 @@ export const vehicleFiltersSchema = z.object({
   priceMax: z.coerce.number().positive().optional(),
   available: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(500).default(20),
 });
 
 // ─── Bookings ────────────────────────────────────────────────
@@ -85,15 +86,21 @@ export const bookingFiltersSchema = z.object({
   userId: z.string().uuid().optional(),
   vehicleId: z.string().uuid().optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(500).default(20),
 });
 
 // ─── Users / CRM ─────────────────────────────────────────────
 
 export const updateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  email: z.string().email().optional(),
+  email: z.string().email().nullable().optional(),
   phone: sendOtpSchema.shape.phone.optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+  accountType: z.enum(["customer", "admin", "staff"]).optional(),
+  status: z.enum(["active", "inactive", "suspended"]).optional(),
+  licenseNumber: z.string().min(3).max(40).nullable().optional(),
+  licenseExpiry: z.string().datetime().nullable().optional(),
+  licensePhotoUrl: z.string().url().nullable().optional(),
   preferences: z
     .object({
       theme: z.enum(["light", "dark"]).optional(),
@@ -123,7 +130,7 @@ export const sendMessageSchema = z.object({
 
 const repairCategoryEnum = z.enum(["mechanical", "electrical", "cosmetic", "other"]);
 const repairPriorityEnum = z.enum(["low", "medium", "high", "urgent"]);
-const repairStatusEnum = z.enum(["submitted", "assigned", "in-progress", "completed"]);
+const repairStatusEnum = z.enum(["submitted", "assigned", "in-progress", "completed", "cancelled"]);
 
 export const createRepairRequestSchema = z.object({
   vehicleId: z.string().uuid(),
@@ -182,7 +189,7 @@ export const updateTicketSchema = z.object({
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(500).default(20),
 });
 
 // ─── ID param ────────────────────────────────────────────────

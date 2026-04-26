@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
+import { recordActivity } from "../crm/service.js";
 
 export async function list(req: Request, res: Response): Promise<void> {
   const { status, userId, vehicleId, page = 1, limit = 20 } = req.query as Record<string, string>;
@@ -76,6 +77,26 @@ export async function create(req: Request, res: Response): Promise<void> {
     data: { totalBookings: { increment: 1 } },
   });
 
+  // Update CRM lead — bump value, mark contacted, log activity.
+  const lead = await prisma.lead.findUnique({ where: { customerId: userId } });
+  if (lead) {
+    const nextStatus = lead.status === "new" ? "qualified" : lead.status;
+    await prisma.lead.update({
+      where: { id: lead.id },
+      data: {
+        estimatedValue: { increment: totalCost },
+        status: nextStatus,
+        lastActivityAt: new Date(),
+      },
+    });
+    await recordActivity(
+      lead.id,
+      null,
+      "note",
+      `Booked ${vehicle.name} for ${days} day${days === 1 ? "" : "s"} (EGP ${totalCost.toLocaleString()})`,
+    );
+  }
+
   res.status(201).json({ data: booking, id: booking.id });
 }
 
@@ -93,6 +114,43 @@ export async function update(req: Request, res: Response): Promise<void> {
     data: req.body,
   });
 
+  res.json({ data: updated });
+}
+
+const STAFF_TYPES = new Set(["admin", "staff"]);
+
+export async function cancel(req: Request, res: Response): Promise<void> {
+  const booking = await prisma.booking.findUnique({ where: { id: req.params.id } });
+  if (!booking) throw AppError.notFound("Booking not found");
+  if (!STAFF_TYPES.has(req.user!.accountType) && booking.userId !== req.user!.userId) {
+    throw AppError.forbidden();
+  }
+  const wasPaid = booking.paymentStatus === "paid";
+  const updated = await prisma.booking.update({
+    where: { id: booking.id },
+    data: {
+      status: "cancelled",
+      paymentStatus: wasPaid ? "refunded" : booking.paymentStatus,
+    },
+  });
+  res.json({ data: updated });
+}
+
+export async function markPaid(req: Request, res: Response): Promise<void> {
+  if (!STAFF_TYPES.has(req.user!.accountType)) throw AppError.forbidden();
+  const updated = await prisma.booking.update({
+    where: { id: req.params.id },
+    data: { paymentStatus: "paid" },
+  });
+  res.json({ data: updated });
+}
+
+export async function refund(req: Request, res: Response): Promise<void> {
+  if (!STAFF_TYPES.has(req.user!.accountType)) throw AppError.forbidden();
+  const updated = await prisma.booking.update({
+    where: { id: req.params.id },
+    data: { paymentStatus: "refunded" },
+  });
   res.json({ data: updated });
 }
 

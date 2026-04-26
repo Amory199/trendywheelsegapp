@@ -88,6 +88,10 @@ export function registerSocketNamespaces(io: SocketServer): void {
       messages.to(`user:${recipientId}`).emit("typing:start", { from: user.userId });
     });
 
+    socket.on("typing:stop", (recipientId: string) => {
+      messages.to(`user:${recipientId}`).emit("typing:stop", { from: user.userId });
+    });
+
     socket.on("disconnect", () => {
       logger.debug({ userId: user.userId, ns: "messages" }, "Socket disconnected");
     });
@@ -108,5 +112,19 @@ export function registerSocketNamespaces(io: SocketServer): void {
     socket.on("disconnect", () => undefined);
   });
 
-  logger.info("Socket.io namespaces registered: /messages, /admin");
+  // ─── /notifications namespace ─────────────────────────────
+  const notifications = io.of("/notifications");
+  notifications.use(authMiddleware);
+
+  notifications.on("connection", (socket) => {
+    const user = (socket as AuthedSocket).data.user;
+    socket.join(`user:${user.userId}`);
+    logger.info({ userId: user.userId, ns: "notifications" }, "Socket connected");
+
+    socket.on("disconnect", () => {
+      logger.debug({ userId: user.userId, ns: "notifications" }, "Socket disconnected");
+    });
+  });
+
+  logger.info("Socket.io namespaces registered: /messages, /admin, /notifications");
 }
