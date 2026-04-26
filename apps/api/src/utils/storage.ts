@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import {
   CreateBucketCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadBucketCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
@@ -45,6 +46,21 @@ export async function deleteObject(key: string): Promise<void> {
   await s3.send(new DeleteObjectCommand({ Bucket: S3_BUCKET, Key: key }));
 }
 
+export async function presignUpload(
+  prefix: string,
+  mimeType: string,
+  expiresIn = 300,
+): Promise<{ uploadUrl: string; key: string; fileUrl: string }> {
+  const ext = mimeType.split("/")[1] ?? "bin";
+  const key = `${prefix}/${randomUUID()}.${ext}`;
+  const uploadUrl = await getSignedUrl(
+    s3,
+    new PutObjectCommand({ Bucket: S3_BUCKET, Key: key, ContentType: mimeType }),
+    { expiresIn },
+  );
+  return { uploadUrl, key, fileUrl: `/storage/${key}` };
+}
+
 export async function presignDownload(key: string, expiresIn = 3600): Promise<string> {
-  return getSignedUrl(s3, new PutObjectCommand({ Bucket: S3_BUCKET, Key: key }), { expiresIn });
+  return getSignedUrl(s3, new GetObjectCommand({ Bucket: S3_BUCKET, Key: key }), { expiresIn });
 }

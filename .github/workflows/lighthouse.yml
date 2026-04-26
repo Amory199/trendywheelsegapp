@@ -1,0 +1,78 @@
+name: Lighthouse CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/admin/**"
+      - "apps/support/**"
+      - "apps/inventory/**"
+      - "packages/**"
+  pull_request:
+    branches: [main]
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app:
+          - name: admin
+            dir: apps/admin
+            port: 3001
+          - name: support
+            dir: apps/support
+            port: 3002
+          - name: inventory
+            dir: apps/inventory
+            port: 3003
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @trendywheels/${{ matrix.app.name }} build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+
+      - name: Start ${{ matrix.app.name }}
+        working-directory: ${{ matrix.app.dir }}
+        run: pnpm start &
+        env:
+          PORT: ${{ matrix.app.port }}
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+
+      - name: Wait for server
+        run: npx wait-on http://localhost:${{ matrix.app.port }} --timeout 30000
+
+      - name: Run Lighthouse
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            http://localhost:${{ matrix.app.port }}/login
+          configPath: ".github/lighthouse/lighthouserc.json"
+          uploadArtifacts: true
+          temporaryPublicStorage: false
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Security audit
+        run: pnpm audit --audit-level=high

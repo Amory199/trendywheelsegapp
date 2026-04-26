@@ -1,51 +1,128 @@
 // TrendyWheels Design Tokens
 // Source of truth for all colors, spacing, typography across mobile and web.
+// Brand values sourced from official brand guide (see /opt/trendywheels-brand-source).
 
 export const colors = {
-  // Primary blue gradient
+  // Friendly Blue — brand primary. Scale built around #2B0FF8.
   primary: {
-    50: "#EFF6FF",
-    100: "#DBEAFE",
-    200: "#BFDBFE",
-    300: "#93C5FD",
-    400: "#60A5FA",
-    500: "#3B82F6",
-    600: "#2563EB",
-    700: "#1E50B4",
-    800: "#1E40AF",
-    900: "#1E3A8A",
+    50: "#EEECFF",
+    100: "#D3CDFE",
+    200: "#A8A0FD",
+    300: "#7D6FFC",
+    400: "#523FFA",
+    500: "#2B0FF8",
+    600: "#2309CC",
+    700: "#1B079A",
+    800: "#130568",
+    900: "#0C0342",
   },
-  // Neon green accent
+  // Trendy Pink — brand accent, used for CTAs and highlights.
   accent: {
-    DEFAULT: "#00FF00",
-    light: "#4AFF4A",
-    dark: "#00CC00",
+    DEFAULT: "#FF0065",
+    light: "#FF4D8F",
+    dark: "#CC0051",
   },
-  // Dark mode
+  // Full named brand palette from the brand guide.
+  brand: {
+    friendlyBlue: "#2B0FF8",
+    trendyPink: "#FF0065",
+    ecoLimelight: "#A9F453",
+    poolBlue: "#00C7EA",
+    ultraRed: "#FF0000",
+    trustWorth: "#02011F",
+    loyalty: "#FFFFFF",
+  },
+  // Dark mode — anchored on Trust Worth navy.
   dark: {
-    bg: "#0F172A",
-    card: "#1F2937",
-    border: "#374151",
+    bg: "#02011F",
+    card: "#0A0833",
+    border: "#1E1B4B",
   },
-  // Light mode
   light: {
     bg: "#FFFFFF",
     card: "#FFFFFF",
     border: "#E5E7EB",
   },
-  // Semantic
-  success: "#10B981",
+  success: "#A9F453",
   warning: "#F59E0B",
-  error: "#EF4444",
-  info: "#3B82F6",
-  // Text
+  error: "#FF0000",
+  info: "#00C7EA",
   text: {
-    primary: "#1F2937",
+    primary: "#02011F",
     secondary: "#6B7280",
     light: "#F3F4F6",
     placeholder: "#9CA3AF",
   },
+  // Tonal ink scale — bridges pure white and Trust Worth navy.
+  ink: {
+    50: "#F4F4F7",
+    100: "#E8E8EE",
+    200: "#CBCAD6",
+    300: "#9B9AAE",
+    500: "#4B4A6B",
+    700: "#1E1B4B",
+    900: "#02011F",
+  },
 } as const;
+
+// Mode-aware palette resolver — returns the concrete colors a UI surface should use
+// for background/card/border/text/etc. given the current dark-mode flag.
+export type Palette = {
+  bg: string;
+  card: string;
+  cardAlt: string;
+  border: string;
+  text: string;
+  muted: string;
+  faint: string;
+  hairline: string;
+  tabInactive: string;
+  chipBg: string;
+  blue: string;
+  pink: string;
+  lime: string;
+  pool: string;
+  red: string;
+};
+
+export function twPalette(dark: boolean): Palette {
+  if (dark) {
+    return {
+      bg: colors.brand.trustWorth,
+      card: colors.dark.card,
+      cardAlt: "#120F3D",
+      border: colors.dark.border,
+      text: colors.brand.loyalty,
+      muted: "rgba(255,255,255,0.58)",
+      faint: "rgba(255,255,255,0.14)",
+      hairline: "rgba(255,255,255,0.08)",
+      tabInactive: "rgba(255,255,255,0.42)",
+      chipBg: "rgba(255,255,255,0.06)",
+      blue: colors.brand.friendlyBlue,
+      pink: colors.brand.trendyPink,
+      lime: colors.brand.ecoLimelight,
+      pool: colors.brand.poolBlue,
+      red: colors.brand.ultraRed,
+    };
+  }
+  return {
+    bg: "#F7F7FB",
+    card: colors.brand.loyalty,
+    cardAlt: colors.ink[50],
+    border: colors.ink[100],
+    text: colors.brand.trustWorth,
+    muted: "#6B6A85",
+    faint: colors.ink[100],
+    hairline: "rgba(2,1,31,0.08)",
+    tabInactive: colors.ink[300],
+    chipBg: colors.ink[50],
+    blue: colors.brand.friendlyBlue,
+    pink: colors.brand.trendyPink,
+    lime: colors.brand.ecoLimelight,
+    pool: colors.brand.poolBlue,
+    red: colors.brand.ultraRed,
+  };
+}
 
 export const spacing = {
   xs: 4,
@@ -67,8 +144,9 @@ export const borderRadius = {
 
 export const typography = {
   fontFamily: {
-    display: "Inter, Poppins, system-ui, sans-serif",
-    body: "Inter, system-ui, sans-serif",
+    display: "Anton, Impact, 'Bebas Neue', system-ui, sans-serif",
+    body: "'Source Sans 3', 'Source Sans Pro', 'Myriad Pro', system-ui, sans-serif",
+    arabic: "'Cairo', 'Noto Sans Arabic', 'Tajawal', system-ui, sans-serif",
     mono: "Fira Code, monospace",
   },
   fontSize: {
@@ -104,6 +182,28 @@ export const shadows = {
   xl: "0 8px 24px rgba(0, 0, 0, 0.12)",
 } as const;
 
+// Motion tokens — single ease curve + durations per TrendyWheels.html.
+export const motion = {
+  ease: "cubic-bezier(.2,.7,.3,1)",
+  duration: {
+    fast: 180,
+    medium: 320,
+    slow: 420,
+  },
+  stagger: 50,
+} as const;
+
+// Currency helpers — consumed by every pricing UI in both EN and AR.
+export function twEGP(amount: number, rtl = false): string {
+  const s = amount.toLocaleString("en-US");
+  return rtl ? `${s} ج.م` : `EGP ${s}`;
+}
+
+export function twPrice(amount: number, rtl = false): string {
+  const s = amount.toLocaleString("en-US");
+  return rtl ? `${s} ج.م/يوم` : `EGP ${s}/day`;
+}
+
 export const layout = {
   bottomTabHeight: 56,
   topNavHeight: 64,
@@ -119,6 +219,7 @@ export const tailwindPreset = {
       colors: {
         primary: colors.primary,
         accent: colors.accent,
+        brand: colors.brand,
         success: colors.success,
         warning: colors.warning,
         error: colors.error,
@@ -128,7 +229,16 @@ export const tailwindPreset = {
       fontFamily: {
         display: [typography.fontFamily.display],
         body: [typography.fontFamily.body],
+        arabic: [typography.fontFamily.arabic],
         mono: [typography.fontFamily.mono],
+      },
+      transitionTimingFunction: {
+        tw: motion.ease,
+      },
+      transitionDuration: {
+        "tw-fast": `${motion.duration.fast}ms`,
+        "tw-medium": `${motion.duration.medium}ms`,
+        "tw-slow": `${motion.duration.slow}ms`,
       },
       spacing: {
         xs: `${spacing.xs}px`,

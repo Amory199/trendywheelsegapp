@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
+import { getIO } from "../../utils/io-registry.js";
 
 async function findOrCreateConversation(userA: string, userB: string): Promise<string> {
   const existing = await prisma.conversation.findFirst({
@@ -35,8 +36,17 @@ export async function listConversations(req: Request, res: Response): Promise<vo
   res.json({ data: conversations });
 }
 
+async function assertParticipant(conversationId: string, userId: string): Promise<void> {
+  const membership = await prisma.conversationParticipant.findFirst({
+    where: { conversationId, userId },
+    select: { id: true },
+  });
+  if (!membership) throw AppError.forbidden("Not a participant of this conversation");
+}
+
 export async function listMessages(req: Request, res: Response): Promise<void> {
   const { conversationId } = req.params;
+  await assertParticipant(conversationId, req.user!.userId);
   const messages = await prisma.message.findMany({
     where: { conversationId },
     orderBy: { createdAt: "asc" },
@@ -62,10 +72,17 @@ export async function send(req: Request, res: Response): Promise<void> {
     data: { lastMessageAt: new Date() },
   });
 
+  // Emit real-time event to recipient
+  const io = getIO();
+  if (io) {
+    io.of("/messages").to(`user:${recipientId}`).emit("message:new", created);
+  }
+
   res.status(201).json({ data: created });
 }
 
 export async function markRead(req: Request, res: Response): Promise<void> {
+  await assertParticipant(req.params.conversationId, req.user!.userId);
   await prisma.message.updateMany({
     where: { conversationId: req.params.conversationId, recipientId: req.user!.userId, readAt: null },
     data: { readAt: new Date() },

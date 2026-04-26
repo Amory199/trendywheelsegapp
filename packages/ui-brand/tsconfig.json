@@ -1,0 +1,16 @@
+{
+  "extends": "@trendywheels/tsconfig/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2020", "DOM"],
+    "skipLibCheck": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*"]
+}

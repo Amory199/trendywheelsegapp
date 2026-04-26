@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0F172A"
+      "backgroundColor": "#FFFFFF"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -20,11 +20,23 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0F172A"
+        "backgroundColor": "#FFFFFF"
       },
       "package": "com.trendywheels.app"
     },
-    "plugins": ["expo-router", "expo-secure-store", "expo-local-authentication"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-local-authentication",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#2B0FF8",
+          "defaultChannel": "default"
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     },

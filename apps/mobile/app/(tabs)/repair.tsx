@@ -1,128 +1,155 @@
-import { colors, spacing, typography, borderRadius } from "@trendywheels/ui-tokens";
-import { useState } from "react";
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
+import type { RepairRequest } from "@trendywheels/types";
+import { colors } from "@trendywheels/ui-tokens";
+import { useRouter } from "expo-router";
+import * as React from "react";
+import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { getAccessToken } from "../../lib/api";
+import { TWBadge, TWButton, TWCard, TWPressable, palette } from "../../components/ui";
+import { api } from "../../lib/api";
 
-const baseUrl = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:4000";
+const STATUS_ORDER = ["submitted", "assigned", "in-progress", "completed"] as const;
+type RepairStatus = (typeof STATUS_ORDER)[number];
 
-export default function RepairScreen(): JSX.Element {
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<"mechanical" | "electrical" | "cosmetic" | "other">(
-    "mechanical",
-  );
-  const [submitting, setSubmitting] = useState(false);
+const STATUS_LABEL: Record<RepairStatus, string> = {
+  submitted: "Requested",
+  assigned: "Scheduled",
+  "in-progress": "In progress",
+  completed: "Completed",
+};
 
-  const submit = async (): Promise<void> => {
-    setSubmitting(true);
-    try {
-      const token = await getAccessToken();
-      const res = await fetch(`${baseUrl}/api/repairs`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ description, category, priority: "medium" }),
-      });
-      if (!res.ok) throw new Error("Submit failed");
-      Alert.alert("Submitted", "We'll be in touch soon.");
-      setDescription("");
-    } catch (err) {
-      Alert.alert("Failed", err instanceof Error ? err.message : "Try again");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+const STATUS_TONE: Record<RepairStatus, "muted" | "blue" | "amber" | "lime"> = {
+  submitted: "muted",
+  assigned: "blue",
+  "in-progress": "amber",
+  completed: "lime",
+};
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing.lg }}>
-      <Text style={styles.title}>Request a repair</Text>
-      <Text style={styles.subtitle}>Tell us what's wrong and our team will follow up.</Text>
-
-      <Text style={styles.label}>Category</Text>
-      <View style={styles.row}>
-        {(["mechanical", "electrical", "cosmetic", "other"] as const).map((c) => (
-          <TouchableOpacity
-            key={c}
-            style={[styles.chip, category === c && styles.chipActive]}
-            onPress={() => setCategory(c)}
-          >
-            <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{c}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.label}>Description</Text>
-      <TextInput
-        style={styles.input}
-        multiline
-        numberOfLines={5}
-        placeholder="Describe the issue…"
-        placeholderTextColor={colors.text.placeholder}
-        value={description}
-        onChangeText={setDescription}
-      />
-
-      <TouchableOpacity
-        style={[styles.button, (!description || submitting) && styles.buttonDisabled]}
-        disabled={!description || submitting}
-        onPress={() => void submit()}
-      >
-        <Text style={styles.buttonText}>{submitting ? "Submitting…" : "Submit request"}</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
+function statusIndex(s: string): number {
+  const i = STATUS_ORDER.indexOf(s as RepairStatus);
+  return i === -1 ? 0 : i;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.dark.bg },
-  title: {
-    paddingTop: 40,
-    fontSize: typography.fontSize.h1,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.light,
-  },
-  subtitle: { color: colors.text.secondary, marginTop: 4, marginBottom: spacing.lg },
-  label: { color: colors.text.secondary, marginTop: spacing.md, marginBottom: spacing.xs },
-  row: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    backgroundColor: colors.dark.card,
-  },
-  chipActive: { backgroundColor: colors.accent.DEFAULT, borderColor: colors.accent.DEFAULT },
-  chipText: { color: colors.text.secondary, fontSize: 12 },
-  chipTextActive: { color: colors.dark.bg, fontWeight: "700" },
-  input: {
-    backgroundColor: colors.dark.card,
-    borderColor: colors.dark.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    color: colors.text.light,
-    minHeight: 120,
-    textAlignVertical: "top",
-  },
-  button: {
-    marginTop: spacing.lg,
-    height: 44,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.accent.DEFAULT,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: colors.dark.bg, fontWeight: "700" },
-});
+export default function RepairScreen(): React.JSX.Element {
+  const router = useRouter();
+
+  const q = useQuery({
+    queryKey: ["repair-requests"],
+    queryFn: () => api.getRepairRequests(),
+  });
+
+  const repairs = (q.data?.data ?? []) as RepairRequest[];
+
+  return (
+    <View style={{ flex: 1, backgroundColor: palette.bg }}>
+      <View style={{ paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" }}>
+        <View>
+          <Text style={{ fontSize: 11, color: palette.muted, fontWeight: "700", letterSpacing: 0.8 }}>
+            BOOK REPAIRS IN MINUTES
+          </Text>
+          <Text style={{ fontFamily: "Anton", fontSize: 30, color: palette.text, textTransform: "uppercase", letterSpacing: 0.3, marginTop: 4 }}>
+            My repairs
+          </Text>
+        </View>
+        <TWButton kind="pink" size="sm" icon="add" onPress={() => router.push("/repair/request")}>
+          New
+        </TWButton>
+      </View>
+
+      {q.isLoading ? (
+        <ActivityIndicator color={colors.brand.friendlyBlue} style={{ marginTop: 40 }} size="large" />
+      ) : repairs.length === 0 ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 16, paddingHorizontal: 40 }}>
+          <View
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: `${colors.brand.friendlyBlue}12`,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="construct-outline" size={36} color={colors.brand.friendlyBlue} />
+          </View>
+          <Text style={{ fontFamily: "Anton", fontSize: 22, color: palette.text, textTransform: "uppercase", textAlign: "center", letterSpacing: 0.3 }}>
+            No repairs yet
+          </Text>
+          <Text style={{ fontSize: 14, color: palette.muted, textAlign: "center", lineHeight: 20 }}>
+            Certified mechanics come to you. Track every step in real-time.
+          </Text>
+          <TWButton kind="pink" size="lg" onPress={() => router.push("/repair/request")}>
+            Book a repair
+          </TWButton>
+        </View>
+      ) : (
+        <FlatList<RepairRequest>
+          data={repairs}
+          keyExtractor={(r) => r.id}
+          contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 120 }}
+          renderItem={({ item, index }) => {
+            const activeIdx = statusIndex(item.status);
+            return (
+              <Animated.View entering={FadeInDown.delay(index * 60).duration(420)}>
+                <TWPressable onPress={() => router.push(`/repair/${item.id}`)}>
+                  <TWCard>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 15, fontWeight: "700", color: palette.text }} numberOfLines={1}>
+                          {item.category}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: palette.muted, marginTop: 2 }}>
+                          {new Date(item.createdAt).toLocaleDateString()}
+                        </Text>
+                      </View>
+                      <TWBadge tone={STATUS_TONE[item.status as RepairStatus] ?? "muted"}>
+                        {STATUS_LABEL[item.status as RepairStatus] ?? item.status}
+                      </TWBadge>
+                    </View>
+
+                    <Text style={{ fontSize: 13, color: palette.text, marginTop: 10, lineHeight: 18 }} numberOfLines={2}>
+                      {item.description}
+                    </Text>
+
+                    {/* Timeline */}
+                    <View style={{ flexDirection: "row", alignItems: "center", marginTop: 14, gap: 4 }}>
+                      {STATUS_ORDER.map((s, i) => {
+                        const reached = i <= activeIdx;
+                        const active = i === activeIdx && item.status !== "completed";
+                        return (
+                          <React.Fragment key={s}>
+                            <View
+                              style={{
+                                width: active ? 14 : 10,
+                                height: active ? 14 : 10,
+                                borderRadius: 999,
+                                backgroundColor: reached ? colors.brand.friendlyBlue : palette.faint,
+                                borderWidth: active ? 3 : 0,
+                                borderColor: `${colors.brand.trendyPink}66`,
+                              }}
+                            />
+                            {i < STATUS_ORDER.length - 1 ? (
+                              <View
+                                style={{
+                                  flex: 1,
+                                  height: 2,
+                                  backgroundColor: i < activeIdx ? colors.brand.friendlyBlue : palette.faint,
+                                }}
+                              />
+                            ) : null}
+                          </React.Fragment>
+                        );
+                      })}
+                    </View>
+                  </TWCard>
+                </TWPressable>
+              </Animated.View>
+            );
+          }}
+        />
+      )}
+    </View>
+  );
+}

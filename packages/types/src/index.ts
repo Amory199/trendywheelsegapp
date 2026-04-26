@@ -14,7 +14,7 @@ export type PaymentStatus = "pending" | "paid" | "refunded";
 
 export type RepairCategory = "mechanical" | "electrical" | "cosmetic" | "other";
 export type RepairPriority = "low" | "medium" | "high" | "urgent";
-export type RepairStatus = "submitted" | "assigned" | "in-progress" | "completed";
+export type RepairStatus = "submitted" | "assigned" | "in-progress" | "completed" | "cancelled";
 
 export type TicketStatus = "open" | "in-progress" | "resolved" | "closed";
 export type TicketPriority = "low" | "medium" | "high" | "urgent";
@@ -32,6 +32,9 @@ export interface User {
   preferences: UserPreferences | null;
   loyaltyTier: LoyaltyTier;
   loyaltyPoints: number;
+  licenseNumber?: string | null;
+  licenseExpiry?: string | null;
+  licensePhotoUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -154,6 +157,17 @@ export interface KBArticle {
   helpfulCount: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  readAt: string | null;
+  createdAt: string;
 }
 
 // ─── API Types ───────────────────────────────────────────────
