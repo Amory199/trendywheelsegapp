@@ -18,12 +18,14 @@ git pull origin main
 echo "→ Installing dependencies..."
 pnpm install --frozen-lockfile
 
-# Build only what's deployed on the VPS (not admin — that's on Vercel)
-echo "→ Building API, support, inventory..."
+# Build everything that runs on the VPS
+echo "→ Building API, admin, support, inventory, customer..."
 pnpm turbo run build \
   --filter=@trendywheels/api \
+  --filter=@trendywheels/admin \
   --filter=@trendywheels/support \
-  --filter=@trendywheels/inventory
+  --filter=@trendywheels/inventory \
+  --filter=@trendywheels/customer
 
 # Run Prisma migrations
 echo "→ Running database migrations..."
@@ -31,7 +33,7 @@ pnpm --filter @trendywheels/db exec prisma migrate deploy
 
 # Reload PM2 without downtime
 echo "→ Reloading PM2..."
-pm2 reload ecosystem.config.js --env production
+pm2 reload "$APP_DIR/infra/ecosystem.config.js" --env production
 
 mkdir -p "$LOG_DIR"
 echo "✓ Deploy complete at $(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_DIR/deploys.log"
