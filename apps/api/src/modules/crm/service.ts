@@ -46,22 +46,29 @@ export async function assignLeadRoundRobin(leadId: string): Promise<string | nul
     return null;
   }
 
+  type Agent = { id: string; salesAssignmentWeight: number };
+  const agentsTyped = agents as Agent[];
   const openCounts = await prisma.lead.groupBy({
     by: ["ownerId"],
-    where: { ownerId: { in: agents.map((a) => a.id) }, status: { notIn: ["won", "lost"] } },
+    where: { ownerId: { in: agentsTyped.map((a: Agent) => a.id) }, status: { notIn: ["won", "lost"] } },
     _count: { _all: true },
   });
 
-  const countMap = new Map(openCounts.map((c) => [c.ownerId, c._count._all]));
+  type OpenCount = { ownerId: string | null; _count: { _all: number } };
+  const countMap = new Map<string, number>(
+    (openCounts as unknown as OpenCount[])
+      .filter((c: OpenCount): c is OpenCount & { ownerId: string } => c.ownerId !== null)
+      .map((c) => [c.ownerId, c._count._all] as const),
+  );
 
   // Lowest (openCount / weight) first.
-  agents.sort((a, b) => {
+  agentsTyped.sort((a: Agent, b: Agent) => {
     const ai = (countMap.get(a.id) ?? 0) / Math.max(1, a.salesAssignmentWeight);
     const bi = (countMap.get(b.id) ?? 0) / Math.max(1, b.salesAssignmentWeight);
     return ai - bi;
   });
 
-  const chosen = agents[0];
+  const chosen = agentsTyped[0];
   await prisma.lead.update({
     where: { id: leadId },
     data: {
