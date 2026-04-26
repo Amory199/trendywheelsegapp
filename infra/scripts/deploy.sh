@@ -29,6 +29,14 @@ pnpm turbo run build \
 
 # Run Prisma migrations
 echo "→ Running database migrations..."
+# prisma migrate deploy reads DATABASE_URL from env, but a non-interactive
+# SSH session has none. Source it from apps/api/.env (the source of truth).
+if [ -f "$APP_DIR/apps/api/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "$APP_DIR/apps/api/.env"
+  set +a
+fi
 pnpm --filter @trendywheels/db exec prisma migrate deploy
 
 # Reload PM2 without downtime
