@@ -52,10 +52,12 @@ app.use(
   }),
 );
 
-// Stricter rate limit for auth endpoints (5 req / 15 min per IP)
+// Stricter rate limit for auth endpoints (30 req / 15 min per IP).
+// 5/15min was too tight even for legitimate testing across dashboards;
+// 30 still blocks brute force while permitting normal multi-tab usage.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many auth attempts, please try again later", code: "RATE_LIMIT_AUTH", statusCode: 429 },
