@@ -5,6 +5,7 @@ import { colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useState } from "react";
 
+import { useAuth } from "../../../lib/auth-store";
 import { authedFetch } from "../../../lib/fetcher";
 
 interface Lead {
@@ -34,6 +35,8 @@ const COLUMNS: Array<{ status: Lead["status"]; label: string; color: string }> =
 
 export default function LeadsBoardPage(): JSX.Element {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const isAdmin = user?.accountType === "admin";
   const [filter, setFilter] = useState<"all" | "mine" | "unassigned">("all");
 
   const q = useQuery<{ data: Lead[] }>({
@@ -70,7 +73,7 @@ export default function LeadsBoardPage(): JSX.Element {
             Leads<span style={{ color: colors.brand.trendyPink }}>.</span>
           </h1>
         </div>
-        <div style={{ display: "flex", gap: 6, padding: 4, background: "#fff", border: "1px solid #ECECF1", borderRadius: 12 }}>
+        {isAdmin ? <div style={{ display: "flex", gap: 6, padding: 4, background: "#fff", border: "1px solid #ECECF1", borderRadius: 12 }}>
           {(["all", "mine", "unassigned"] as const).map((f) => (
             <button
               key={f}
@@ -92,7 +95,7 @@ export default function LeadsBoardPage(): JSX.Element {
               {f === "all" ? "All leads" : f === "mine" ? "My leads" : "Unassigned"}
             </button>
           ))}
-        </div>
+        </div> : null}
       </div>
 
       <div

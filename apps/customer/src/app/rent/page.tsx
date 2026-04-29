@@ -107,7 +107,7 @@ export default function RentPage(): JSX.Element {
                   <img src={v.images[0].url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : (
                   <div style={{ display: "grid", placeItems: "center", height: "100%", color: "#A0A0B0", fontSize: 36 }}>
-                    🚗
+                    ⛳
                   </div>
                 )}
               </div>

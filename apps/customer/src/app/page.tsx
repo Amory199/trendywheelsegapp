@@ -199,7 +199,7 @@ export default function HomePage(): JSX.Element {
             pointerEvents: "none",
           }}
         >
-          🚗
+          ⛳
         </div>
       </section>
 
@@ -360,7 +360,7 @@ function VehicleMiniCard({ v }: { v: VehicleRow }): JSX.Element {
           <img src={img} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <div style={{ display: "grid", placeItems: "center", height: "100%", color: "#A0A0B0", fontSize: 40 }}>
-            🚗
+            ⛳
           </div>
         )}
         <span

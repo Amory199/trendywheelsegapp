@@ -22,7 +22,22 @@ export default function TeamPage(): JSX.Element {
   const q = useQuery<{ data: TeamMember[] }>({
     queryKey: ["crm-team"],
     queryFn: () => authedFetch("/api/crm/team"),
+    retry: false,
   });
+
+  if (q.error) {
+    return (
+      <div style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, padding: 32, textAlign: "center" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: colors.brand.trendyPink, letterSpacing: "0.12em" }}>RESTRICTED</span>
+        <h1 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 28, margin: "8px 0", textTransform: "uppercase" }}>
+          Team view is admin-only
+        </h1>
+        <p style={{ color: "#6B6A85", fontSize: 14 }}>
+          Sales agents see their own pipeline. Ask an admin if you need a team-wide view.
+        </p>
+      </div>
+    );
+  }
 
   const members = q.data?.data ?? [];
   const sales = members.filter((m) => m.staffRole === "sales" || m.staffRole === "admin");

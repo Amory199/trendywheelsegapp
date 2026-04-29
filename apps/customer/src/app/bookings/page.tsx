@@ -105,7 +105,7 @@ export default function BookingsPage(): JSX.Element {
                     fontSize: 26,
                   }}
                 >
-                  🚗
+                  ⛳
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700 }}>{b.vehicle?.name ?? "Vehicle"}</div>

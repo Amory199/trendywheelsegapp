@@ -144,87 +144,87 @@ async function main() {
   void inventoryManager; // referenced to avoid unused warning; user is needed for inventory dashboard auth
   console.log(`✓ Created ${4 + salesAgents.length + customers.length} users`);
 
-  // ─── Vehicles ────────────────────────────────────────────
+  // ─── Golf Carts (the actual fleet) ───────────────────────
   const vehiclesData = [
     {
-      name: "Tesla Model 3 Standard",
+      name: "Club Car Onward 4P",
       type: "FOUR_SEATER" as const,
       seating: 4,
       fuelType: "electric" as const,
       transmission: "automatic" as const,
-      dailyRate: 2500,
-      location: "New Cairo",
-      features: ["Autopilot", "Premium Audio", "Glass Roof", "Heated Seats"],
+      dailyRate: 600,
+      location: "Marassi Marina",
+      features: ["Headlights", "USB Charging", "Bluetooth Speaker", "Sun Canopy"],
     },
     {
-      name: "BYD Han EV",
+      name: "E-Z-GO RXV Lithium",
       type: "FOUR_SEATER" as const,
       seating: 4,
       fuelType: "electric" as const,
       transmission: "automatic" as const,
-      dailyRate: 2200,
-      location: "Sheikh Zayed",
-      features: ["360 Camera", "Massage Seats", "Wireless Charging"],
+      dailyRate: 550,
+      location: "El Gouna",
+      features: ["Lithium Battery", "Premium Seats", "LED Lights", "Quiet Motor"],
     },
     {
-      name: "Toyota Hiace Family",
-      type: "SIX_SEATER" as const,
-      seating: 6,
+      name: "Yamaha Drive2 PTV",
+      type: "FOUR_SEATER" as const,
+      seating: 4,
       fuelType: "gasoline" as const,
       transmission: "automatic" as const,
-      dailyRate: 1800,
-      location: "Maadi",
-      features: ["AC", "Bluetooth", "Spacious Cargo", "Rear Camera"],
+      dailyRate: 450,
+      location: "Hacienda — Sahel",
+      features: ["Cargo Bed", "Cup Holders", "Hard Roof", "All-Terrain Tires"],
     },
     {
-      name: "Hyundai H1 Premium",
+      name: "Garia Via 6 Resort",
       type: "SIX_SEATER" as const,
       seating: 6,
-      fuelType: "hybrid" as const,
+      fuelType: "electric" as const,
       transmission: "automatic" as const,
-      dailyRate: 2000,
-      location: "Heliopolis",
-      features: ["Leather Interior", "Sunroof", "Captain Chairs"],
+      dailyRate: 950,
+      location: "Telal Soma Bay",
+      features: ["Forward 3rd Row", "Premium Upholstery", "Bluetooth", "Wireless Charging"],
     },
     {
-      name: "Mercedes EQS LED",
+      name: "Club Car Villager 6",
+      type: "SIX_SEATER" as const,
+      seating: 6,
+      fuelType: "electric" as const,
+      transmission: "automatic" as const,
+      dailyRate: 850,
+      location: "Marina 6 — North Coast",
+      features: ["Bench Seats", "USB Ports", "Rain Enclosure", "All-Terrain Tires"],
+    },
+    {
+      name: "Hisun Sector E1 6P",
+      type: "SIX_SEATER" as const,
+      seating: 6,
+      fuelType: "electric" as const,
+      transmission: "automatic" as const,
+      dailyRate: 800,
+      location: "Diplo 4 — New Cairo",
+      features: ["Independent Suspension", "Headlights", "Cargo Rack", "Tow Hitch"],
+    },
+    {
+      name: "Garia Via LED Edition",
       type: "LED" as const,
-      seating: 5,
+      seating: 4,
       fuelType: "electric" as const,
       transmission: "automatic" as const,
-      dailyRate: 4500,
-      location: "Zamalek",
-      features: ["Hyperscreen", "AR Navigation", "Burmester Sound", "Air Suspension"],
+      dailyRate: 1200,
+      location: "Marassi Marina",
+      features: ["RGB LED Underglow", "Premium Audio", "Glass Roof", "Wireless Charging"],
     },
     {
-      name: "Audi e-tron GT LED",
+      name: "Star EV Capella LED Lounge",
       type: "LED" as const,
-      seating: 4,
+      seating: 6,
       fuelType: "electric" as const,
       transmission: "automatic" as const,
-      dailyRate: 4200,
-      location: "New Cairo",
-      features: ["Matrix LED", "Sport Chassis", "Bang & Olufsen"],
-    },
-    {
-      name: "Honda Civic 2024",
-      type: "FOUR_SEATER" as const,
-      seating: 4,
-      fuelType: "gasoline" as const,
-      transmission: "automatic" as const,
-      dailyRate: 1500,
-      location: "Nasr City",
-      features: ["Honda Sensing", "Apple CarPlay", "Lane Assist"],
-    },
-    {
-      name: "Kia Carnival Family",
-      type: "SIX_SEATER" as const,
-      seating: 6,
-      fuelType: "gasoline" as const,
-      transmission: "automatic" as const,
-      dailyRate: 1900,
-      location: "October City",
-      features: ["8 Seats", "Power Sliding Doors", "Dual Sunroof"],
+      dailyRate: 1400,
+      location: "Telal Soma Bay",
+      features: ["Lounge Seating", "LED Ambient", "Disco Mode", "Dual Bluetooth Speakers"],
     },
   ];
 
@@ -241,14 +241,14 @@ async function main() {
     ),
   );
 
-  // Add demo images
+  // Add demo images (golf-cart-themed seeds for picsum)
   await Promise.all(
-    vehicles.flatMap((v, i) =>
+    vehicles.flatMap((v) =>
       [0, 1, 2].map((idx) =>
         prisma.vehicleImage.create({
           data: {
             vehicleId: v.id,
-            url: `https://picsum.photos/seed/${v.id.slice(0, 8)}-${idx}/800/600`,
+            url: `https://picsum.photos/seed/golf-cart-${v.id.slice(0, 8)}-${idx}/800/600`,
             sortOrder: idx,
           },
         }),
@@ -256,7 +256,7 @@ async function main() {
     ),
   );
 
-  console.log(`✓ Created ${vehicles.length} vehicles with images`);
+  console.log(`✓ Created ${vehicles.length} golf carts with images`);
 
   // ─── Bookings ────────────────────────────────────────────
   const today = new Date();
@@ -269,7 +269,7 @@ async function main() {
         endDate: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000),
         status: "completed",
         paymentStatus: "paid",
-        totalCost: 7500,
+        totalCost: 1800,
       },
     }),
     prisma.booking.create({
@@ -280,7 +280,7 @@ async function main() {
         endDate: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000),
         status: "confirmed",
         paymentStatus: "paid",
-        totalCost: 5400,
+        totalCost: 1350,
       },
     }),
     prisma.booking.create({
@@ -291,32 +291,32 @@ async function main() {
         endDate: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000),
         status: "confirmed",
         paymentStatus: "pending",
-        totalCost: 13500,
+        totalCost: 2550,
       },
     }),
   ]);
 
   console.log(`✓ Created ${bookings.length} bookings`);
 
-  // ─── Sales Listings ──────────────────────────────────────
+  // ─── Sales Listings (used golf carts) ────────────────────
   await Promise.all([
     prisma.salesListing.create({
       data: {
         userId: customers[0].id,
-        title: "2022 Hyundai Elantra — Excellent Condition",
-        make: "Hyundai",
-        model: "Elantra",
-        year: 2022,
-        mileage: 35000,
-        price: 650000,
+        title: "2024 Club Car Tempo — Single owner, like new",
+        make: "Club Car",
+        model: "Tempo 4P",
+        year: 2024,
+        mileage: 1200,
+        price: 380000,
         transmission: "automatic",
-        fuelType: "gasoline",
+        fuelType: "electric",
         color: "Pearl White",
         description:
-          "Single owner, full service history at authorized dealer. Non-smoker, garage kept. All original paint.",
+          "Lithium battery (48V), full service history, garage-kept at Marassi compound. Headlights, Bluetooth, USB charging — exactly as new. Selling because we upgraded to a 6-seater.",
         images: [
-          "https://picsum.photos/seed/elantra1/800/600",
-          "https://picsum.photos/seed/elantra2/800/600",
+          "https://picsum.photos/seed/golf-cart-tempo-1/800/600",
+          "https://picsum.photos/seed/golf-cart-tempo-2/800/600",
         ],
         status: "active",
       },
@@ -324,35 +324,36 @@ async function main() {
     prisma.salesListing.create({
       data: {
         userId: customers[3].id,
-        title: "2020 BMW 320i — Sport Package",
-        make: "BMW",
-        model: "320i",
-        year: 2020,
-        mileage: 58000,
-        price: 1250000,
+        title: "2022 E-Z-GO Express L6 — 6-seater, family ready",
+        make: "E-Z-GO",
+        model: "Express L6",
+        year: 2022,
+        mileage: 4800,
+        price: 290000,
         transmission: "automatic",
         fuelType: "gasoline",
-        color: "Alpine White",
+        color: "Sand Beige",
         description:
-          "M-Sport package, panoramic sunroof, Harman Kardon sound system. All maintenance up to date.",
-        images: ["https://picsum.photos/seed/bmw1/800/600"],
+          "Kawasaki gas engine, perfect for North Coast or Sahel. Bench seats, rain enclosure, all-terrain tires. Recently serviced — battery, brakes, tires all checked.",
+        images: ["https://picsum.photos/seed/golf-cart-ezgo-1/800/600"],
         status: "active",
       },
     }),
   ]);
 
-  // ─── Repair Requests ─────────────────────────────────────
+  // ─── Repair Requests (golf-cart faults) ──────────────────
   await prisma.repairRequest.create({
     data: {
       userId: customers[1].id,
       vehicleId: vehicles[2].id,
-      description: "AC not cooling properly. Strange noise when starting engine in the morning.",
-      category: "mechanical",
+      description:
+        "Battery doesn't hold charge after 15 km — used to do 40 km on a full charge. Needs diagnostic.",
+      category: "electrical",
       priority: "medium",
       status: "assigned",
       assignedMechanicId: mechanic.id,
       preferredDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000),
-      estimatedCost: 1500,
+      estimatedCost: 800,
     },
   });
 
@@ -404,7 +405,7 @@ async function main() {
     customers.map(async (c, i) => {
       const owner = salesAgents[i % salesAgents.length];
       const status = leadStatuses[i % leadStatuses.length];
-      const value = 4000 + Math.floor(Math.random() * 60000);
+      const value = 2000 + Math.floor(Math.random() * 23000);
       const ttl = 24 * 60 * 60 * 1000;
       const lead = await prisma.lead.create({
         data: {

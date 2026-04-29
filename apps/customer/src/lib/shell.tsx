@@ -19,11 +19,12 @@ const CUSTOMER_NAV: Array<{ href: string; label: string; match?: string }> = [
   { href: "/profile", label: "Profile" },
 ];
 
-const CRM_NAV: Array<{ href: string; label: string; match?: string }> = [
+const CRM_NAV: Array<{ href: string; label: string; match?: string; adminOnly?: boolean }> = [
   { href: "/crm", label: "Dashboard" },
   { href: "/crm/leads", label: "Leads", match: "/crm/leads" },
+  { href: "/crm/inventory", label: "Inventory", match: "/crm/inventory" },
   { href: "/crm/pipeline", label: "Pipeline" },
-  { href: "/crm/team", label: "Team" },
+  { href: "/crm/team", label: "Team", adminOnly: true },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }): JSX.Element | null {
@@ -68,7 +69,10 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
   }
   if (!user) return null;
 
-  const NAV = isStaff ? CRM_NAV : CUSTOMER_NAV;
+  const isAdmin = user.accountType === "admin";
+  const NAV = isStaff
+    ? CRM_NAV.filter((n) => !n.adminOnly || isAdmin)
+    : CUSTOMER_NAV;
   const badgeLabel = isStaff ? "CRM" : "CUSTOMER";
   const badgeColor = isStaff ? colors.brand.ecoLimelight : colors.brand.trendyPink;
   const badgeText = isStaff ? "#02011F" : "#fff";
