@@ -6,8 +6,8 @@ import { Shell } from "../lib/shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TrendyWheels — Drive bold. Drive trendy.",
-  description: "Egypt's smartest mobility app. Rent, sell, and service your car all in one place.",
+  title: "TrendyWheels — Cruise bold. Cruise trendy.",
+  description: "Egypt's smartest resort mobility app. Rent, sell, and service your golf cart all in one place.",
   icons: {
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232B0FF8'/><circle cx='24' cy='9' r='3' fill='%23FF0065'/><text x='5' y='23' font-family='Impact,Anton,sans-serif' font-size='18' fill='%23fff'>tw</text></svg>",
   },

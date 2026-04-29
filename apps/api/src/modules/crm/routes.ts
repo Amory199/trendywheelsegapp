@@ -15,17 +15,29 @@ const router: RouterType = Router();
 
 router.use(authenticate, authorize("admin", "staff"));
 
-// ─── List leads (filterable) ─────────────────────────────────
+// ─── List leads (filterable, role-aware) ─────────────────────
 router.get("/leads", async (req, res) => {
   const status = typeof req.query.status === "string" ? req.query.status : undefined;
   const ownerId = typeof req.query.ownerId === "string" ? req.query.ownerId : undefined;
   const mineOnly = req.query.mine === "1";
   const userId = req.user!.userId;
 
+  const me = await prisma.user.findUnique({ where: { id: userId } });
+  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
-  if (mineOnly) where.ownerId = userId;
-  else if (ownerId) where.ownerId = ownerId === "unassigned" ? null : ownerId;
+
+  if (isAdmin) {
+    // Admins can see everything; honor explicit owner filters.
+    if (mineOnly) where.ownerId = userId;
+    else if (ownerId) where.ownerId = ownerId === "unassigned" ? null : ownerId;
+  } else {
+    // Sales agents are scoped to their own leads + the unassigned pool
+    // (so they can claim from the pool). All other ?ownerId/?mine flags
+    // are ignored — agents cannot peek at peers' pipelines.
+    where.OR = [{ ownerId: userId }, { ownerId: null }];
+  }
 
   const leads = await prisma.lead.findMany({
     where,
@@ -94,8 +106,14 @@ router.get("/pipeline", async (req, res) => {
   });
 });
 
-// ─── Team list (for admin) ───────────────────────────────────
-router.get("/team", async (_req, res) => {
+// ─── Team list (admin-only) ──────────────────────────────────
+router.get("/team", async (req, res) => {
+  const me = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+  if (!isAdmin) {
+    res.status(403).json({ error: "Team view is admin-only" });
+    return;
+  }
   const team = await prisma.user.findMany({
     where: { accountType: { in: ["admin", "staff"] }, status: "active" },
     select: {
@@ -155,8 +173,12 @@ router.get("/team", async (_req, res) => {
   res.json({ data: enriched });
 });
 
-// ─── Get one lead ────────────────────────────────────────────
+// ─── Get one lead (role-aware) ───────────────────────────────
 router.get("/leads/:id", async (req, res) => {
+  const userId = req.user!.userId;
+  const me = await prisma.user.findUnique({ where: { id: userId } });
+  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+
   const lead = await prisma.lead.findUnique({
     where: { id: req.params.id },
     include: {
@@ -170,6 +192,10 @@ router.get("/leads/:id", async (req, res) => {
     },
   });
   if (!lead) throw AppError.notFound("Lead not found");
+  // Sales agents can only see their own leads or unassigned ones.
+  if (!isAdmin && lead.ownerId !== null && lead.ownerId !== userId) {
+    throw AppError.forbidden("Lead belongs to another agent");
+  }
   res.json({ data: lead });
 });
 
@@ -329,6 +355,63 @@ router.post("/leads/:id/activities", async (req, res) => {
     data: { lastActivityAt: new Date() },
   });
   res.status(201).json({ success: true });
+});
+
+// ─── Inventory (golf carts the agent can rent or sell) ──────
+router.get("/inventory", async (req, res) => {
+  const status = typeof req.query.status === "string" ? req.query.status : undefined;
+  const type = typeof req.query.type === "string" ? req.query.type : undefined;
+
+  const where: Record<string, unknown> = {};
+  if (status) where.status = status;
+  if (type) where.type = type;
+
+  const vehicles = await prisma.vehicle.findMany({
+    where,
+    orderBy: [{ status: "asc" }, { dailyRate: "asc" }],
+    include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
+    take: 200,
+  });
+  res.json({ data: vehicles });
+});
+
+// ─── Attach a vehicle match to a lead ───────────────────────
+const matchSchema = z.object({
+  leadId: z.string().uuid(),
+  vehicleId: z.string().uuid(),
+  intent: z.enum(["rent", "sell"]).default("rent"),
+});
+
+router.post("/inventory/attach", async (req, res) => {
+  const body = matchSchema.parse(req.body);
+  const userId = req.user!.userId;
+  const me = await prisma.user.findUnique({ where: { id: userId } });
+  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+
+  const lead = await prisma.lead.findUnique({ where: { id: body.leadId } });
+  if (!lead) throw AppError.notFound("Lead not found");
+  if (!isAdmin && lead.ownerId !== userId) {
+    throw AppError.forbidden("You don't own this lead");
+  }
+
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: body.vehicleId },
+    select: { id: true, name: true, dailyRate: true, type: true },
+  });
+  if (!vehicle) throw AppError.notFound("Vehicle not found");
+
+  await recordActivity(
+    body.leadId,
+    userId,
+    "matched",
+    `Matched ${vehicle.name} (${body.intent === "rent" ? "rental" : "sale"})`,
+    { vehicleId: body.vehicleId, intent: body.intent },
+  );
+  await prisma.lead.update({
+    where: { id: body.leadId },
+    data: { lastActivityAt: new Date() },
+  });
+  res.json({ success: true });
 });
 
 export { router as crmRoutes };

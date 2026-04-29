@@ -48,10 +48,10 @@ export default function LoginPage(): JSX.Element {
             <TWLogoLockup size={42} color="#FFFFFF" />
           </div>
           <h1 style={styles.heroTitle}>
-            Drive bold.<br />Drive trendy<span style={{ color: colors.brand.trendyPink }}>.</span>
+            Cruise bold.<br />Cruise trendy<span style={{ color: colors.brand.trendyPink }}>.</span>
           </h1>
           <p style={styles.heroSub}>
-            Rent, sell, and service your car — all in one place. Egypt&apos;s smartest mobility app.
+            Rent, sell, and service your golf cart — all in one place. Egypt&apos;s smartest resort mobility app.
           </p>
           <div style={styles.heroFooter}>
             <span style={styles.heroFooterDot} />
