@@ -25,6 +25,7 @@ const CRM_NAV: Array<{ href: string; label: string; match?: string; adminOnly?: 
   { href: "/crm/inventory", label: "Inventory", match: "/crm/inventory" },
   { href: "/crm/pipeline", label: "Pipeline" },
   { href: "/crm/team", label: "Team", adminOnly: true },
+  { href: "/crm/rules", label: "Rules", adminOnly: true },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }): JSX.Element | null {
@@ -70,9 +71,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
   if (!user) return null;
 
   const isAdmin = user.accountType === "admin";
-  const NAV = isStaff
-    ? CRM_NAV.filter((n) => !n.adminOnly || isAdmin)
-    : CUSTOMER_NAV;
+  const NAV = isStaff ? CRM_NAV.filter((n) => !n.adminOnly || isAdmin) : CUSTOMER_NAV;
   const badgeLabel = isStaff ? "CRM" : "CUSTOMER";
   const badgeColor = isStaff ? colors.brand.ecoLimelight : colors.brand.trendyPink;
   const badgeText = isStaff ? "#02011F" : "#fff";
@@ -87,7 +86,15 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
       .toUpperCase() ?? "TW";
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F7F7FB", color: colors.brand.trustWorth, overflowX: "hidden", position: "relative" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#F7F7FB",
+        color: colors.brand.trustWorth,
+        overflowX: "hidden",
+        position: "relative",
+      }}
+    >
       <div className="tw-ambient" aria-hidden>
         <div className="tw-ambient-grid" />
         <div className="tw-ambient-orb orb-blue" />
@@ -114,7 +121,10 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
             gap: 16,
           }}
         >
-          <Link href={isStaff ? "/crm" : "/"} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+          <Link
+            href={isStaff ? "/crm" : "/"}
+            style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}
+          >
             <TWLogoLockup size={26} color="#fff" />
           </Link>
           <span
@@ -132,15 +142,21 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
             {badgeLabel}
           </span>
           {isStaff ? (
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600, letterSpacing: 0.4 }}>
+            <span
+              style={{
+                fontSize: 11,
+                color: "rgba(255,255,255,0.55)",
+                fontWeight: 600,
+                letterSpacing: 0.4,
+              }}
+            >
               · {user.name || user.email}
             </span>
           ) : null}
           <div style={{ flex: 1 }} />
           <nav style={{ display: "flex", gap: 4, alignItems: "center" }}>
             {NAV.map((n) => {
-              const active =
-                n.href === "/" ? path === "/" : path.startsWith(n.match ?? n.href);
+              const active = n.href === "/" ? path === "/" : path.startsWith(n.match ?? n.href);
               return (
                 <Link
                   key={n.href}
@@ -195,7 +211,17 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
           </button>
         </div>
       </header>
-      <main style={{ maxWidth: 1120, margin: "0 auto", padding: "28px 24px 48px", position: "relative", zIndex: 1 }}>{children}</main>
+      <main
+        style={{
+          maxWidth: 1120,
+          margin: "0 auto",
+          padding: "28px 24px 48px",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        {children}
+      </main>
     </div>
   );
 }

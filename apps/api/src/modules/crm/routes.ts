@@ -8,6 +8,7 @@ import { AppError } from "../../utils/errors.js";
 import {
   assignLeadRoundRobin,
   computeAgentTargets,
+  getCrmRules,
   recordActivity,
 } from "./service.js";
 
@@ -154,7 +155,10 @@ router.get("/team", async (req, res) => {
   const enriched = teamTyped.map((member: TeamMember) => {
     const memberStats = statsTyped.filter((s: LeadStat) => s.ownerId === member.id);
     const won = memberStats.filter((s: LeadStat) => s.status === "won");
-    const wonAmount = won.reduce((acc: number, s: LeadStat) => acc + Number(s._sum.estimatedValue ?? 0), 0);
+    const wonAmount = won.reduce(
+      (acc: number, s: LeadStat) => acc + Number(s._sum.estimatedValue ?? 0),
+      0,
+    );
     const wonCount = won.reduce((acc: number, s: LeadStat) => acc + s._count._all, 0);
     const openCount = memberStats
       .filter((s: LeadStat) => !["won", "lost"].includes(s.status))
@@ -183,7 +187,16 @@ router.get("/leads/:id", async (req, res) => {
     where: { id: req.params.id },
     include: {
       owner: { select: { id: true, name: true, email: true, staffRole: true } },
-      customer: { select: { id: true, name: true, phone: true, email: true, loyaltyTier: true, createdAt: true } },
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          loyaltyTier: true,
+          createdAt: true,
+        },
+      },
       activities: {
         orderBy: { createdAt: "desc" },
         take: 100,
@@ -206,13 +219,18 @@ const createLeadSchema = z.object({
   contactEmail: z.string().email().optional(),
   estimatedValue: z.number().min(0).optional(),
   notes: z.string().max(2000).optional(),
-  source: z.enum(["signup", "rent-inquiry", "sell-inquiry", "repair-inquiry", "manual", "imported"]).optional(),
+  source: z
+    .enum(["signup", "rent-inquiry", "sell-inquiry", "repair-inquiry", "manual", "imported"])
+    .optional(),
 });
 
 router.post("/leads", async (req, res) => {
   const body = createLeadSchema.parse(req.body);
   const userId = req.user!.userId;
-  const sourceMap: Record<string, "signup" | "rent_inquiry" | "sell_inquiry" | "repair_inquiry" | "manual" | "imported"> = {
+  const sourceMap: Record<
+    string,
+    "signup" | "rent_inquiry" | "sell_inquiry" | "repair_inquiry" | "manual" | "imported"
+  > = {
     signup: "signup",
     "rent-inquiry": "rent_inquiry",
     "sell-inquiry": "sell_inquiry",
@@ -347,14 +365,48 @@ const activitySchema = z.object({
 router.post("/leads/:id/activities", async (req, res) => {
   const body = activitySchema.parse(req.body);
   const userId = req.user!.userId;
+  const me = await prisma.user.findUnique({ where: { id: userId } });
+  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
   const lead = await prisma.lead.findUnique({ where: { id: req.params.id } });
   if (!lead) throw AppError.notFound("Lead not found");
+  if (!isAdmin && lead.ownerId !== userId) {
+    throw AppError.forbidden("You don't own this lead");
+  }
   await recordActivity(lead.id, userId, body.type, body.body);
-  await prisma.lead.update({
-    where: { id: lead.id },
-    data: { lastActivityAt: new Date() },
-  });
   res.status(201).json({ success: true });
+});
+
+// ─── CRM rules (admin-only) ──────────────────────────────────
+router.get("/rules", async (_req, res) => {
+  const rules = await getCrmRules();
+  res.json({ data: rules });
+});
+
+const rulesSchema = z.object({
+  firstCallWithinMinutes: z.number().int().min(5).max(1440).optional(),
+  followUpCallWithinHours: z.number().int().min(1).max(168).optional(),
+  reassignAfterHours: z.number().int().min(1).max(720).optional(),
+  maxReassignmentsBeforeEscalation: z.number().int().min(1).max(10).optional(),
+  notifyOnAssignment: z.boolean().optional(),
+  notifyOnEscalation: z.boolean().optional(),
+  enforceRules: z.boolean().optional(),
+});
+
+router.patch("/rules", async (req, res) => {
+  const userId = req.user!.userId;
+  const me = await prisma.user.findUnique({ where: { id: userId } });
+  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+  if (!isAdmin) throw AppError.forbidden("Admins only");
+
+  const body = rulesSchema.parse(req.body);
+  const existing = await prisma.crmRules.findFirst({ orderBy: { updatedAt: "desc" } });
+  const updated = existing
+    ? await prisma.crmRules.update({
+        where: { id: existing.id },
+        data: { ...body, updatedById: userId },
+      })
+    : await prisma.crmRules.create({ data: { ...body, updatedById: userId } });
+  res.json({ data: updated });
 });
 
 // ─── Inventory (golf carts the agent can rent or sell) ──────

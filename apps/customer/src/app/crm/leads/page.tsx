@@ -19,6 +19,10 @@ interface Lead {
   ownerId: string | null;
   claimDeadline: string | null;
   lastActivityAt: string;
+  lastCallAt: string | null;
+  callCount: number;
+  escalationLevel: number;
+  reassignmentCount: number;
   owner: { id: string; name: string } | null;
   customer: { id: string; name: string; phone?: string; email?: string | null } | null;
   _count: { activities: number };
@@ -62,40 +66,84 @@ export default function LeadsBoardPage(): JSX.Element {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-leads"] }),
   });
 
+  const logCall = useMutation({
+    mutationFn: (id: string) =>
+      authedFetch(`/api/crm/leads/${id}/activities`, {
+        method: "POST",
+        body: JSON.stringify({ type: "call", body: "Outbound call logged from board" }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-leads"] }),
+  });
+
   const leads = q.data?.data ?? [];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
         <div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: colors.brand.trendyPink, letterSpacing: "0.12em" }}>LEAD BOARD</span>
-          <h1 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 36, margin: "4px 0 0", textTransform: "uppercase" }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: colors.brand.trendyPink,
+              letterSpacing: "0.12em",
+            }}
+          >
+            LEAD BOARD
+          </span>
+          <h1
+            style={{
+              fontFamily: "Anton, Impact, sans-serif",
+              fontSize: 36,
+              margin: "4px 0 0",
+              textTransform: "uppercase",
+            }}
+          >
             Leads<span style={{ color: colors.brand.trendyPink }}>.</span>
           </h1>
         </div>
-        {isAdmin ? <div style={{ display: "flex", gap: 6, padding: 4, background: "#fff", border: "1px solid #ECECF1", borderRadius: 12 }}>
-          {(["all", "mine", "unassigned"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className="tw-press"
-              style={{
-                padding: "8px 14px",
-                borderRadius: 8,
-                border: "none",
-                background: filter === f ? colors.brand.friendlyBlue : "transparent",
-                color: filter === f ? "#fff" : "#4B4A6B",
-                fontSize: 12,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                cursor: "pointer",
-              }}
-            >
-              {f === "all" ? "All leads" : f === "mine" ? "My leads" : "Unassigned"}
-            </button>
-          ))}
-        </div> : null}
+        {isAdmin ? (
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              padding: 4,
+              background: "#fff",
+              border: "1px solid #ECECF1",
+              borderRadius: 12,
+            }}
+          >
+            {(["all", "mine", "unassigned"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className="tw-press"
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: filter === f ? colors.brand.friendlyBlue : "transparent",
+                  color: filter === f ? "#fff" : "#4B4A6B",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                  cursor: "pointer",
+                }}
+              >
+                {f === "all" ? "All leads" : f === "mine" ? "My leads" : "Unassigned"}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div
@@ -111,7 +159,10 @@ export default function LeadsBoardPage(): JSX.Element {
           const items = leads.filter((l) => l.status === col.status);
           const value = items.reduce((acc, l) => acc + Number(l.estimatedValue), 0);
           return (
-            <div key={col.status} style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 220 }}>
+            <div
+              key={col.status}
+              style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 220 }}
+            >
               <div
                 style={{
                   display: "flex",
@@ -124,23 +175,41 @@ export default function LeadsBoardPage(): JSX.Element {
                   borderRadius: 10,
                 }}
               >
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#4B4A6B", letterSpacing: "0.06em", textTransform: "uppercase", flex: 1 }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#4B4A6B",
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    flex: 1,
+                  }}
+                >
                   {col.label}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#6B6A85" }}>{items.length}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#6B6A85" }}>
+                  {items.length}
+                </span>
               </div>
-              <div className="tw-stagger" style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 60 }}>
+              <div
+                className="tw-stagger"
+                style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 60 }}
+              >
                 {items.map((lead) => (
                   <LeadCard
                     key={lead.id}
                     lead={lead}
+                    isMine={lead.ownerId === user?.id}
                     onClaim={() => claim.mutate(lead.id)}
                     onAdvance={(status) => setStatus.mutate({ id: lead.id, status })}
+                    onLogCall={() => logCall.mutate(lead.id)}
                   />
                 ))}
               </div>
               {value > 0 ? (
-                <div style={{ fontSize: 11, color: "#6B6A85", textAlign: "right", padding: "0 4px" }}>
+                <div
+                  style={{ fontSize: 11, color: "#6B6A85", textAlign: "right", padding: "0 4px" }}
+                >
                   EGP {Math.round(value).toLocaleString()}
                 </div>
               ) : null}
@@ -154,16 +223,24 @@ export default function LeadsBoardPage(): JSX.Element {
 
 function LeadCard({
   lead,
+  isMine,
   onClaim,
   onAdvance,
+  onLogCall,
 }: {
   lead: Lead;
+  isMine: boolean;
   onClaim: () => void;
   onAdvance: (s: Lead["status"]) => void;
+  onLogCall: () => void;
 }): JSX.Element {
   const ttl = lead.claimDeadline ? new Date(lead.claimDeadline).getTime() - Date.now() : null;
   const ttlMins = ttl !== null ? Math.max(0, Math.floor(ttl / 60000)) : null;
   const overdue = ttl !== null && ttl < 0;
+  const escalated = lead.escalationLevel > 0;
+  const lastCallMinsAgo = lead.lastCallAt
+    ? Math.floor((Date.now() - new Date(lead.lastCallAt).getTime()) / 60000)
+    : null;
   const next: Record<Lead["status"], Lead["status"] | null> = {
     new: "contacted",
     contacted: "qualified",
@@ -179,23 +256,47 @@ function LeadCard({
       className="tw-card-lift"
       style={{
         background: "#fff",
-        border: `1px solid ${overdue ? colors.brand.ultraRed : "#ECECF1"}`,
+        border: `1px solid ${escalated ? colors.brand.ultraRed : overdue ? colors.brand.ultraRed : "#ECECF1"}`,
         borderRadius: 12,
         padding: 12,
         position: "relative",
+        boxShadow: escalated ? `0 0 0 2px ${colors.brand.ultraRed}33` : undefined,
       }}
     >
+      {escalated ? (
+        <div
+          style={{
+            position: "absolute",
+            top: -8,
+            right: 8,
+            background: colors.brand.ultraRed,
+            color: "#fff",
+            fontSize: 9,
+            fontWeight: 800,
+            padding: "2px 8px",
+            borderRadius: 999,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          Escalated · {lead.reassignmentCount}×
+        </div>
+      ) : null}
       <Link
         href={`/crm/leads/${lead.id}`}
         style={{ textDecoration: "none", color: "inherit", display: "block" }}
       >
-        <div style={{ fontSize: 14, fontWeight: 700, color: colors.brand.trustWorth, marginBottom: 4 }}>
+        <div
+          style={{ fontSize: 14, fontWeight: 700, color: colors.brand.trustWorth, marginBottom: 4 }}
+        >
           {lead.contactName}
         </div>
         <div style={{ fontSize: 11, color: "#6B6A85", marginBottom: 8 }}>
           {lead.contactPhone ?? lead.contactEmail ?? "No contact info"}
         </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+        <div
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}
+        >
           <span style={{ fontSize: 14, fontWeight: 800, color: colors.brand.trustWorth }}>
             EGP {Math.round(Number(lead.estimatedValue)).toLocaleString()}
           </span>
@@ -213,17 +314,83 @@ function LeadCard({
             </span>
           ) : null}
         </div>
-        <div style={{ marginTop: 8, fontSize: 11, color: "#6B6A85", display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 6, height: 6, borderRadius: 3, background: lead.ownerId ? colors.brand.ecoLimelight : colors.brand.trendyPink, display: "inline-block" }} />
-          {lead.owner?.name ?? "Unassigned"} · {lead._count.activities} acts
+        <div
+          style={{
+            marginTop: 8,
+            fontSize: 11,
+            color: "#6B6A85",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              background: lead.ownerId ? colors.brand.ecoLimelight : colors.brand.trendyPink,
+              display: "inline-block",
+            }}
+          />
+          {lead.owner?.name ?? "Unassigned"} · {lead.callCount} calls
         </div>
+        {lead.ownerId ? (
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 10,
+              color: lead.callCount === 0 ? colors.brand.ultraRed : "#9E9DAE",
+              fontWeight: lead.callCount === 0 ? 700 : 500,
+            }}
+          >
+            {lead.callCount === 0
+              ? "No calls yet — call now"
+              : lastCallMinsAgo !== null && lastCallMinsAgo < 60
+                ? `Called ${lastCallMinsAgo}m ago`
+                : lastCallMinsAgo !== null
+                  ? `Called ${Math.floor(lastCallMinsAgo / 60)}h ago`
+                  : ""}
+          </div>
+        ) : null}
       </Link>
       <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+        {isMine && lead.status !== "won" && lead.status !== "lost" ? (
+          <button
+            onClick={onLogCall}
+            className="tw-press"
+            title="Log a call to clear the deadline"
+            style={{
+              padding: "6px 10px",
+              border: `1px solid ${colors.brand.ecoLimelight}`,
+              borderRadius: 8,
+              background: lead.callCount === 0 ? colors.brand.ecoLimelight : "transparent",
+              color: lead.callCount === 0 ? colors.brand.trustWorth : "#3F7B0E",
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            ☎ Log call
+          </button>
+        ) : null}
         {!lead.ownerId ? (
           <button
             onClick={onClaim}
             className="tw-press"
-            style={{ flex: 1, padding: "6px 10px", border: "none", borderRadius: 8, background: colors.brand.friendlyBlue, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase" }}
+            style={{
+              flex: 1,
+              padding: "6px 10px",
+              border: "none",
+              borderRadius: 8,
+              background: colors.brand.friendlyBlue,
+              color: "#fff",
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+            }}
           >
             Claim →
           </button>
@@ -231,7 +398,19 @@ function LeadCard({
           <button
             onClick={() => onAdvance(nextStatus)}
             className="tw-press"
-            style={{ flex: 1, padding: "6px 10px", border: `1px solid ${colors.brand.friendlyBlue}`, borderRadius: 8, background: "transparent", color: colors.brand.friendlyBlue, fontSize: 11, fontWeight: 700, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase" }}
+            style={{
+              flex: 1,
+              padding: "6px 10px",
+              border: `1px solid ${colors.brand.friendlyBlue}`,
+              borderRadius: 8,
+              background: "transparent",
+              color: colors.brand.friendlyBlue,
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+            }}
           >
             → {nextStatus}
           </button>
@@ -240,7 +419,16 @@ function LeadCard({
           <button
             onClick={() => onAdvance("lost")}
             className="tw-press"
-            style={{ padding: "6px 10px", border: "1px solid #ECECF1", borderRadius: 8, background: "#fff", color: "#9E9DAE", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+            style={{
+              padding: "6px 10px",
+              border: "1px solid #ECECF1",
+              borderRadius: 8,
+              background: "#fff",
+              color: "#9E9DAE",
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
           >
             ✕
           </button>

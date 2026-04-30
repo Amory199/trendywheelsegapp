@@ -512,6 +512,21 @@ model SystemConfig {
   @@map("system_config")
 }
 
+model CrmRules {
+  id                       String   @id @default(uuid()) @db.Uuid
+  firstCallWithinMinutes   Int      @default(30)  @map("first_call_within_minutes")
+  followUpCallWithinHours  Int      @default(24)  @map("follow_up_call_within_hours")
+  reassignAfterHours       Int      @default(48)  @map("reassign_after_hours")
+  maxReassignmentsBeforeEscalation Int @default(2) @map("max_reassignments_before_escalation")
+  notifyOnAssignment       Boolean  @default(true) @map("notify_on_assignment")
+  notifyOnEscalation       Boolean  @default(true) @map("notify_on_escalation")
+  enforceRules             Boolean  @default(true) @map("enforce_rules")
+  updatedAt                DateTime @updatedAt   @map("updated_at")
+  updatedById              String?  @map("updated_by_id") @db.Uuid
+
+  @@map("crm_rules")
+}
+
 model AlertConfig {
   id                   String   @id @default(uuid()) @db.Uuid
   utilizationMaxPct    Int      @default(80) @map("utilization_max_pct")
@@ -569,6 +584,9 @@ model Lead {
   assignedAt        DateTime?   @map("assigned_at")
   claimDeadline     DateTime?   @map("claim_deadline")
   lastActivityAt    DateTime    @default(now()) @map("last_activity_at")
+  lastCallAt        DateTime?   @map("last_call_at")
+  callCount         Int         @default(0) @map("call_count")
+  escalationLevel   Int         @default(0) @map("escalation_level")
   reassignmentCount Int         @default(0) @map("reassignment_count")
   closedAt          DateTime?   @map("closed_at")
   createdAt         DateTime    @default(now()) @map("created_at")
