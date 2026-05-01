@@ -12,38 +12,69 @@
   --tw-red: #ff0000;
 }
 
-html, body {
+html,
+body {
   background: var(--tw-bg);
   color: var(--tw-text);
   font-family: "Source Sans 3", "Source Sans Pro", "Myriad Pro", system-ui, sans-serif;
 }
 
 /* Hide scrollbars on specific surfaces */
-.tw-scrollbar-none::-webkit-scrollbar { display: none; }
-.tw-scrollbar-none { scrollbar-width: none; }
+.tw-scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.tw-scrollbar-none {
+  scrollbar-width: none;
+}
 
 /* Entrance stagger for list children — fade up with 50ms stagger */
 @keyframes twFadeInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .tw-stagger > * {
   opacity: 0;
-  animation: twFadeInUp 420ms cubic-bezier(.2,.7,.3,1) forwards;
+  animation: twFadeInUp 420ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
 }
-.tw-stagger > *:nth-child(1) { animation-delay: 0ms; }
-.tw-stagger > *:nth-child(2) { animation-delay: 50ms; }
-.tw-stagger > *:nth-child(3) { animation-delay: 100ms; }
-.tw-stagger > *:nth-child(4) { animation-delay: 150ms; }
-.tw-stagger > *:nth-child(5) { animation-delay: 200ms; }
-.tw-stagger > *:nth-child(6) { animation-delay: 250ms; }
-.tw-stagger > *:nth-child(7) { animation-delay: 300ms; }
-.tw-stagger > *:nth-child(8) { animation-delay: 350ms; }
+.tw-stagger > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.tw-stagger > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+.tw-stagger > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+.tw-stagger > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+.tw-stagger > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+.tw-stagger > *:nth-child(6) {
+  animation-delay: 250ms;
+}
+.tw-stagger > *:nth-child(7) {
+  animation-delay: 300ms;
+}
+.tw-stagger > *:nth-child(8) {
+  animation-delay: 350ms;
+}
 
 /* Skeleton shimmer */
 @keyframes twShimmer {
-  0% { background-position: -200px 0; }
-  100% { background-position: calc(200px + 100%) 0; }
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
 }
 .tw-skeleton {
   background: linear-gradient(90deg, #e8e8ee 0%, #f4f4f7 50%, #e8e8ee 100%);
@@ -53,29 +84,187 @@ html, body {
 
 /* Pink pulse for unread badges */
 @keyframes twPinkPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255,0,101,0.6); }
-  50%      { box-shadow: 0 0 0 6px rgba(255,0,101,0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 101, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 0, 101, 0);
+  }
 }
-.tw-pulse { animation: twPinkPulse 1.6s ease-out infinite; }
+.tw-pulse {
+  animation: twPinkPulse 1.6s ease-out infinite;
+}
 
 /* Haptic-feel press: subtle scale on active */
-.tw-press { transition: transform 160ms cubic-bezier(.2,.7,.3,1); }
-.tw-press:active { transform: scale(0.96); transition: transform 80ms ease-out; }
+.tw-press {
+  transition: transform 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.tw-press:active {
+  transform: scale(0.96);
+  transition: transform 80ms ease-out;
+}
 
 /* Chat typing dots */
 @keyframes twDot {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30%           { transform: translateY(-4px); opacity: 1; }
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 
 /* Confetti (for booking success screens if ever ported to web) */
 @keyframes twConfettiFall {
-  0%   { transform: translateY(-40px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(380px) rotate(540deg); opacity: 0; }
+  0% {
+    transform: translateY(-40px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(380px) rotate(540deg);
+    opacity: 0;
+  }
 }
 
 /* Loyalty tier shimmer gradient */
 @keyframes twTierShift {
-  0%, 100% { background-position: 0% 50%; }
-  50%      { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* ─── Ambient drifting orbs (background; ported from customer) ─── */
+@keyframes twDrift1 {
+  0% {
+    transform: translate3d(-12vw, -8vh, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(8vw, 12vh, 0) scale(1.15);
+  }
+  100% {
+    transform: translate3d(-12vw, -8vh, 0) scale(1);
+  }
+}
+@keyframes twDrift2 {
+  0% {
+    transform: translate3d(10vw, 6vh, 0) scale(1.05);
+  }
+  50% {
+    transform: translate3d(-10vw, -10vh, 0) scale(0.92);
+  }
+  100% {
+    transform: translate3d(10vw, 6vh, 0) scale(1.05);
+  }
+}
+@keyframes twDrift3 {
+  0% {
+    transform: translate3d(0vw, 14vh, 0) scale(0.9);
+  }
+  50% {
+    transform: translate3d(14vw, -6vh, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(0vw, 14vh, 0) scale(0.9);
+  }
+}
+
+.tw-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.tw-ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  will-change: transform;
+  opacity: 0.55;
+}
+.tw-ambient-orb.orb-blue {
+  width: 520px;
+  height: 520px;
+  top: -120px;
+  left: -80px;
+  background: radial-gradient(circle, #2b0ff8 0%, transparent 70%);
+  animation: twDrift1 22s ease-in-out infinite;
+}
+.tw-ambient-orb.orb-pink {
+  width: 460px;
+  height: 460px;
+  top: 30%;
+  right: -120px;
+  background: radial-gradient(circle, #ff0065 0%, transparent 70%);
+  animation: twDrift2 28s ease-in-out infinite;
+  opacity: 0.4;
+}
+.tw-ambient-orb.orb-pool {
+  width: 600px;
+  height: 600px;
+  bottom: -180px;
+  left: 30%;
+  background: radial-gradient(circle, #00c7ea 0%, transparent 70%);
+  animation: twDrift3 34s ease-in-out infinite;
+  opacity: 0.32;
+}
+.tw-ambient-orb.orb-lime {
+  width: 360px;
+  height: 360px;
+  top: 65%;
+  left: -80px;
+  background: radial-gradient(circle, #a9f453 0%, transparent 70%);
+  animation: twDrift1 30s ease-in-out infinite reverse;
+  opacity: 0.28;
+}
+.tw-ambient-grid {
+  position: absolute;
+  inset: -10%;
+  background-image:
+    linear-gradient(to right, rgba(43, 15, 248, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(43, 15, 248, 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(circle at 50% 40%, #000 35%, transparent 75%);
+}
+
+/* Card lift hover */
+.tw-card-lift {
+  transition:
+    transform 320ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 320ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.tw-card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(2, 1, 31, 0.08);
+}
+
+/* Press feedback — tap/click micro-scale */
+.tw-press {
+  transition: transform 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.tw-press:active {
+  transform: scale(0.96);
+}
+
+/* Pink pulse for unread/escalation badges */
+@keyframes twPinkPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 101, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 0, 101, 0);
+  }
+}
+.tw-pulse-pink {
+  animation: twPinkPulse 1.6s ease-in-out infinite;
 }
