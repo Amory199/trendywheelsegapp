@@ -14,10 +14,10 @@ function generateOtp(): string {
   return crypto.randomInt(100000, 999999).toString();
 }
 
-function signAccessToken(payload: AuthPayload): string {
+export function signAccessToken(payload: AuthPayload, expiresIn?: string): string {
   return jwt.sign(payload, env.JWT_PRIVATE_KEY, {
     algorithm: "RS256",
-    expiresIn: env.JWT_ACCESS_EXPIRY as string,
+    expiresIn: (expiresIn ?? env.JWT_ACCESS_EXPIRY) as string,
   } as jwt.SignOptions);
 }
 

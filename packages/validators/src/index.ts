@@ -69,6 +69,8 @@ export const createBookingSchema = z
     vehicleId: z.string().uuid(),
     startDate: z.string().datetime(),
     endDate: z.string().datetime(),
+    promoCode: z.string().min(2).max(40).optional(),
+    loyaltyPointsRedeemed: z.number().int().min(0).optional(),
   })
   .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
     message: "End date must be after start date",

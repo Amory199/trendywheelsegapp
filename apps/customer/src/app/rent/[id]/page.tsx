@@ -32,11 +32,19 @@ export default function RentDetailPage(): JSX.Element {
 
   const [start, setStart] = useState(today);
   const [end, setEnd] = useState(tomorrow);
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number } | null>(null);
+  const [loyaltyPts, setLoyaltyPts] = useState(0);
 
   const q = useQuery({
     queryKey: ["customer-vehicle", id],
     queryFn: () => authedFetch<{ data: Vehicle }>(`/api/vehicles/${id}`),
     enabled: Boolean(id),
+  });
+
+  const loyaltyQ = useQuery<{ data: { points: number; tier: string } }>({
+    queryKey: ["customer-loyalty"],
+    queryFn: () => authedFetch("/api/loyalty/me"),
   });
 
   const v = q.data?.data;
@@ -46,7 +54,26 @@ export default function RentDetailPage(): JSX.Element {
     return Math.max(d, 1);
   }, [start, end]);
 
-  const total = v ? Number(v.dailyRate) * days : 0;
+  const baseCost = v ? Number(v.dailyRate) * days : 0;
+  const promoDiscount = appliedPromo?.discount ?? 0;
+  const loyaltyDiscount = Math.min(loyaltyPts * 0.1, (baseCost - promoDiscount) * 0.5);
+  const total = Math.max(0, baseCost - promoDiscount - loyaltyDiscount);
+
+  const validatePromo = useMutation({
+    mutationFn: (code: string) =>
+      authedFetch<{ valid: boolean; reason?: string; code?: string; discount?: number }>(
+        "/api/promo-codes/validate",
+        {
+          method: "POST",
+          body: JSON.stringify({ code, totalAmount: baseCost }),
+        },
+      ),
+    onSuccess: (r) => {
+      if (r.valid && r.code && r.discount !== undefined)
+        setAppliedPromo({ code: r.code, discount: r.discount });
+      else alert(r.reason ?? "Invalid code");
+    },
+  });
 
   const bookMutation = useMutation({
     mutationFn: () =>
@@ -56,6 +83,8 @@ export default function RentDetailPage(): JSX.Element {
           vehicleId: id,
           startDate: new Date(start).toISOString(),
           endDate: new Date(end).toISOString(),
+          promoCode: appliedPromo?.code,
+          loyaltyPointsRedeemed: loyaltyPts >= 500 ? loyaltyPts : undefined,
         }),
       }),
     onSuccess: () => {
@@ -76,7 +105,13 @@ export default function RentDetailPage(): JSX.Element {
     );
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.5fr) minmax(280px, 380px)", gap: 28 }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1.5fr) minmax(280px, 380px)",
+        gap: 28,
+      }}
+    >
       <div>
         <div
           style={{
@@ -89,9 +124,21 @@ export default function RentDetailPage(): JSX.Element {
         >
           {v.images?.[0]?.url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={v.images[0].url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img
+              src={v.images[0].url}
+              alt={v.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
           ) : (
-            <div style={{ display: "grid", placeItems: "center", height: "100%", color: "#A0A0B0", fontSize: 60 }}>
+            <div
+              style={{
+                display: "grid",
+                placeItems: "center",
+                height: "100%",
+                color: "#A0A0B0",
+                fontSize: 60,
+              }}
+            >
               ⛳
             </div>
           )}
@@ -138,7 +185,15 @@ export default function RentDetailPage(): JSX.Element {
 
           {Array.isArray(v.features) && v.features.length > 0 && (
             <>
-              <h3 style={{ marginTop: 24, fontSize: 13, textTransform: "uppercase", color: "#6B6A85", letterSpacing: 0.6 }}>
+              <h3
+                style={{
+                  marginTop: 24,
+                  fontSize: 13,
+                  textTransform: "uppercase",
+                  color: "#6B6A85",
+                  letterSpacing: 0.6,
+                }}
+              >
                 Features
               </h3>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
@@ -187,9 +242,96 @@ export default function RentDetailPage(): JSX.Element {
           <Field label="Return date" type="date" value={end} onChange={setEnd} min={start} />
         </div>
 
+        <div style={{ marginTop: 16, display: "flex", gap: 6 }}>
+          <input
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+            placeholder="Promo code"
+            disabled={!!appliedPromo}
+            style={{
+              flex: 1,
+              padding: "10px 12px",
+              border: "1px solid #ECECF1",
+              borderRadius: 8,
+              fontSize: 13,
+              background: appliedPromo ? `${colors.brand.ecoLimelight}22` : "#F7F7FB",
+            }}
+          />
+          {appliedPromo ? (
+            <button
+              onClick={() => {
+                setAppliedPromo(null);
+                setPromoCode("");
+              }}
+              style={{
+                padding: "0 14px",
+                border: "1px solid #ECECF1",
+                borderRadius: 8,
+                background: "#fff",
+                color: colors.brand.ultraRed,
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              ✕
+            </button>
+          ) : (
+            <button
+              onClick={() => validatePromo.mutate(promoCode)}
+              disabled={!promoCode || validatePromo.isPending}
+              style={{
+                padding: "0 16px",
+                border: "none",
+                borderRadius: 8,
+                background: colors.brand.friendlyBlue,
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              Apply
+            </button>
+          )}
+        </div>
+
+        {loyaltyQ.data?.data?.points && loyaltyQ.data.data.points >= 500 ? (
+          <div style={{ marginTop: 12, padding: 12, background: "#F7F7FB", borderRadius: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 12,
+                fontWeight: 700,
+                color: colors.brand.trustWorth,
+              }}
+            >
+              <span>Redeem loyalty</span>
+              <span style={{ color: colors.brand.trendyPink }}>
+                {loyaltyPts} / {loyaltyQ.data.data.points} pts
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={Math.min(loyaltyQ.data.data.points, Math.floor((baseCost - promoDiscount) * 5))}
+              step={100}
+              value={loyaltyPts}
+              onChange={(e) => setLoyaltyPts(Number(e.target.value))}
+              style={{ width: "100%", marginTop: 6 }}
+            />
+            <div style={{ fontSize: 10, color: "#6B6A85", marginTop: 4 }}>
+              {loyaltyPts >= 500
+                ? `−EGP ${(loyaltyPts * 0.1).toFixed(0)}`
+                : "Min 500 pts to redeem"}
+            </div>
+          </div>
+        ) : null}
+
         <div
           style={{
-            marginTop: 20,
+            marginTop: 16,
             padding: 16,
             background: "#F7F7FB",
             borderRadius: 12,
@@ -198,9 +340,28 @@ export default function RentDetailPage(): JSX.Element {
             fontSize: 14,
           }}
         >
-          <Row label={`${days} day${days === 1 ? "" : "s"} × EGP ${Number(v.dailyRate).toLocaleString()}`}>
-            <strong>EGP {total.toLocaleString()}</strong>
+          <Row
+            label={`${days} day${days === 1 ? "" : "s"} × EGP ${Number(v.dailyRate).toLocaleString()}`}
+          >
+            <strong>EGP {baseCost.toLocaleString()}</strong>
           </Row>
+          {promoDiscount > 0 ? (
+            <Row label={`Promo ${appliedPromo?.code}`}>
+              <strong
+                style={{
+                  color:
+                    colors.brand.ecoLimelight === "#A9F453" ? "#3F7B0E" : colors.brand.ecoLimelight,
+                }}
+              >
+                −EGP {promoDiscount.toLocaleString()}
+              </strong>
+            </Row>
+          ) : null}
+          {loyaltyDiscount > 0 ? (
+            <Row label={`Loyalty (${loyaltyPts} pts)`}>
+              <strong style={{ color: "#3F7B0E" }}>−EGP {loyaltyDiscount.toFixed(0)}</strong>
+            </Row>
+          ) : null}
           <div style={{ height: 1, background: "#ECECF1", margin: "4px 0" }} />
           <Row label="Total">
             <strong style={{ color: colors.brand.trendyPink, fontSize: 18 }}>
@@ -257,7 +418,15 @@ function Field({
 }): JSX.Element {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "#4B4A6B", letterSpacing: 0.4, textTransform: "uppercase" }}>
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "#4B4A6B",
+          letterSpacing: 0.4,
+          textTransform: "uppercase",
+        }}
+      >
         {label}
       </span>
       <input
