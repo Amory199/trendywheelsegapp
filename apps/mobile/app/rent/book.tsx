@@ -483,8 +483,6 @@ const styles = StyleSheet.create({
 });
 
 // ─── Success screen with confetti + animated checkmark ────────────
-type RouterLike = { replace: (href: string) => void; push: (href: string) => void };
-
 const CONFETTI_COUNT = 36;
 const SCREEN_W = Dimensions.get("window").width;
 const SCREEN_H = Dimensions.get("window").height;
@@ -496,7 +494,7 @@ function SuccessScreen({
 }: {
   bookingRef: string;
   email: string;
-  router: RouterLike;
+  router: ReturnType<typeof useRouter>;
 }): JSX.Element {
   const checkScale = useSharedValue(0);
   const refPulse = useSharedValue(1);
