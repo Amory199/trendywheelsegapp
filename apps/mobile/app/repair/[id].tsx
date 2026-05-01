@@ -3,7 +3,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RepairRequest } from "@trendywheels/types";
 import { borderRadius, colors, spacing } from "@trendywheels/ui-tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
@@ -11,7 +19,10 @@ import { api } from "../../lib/api";
 const STATUS_ORDER = ["submitted", "assigned", "in-progress", "completed"] as const;
 type RepairStatus = (typeof STATUS_ORDER)[number] | "cancelled";
 
-const STATUS_META: Record<RepairStatus, { color: string; icon: React.ComponentProps<typeof Ionicons>["name"] }> = {
+const STATUS_META: Record<
+  RepairStatus,
+  { color: string; icon: React.ComponentProps<typeof Ionicons>["name"] }
+> = {
   submitted: { color: colors.text.secondary, icon: "cloud-upload-outline" },
   assigned: { color: colors.primary[400], icon: "person-outline" },
   "in-progress": { color: colors.warning, icon: "construct-outline" },
@@ -71,7 +82,7 @@ export default function RepairDetailScreen(): JSX.Element {
     );
   }
 
-  const currentStatusIdx = STATUS_ORDER.indexOf(repair.status as RepairStatus);
+  const currentStatusIdx = (STATUS_ORDER as readonly string[]).indexOf(repair.status);
   const currentMeta = STATUS_META[repair.status as RepairStatus] ?? STATUS_META.submitted;
 
   return (
@@ -100,7 +111,8 @@ export default function RepairDetailScreen(): JSX.Element {
           <View style={styles.heroInfo}>
             <Text style={styles.heroStatus}>{repair.status.replace("-", " ").toUpperCase()}</Text>
             <Text style={styles.heroDate}>
-              Submitted {new Date(repair.createdAt).toLocaleDateString("en-EG", {
+              Submitted{" "}
+              {new Date(repair.createdAt).toLocaleDateString("en-EG", {
                 day: "numeric",
                 month: "long",
                 year: "numeric",
@@ -113,7 +125,12 @@ export default function RepairDetailScreen(): JSX.Element {
               { backgroundColor: `${PRIORITY_COLOR[repair.priority] ?? colors.text.secondary}22` },
             ]}
           >
-            <Text style={[styles.priorityText, { color: PRIORITY_COLOR[repair.priority] ?? colors.text.secondary }]}>
+            <Text
+              style={[
+                styles.priorityText,
+                { color: PRIORITY_COLOR[repair.priority] ?? colors.text.secondary },
+              ]}
+            >
               {repair.priority.toUpperCase()}
             </Text>
           </View>
@@ -130,9 +147,7 @@ export default function RepairDetailScreen(): JSX.Element {
                 <View key={status} style={styles.timelineRow}>
                   {/* Vertical connector */}
                   <View style={styles.timelineConnector}>
-                    <View
-                      style={[styles.timelineDot, done && { backgroundColor: meta.color }]}
-                    >
+                    <View style={[styles.timelineDot, done && { backgroundColor: meta.color }]}>
                       {done && (
                         <Ionicons
                           name={i < currentStatusIdx ? "checkmark" : meta.icon}
@@ -236,10 +251,7 @@ export default function RepairDetailScreen(): JSX.Element {
                 <Text style={styles.mechanicName}>Mechanic Assigned</Text>
                 <Text style={styles.mechanicSub}>ID: {repair.assignedMechanicId.slice(0, 8)}…</Text>
               </View>
-              <Pressable
-                style={styles.contactMechanic}
-                onPress={() => router.push("/messages")}
-              >
+              <Pressable style={styles.contactMechanic} onPress={() => router.push("/messages")}>
                 <Ionicons name="chatbubble-outline" size={18} color="#000" />
               </Pressable>
             </View>
@@ -254,10 +266,7 @@ export default function RepairDetailScreen(): JSX.Element {
         </Animated.View>
 
         {/* Messages CTA */}
-        <Pressable
-          style={styles.messagesBtn}
-          onPress={() => router.push("/messages")}
-        >
+        <Pressable style={styles.messagesBtn} onPress={() => router.push("/messages")}>
           <Ionicons name="chatbubbles-outline" size={20} color={colors.text.light} />
           <Text style={styles.messagesBtnText}>View Messages</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
@@ -369,7 +378,12 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   timelineContent: { flex: 1, paddingLeft: spacing.sm, paddingTop: 4, paddingBottom: spacing.md },
-  timelineLabel: { color: colors.text.secondary, fontSize: 14, fontWeight: "600", textTransform: "capitalize" },
+  timelineLabel: {
+    color: colors.text.secondary,
+    fontSize: 14,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
   timelineSub: { color: colors.text.secondary, fontSize: 11, marginTop: 2 },
 
   detailRow: {
@@ -389,8 +403,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   detailContent: { flex: 1 },
-  detailLabel: { color: colors.text.secondary, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 },
-  detailValue: { color: colors.text.light, fontSize: 14, fontWeight: "500", marginTop: 2, textTransform: "capitalize" },
+  detailLabel: {
+    color: colors.text.secondary,
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  detailValue: {
+    color: colors.text.light,
+    fontSize: 14,
+    fontWeight: "500",
+    marginTop: 2,
+    textTransform: "capitalize",
+  },
 
   costRow: {
     flexDirection: "row",

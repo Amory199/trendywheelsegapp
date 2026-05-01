@@ -21,9 +21,24 @@ import {
 
 const QUICK_ACTIONS = [
   { label: "Rent a car", icon: "car" as const, href: "/rent" as const, tone: "blue" as const },
-  { label: "Sell my car", icon: "pricetag" as const, href: "/sell" as const, tone: "pink" as const },
-  { label: "Book repair", icon: "construct" as const, href: "/repair" as const, tone: "lime" as const },
-  { label: "My bookings", icon: "calendar" as const, href: "/rent/my-bookings" as const, tone: "pool" as const },
+  {
+    label: "Sell my car",
+    icon: "pricetag" as const,
+    href: "/sell" as const,
+    tone: "pink" as const,
+  },
+  {
+    label: "Book repair",
+    icon: "construct" as const,
+    href: "/repair" as const,
+    tone: "lime" as const,
+  },
+  {
+    label: "My bookings",
+    icon: "calendar" as const,
+    href: "/rent/my-bookings" as const,
+    tone: "pool" as const,
+  },
 ];
 
 const TONE_COLORS: Record<"blue" | "pink" | "lime" | "pool", string> = {
@@ -42,7 +57,13 @@ export default function HomeScreen(): React.JSX.Element {
     queryFn: () => api.getVehicles({ page: 1, limit: 6 }),
   });
 
+  const notifQ = useQuery({
+    queryKey: ["home-notifications"],
+    queryFn: () => api.getNotifications(),
+  });
+
   const featured = featuredQ.data?.data ?? [];
+  const recent = notifQ.data?.data ?? [];
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
   return (
@@ -51,52 +72,130 @@ export default function HomeScreen(): React.JSX.Element {
         contentContainerStyle={{ paddingTop: 56, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Greeting */}
-        <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-          <Text style={{ fontSize: 13, color: palette.muted, fontWeight: "700", letterSpacing: 0.8 }}>
-            WELCOME BACK
-          </Text>
-          <Text
+        {/* Greeting + bell */}
+        <View
+          style={{
+            paddingHorizontal: 20,
+            marginBottom: 16,
+            flexDirection: "row",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+          }}
+        >
+          <View>
+            <Text
+              style={{ fontSize: 13, color: palette.muted, fontWeight: "700", letterSpacing: 0.8 }}
+            >
+              WELCOME BACK
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Anton",
+                fontSize: 30,
+                color: palette.text,
+                textTransform: "uppercase",
+                letterSpacing: 0.3,
+                marginTop: 4,
+              }}
+            >
+              Hey, {firstName} 👋
+            </Text>
+          </View>
+          <TWPressable
+            onPress={() => router.push("/messages")}
             style={{
-              fontFamily: "Anton",
-              fontSize: 30,
-              color: palette.text,
-              textTransform: "uppercase",
-              letterSpacing: 0.3,
-              marginTop: 4,
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: palette.card,
+              borderWidth: 1,
+              borderColor: palette.border,
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            Hey, {firstName} 👋
-          </Text>
+            <Ionicons name="notifications-outline" size={20} color={palette.text} />
+            <View
+              style={{
+                position: "absolute",
+                top: 9,
+                right: 11,
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: colors.brand.trendyPink,
+              }}
+            />
+          </TWPressable>
         </View>
 
         {/* Hero */}
-        <Animated.View entering={FadeInDown.delay(50).duration(420)} style={{ paddingHorizontal: 20 }}>
-          <TWGradientHero height={180}>
+        <Animated.View
+          entering={FadeInDown.delay(50).duration(420)}
+          style={{ paddingHorizontal: 20 }}
+        >
+          <TWGradientHero height={200}>
             <View style={{ flex: 1, padding: 22, justifyContent: "space-between" }}>
               <View>
+                <View style={{ flexDirection: "row" }}>
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 999,
+                      backgroundColor: colors.brand.trendyPink,
+                    }}
+                  >
+                    <Text
+                      style={{ fontSize: 10, color: "#fff", fontWeight: "800", letterSpacing: 0.6 }}
+                    >
+                      FEATURED
+                    </Text>
+                  </View>
+                </View>
                 <Text
                   style={{
                     fontFamily: "Anton",
-                    fontSize: 28,
+                    fontSize: 32,
                     color: "#fff",
                     textTransform: "uppercase",
                     letterSpacing: 0.3,
-                    lineHeight: 30,
+                    lineHeight: 34,
+                    marginTop: 10,
                   }}
                 >
                   Rent your{"\n"}
                   <Text style={{ color: colors.brand.trendyPink }}>next ride.</Text>
                 </Text>
-                <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, marginTop: 8 }}>
-                  Hourly or daily, across Egypt.
+                <Text
+                  style={{
+                    color: "rgba(255,255,255,0.8)",
+                    fontSize: 13,
+                    marginTop: 8,
+                    maxWidth: 200,
+                  }}
+                >
+                  Over 1,200 vehicles across 14 cities.
                 </Text>
               </View>
               <View style={{ flexDirection: "row" }}>
-                <TWButton kind="pink" size="sm" icon="arrow-forward" iconRight onPress={() => router.push("/rent")}>
+                <TWButton
+                  kind="pink"
+                  size="sm"
+                  icon="arrow-forward"
+                  iconRight
+                  onPress={() => router.push("/rent")}
+                >
                   Book a car
                 </TWButton>
               </View>
+            </View>
+            {/* Floating car glyph */}
+            <View
+              pointerEvents="none"
+              style={{ position: "absolute", right: -16, bottom: -12, opacity: 0.15 }}
+            >
+              <Ionicons name="car-sport" size={140} color="#fff" />
             </View>
           </TWGradientHero>
         </Animated.View>
@@ -136,7 +235,9 @@ export default function HomeScreen(): React.JSX.Element {
                   >
                     <Ionicons name={a.icon} size={18} color={TONE_COLORS[a.tone]} />
                   </View>
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: palette.text }}>{a.label}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: palette.text }}>
+                    {a.label}
+                  </Text>
                 </TWPressable>
               </Animated.View>
             ))}
@@ -167,10 +268,7 @@ export default function HomeScreen(): React.JSX.Element {
             contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
           >
             {featured.map((v: Vehicle, i) => (
-              <Animated.View
-                key={v.id}
-                entering={FadeInDown.delay(200 + i * 60).duration(420)}
-              >
+              <Animated.View key={v.id} entering={FadeInDown.delay(200 + i * 60).duration(420)}>
                 <TWPressable
                   onPress={() => router.push(`/rent/${v.id}`)}
                   style={{
@@ -193,10 +291,20 @@ export default function HomeScreen(): React.JSX.Element {
                     transition={200}
                   />
                   <View style={{ padding: 12 }}>
-                    <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: "700", color: palette.text }}>
+                    <Text
+                      numberOfLines={1}
+                      style={{ fontSize: 15, fontWeight: "700", color: palette.text }}
+                    >
                       {v.name}
                     </Text>
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginTop: 6,
+                      }}
+                    >
                       <Text style={{ color: colors.brand.trendyPink, fontWeight: "700" }}>
                         {twEGP(Number(v.dailyRate))}/day
                       </Text>
@@ -223,6 +331,72 @@ export default function HomeScreen(): React.JSX.Element {
               : null}
           </ScrollView>
         </View>
+
+        {/* Recent activity */}
+        {recent.length > 0 ? (
+          <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+            <Text style={{ ...captionStyle, marginBottom: 10 }}>RECENT ACTIVITY</Text>
+            <View
+              style={{
+                backgroundColor: palette.card,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: palette.border,
+                overflow: "hidden",
+              }}
+            >
+              {recent.slice(0, 4).map((n, i) => {
+                const tone =
+                  n.type === "booking_reminder" || n.type === "booking_confirmed"
+                    ? colors.brand.poolBlue
+                    : n.type === "lead_assigned" || n.type === "lead_reassigned"
+                      ? colors.brand.trendyPink
+                      : colors.brand.ecoLimelight;
+                return (
+                  <View
+                    key={n.id}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: 14,
+                      borderBottomWidth: i < Math.min(recent.length, 4) - 1 ? 1 : 0,
+                      borderBottomColor: palette.hairline,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: tone,
+                      }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{ fontSize: 13.5, fontWeight: "600", color: palette.text }}
+                      >
+                        {n.title}
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        style={{ fontSize: 11.5, color: palette.muted, marginTop: 2 }}
+                      >
+                        {new Date(n.createdAt).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
 
         {/* Loyalty teaser */}
         <View style={{ paddingHorizontal: 20, marginTop: 24 }}>

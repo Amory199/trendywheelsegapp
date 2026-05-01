@@ -16,14 +16,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
-import {
-  TWBadge,
-  TWButton,
-  TWCard,
-  TWChip,
-  TWPressable,
-  palette,
-} from "../../components/ui";
+import { TWBadge, TWButton, TWCard, TWChip, TWPressable, palette } from "../../components/ui";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HERO_HEIGHT = 320;
@@ -68,18 +61,30 @@ export default function RentDetailScreen(): React.JSX.Element {
 
   if (q.isLoading || !vehicle) {
     return (
-      <View style={{ flex: 1, backgroundColor: palette.bg, alignItems: "center", justifyContent: "center" }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: palette.bg,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <ActivityIndicator color={colors.brand.friendlyBlue} size="large" />
       </View>
     );
   }
 
-  const rating = 4.8;
-  const reviewsCount = 124;
+  const rating = Number(vehicle.averageRating ?? 0) || 0;
+  const reviewsCount = Number((vehicle as { reviewCount?: number }).reviewCount ?? 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
-      <Animated.View style={[{ height: HERO_HEIGHT, position: "absolute", top: 0, left: 0, right: 0 }, heroStyle]}>
+      <Animated.View
+        style={[
+          { height: HERO_HEIGHT, position: "absolute", top: 0, left: 0, right: 0 },
+          heroStyle,
+        ]}
+      >
         <Image
           source={{ uri: images[0] }}
           style={{ width: SCREEN_WIDTH, height: HERO_HEIGHT }}
@@ -93,15 +98,39 @@ export default function RentDetailScreen(): React.JSX.Element {
         />
       </Animated.View>
 
-      <View style={{ position: "absolute", top: 56, left: 20, right: 20, zIndex: 10, flexDirection: "row", justifyContent: "space-between" }}>
+      <View
+        style={{
+          position: "absolute",
+          top: 56,
+          left: 20,
+          right: 20,
+          zIndex: 10,
+          flexDirection: "row",
+          justifyContent: "space-between",
+        }}
+      >
         <TWPressable
           onPress={() => router.back()}
-          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.9)", alignItems: "center", justifyContent: "center" }}
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 21,
+            backgroundColor: "rgba(255,255,255,0.9)",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
           <Ionicons name="chevron-back" size={22} color={palette.text} />
         </TWPressable>
         <TWPressable
-          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.9)", alignItems: "center", justifyContent: "center" }}
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 21,
+            backgroundColor: "rgba(255,255,255,0.9)",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
           <Ionicons name="heart-outline" size={22} color={colors.brand.trendyPink} />
         </TWPressable>
@@ -114,21 +143,47 @@ export default function RentDetailScreen(): React.JSX.Element {
         showsVerticalScrollIndicator={false}
       >
         <View
-          style={{ backgroundColor: palette.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, gap: 18 }}
+          style={{
+            backgroundColor: palette.bg,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            padding: 22,
+            gap: 18,
+          }}
         >
           <Animated.View entering={FadeInDown.delay(80).duration(420)}>
             <TWBadge tone={vehicle.status === "available" ? "lime" : "muted"}>
               {vehicle.status === "available" ? "Available now" : vehicle.status}
             </TWBadge>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginTop: 10 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                marginTop: 10,
+              }}
+            >
               <View style={{ flex: 1, marginRight: 12 }}>
-                <Text style={{ fontFamily: "Anton", fontSize: 28, color: palette.text, textTransform: "uppercase", letterSpacing: 0.3, lineHeight: 30 }}>
+                <Text
+                  style={{
+                    fontFamily: "Anton",
+                    fontSize: 28,
+                    color: palette.text,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.3,
+                    lineHeight: 30,
+                  }}
+                >
                   {vehicle.name}
                 </Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
                   <Ionicons name="star" size={14} color="#F5B800" />
-                  <Text style={{ fontSize: 13, color: palette.text, fontWeight: "700" }}>{rating}</Text>
-                  <Text style={{ fontSize: 13, color: palette.muted }}>({reviewsCount} reviews)</Text>
+                  <Text style={{ fontSize: 13, color: palette.text, fontWeight: "700" }}>
+                    {rating}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: palette.muted }}>
+                    ({reviewsCount} reviews)
+                  </Text>
                 </View>
               </View>
               <View style={{ alignItems: "flex-end" }}>
@@ -152,16 +207,33 @@ export default function RentDetailScreen(): React.JSX.Element {
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(200).duration(420)}>
-            <Text style={{ fontSize: 11, fontWeight: "700", color: palette.muted, letterSpacing: 0.8, marginBottom: 8 }}>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "700",
+                color: palette.muted,
+                letterSpacing: 0.8,
+                marginBottom: 8,
+              }}
+            >
               ABOUT THIS VEHICLE
             </Text>
             <Text style={{ fontSize: 14, lineHeight: 22, color: palette.text }}>
-              Premium vehicle in perfect condition. Ideal for city driving and long trips. Insurance included, delivery available within 24 hours.
+              Premium vehicle in perfect condition. Ideal for city driving and long trips. Insurance
+              included, delivery available within 24 hours.
             </Text>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(260).duration(420)}>
-            <Text style={{ fontSize: 11, fontWeight: "700", color: palette.muted, letterSpacing: 0.8, marginBottom: 10 }}>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "700",
+                color: palette.muted,
+                letterSpacing: 0.8,
+                marginBottom: 10,
+              }}
+            >
               FEATURES
             </Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -172,27 +244,45 @@ export default function RentDetailScreen(): React.JSX.Element {
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(320).duration(420)}>
-            <Text style={{ fontSize: 11, fontWeight: "700", color: palette.muted, letterSpacing: 0.8, marginBottom: 10 }}>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "700",
+                color: palette.muted,
+                letterSpacing: 0.8,
+                marginBottom: 10,
+              }}
+            >
               RECENT REVIEWS
             </Text>
             <TWCard>
               <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
                 <LinearGradient
                   colors={[colors.brand.trendyPink, colors.brand.friendlyBlue]}
-                  style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" }}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
                   <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>LH</Text>
                 </LinearGradient>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: palette.text }}>Layla H.</Text>
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: palette.text }}>
+                      Layla H.
+                    </Text>
                     <View style={{ flexDirection: "row", gap: 1 }}>
                       {[1, 2, 3, 4, 5].map((i) => (
                         <Ionicons key={i} name="star" size={10} color="#F5B800" />
                       ))}
                     </View>
                   </View>
-                  <Text style={{ fontSize: 13, color: palette.muted, marginTop: 4, lineHeight: 18 }}>
+                  <Text
+                    style={{ fontSize: 13, color: palette.muted, marginTop: 4, lineHeight: 18 }}
+                  >
                     Smooth pickup, car was spotless. Would rent again.
                   </Text>
                 </View>
@@ -204,14 +294,24 @@ export default function RentDetailScreen(): React.JSX.Element {
 
       <View
         style={{
-          position: "absolute", bottom: 0, left: 0, right: 0,
-          padding: 20, paddingBottom: 32,
-          backgroundColor: palette.card, borderTopWidth: 1, borderTopColor: palette.border,
-          flexDirection: "row", alignItems: "center", gap: 14,
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: 20,
+          paddingBottom: 32,
+          backgroundColor: palette.card,
+          borderTopWidth: 1,
+          borderTopColor: palette.border,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
         }}
       >
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 11, color: palette.muted, fontWeight: "700", letterSpacing: 0.5 }}>
+          <Text
+            style={{ fontSize: 11, color: palette.muted, fontWeight: "700", letterSpacing: 0.5 }}
+          >
             TOTAL
           </Text>
           <Text style={{ fontSize: 18, color: colors.brand.trendyPink, fontWeight: "800" }}>
@@ -227,7 +327,11 @@ export default function RentDetailScreen(): React.JSX.Element {
           onPress={() =>
             router.push({
               pathname: "/rent/book",
-              params: { vehicleId: vehicle.id, dailyRate: String(vehicle.dailyRate), name: vehicle.name },
+              params: {
+                vehicleId: vehicle.id,
+                dailyRate: String(vehicle.dailyRate),
+                name: vehicle.name,
+              },
             })
           }
           style={{ paddingHorizontal: 28 }}
