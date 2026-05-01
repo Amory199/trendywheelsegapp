@@ -99,6 +99,14 @@ model User {
   ownedLeads       Lead[]                    @relation("LeadOwner")
   customerLead     Lead?                     @relation("LeadCustomer")
   leadActivities   LeadActivity[]            @relation("LeadActivityActor")
+  reviews          Review[]
+  referralCode     ReferralCode?
+  referralsMade    Referral[]                @relation("ReferralReferrer")
+  referralReceived Referral?                 @relation("ReferralReferee")
+  promoRedemptions PromoRedemption[]
+  broadcasts       Broadcast[]               @relation("BroadcastAuthor")
+  cannedReplies    CannedReply[]
+  salesTargets     SalesTarget[]
 
   @@map("users")
 }
@@ -173,6 +181,7 @@ model Vehicle {
   status        VehicleStatus @default(available)
   totalBookings Int           @default(0) @map("total_bookings")
   averageRating Decimal       @default(0) @map("average_rating") @db.Decimal(3, 2)
+  reviewCount   Int           @default(0) @map("review_count")
   features      Json          @default("[]")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
@@ -183,6 +192,7 @@ model Vehicle {
   maintenanceLogs  VehicleMaintenance[]
   conditionReports VehicleConditionReport[]
   alertEvents      AlertEvent[]
+  reviews          Review[]
 
   @@index([status])
   @@index([type])
@@ -229,8 +239,15 @@ model Booking {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
+  promoCode      String?    @map("promo_code")
+  promoDiscount  Decimal?   @map("promo_discount") @db.Decimal(10, 2)
+  loyaltyPointsRedeemed Int @default(0) @map("loyalty_points_redeemed")
+  loyaltyDiscount Decimal?  @map("loyalty_discount") @db.Decimal(10, 2)
+
   user    User    @relation(fields: [userId], references: [id])
   vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  review  Review?
+  promoRedemption PromoRedemption?
 
   @@index([userId])
   @@index([vehicleId])
@@ -464,17 +481,22 @@ model Notification {
 // ─── Audit Logging ───────────────────────────────────────────
 
 model AuditLog {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  action    String
-  entity    String
-  entityId  String?  @map("entity_id")
-  metadata  Json?
-  createdAt DateTime @default(now()) @map("created_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  actingAsId  String?  @map("acting_as_id") @db.Uuid
+  action      String
+  entity      String
+  entityId    String?  @map("entity_id")
+  metadata    Json?
+  diff        Json?
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([actingAsId])
   @@index([entity, entityId])
   @@index([createdAt])
   @@map("audit_logs")
@@ -634,4 +656,200 @@ model AlertEvent {
   @@index([resolvedAt])
   @@index([createdAt])
   @@map("alert_events")
+}
+
+// ─── God Mode: promo codes, pricing, broadcasts, business config ─────────────
+
+model PromoCode {
+  id           String    @id @default(uuid()) @db.Uuid
+  code         String    @unique
+  kind         String    // "percent" | "fixed"
+  value        Decimal   @db.Decimal(10, 2)
+  appliesTo    String    @map("applies_to") // "booking" | "sale" | "both"
+  usageLimit   Int?      @map("usage_limit")
+  usedCount    Int       @default(0) @map("used_count")
+  expiresAt    DateTime? @map("expires_at")
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  redemptions  PromoRedemption[]
+
+  @@index([active, expiresAt])
+  @@map("promo_codes")
+}
+
+model PromoRedemption {
+  id              String   @id @default(uuid()) @db.Uuid
+  promoId         String   @map("promo_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  bookingId       String?  @unique @map("booking_id") @db.Uuid
+  salesListingId  String?  @map("sales_listing_id") @db.Uuid
+  discountAmount  Decimal  @map("discount_amount") @db.Decimal(10, 2)
+  redeemedAt      DateTime @default(now()) @map("redeemed_at")
+
+  promo   PromoCode @relation(fields: [promoId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id])
+  booking Booking?  @relation(fields: [bookingId], references: [id])
+
+  @@index([userId])
+  @@index([promoId])
+  @@map("promo_redemptions")
+}
+
+model PricingRule {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  kind         String   // "weekend" | "peak" | "holiday" | "blackout"
+  surchargePct Decimal  @map("surcharge_pct") @db.Decimal(5, 2)
+  daysOfWeek   Int[]    @map("days_of_week")
+  dateRanges   Json     @default("[]") @map("date_ranges")
+  appliesTo    String   @map("applies_to") // "rent" | "sell" | "both"
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("pricing_rules")
+}
+
+model NotificationTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  channel   String   // "push" | "email" | "sms"
+  subject   String?
+  bodyMd    String   @map("body_md")
+  variables Json     @default("[]")
+  active    Boolean  @default(true)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
+}
+
+model Broadcast {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String
+  bodyMd      String    @map("body_md")
+  audience    String    // "all" | "customers" | "staff" | "tier:gold" | "city:Marassi"
+  channels    String[]  @default(["push"])
+  scheduledAt DateTime? @map("scheduled_at")
+  sentAt      DateTime? @map("sent_at")
+  sentCount   Int       @default(0) @map("sent_count")
+  createdById String    @map("created_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  createdBy User @relation("BroadcastAuthor", fields: [createdById], references: [id])
+
+  @@index([scheduledAt])
+  @@index([sentAt])
+  @@map("broadcasts")
+}
+
+model CannedReply {
+  id          String   @id @default(uuid()) @db.Uuid
+  label       String
+  bodyMd      String   @map("body_md")
+  category    String?
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@map("canned_replies")
+}
+
+model BusinessHours {
+  id         String  @id @default(uuid()) @db.Uuid
+  dayOfWeek  Int     @map("day_of_week") // 0 = Sunday
+  openHHMM   String  @map("open_hhmm")   // "08:00"
+  closeHHMM  String  @map("close_hhmm")  // "22:00"
+  locationId String? @map("location_id")
+  active     Boolean @default(true)
+
+  @@unique([dayOfWeek, locationId])
+  @@map("business_hours")
+}
+
+model Holiday {
+  id     String   @id @default(uuid()) @db.Uuid
+  date   DateTime @db.Date
+  name   String
+  closed Boolean  @default(true)
+
+  @@unique([date])
+  @@map("holidays")
+}
+
+model FeatureFlag {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  enabled     Boolean  @default(false)
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+}
+
+model SalesTarget {
+  id            String   @id @default(uuid()) @db.Uuid
+  agentId       String   @map("agent_id") @db.Uuid
+  targetMonthly Decimal  @map("target_monthly") @db.Decimal(12, 2)
+  month         DateTime @db.Date
+  commissionPct Decimal  @default(0) @map("commission_pct") @db.Decimal(5, 2)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  agent User @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, month])
+  @@index([month])
+  @@map("sales_targets")
+}
+
+// ─── Customer features: reviews, referrals ───────────────────────────────────
+
+model Review {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  vehicleId     String   @map("vehicle_id") @db.Uuid
+  bookingId     String   @unique @map("booking_id") @db.Uuid
+  rating        Int      // 1-5
+  title         String?
+  body          String?
+  photos        Json     @default("[]")
+  createdAt     DateTime @default(now()) @map("created_at")
+  editableUntil DateTime @map("editable_until")
+
+  user    User    @relation(fields: [userId], references: [id])
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([vehicleId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+model ReferralCode {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @unique @map("user_id") @db.Uuid
+  code      String @unique
+  usedCount Int    @default(0) @map("used_count")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("referral_codes")
+}
+
+model Referral {
+  id          String    @id @default(uuid()) @db.Uuid
+  referrerId  String    @map("referrer_id") @db.Uuid
+  refereeId   String    @unique @map("referee_id") @db.Uuid
+  codeUsed    String    @map("code_used")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+  rewardPaid  Boolean   @default(false) @map("reward_paid")
+
+  referrer User @relation("ReferralReferrer", fields: [referrerId], references: [id])
+  referee  User @relation("ReferralReferee", fields: [refereeId], references: [id])
+
+  @@index([referrerId])
+  @@index([completedAt])
+  @@map("referrals")
 }

@@ -98,9 +98,27 @@ async function main() {
   const salesPassword = await bcrypt.hash("Sales@123!", 12);
   const salesAgents = await Promise.all(
     [
-      { phone: "+201000000010", email: "amira@trendywheelseg.com", name: "Amira Hassan", weight: 2, target: 180000 },
-      { phone: "+201000000011", email: "youssef@trendywheelseg.com", name: "Youssef Maged", weight: 1, target: 120000 },
-      { phone: "+201000000012", email: "rana@trendywheelseg.com", name: "Rana Adel", weight: 1, target: 120000 },
+      {
+        phone: "+201000000010",
+        email: "amira@trendywheelseg.com",
+        name: "Amira Hassan",
+        weight: 2,
+        target: 180000,
+      },
+      {
+        phone: "+201000000011",
+        email: "youssef@trendywheelseg.com",
+        name: "Youssef Maged",
+        weight: 1,
+        target: 120000,
+      },
+      {
+        phone: "+201000000012",
+        email: "rana@trendywheelseg.com",
+        name: "Rana Adel",
+        weight: 1,
+        target: 120000,
+      },
     ].map((s) =>
       prisma.user.create({
         data: {
@@ -123,7 +141,13 @@ async function main() {
 
   const customers = await Promise.all(
     [
-      { phone: "+201112223344", name: "Mohamed Hassan", email: "mohamed@example.com", passwordHash: customerPassword, licenseNumber: "EG-LIC-2025-001" },
+      {
+        phone: "+201112223344",
+        name: "Mohamed Hassan",
+        email: "mohamed@example.com",
+        passwordHash: customerPassword,
+        licenseNumber: "EG-LIC-2025-001",
+      },
       { phone: "+201223334455", name: "Nour Ibrahim", email: "nour@example.com" },
       { phone: "+201334445566", name: "Omar Khaled", email: "omar@example.com" },
       { phone: "+201445556677", name: "Yasmin Abdallah", email: "yasmin@example.com" },
@@ -426,18 +450,146 @@ async function main() {
       await prisma.leadActivity.createMany({
         data: [
           { leadId: lead.id, actorId: null, type: "created", body: "Auto-created from signup" },
-          { leadId: lead.id, actorId: null, type: "assigned", body: `Auto-assigned to ${owner.name}` },
+          {
+            leadId: lead.id,
+            actorId: null,
+            type: "assigned",
+            body: `Auto-assigned to ${owner.name}`,
+          },
           ...(status !== "new"
             ? [{ leadId: lead.id, actorId: owner.id, type: "call", body: "Initial outreach call" }]
             : []),
           ...(status === "won"
-            ? [{ leadId: lead.id, actorId: owner.id, type: "won", body: "Closed-won — booking confirmed" }]
+            ? [
+                {
+                  leadId: lead.id,
+                  actorId: owner.id,
+                  type: "won",
+                  body: "Closed-won — booking confirmed",
+                },
+              ]
             : []),
         ],
       });
     }),
   );
   console.log("✓ Seeded CRM leads + activities");
+
+  // ─── God Mode + customer features ──────────────────────
+  await prisma.promoCode.deleteMany();
+  await prisma.pricingRule.deleteMany();
+  await prisma.notificationTemplate.deleteMany();
+  await prisma.featureFlag.deleteMany();
+  await prisma.holiday.deleteMany();
+  await prisma.businessHours.deleteMany();
+
+  const inOneMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  await prisma.promoCode.createMany({
+    data: [
+      { code: "SUMMER20", kind: "percent", value: 20, appliesTo: "booking", expiresAt: inOneMonth },
+      { code: "WELCOME50", kind: "fixed", value: 50, appliesTo: "booking", usageLimit: 100 },
+      { code: "RESORT10", kind: "percent", value: 10, appliesTo: "both" },
+    ],
+  });
+
+  await prisma.pricingRule.createMany({
+    data: [
+      {
+        name: "Weekend surcharge",
+        kind: "weekend",
+        surchargePct: 15,
+        daysOfWeek: [5, 6],
+        dateRanges: [],
+        appliesTo: "rent",
+      },
+      {
+        name: "Summer peak",
+        kind: "peak",
+        surchargePct: 25,
+        daysOfWeek: [],
+        dateRanges: [{ from: "2026-07-01", to: "2026-08-31" }],
+        appliesTo: "rent",
+      },
+    ],
+  });
+
+  await prisma.notificationTemplate.createMany({
+    data: [
+      {
+        key: "booking_confirmed",
+        channel: "push",
+        bodyMd: "Your {{vehicleName}} is booked. See you on {{startDate}}!",
+        variables: [{ name: "vehicleName" }, { name: "startDate" }],
+      },
+      {
+        key: "booking_reminder",
+        channel: "push",
+        bodyMd: "Pickup tomorrow! Your {{vehicleName}} starts at {{startDate}}.",
+        variables: [{ name: "vehicleName" }, { name: "startDate" }],
+      },
+      {
+        key: "lead_assigned",
+        channel: "push",
+        bodyMd: "New lead assigned: {{contactName}}. Call within 30 minutes.",
+        variables: [{ name: "contactName" }],
+      },
+      {
+        key: "lead_reassigned",
+        channel: "push",
+        bodyMd: "Lead reassigned: {{contactName}} was taken back.",
+        variables: [{ name: "contactName" }],
+      },
+      {
+        key: "booking_completed",
+        channel: "email",
+        subject: "How was your trip?",
+        bodyMd: "Thanks for riding with TrendyWheels. Rate your trip and earn loyalty points.",
+        variables: [],
+      },
+    ],
+  });
+
+  await prisma.featureFlag.createMany({
+    data: [
+      {
+        key: "mobile.offline_mode",
+        enabled: false,
+        description: "Cache vehicle list for offline browsing",
+      },
+      { key: "crm.auto_assign", enabled: true, description: "Round-robin assignment of new leads" },
+      {
+        key: "customer.referrals",
+        enabled: true,
+        description: "Referral program (refer-a-friend)",
+      },
+      { key: "customer.reviews", enabled: true, description: "Booking review submissions" },
+      {
+        key: "customer.loyalty_redemption",
+        enabled: true,
+        description: "Allow points redemption at checkout",
+      },
+    ],
+  });
+
+  await prisma.holiday.createMany({
+    data: [
+      { date: new Date("2026-04-13"), name: "Eid al-Fitr (Day 1)", closed: false },
+      { date: new Date("2026-04-14"), name: "Eid al-Fitr (Day 2)", closed: false },
+    ],
+  });
+
+  await prisma.businessHours.createMany({
+    data: Array.from({ length: 7 }, (_, day) => ({
+      dayOfWeek: day,
+      openHHMM: day === 0 ? "10:00" : "08:00",
+      closeHHMM: "23:00",
+      locationId: null,
+      active: true,
+    })),
+  });
+  console.log(
+    "✓ Seeded God-Mode config (3 promo codes, 2 pricing rules, 5 templates, 5 flags, 2 holidays, 7 business-hour rows)",
+  );
 
   console.log("\n🎉 Seed complete!\n");
   console.log("Staff logins:");

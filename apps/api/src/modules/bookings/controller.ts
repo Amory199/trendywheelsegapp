@@ -34,7 +34,7 @@ export async function list(req: Request, res: Response): Promise<void> {
 }
 
 export async function create(req: Request, res: Response): Promise<void> {
-  const { vehicleId, startDate, endDate } = req.body;
+  const { vehicleId, startDate, endDate, promoCode, loyaltyPointsRedeemed } = req.body;
   const userId = req.user!.userId;
 
   // Check vehicle availability
@@ -57,7 +57,43 @@ export async function create(req: Request, res: Response): Promise<void> {
   const days = Math.ceil(
     (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24),
   );
-  const totalCost = Number(vehicle.dailyRate) * Math.max(days, 1);
+  const baseCost = Number(vehicle.dailyRate) * Math.max(days, 1);
+
+  // Apply promo code if provided
+  let promoDiscount = 0;
+  let validPromo: { id: string; code: string; kind: string; value: number } | null = null;
+  if (promoCode) {
+    const promo = await prisma.promoCode.findUnique({
+      where: { code: String(promoCode).toUpperCase() },
+    });
+    if (
+      promo &&
+      promo.active &&
+      (!promo.expiresAt || promo.expiresAt > new Date()) &&
+      (!promo.usageLimit || promo.usedCount < promo.usageLimit) &&
+      ["booking", "both"].includes(promo.appliesTo)
+    ) {
+      const v = Number(promo.value);
+      promoDiscount =
+        promo.kind === "percent"
+          ? Math.round(baseCost * (v / 100) * 100) / 100
+          : Math.min(v, baseCost);
+      validPromo = { id: promo.id, code: promo.code, kind: promo.kind, value: v };
+    }
+  }
+
+  // Apply loyalty redemption (1 pt = EGP 0.10, min 500 pts, max 50% of total)
+  let loyaltyDiscount = 0;
+  let loyaltyPts = 0;
+  if (loyaltyPointsRedeemed && loyaltyPointsRedeemed >= 500) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const reqPts = Math.min(loyaltyPointsRedeemed, user?.loyaltyPoints ?? 0);
+    const maxDiscount = (baseCost - promoDiscount) * 0.5;
+    loyaltyDiscount = Math.min(reqPts * 0.1, maxDiscount);
+    loyaltyPts = Math.ceil(loyaltyDiscount * 10);
+  }
+
+  const totalCost = Math.max(0, baseCost - promoDiscount - loyaltyDiscount);
 
   const booking = await prisma.booking.create({
     data: {
@@ -68,8 +104,46 @@ export async function create(req: Request, res: Response): Promise<void> {
       totalCost,
       status: "confirmed",
       paymentStatus: "pending",
+      promoCode: validPromo?.code ?? null,
+      promoDiscount: promoDiscount > 0 ? promoDiscount : null,
+      loyaltyPointsRedeemed: loyaltyPts,
+      loyaltyDiscount: loyaltyDiscount > 0 ? loyaltyDiscount : null,
     },
   });
+
+  // Persist promo redemption + decrement points if applicable
+  if (validPromo) {
+    await prisma.$transaction([
+      prisma.promoRedemption.create({
+        data: {
+          promoId: validPromo.id,
+          userId,
+          bookingId: booking.id,
+          discountAmount: promoDiscount,
+        },
+      }),
+      prisma.promoCode.update({
+        where: { id: validPromo.id },
+        data: { usedCount: { increment: 1 } },
+      }),
+    ]);
+  }
+  if (loyaltyPts > 0) {
+    await prisma.$transaction([
+      prisma.loyaltyTransaction.create({
+        data: {
+          userId,
+          points: -loyaltyPts,
+          type: "redeemed",
+          reason: `Booking ${booking.id} discount`,
+        },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { loyaltyPoints: { decrement: loyaltyPts } },
+      }),
+    ]);
+  }
 
   // Increment vehicle booking count
   await prisma.vehicle.update({
@@ -114,7 +188,78 @@ export async function update(req: Request, res: Response): Promise<void> {
     data: req.body,
   });
 
+  // Booking-completion hook: award loyalty + check referral
+  if (req.body.status === "completed" && booking.status !== "completed") {
+    await onBookingCompleted(updated.id, updated.userId, Number(updated.totalCost));
+  }
+
   res.json({ data: updated });
+}
+
+async function onBookingCompleted(
+  bookingId: string,
+  userId: string,
+  totalCost: number,
+): Promise<void> {
+  // 1. Award loyalty points (10 pts per EGP 100, rounded down)
+  const earnedPts = Math.floor(totalCost / 10);
+  if (earnedPts > 0) {
+    await prisma.$transaction([
+      prisma.loyaltyTransaction.create({
+        data: {
+          userId,
+          points: earnedPts,
+          type: "earned",
+          reason: `Completed booking ${bookingId}`,
+        },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { loyaltyPoints: { increment: earnedPts } },
+      }),
+    ]);
+  }
+
+  // 2. Check referral: if this user was referred and this is their first completed booking,
+  //    award 500 pts to both parties.
+  const referral = await prisma.referral.findUnique({ where: { refereeId: userId } });
+  if (referral && !referral.completedAt) {
+    const completedCount = await prisma.booking.count({
+      where: { userId, status: "completed" },
+    });
+    if (completedCount === 1) {
+      await prisma.$transaction([
+        prisma.referral.update({
+          where: { id: referral.id },
+          data: { completedAt: new Date(), rewardPaid: true },
+        }),
+        prisma.loyaltyTransaction.create({
+          data: {
+            userId: referral.referrerId,
+            points: 500,
+            type: "earned",
+            reason: "Referral bonus",
+          },
+        }),
+        prisma.loyaltyTransaction.create({
+          data: {
+            userId: referral.refereeId,
+            points: 500,
+            type: "earned",
+            reason: "Welcome bonus (referred)",
+          },
+        }),
+        prisma.user.update({
+          where: { id: referral.referrerId },
+          data: { loyaltyPoints: { increment: 500 } },
+        }),
+        prisma.user.update({
+          where: { id: referral.refereeId },
+          data: { loyaltyPoints: { increment: 500 } },
+        }),
+      ]);
+    }
+  }
 }
 
 const STAFF_TYPES = new Set(["admin", "staff"]);

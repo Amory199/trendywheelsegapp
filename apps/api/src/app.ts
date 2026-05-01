@@ -9,6 +9,8 @@ import swaggerUi from "swagger-ui-express";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { adminRoutes } from "./modules/admin/routes.js";
+import { godModeRoutes } from "./modules/admin/godmode.js";
+import { customerFeaturesRoutes } from "./modules/customer-features/routes.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { bookingRoutes } from "./modules/bookings/routes.js";
 import { crmRoutes } from "./modules/crm/routes.js";
@@ -60,7 +62,11 @@ const authLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: "Too many auth attempts, please try again later", code: "RATE_LIMIT_AUTH", statusCode: 429 },
+  message: {
+    message: "Too many auth attempts, please try again later",
+    code: "RATE_LIMIT_AUTH",
+    statusCode: 429,
+  },
 });
 
 // Request logging
@@ -85,6 +91,8 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/storage", storageRoutes);
 app.use("/api/kb", kbRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/admin", godModeRoutes);
+app.use("/api", customerFeaturesRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/crm", crmRoutes);

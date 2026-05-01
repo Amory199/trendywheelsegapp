@@ -45,6 +45,20 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Power tools",
+    items: [
+      { href: "/ops", label: "Operations", icon: "bolt" },
+      { href: "/promo-codes", label: "Promo codes", icon: "tag" },
+      { href: "/pricing-rules", label: "Pricing rules", icon: "trend" },
+      { href: "/broadcasts", label: "Broadcasts", icon: "bell" },
+      { href: "/templates", label: "Templates", icon: "book" },
+      { href: "/audit-log", label: "Audit log", icon: "shield" },
+      { href: "/feature-flags", label: "Feature flags", icon: "flag" },
+      { href: "/sales-targets", label: "Sales targets", icon: "trend" },
+      { href: "/business", label: "Business config", icon: "gear" },
+    ],
+  },
+  {
     label: "Content",
     items: [
       { href: "/kb", label: "Knowledge base", icon: "book" },
@@ -55,9 +69,7 @@ const NAV_GROUPS: NavGroup[] = [
 
 // Minimal stroke-icon set, mirroring the mockup's TWIcon library.
 const NAV_ICONS = {
-  trend: (
-    <path d="M3 17l4-4 4 4 7-7M15 6h6v6" strokeLinecap="round" strokeLinejoin="round" />
-  ),
+  trend: <path d="M3 17l4-4 4 4 7-7M15 6h6v6" strokeLinecap="round" strokeLinejoin="round" />,
   car: (
     <path
       d="M3 12l2-5h14l2 5v5a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1v-5zM6 12h12"
@@ -71,20 +83,8 @@ const NAV_ICONS = {
       <path d="M3 9h18M8 3v4M16 3v4" strokeLinecap="round" />
     </>
   ),
-  tag: (
-    <path
-      d="M20 13l-7 7-9-9V4h7l9 9zM8 8h.01"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  ),
-  wrench: (
-    <path
-      d="M14 5l5 5-7 7-9-9 3-3 4 4 4-4z"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  ),
+  tag: <path d="M20 13l-7 7-9-9V4h7l9 9zM8 8h.01" strokeLinecap="round" strokeLinejoin="round" />,
+  wrench: <path d="M14 5l5 5-7 7-9-9 3-3 4 4 4-4z" strokeLinecap="round" strokeLinejoin="round" />,
   user: (
     <>
       <circle cx="12" cy="8" r="4" />
@@ -152,6 +152,19 @@ const NAV_ICONS = {
       strokeLinejoin="round"
     />
   ),
+  bolt: <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" strokeLinecap="round" strokeLinejoin="round" />,
+  shield: (
+    <path
+      d="M12 2l8 4v6c0 5-4 9-8 10-4-1-8-5-8-10V6l8-4z"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  ),
+  flag: (
+    <>
+      <path d="M4 21V4M4 4h12l-2 4 2 4H4" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
 } as const;
 
 function TWIcon({
@@ -217,7 +230,10 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
   }
   if (!user) return null;
 
-  const crumbs = ["Home", ...(path === "/" ? ["Dashboard"] : path.split("/").filter(Boolean).map(humanCrumb))];
+  const crumbs = [
+    "Home",
+    ...(path === "/" ? ["Dashboard"] : path.split("/").filter(Boolean).map(humanCrumb)),
+  ];
   const initials =
     user.name
       ?.split(" ")
@@ -270,8 +286,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
                 {group.label}
               </div>
               {group.items.map((n) => {
-                const active =
-                  n.href === "/" ? path === "/" : path.startsWith(n.href);
+                const active = n.href === "/" ? path === "/" : path.startsWith(n.href);
                 return (
                   <Link
                     key={n.href}
