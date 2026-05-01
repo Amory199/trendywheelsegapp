@@ -15,6 +15,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { useCounter } from "../hooks/useCounter";
 import { readToken, ACCESS_KEY } from "../lib/api";
 
 interface MetricsResponse {
@@ -108,28 +109,39 @@ export default function DashboardPage(): JSX.Element {
 
   const m = metricsQ.data?.data;
 
-  const kpis: Array<{ label: string; value: string; delta: string; tone: Tone }> = [
+  const kpis: Array<{
+    label: string;
+    value: string;
+    raw: number | null;
+    delta: string;
+    tone: Tone;
+    prefix?: string;
+  }> = [
     {
       label: "Total bookings",
       value: m ? m.bookings.active.toLocaleString() : "—",
+      raw: m ? m.bookings.active : null,
       delta: "+12.4%",
       tone: "lime",
     },
     {
       label: "Revenue (EGP)",
       value: m ? twEGP(m.revenue.total).replace("EGP ", "") : "—",
+      raw: m ? m.revenue.total : null,
       delta: "+8.1%",
       tone: "pink",
     },
     {
       label: "Active vehicles",
       value: m ? m.vehicles.available.toLocaleString() : "—",
+      raw: m ? m.vehicles.available : null,
       delta: `+${m ? Math.max(0, m.vehicles.available - (m.vehicles.total - m.vehicles.available)) : 0}`,
       tone: "blue",
     },
     {
       label: "Open repairs",
       value: m ? String(m.repairs.pending) : "—",
+      raw: m ? m.repairs.pending : null,
       delta: m && m.repairs.pending > 0 ? `-${Math.min(5, m.repairs.pending)}` : "0",
       tone: "pool",
     },
@@ -138,7 +150,10 @@ export default function DashboardPage(): JSX.Element {
   // Real data from API — no synthesis.
   const trendQ = useQuery({
     queryKey: ["admin", "booking-trend", 30],
-    queryFn: () => authedJson<{ data: Array<{ date: string; rentals: number; sales: number }> }>("/api/admin/booking-trend?days=30"),
+    queryFn: () =>
+      authedJson<{ data: Array<{ date: string; rentals: number; sales: number }> }>(
+        "/api/admin/booking-trend?days=30",
+      ),
   });
   const trend = React.useMemo(
     () =>
@@ -147,12 +162,15 @@ export default function DashboardPage(): JSX.Element {
         rent: row.rentals,
         sales: row.sales,
       })),
-    [trendQ.data]
+    [trendQ.data],
   );
 
   const revenueQ = useQuery({
     queryKey: ["admin", "revenue-breakdown"],
-    queryFn: () => authedJson<{ data: Array<{ type: string; amount: number; percentage: number }> }>("/api/admin/revenue-breakdown"),
+    queryFn: () =>
+      authedJson<{ data: Array<{ type: string; amount: number; percentage: number }> }>(
+        "/api/admin/revenue-breakdown",
+      ),
   });
   const revenueByType = React.useMemo(
     () =>
@@ -163,7 +181,7 @@ export default function DashboardPage(): JSX.Element {
           .join(" "),
         value: row.amount,
       })),
-    [revenueQ.data]
+    [revenueQ.data],
   );
 
   const pieColors = [
@@ -198,7 +216,7 @@ export default function DashboardPage(): JSX.Element {
       ]
         .sort((x, y) => +new Date(y.createdAt) - +new Date(x.createdAt))
         .slice(0, 12),
-    [a]
+    [a],
   );
 
   const exportCSV = (): void => {
@@ -337,22 +355,17 @@ export default function DashboardPage(): JSX.Element {
               >
                 {k.label}
               </div>
+              <KPIValue raw={k.raw} fallback={k.value} />
+
               <div
-                className="tw-ticker"
-                key={`${k.label}-${k.value}`}
                 style={{
-                  fontFamily: typography.fontFamily.display,
-                  fontSize: 36,
-                  color: palette.text,
-                  letterSpacing: "0.01em",
-                  lineHeight: 1,
-                  marginTop: 10,
+                  marginTop: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                   position: "relative",
                 }}
               >
-                {k.value}
-              </div>
-              <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
                 <span
                   style={{
                     fontSize: 11,
@@ -398,11 +411,25 @@ export default function DashboardPage(): JSX.Element {
             </div>
             <div style={{ display: "flex", gap: 12, fontSize: 11, color: palette.muted }}>
               <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <div style={{ width: 8, height: 8, borderRadius: 4, background: colors.brand.trendyPink }} />
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    background: colors.brand.trendyPink,
+                  }}
+                />
                 Rentals
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <div style={{ width: 8, height: 8, borderRadius: 4, background: colors.brand.friendlyBlue }} />
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    background: colors.brand.friendlyBlue,
+                  }}
+                />
                 Sales
               </span>
             </div>
@@ -490,7 +517,10 @@ export default function DashboardPage(): JSX.Element {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {revenueByType.map((r, i) => (
-              <div key={r.name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+              <div
+                key={r.name}
+                style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}
+              >
                 <div
                   style={{
                     width: 10,
@@ -524,11 +554,7 @@ export default function DashboardPage(): JSX.Element {
         {activityQ.isLoading ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="tw-skeleton"
-                style={{ height: 32, borderRadius: 8 }}
-              />
+              <div key={i} className="tw-skeleton" style={{ height: 32, borderRadius: 8 }} />
             ))}
           </div>
         ) : activity.length === 0 ? (
@@ -583,6 +609,26 @@ export default function DashboardPage(): JSX.Element {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function KPIValue({ raw, fallback }: { raw: number | null; fallback: string }): JSX.Element {
+  const animated = useCounter(raw ?? 0, 800);
+  const palette = twPalette(false);
+  return (
+    <div
+      style={{
+        fontFamily: typography.fontFamily.display,
+        fontSize: 36,
+        color: palette.text,
+        letterSpacing: "0.01em",
+        lineHeight: 1,
+        marginTop: 10,
+        position: "relative",
+      }}
+    >
+      {raw !== null ? animated : fallback}
     </div>
   );
 }

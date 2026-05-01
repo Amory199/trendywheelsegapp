@@ -250,8 +250,16 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
         height: "100vh",
         background: palette.bg,
         color: palette.text,
+        position: "relative",
       }}
     >
+      <div className="tw-ambient" aria-hidden>
+        <div className="tw-ambient-grid" />
+        <div className="tw-ambient-orb orb-blue" />
+        <div className="tw-ambient-orb orb-pink" />
+        <div className="tw-ambient-orb orb-pool" />
+        <div className="tw-ambient-orb orb-lime" />
+      </div>
       {/* ─── Sidebar ─────────────────────────────────────────────────── */}
       <aside
         style={{

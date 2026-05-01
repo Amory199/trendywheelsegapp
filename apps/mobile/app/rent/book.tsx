@@ -3,9 +3,10 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { colors, spacing, typography } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,7 +14,18 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  FadeInRight,
+  FadeOutLeft,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
@@ -93,29 +105,7 @@ export default function BookScreen(): JSX.Element {
   });
 
   if (booked) {
-    return (
-      <View style={styles.successContainer}>
-        <Animated.View entering={FadeInRight.springify()} style={styles.successCard}>
-          <View style={styles.successIcon}>
-            <Ionicons name="checkmark-circle" size={72} color={colors.success} />
-          </View>
-          <Text style={styles.successTitle}>Booking Confirmed!</Text>
-          <Text style={styles.successRef}>Ref: {bookingRef}</Text>
-          <Text style={styles.successMsg}>
-            Present this reference at pickup. We sent a confirmation to {email}.
-          </Text>
-          <Pressable style={styles.doneBtn} onPress={() => router.replace("/(tabs)/rent")}>
-            <Text style={styles.doneBtnText}>Back to Browse</Text>
-          </Pressable>
-          <Pressable
-            style={styles.myBookingsBtn}
-            onPress={() => router.push("/rent/my-bookings")}
-          >
-            <Text style={styles.myBookingsBtnText}>View My Bookings</Text>
-          </Pressable>
-        </Animated.View>
-      </View>
-    );
+    return <SuccessScreen bookingRef={bookingRef} email={email} router={router} />;
   }
 
   return (
@@ -150,9 +140,7 @@ export default function BookScreen(): JSX.Element {
               <View style={styles.summaryCard}>
                 <Text style={styles.summaryText}>
                   {days} day{days !== 1 ? "s" : ""} ·{" "}
-                  <Text style={styles.summaryPrice}>
-                    {totalCost.toLocaleString()} EGP total
-                  </Text>
+                  <Text style={styles.summaryPrice}>{totalCost.toLocaleString()} EGP total</Text>
                 </Text>
               </View>
             )}
@@ -162,10 +150,32 @@ export default function BookScreen(): JSX.Element {
         {step === 1 && (
           <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
             <Text style={styles.stepHeading}>Your Information</Text>
-            <LabeledInput label="Full Name" value={name} onChangeText={setName} placeholder="Ahmed Mohamed" />
-            <LabeledInput label="Email" value={email} onChangeText={setEmail} placeholder="you@email.com" keyboardType="email-address" />
-            <LabeledInput label="Phone" value={phone} onChangeText={setPhone} placeholder="+20 1xx xxx xxxx" keyboardType="phone-pad" />
-            <LabeledInput label="Driver's License #" value={licenseNum} onChangeText={setLicenseNum} placeholder="License number" />
+            <LabeledInput
+              label="Full Name"
+              value={name}
+              onChangeText={setName}
+              placeholder="Ahmed Mohamed"
+            />
+            <LabeledInput
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@email.com"
+              keyboardType="email-address"
+            />
+            <LabeledInput
+              label="Phone"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="+20 1xx xxx xxxx"
+              keyboardType="phone-pad"
+            />
+            <LabeledInput
+              label="Driver's License #"
+              value={licenseNum}
+              onChangeText={setLicenseNum}
+              placeholder="License number"
+            />
           </Animated.View>
         )}
 
@@ -188,7 +198,8 @@ export default function BookScreen(): JSX.Element {
               <Text style={styles.totalLabel}>Total</Text>
               <Text style={styles.totalValue}>{totalCost.toLocaleString()} EGP</Text>
               <Text style={styles.totalDays}>
-                {days} day{days !== 1 ? "s" : ""} @ {Number(vehicle?.dailyRate).toLocaleString()} EGP/day
+                {days} day{days !== 1 ? "s" : ""} @ {Number(vehicle?.dailyRate).toLocaleString()}{" "}
+                EGP/day
               </Text>
             </View>
           </Animated.View>
@@ -198,7 +209,11 @@ export default function BookScreen(): JSX.Element {
       <View style={styles.footer}>
         {step < 2 ? (
           <Pressable
-            style={[styles.nextBtn, !canProceed(step, { startDate, endDate, name, email, phone, licenseNum }) && styles.btnDisabled]}
+            style={[
+              styles.nextBtn,
+              !canProceed(step, { startDate, endDate, name, email, phone, licenseNum }) &&
+                styles.btnDisabled,
+            ]}
             disabled={!canProceed(step, { startDate, endDate, name, email, phone, licenseNum })}
             onPress={() => {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -231,9 +246,21 @@ export default function BookScreen(): JSX.Element {
 
 function canProceed(
   step: number,
-  fields: { startDate: string; endDate: string; name: string; email: string; phone: string; licenseNum: string },
+  fields: {
+    startDate: string;
+    endDate: string;
+    name: string;
+    email: string;
+    phone: string;
+    licenseNum: string;
+  },
 ): boolean {
-  if (step === 0) return !!fields.startDate && !!fields.endDate && new Date(fields.endDate) > new Date(fields.startDate);
+  if (step === 0)
+    return (
+      !!fields.startDate &&
+      !!fields.endDate &&
+      new Date(fields.endDate) > new Date(fields.startDate)
+    );
   if (step === 1) return !!fields.name && !!fields.email && !!fields.phone && !!fields.licenseNum;
   return true;
 }
@@ -283,7 +310,11 @@ function PaymentOption({
       style={[styles.paymentOption, selected && styles.paymentOptionSelected]}
       onPress={onPress}
     >
-      <Ionicons name={icon} size={24} color={selected ? colors.accent.DEFAULT : colors.text.secondary} />
+      <Ionicons
+        name={icon}
+        size={24}
+        color={selected ? colors.accent.DEFAULT : colors.text.secondary}
+      />
       <Text style={[styles.paymentLabel, selected && styles.paymentLabelSelected]}>{label}</Text>
       {selected && <Ionicons name="checkmark-circle" size={20} color={colors.accent.DEFAULT} />}
     </Pressable>
@@ -410,7 +441,12 @@ const styles = StyleSheet.create({
   confirmBtnText: { color: "#000", fontWeight: "700", fontSize: 16 },
   btnDisabled: { opacity: 0.4 },
   errorText: { color: colors.error, textAlign: "center", marginTop: spacing.sm, fontSize: 13 },
-  successContainer: { flex: 1, backgroundColor: colors.dark.bg, justifyContent: "center", padding: spacing.xl },
+  successContainer: {
+    flex: 1,
+    backgroundColor: colors.dark.bg,
+    justifyContent: "center",
+    padding: spacing.xl,
+  },
   successCard: {
     backgroundColor: colors.dark.card,
     borderRadius: 20,
@@ -445,3 +481,132 @@ const styles = StyleSheet.create({
   },
   myBookingsBtnText: { color: colors.text.light, fontWeight: "600" },
 });
+
+// ─── Success screen with confetti + animated checkmark ────────────
+type RouterLike = { replace: (href: string) => void; push: (href: string) => void };
+
+const CONFETTI_COUNT = 36;
+const SCREEN_W = Dimensions.get("window").width;
+const SCREEN_H = Dimensions.get("window").height;
+
+function SuccessScreen({
+  bookingRef,
+  email,
+  router,
+}: {
+  bookingRef: string;
+  email: string;
+  router: RouterLike;
+}): JSX.Element {
+  const checkScale = useSharedValue(0);
+  const refPulse = useSharedValue(1);
+
+  useEffect(() => {
+    checkScale.value = withDelay(120, withSpring(1, { damping: 8, stiffness: 120 }));
+    refPulse.value = withRepeat(
+      withSequence(
+        withTiming(1.04, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
+    );
+  }, [checkScale, refPulse]);
+
+  const checkAnim = useAnimatedStyle(() => ({ transform: [{ scale: checkScale.value }] }));
+  const refAnim = useAnimatedStyle(() => ({ transform: [{ scale: refPulse.value }] }));
+
+  return (
+    <View style={styles.successContainer}>
+      <ConfettiBurst />
+      <Animated.View entering={FadeInRight.springify()} style={styles.successCard}>
+        <Animated.View style={[styles.successIcon, checkAnim]}>
+          <Ionicons name="checkmark-circle" size={88} color={colors.success} />
+        </Animated.View>
+        <Text style={styles.successTitle}>Booking Confirmed!</Text>
+        <Animated.View style={refAnim}>
+          <Text style={styles.successRef}>Ref: {bookingRef}</Text>
+        </Animated.View>
+        <Text style={styles.successMsg}>
+          Present this reference at pickup. We sent a confirmation to {email || "your inbox"}.
+        </Text>
+        <Pressable style={styles.doneBtn} onPress={() => router.replace("/(tabs)/rent")}>
+          <Text style={styles.doneBtnText}>Back to Browse</Text>
+        </Pressable>
+        <Pressable style={styles.myBookingsBtn} onPress={() => router.push("/rent/my-bookings")}>
+          <Text style={styles.myBookingsBtnText}>View My Bookings</Text>
+        </Pressable>
+      </Animated.View>
+    </View>
+  );
+}
+
+function ConfettiBurst(): JSX.Element {
+  const particles = Array.from({ length: CONFETTI_COUNT });
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      {particles.map((_, i) => (
+        <ConfettiParticle key={i} index={i} />
+      ))}
+    </View>
+  );
+}
+
+const CONFETTI_COLORS = ["#FF0065", "#2B0FF8", "#A9F453", "#00C7EA", "#FFD93D"];
+
+function ConfettiParticle({ index }: { index: number }): JSX.Element {
+  const startX = (index / CONFETTI_COUNT) * SCREEN_W + (Math.random() * 30 - 15);
+  const drift = (Math.random() - 0.5) * 80;
+  const size = 6 + Math.random() * 8;
+  const rot = Math.random() * 360;
+  const color = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
+  const fallDuration = 2200 + Math.random() * 1400;
+  const delay = Math.random() * 300;
+
+  const y = useSharedValue(-20);
+  const x = useSharedValue(0);
+  const rotation = useSharedValue(rot);
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    y.value = withDelay(
+      delay,
+      withTiming(SCREEN_H + 40, { duration: fallDuration, easing: Easing.in(Easing.quad) }),
+    );
+    x.value = withDelay(
+      delay,
+      withTiming(drift, { duration: fallDuration, easing: Easing.inOut(Easing.ease) }),
+    );
+    rotation.value = withDelay(
+      delay,
+      withTiming(rot + 720, { duration: fallDuration, easing: Easing.linear }),
+    );
+    opacity.value = withDelay(delay + fallDuration - 600, withTiming(0, { duration: 600 }));
+  }, []);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: x.value },
+      { translateY: y.value },
+      { rotate: `${rotation.value}deg` },
+    ],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          left: startX,
+          top: 0,
+          width: size,
+          height: size * 0.5,
+          borderRadius: 2,
+          backgroundColor: color,
+        },
+        style,
+      ]}
+    />
+  );
+}

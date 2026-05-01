@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupportTicket, TicketPriority, TicketStatus } from "@trendywheels/types";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { api } from "../../lib/api";
 
@@ -46,7 +46,7 @@ export default function TicketsPage(): JSX.Element {
     ? tickets.filter((t) => t.subject.toLowerCase().includes(search.toLowerCase()))
     : tickets;
 
-  const selected = selectedId ? filtered.find((t) => t.id === selectedId) ?? null : null;
+  const selected = selectedId ? (filtered.find((t) => t.id === selectedId) ?? null) : null;
 
   const updateMutation = useMutation({
     mutationFn: ({ id, update }: { id: string; update: Partial<SupportTicket> }) =>
@@ -147,7 +147,11 @@ export default function TicketsPage(): JSX.Element {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
-                      {new Date(ticket.createdAt).toLocaleDateString()}
+                      <SLATimer
+                        createdAt={ticket.createdAt}
+                        priority={ticket.priority}
+                        status={ticket.status}
+                      />
                     </td>
                     <td className="px-4 py-3">
                       <Link
@@ -239,7 +243,9 @@ export default function TicketsPage(): JSX.Element {
               <div className="flex justify-between">
                 <span className="text-gray-500">Assigned to</span>
                 <span className="text-gray-700">
-                  {selected.assignedAgentId ? selected.assignedAgentId.slice(0, 12) + "…" : "Unassigned"}
+                  {selected.assignedAgentId
+                    ? selected.assignedAgentId.slice(0, 12) + "…"
+                    : "Unassigned"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -287,5 +293,63 @@ export default function TicketsPage(): JSX.Element {
         </div>
       )}
     </div>
+  );
+}
+
+const SLA_BUDGET_HOURS: Record<string, number> = {
+  urgent: 1,
+  high: 4,
+  medium: 24,
+  low: 72,
+};
+
+function SLATimer({
+  createdAt,
+  priority,
+  status,
+}: {
+  createdAt: string;
+  priority: string;
+  status: string;
+}): JSX.Element {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (status === "resolved" || status === "closed") return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [status]);
+
+  if (status === "resolved" || status === "closed") {
+    return <span className="text-gray-400">—</span>;
+  }
+
+  const budgetMs = (SLA_BUDGET_HOURS[priority] ?? 24) * 60 * 60 * 1000;
+  const elapsed = now - new Date(createdAt).getTime();
+  const remaining = budgetMs - elapsed;
+  const overdue = remaining < 0;
+  const critical = remaining > 0 && remaining < 10 * 60 * 1000;
+
+  const fmt = (ms: number): string => {
+    const abs = Math.abs(ms);
+    const h = Math.floor(abs / 3600000);
+    const m = Math.floor((abs % 3600000) / 60000);
+    const s = Math.floor((abs % 60000) / 1000);
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s.toString().padStart(2, "0")}s`;
+    return `${s}s`;
+  };
+
+  const color = overdue
+    ? "text-red-600 font-semibold tw-pulse-pink"
+    : critical
+      ? "text-orange-500 font-semibold"
+      : remaining < 60 * 60 * 1000
+        ? "text-yellow-600"
+        : "text-emerald-600";
+
+  return (
+    <span className={`${color} tabular-nums text-xs`}>
+      {overdue ? `Overdue ${fmt(remaining)}` : fmt(remaining)}
+    </span>
   );
 }
