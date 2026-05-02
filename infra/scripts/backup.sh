@@ -3,6 +3,14 @@
 # Add to cron: 0 2 * * * /opt/trendywheels/infra/scripts/backup.sh >> /var/log/trendywheels/backup.log 2>&1
 set -euo pipefail
 
+# Load infra/.env so MINIO_ROOT_USER/PASSWORD are picked up by cron jobs.
+if [ -f /opt/trendywheels/infra/.env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . /opt/trendywheels/infra/.env
+  set +a
+fi
+
 TIMESTAMP=$(date '+%Y-%m-%d_%H-%M-%S')
 BACKUP_FILE="/tmp/trendywheels-${TIMESTAMP}.sql.gz"
 MINIO_BUCKET="backups"
