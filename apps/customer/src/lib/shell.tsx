@@ -175,6 +175,57 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
                 </Link>
               );
             })}
+            {isStaff ? (
+              <>
+                <a
+                  href="https://support.trendywheelseg.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: "rgba(255,255,255,0.7)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Support ↗
+                </a>
+                <a
+                  href="https://inventory.trendywheelseg.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: "rgba(255,255,255,0.7)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Inventory ↗
+                </a>
+                {isAdmin ? (
+                  <a
+                    href="https://admin.trendywheelseg.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 10,
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: "rgba(255,255,255,0.7)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Admin ↗
+                  </a>
+                ) : null}
+              </>
+            ) : null}
           </nav>
           <div
             style={{

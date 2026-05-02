@@ -33,12 +33,9 @@ async function main() {
   await prisma.user.deleteMany();
 
   // ─── Users ───────────────────────────────────────────────
-  const [adminPassword, supportPassword, inventoryPassword, mechanicPassword] = await Promise.all([
-    bcrypt.hash("Admin@123!", 12),
-    bcrypt.hash("Support@123!", 12),
-    bcrypt.hash("Inventory@123!", 12),
-    bcrypt.hash("Mechanic@123!", 12),
-  ]);
+  // Three-role model: superadmin (accountType=admin), sales agent (accountType=staff,
+  // staffRole=sales — also handles inventory + support + repairs), customer.
+  const adminPassword = await bcrypt.hash("Admin@123!", 12);
 
   const admin = await prisma.user.create({
     data: {
@@ -52,45 +49,6 @@ async function main() {
       loyaltyTier: "platinum",
       salesTargetMonthly: 250000,
       salesAssignmentWeight: 1,
-    },
-  });
-
-  const supportAgent = await prisma.user.create({
-    data: {
-      phone: "+201000000002",
-      email: "support@trendywheelseg.com",
-      name: "Sara Support",
-      accountType: "staff",
-      staffRole: "support",
-      status: "active",
-      passwordHash: supportPassword,
-      loyaltyTier: "gold",
-    },
-  });
-
-  const inventoryManager = await prisma.user.create({
-    data: {
-      phone: "+201000000004",
-      email: "inventory@trendywheelseg.com",
-      name: "Hassan Fleet",
-      accountType: "staff",
-      staffRole: "inventory",
-      status: "active",
-      passwordHash: inventoryPassword,
-      loyaltyTier: "gold",
-    },
-  });
-
-  const mechanic = await prisma.user.create({
-    data: {
-      phone: "+201000000003",
-      email: "mechanic@trendywheelseg.com",
-      name: "Ahmed Mechanic",
-      accountType: "staff",
-      staffRole: "mechanic",
-      status: "active",
-      passwordHash: mechanicPassword,
-      loyaltyTier: "gold",
     },
   });
 
@@ -165,8 +123,7 @@ async function main() {
     ),
   );
 
-  void inventoryManager; // referenced to avoid unused warning; user is needed for inventory dashboard auth
-  console.log(`✓ Created ${4 + salesAgents.length + customers.length} users`);
+  console.log(`✓ Created ${1 + salesAgents.length + customers.length} users`);
 
   // ─── Golf Carts (the actual fleet) ───────────────────────
   const vehiclesData = [
@@ -375,7 +332,7 @@ async function main() {
       category: "electrical",
       priority: "medium",
       status: "assigned",
-      assignedMechanicId: mechanic.id,
+      assignedMechanicId: salesAgents[0].id,
       preferredDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000),
       estimatedCost: 800,
     },
@@ -388,7 +345,7 @@ async function main() {
       subject: "Refund request for cancelled booking",
       status: "open",
       priority: "high",
-      assignedAgentId: supportAgent.id,
+      assignedAgentId: salesAgents[1].id,
     },
   });
 
@@ -592,16 +549,14 @@ async function main() {
   );
 
   console.log("\n🎉 Seed complete!\n");
-  console.log("Staff logins:");
-  console.log("  admin@trendywheelseg.com      / Admin@123!");
-  console.log("  support@trendywheelseg.com    / Support@123!");
-  console.log("  inventory@trendywheelseg.com  / Inventory@123!");
-  console.log("  mechanic@trendywheelseg.com   / Mechanic@123!");
-  console.log("  amira@trendywheelseg.com      / Sales@123!  (sales)");
-  console.log("  youssef@trendywheelseg.com    / Sales@123!  (sales)");
-  console.log("  rana@trendywheelseg.com       / Sales@123!  (sales)");
-  console.log("Customer logins:");
-  console.log("  mohamed@example.com           / Customer@123!");
+  console.log("Logins (3-role model):");
+  console.log("  admin@trendywheelseg.com      / Admin@123!     (superadmin)");
+  console.log(
+    "  amira@trendywheelseg.com      / Sales@123!     (sales · also handles inventory + support)",
+  );
+  console.log("  youssef@trendywheelseg.com    / Sales@123!     (sales)");
+  console.log("  rana@trendywheelseg.com       / Sales@123!     (sales)");
+  console.log("  mohamed@example.com           / Customer@123!  (customer)");
 }
 
 main()
