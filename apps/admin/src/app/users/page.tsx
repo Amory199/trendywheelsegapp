@@ -35,7 +35,7 @@ export default function UsersPage(): JSX.Element {
   });
 
   const users = data?.data ?? [];
-  const selected = selectedId ? users.find((u) => u.id === selectedId) ?? null : null;
+  const selected = selectedId ? (users.find((u) => u.id === selectedId) ?? null) : null;
 
   return (
     <div className="p-8 space-y-6">
@@ -198,7 +198,9 @@ function UserDrawer({
             <label className="text-xs font-medium text-gray-500 block mb-1">Account type</label>
             <TWSelect
               value={draft.accountType}
-              onChange={(v) => setDraft((d) => ({ ...d, accountType: v as UserRow["accountType"] }))}
+              onChange={(v) =>
+                setDraft((d) => ({ ...d, accountType: v as UserRow["accountType"] }))
+              }
               width="100%"
               options={[
                 { value: "customer", label: "Customer", color: "#1338A8" },
@@ -257,13 +259,77 @@ function UserDrawer({
           </div>
         </div>
 
+        <LoyaltyAdjust user={user} onChange={onChange} />
+
         <div className="border-t pt-4 text-xs text-gray-500">
-          Loyalty: <span className="font-medium capitalize">{user.loyaltyTier}</span> ·{" "}
-          {user.loyaltyPoints} pts
-          <br />
           Joined {new Date(user.createdAt).toLocaleDateString()}
         </div>
       </div>
+    </div>
+  );
+}
+
+function LoyaltyAdjust({ user, onChange }: { user: UserRow; onChange: () => void }): JSX.Element {
+  const [points, setPoints] = useState("");
+  const [reason, setReason] = useState("");
+  const adjustMutation = useMutation({
+    mutationFn: () =>
+      authedFetch(`/api/admin/users/${user.id}/loyalty-adjust`, {
+        method: "POST",
+        body: JSON.stringify({ points: Number(points), reason }),
+      }),
+    onSuccess: () => {
+      setPoints("");
+      setReason("");
+      onChange();
+    },
+  });
+
+  const parsed = Number(points);
+  const valid =
+    points !== "" && Number.isFinite(parsed) && parsed !== 0 && reason.trim().length > 0;
+
+  return (
+    <div className="border-t pt-4">
+      <div className="text-xs uppercase tracking-wider text-gray-500 mb-2">Loyalty</div>
+      <div className="text-sm mb-3">
+        <span className="font-medium capitalize">{user.loyaltyTier}</span> ·{" "}
+        <span className="font-mono">{user.loyaltyPoints}</span> pts
+      </div>
+      <div className="flex gap-2 mb-2">
+        <input
+          type="number"
+          value={points}
+          placeholder="±points (e.g. 500 or -250)"
+          onChange={(e) => setPoints(e.target.value)}
+          className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      <input
+        type="text"
+        value={reason}
+        placeholder="Reason (required, audited)"
+        onChange={(e) => setReason(e.target.value)}
+        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+      />
+      <button
+        onClick={() => adjustMutation.mutate()}
+        disabled={!valid || adjustMutation.isPending}
+        className="w-full px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium rounded-md disabled:opacity-40"
+      >
+        {adjustMutation.isPending
+          ? "Adjusting…"
+          : parsed > 0
+            ? `Award +${parsed} pts`
+            : parsed < 0
+              ? `Deduct ${parsed} pts`
+              : "Adjust loyalty"}
+      </button>
+      {adjustMutation.isError ? (
+        <div className="text-xs text-red-600 mt-2">
+          {(adjustMutation.error as Error)?.message ?? "Failed"}
+        </div>
+      ) : null}
     </div>
   );
 }
