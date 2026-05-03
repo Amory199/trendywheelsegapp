@@ -10,6 +10,22 @@ type Tx = Prisma.TransactionClient;
 const VEHICLES_CACHE_TTL = 5 * 60; // 5 minutes
 const VEHICLES_CACHE_PREFIX = "vehicles:list:";
 
+// Prisma's VehicleType enum uses symbolic names (FOUR_SEATER) with @map() to
+// the wire values ("4-seater") sent by the validator and the form. The Prisma
+// client always wants the symbolic name, so translate before each write.
+const VEHICLE_TYPE_MAP: Record<string, "FOUR_SEATER" | "SIX_SEATER" | "LED"> = {
+  "4-seater": "FOUR_SEATER",
+  "6-seater": "SIX_SEATER",
+  LED: "LED",
+};
+
+function normalizeVehicleData<T extends { type?: unknown }>(input: T): T {
+  if (typeof input.type === "string" && input.type in VEHICLE_TYPE_MAP) {
+    return { ...input, type: VEHICLE_TYPE_MAP[input.type] };
+  }
+  return input;
+}
+
 export async function list(req: Request, res: Response): Promise<void> {
   const {
     type,
@@ -67,7 +83,8 @@ export async function getById(req: Request, res: Response): Promise<void> {
 }
 
 export async function create(req: Request, res: Response): Promise<void> {
-  const { images = [], ...vehicleData } = req.body as { images?: string[]; [k: string]: unknown };
+  const { images = [], ...rawData } = req.body as { images?: string[]; [k: string]: unknown };
+  const vehicleData = normalizeVehicleData(rawData);
 
   const vehicle = await prisma.$transaction(async (tx: Tx) => {
     const created = await tx.vehicle.create({ data: vehicleData as Prisma.VehicleCreateInput });
@@ -94,7 +111,8 @@ export async function create(req: Request, res: Response): Promise<void> {
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
-  const { images, ...vehicleData } = req.body as { images?: string[]; [k: string]: unknown };
+  const { images, ...rawData } = req.body as { images?: string[]; [k: string]: unknown };
+  const vehicleData = normalizeVehicleData(rawData);
 
   const existing = await prisma.vehicle.findUnique({ where: { id: req.params.id } });
   if (!existing) throw AppError.notFound("Vehicle not found");
