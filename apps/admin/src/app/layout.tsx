@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { ErrorReporter } from "../lib/error-reporter";
 import { Providers } from "../lib/providers";
 import { Shell } from "../lib/shell";
 
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
       </head>
       <body className="antialiased">
         <Providers>
+          <ErrorReporter />
           <Shell>{children}</Shell>
         </Providers>
       </body>
