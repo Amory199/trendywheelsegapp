@@ -284,9 +284,9 @@ body {
 .tw-ambient-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(70px);
+  filter: blur(110px);
   will-change: transform;
-  opacity: 0.55;
+  opacity: 0.18;
 }
 .tw-ambient-orb.orb-blue {
   width: 520px;
@@ -295,6 +295,7 @@ body {
   left: -80px;
   background: radial-gradient(circle, #2b0ff8 0%, transparent 70%);
   animation: twDrift1 22s ease-in-out infinite;
+  opacity: 0.14;
 }
 .tw-ambient-orb.orb-pink {
   width: 460px;
@@ -303,7 +304,7 @@ body {
   right: -120px;
   background: radial-gradient(circle, #ff0065 0%, transparent 70%);
   animation: twDrift2 28s ease-in-out infinite;
-  opacity: 0.4;
+  opacity: 0.1;
 }
 .tw-ambient-orb.orb-pool {
   width: 600px;
@@ -312,7 +313,7 @@ body {
   left: 30%;
   background: radial-gradient(circle, #00c7ea 0%, transparent 70%);
   animation: twDrift3 34s ease-in-out infinite;
-  opacity: 0.32;
+  opacity: 0.1;
 }
 .tw-ambient-orb.orb-lime {
   width: 360px;
@@ -321,7 +322,7 @@ body {
   left: -80px;
   background: radial-gradient(circle, #a9f453 0%, transparent 70%);
   animation: twDrift1 30s ease-in-out infinite reverse;
-  opacity: 0.28;
+  opacity: 0.08;
 }
 .tw-ambient-grid {
   position: absolute;
