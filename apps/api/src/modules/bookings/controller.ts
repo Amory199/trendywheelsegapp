@@ -179,8 +179,19 @@ export async function update(req: Request, res: Response): Promise<void> {
   if (!booking) throw AppError.notFound("Booking not found");
 
   // Customers can only modify their own bookings
-  if (req.user!.accountType === "customer" && booking.userId !== req.user!.userId) {
+  const isCustomer = req.user!.accountType === "customer";
+  if (isCustomer && booking.userId !== req.user!.userId) {
     throw AppError.forbidden();
+  }
+
+  // Customers may only cancel their own active bookings; the staff-only
+  // status transitions (confirmed → in-progress → completed → refunded)
+  // mint loyalty + referral payouts, so they must not be customer-driven.
+  if (isCustomer && req.body.status && req.body.status !== "cancelled") {
+    throw AppError.forbidden("Only staff can change booking status");
+  }
+  if (isCustomer && Object.prototype.hasOwnProperty.call(req.body, "paymentStatus")) {
+    throw AppError.forbidden("Only staff can change payment status");
   }
 
   const updated = await prisma.booking.update({

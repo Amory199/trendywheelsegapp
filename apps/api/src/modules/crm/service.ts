@@ -2,8 +2,6 @@ import { prisma } from "../../config/database.js";
 import { notificationsQueue } from "../../queues/index.js";
 import { logger } from "../../utils/logger.js";
 
-const FIRST_TOUCH_TTL_MS = 30 * 60 * 1000;
-
 export interface CrmRules {
   firstCallWithinMinutes: number;
   followUpCallWithinHours: number;
@@ -305,5 +303,3 @@ export async function computeAgentTargets(agentId: string): Promise<{
     openCount: open._count._all,
   };
 }
-
-export { FIRST_TOUCH_TTL_MS };
