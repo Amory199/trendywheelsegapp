@@ -25,6 +25,10 @@ export const env = cleanEnv(process.env, {
   S3_SECRET_KEY: str({ default: "minioadmin" }),
   S3_BUCKET: str({ default: "trendywheels" }),
   S3_REGION: str({ default: "us-east-1" }),
+  // Public URL clients use to fetch uploaded objects. Falls back to the API
+  // endpoint, but in production this should point at the CDN vhost
+  // (e.g. https://cdn.trendywheelseg.com).
+  S3_PUBLIC_URL: url({ default: "http://localhost:9000" }),
 
   // Sentry (optional)
   SENTRY_DSN: str({ default: "" }),

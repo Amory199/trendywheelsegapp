@@ -9,9 +9,16 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
+import { env } from "../config/env.js";
 import { S3_BUCKET, s3 } from "../config/s3.js";
 
 import { logger } from "./logger.js";
+
+function publicUrl(key: string): string {
+  // Strip any trailing slash on the public URL so we always emit a single slash.
+  const base = env.S3_PUBLIC_URL.replace(/\/+$/, "");
+  return `${base}/${S3_BUCKET}/${key}`;
+}
 
 export async function ensureBucket(): Promise<void> {
   try {
@@ -39,7 +46,7 @@ export async function uploadObject(
     }),
   );
 
-  return { key, url: `/storage/${key}` };
+  return { key, url: publicUrl(key) };
 }
 
 export async function deleteObject(key: string): Promise<void> {
@@ -58,7 +65,7 @@ export async function presignUpload(
     new PutObjectCommand({ Bucket: S3_BUCKET, Key: key, ContentType: mimeType }),
     { expiresIn },
   );
-  return { uploadUrl, key, fileUrl: `/storage/${key}` };
+  return { uploadUrl, key, fileUrl: publicUrl(key) };
 }
 
 export async function presignDownload(key: string, expiresIn = 3600): Promise<string> {

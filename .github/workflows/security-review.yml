@@ -1,0 +1,51 @@
+name: Claude Security Review
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  security-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2
+
+      - name: Run Claude Code Security Review
+        uses: anthropics/claude-code-security-review@main
+        with:
+          comment-pr: true
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          # Skip generated artifacts and lock files; focus on app + package source.
+          exclude-directories: |
+            node_modules
+            .next
+            .turbo
+            dist
+            apps/api/dist
+            packages/db/prisma/migrations
+            apps/mobile/ios
+            apps/mobile/android
+          custom-security-scan-instructions: |
+            This is a TrendyWheels monorepo (Next.js + Express API + Expo).
+            Focus on:
+              * IDOR / authorization gaps in apps/api/src/modules/*
+              * Customer-callable endpoints accepting privileged fields
+                (accountType, status, paymentStatus, booking.status="completed")
+              * Storage routes (apps/api/src/modules/storage/) — prefix scoping,
+                signed URL leakage, public-read prefix vs private (license-photos)
+              * Prisma raw queries — confirm parameter interpolation, never string concat
+              * Rate-limit gaps on /api/auth/* and /api/client-errors
+              * JWT impersonation flow (actingAs claim) in admin/godmode.ts
+              * CORS whitelist, helmet CSP
+            Three-role model in production: superadmin / sales / customer. Sales
+            agents (accountType=staff) cover support + inventory + repairs.
