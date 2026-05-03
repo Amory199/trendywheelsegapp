@@ -32,6 +32,12 @@ import { logger } from "./utils/logger.js";
 
 const app: Express = express();
 
+// Trust the immediate reverse proxy (nginx on the VPS, Vercel edge in dev).
+// Required by express-rate-limit's keyGenerator + accurate req.ip.
+// Using a numeric hop count instead of `true` per express-rate-limit's
+// security guidance (avoids spoofed X-Forwarded-For from arbitrary clients).
+app.set("trust proxy", 1);
+
 // ─── Global middleware ───────────────────────────────────────
 app.use(helmet());
 app.use(
