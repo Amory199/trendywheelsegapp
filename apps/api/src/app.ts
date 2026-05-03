@@ -113,12 +113,15 @@ app.use("/api/storage", storageRoutes);
 app.use("/api/kb", kbRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin", godModeRoutes);
+// Diagnostics must be mounted before customerFeaturesRoutes — that router has
+// a top-level authenticate middleware that intercepts every request entering
+// its `/api` mount, which would block the public POST /api/client-errors.
+app.use("/api", diagnosticsRoutes);
 app.use("/api", customerFeaturesRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/crm", crmRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
-app.use("/api", diagnosticsRoutes);
 
 // OpenAPI docs
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
