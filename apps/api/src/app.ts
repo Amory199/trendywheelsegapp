@@ -54,7 +54,7 @@ app.use(
   }),
 );
 
-// Stricter rate limit for auth endpoints (30 req / 15 min per IP).
+// Stricter rate limit for auth send-OTP / login endpoints (30 req / 15 min per IP).
 // 5/15min was too tight even for legitimate testing across dashboards;
 // 30 still blocks brute force while permitting normal multi-tab usage.
 const authLimiter = rateLimit({
@@ -69,6 +69,26 @@ const authLimiter = rateLimit({
   },
 });
 
+// OTP verification gets a tighter limit keyed on the target phone (not just IP)
+// so attackers cannot spread guesses across IPs against one phone. 6-digit OTPs
+// have 10⁶ space and a 10-min window, so 5 attempts / 15 min keeps brute force
+// well below feasibility.
+const otpVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const phone = (req.body as { phone?: string } | undefined)?.phone;
+    return phone ? `otp:${phone}` : `otp-ip:${req.ip}`;
+  },
+  message: {
+    message: "Too many OTP attempts. Wait a few minutes before retrying.",
+    code: "RATE_LIMIT_OTP",
+    statusCode: 429,
+  },
+});
+
 // Request logging
 app.use((req, _res, next) => {
   logger.info({ method: req.method, url: req.url }, "Incoming request");
@@ -78,7 +98,7 @@ app.use((req, _res, next) => {
 // ─── Routes ──────────────────────────────────────────────────
 app.use("/", healthRoutes);
 app.use("/api/auth/send-otp", authLimiter);
-app.use("/api/auth/verify-otp", authLimiter);
+app.use("/api/auth/verify-otp", otpVerifyLimiter);
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/vehicles", vehicleRoutes);

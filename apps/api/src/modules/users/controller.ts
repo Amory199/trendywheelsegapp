@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 
+import { updateUserSchema } from "@trendywheels/validators";
+
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
 
@@ -84,9 +86,20 @@ export async function update(req: Request, res: Response): Promise<void> {
     throw AppError.forbidden();
   }
 
+  const parsed = updateUserSchema.parse(req.body);
+  // Privilege fields (accountType, status) are admin-only — strip silently
+  // for any non-admin caller so customers cannot self-promote or unsuspend.
+  const isAdmin = req.user!.accountType === "admin";
+  const data = isAdmin
+    ? parsed
+    : (() => {
+        const { accountType: _at, status: _st, ...rest } = parsed;
+        return rest;
+      })();
+
   const user = await prisma.user.update({
     where: { id: req.params.id },
-    data: req.body,
+    data,
     select: {
       id: true,
       phone: true,

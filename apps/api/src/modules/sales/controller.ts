@@ -9,7 +9,11 @@ export async function list(req: Request, res: Response): Promise<void> {
   const limitNum = Number(limit);
 
   const where: Record<string, unknown> = {};
-  if (status) where.status = status;
+  // Public callers only see active listings — staff/admin can pass an
+  // explicit status filter to inspect pending/sold/withdrawn rows.
+  const isStaff = req.user?.accountType === "admin" || req.user?.accountType === "staff";
+  if (status && isStaff) where.status = status;
+  else where.status = "active";
   if (userId) where.userId = userId;
 
   const [data, total] = await Promise.all([
