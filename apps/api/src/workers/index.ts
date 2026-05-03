@@ -9,7 +9,9 @@ import { queueConnection, scheduleRecurringSweeps } from "../queues/index.js";
 import { getIO } from "../utils/io-registry.js";
 import { logger } from "../utils/logger.js";
 
-void scheduleRecurringSweeps().catch((err) => logger.error({ err }, "Failed to schedule recurring sweeps"));
+void scheduleRecurringSweeps().catch((err) =>
+  logger.error({ err }, "Failed to schedule recurring sweeps"),
+);
 
 interface NotifyJob {
   userId: string;
@@ -184,7 +186,10 @@ const alertEvaluatorWorker = new Worker<Record<string, never>>(
       }
     }
 
-    logger.debug({ utilizationPct, dueMaintenance: dueMaintenance.length }, "Alert evaluation tick");
+    logger.debug(
+      { utilizationPct, dueMaintenance: dueMaintenance.length },
+      "Alert evaluation tick",
+    );
   },
   { connection: queueConnection },
 );
@@ -238,7 +243,36 @@ for (const w of [
   alertEvaluatorWorker,
   leadSweeperWorker,
 ]) {
-  w.on("failed", (job, err) => logger.error({ jobId: job?.id, err }, "Job failed"));
+  w.on("failed", (job, err) => {
+    logger.error({ jobId: job?.id, err }, "Job failed");
+    void import("../utils/error-sink.js").then(({ writeError }) =>
+      writeError({
+        level: "error",
+        source: "worker",
+        message: `Job failed (${w.name}): ${err.message}`,
+        stack: err.stack ?? null,
+        metadata: {
+          worker: w.name,
+          jobId: job?.id ?? null,
+          jobName: job?.name ?? null,
+          attempts: job?.attemptsMade ?? null,
+          data: job?.data ?? null,
+        },
+      }),
+    );
+  });
+  w.on("error", (err) => {
+    logger.error({ err, worker: w.name }, "Worker error");
+    void import("../utils/error-sink.js").then(({ writeError }) =>
+      writeError({
+        level: "error",
+        source: "worker",
+        message: `Worker runtime error (${w.name}): ${err.message}`,
+        stack: err.stack ?? null,
+        metadata: { worker: w.name },
+      }),
+    );
+  });
   w.on("completed", (job) => logger.debug({ jobId: job.id }, "Job completed"));
 }
 

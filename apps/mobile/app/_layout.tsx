@@ -2,6 +2,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
+import { installMobileErrorReporter } from "../lib/error-reporter";
+
+installMobileErrorReporter();
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

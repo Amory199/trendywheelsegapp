@@ -53,6 +53,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/broadcasts", label: "Broadcasts", icon: "bell" },
       { href: "/templates", label: "Templates", icon: "book" },
       { href: "/audit-log", label: "Audit log", icon: "shield" },
+      { href: "/logs", label: "Error logs", icon: "bolt" },
       { href: "/feature-flags", label: "Feature flags", icon: "flag" },
       { href: "/sales-targets", label: "Sales targets", icon: "trend" },
       { href: "/business", label: "Business config", icon: "gear" },

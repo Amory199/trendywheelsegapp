@@ -14,6 +14,7 @@ import { customerFeaturesRoutes } from "./modules/customer-features/routes.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { bookingRoutes } from "./modules/bookings/routes.js";
 import { crmRoutes } from "./modules/crm/routes.js";
+import { diagnosticsRoutes } from "./modules/diagnostics/routes.js";
 import { healthRoutes } from "./modules/health/routes.js";
 import { inventoryRoutes } from "./modules/inventory/routes.js";
 import { kbRoutes } from "./modules/kb/routes.js";
@@ -117,6 +118,7 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/crm", crmRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
+app.use("/api", diagnosticsRoutes);
 
 // OpenAPI docs
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
