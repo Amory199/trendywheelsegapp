@@ -40,7 +40,9 @@ export default function LoginPage(): JSX.Element {
             <TWLogoLockup size={42} color="#FFFFFF" />
           </div>
           <h1 style={styles.heroTitle}>
-            Your fleet,<br />in motion<span style={{ color: colors.brand.trendyPink }}>.</span>
+            Your fleet,
+            <br />
+            in motion<span style={{ color: colors.brand.trendyPink }}>.</span>
           </h1>
           <p style={styles.heroSub}>
             Live availability, maintenance, and alerts — all from one console.
@@ -61,7 +63,13 @@ export default function LoginPage(): JSX.Element {
           </div>
 
           <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
+            <Field
+              label="Email"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              autoComplete="email"
+            />
             <Field
               label="Password"
               type={showPassword ? "text" : "password"}
@@ -87,7 +95,10 @@ export default function LoginPage(): JSX.Element {
           </form>
 
           <div style={styles.footnote}>
-            Need access? <a href="mailto:admin@trendywheelseg.com" style={styles.link}>Ask an admin</a>
+            Need access?{" "}
+            <a href="mailto:admin@trendywheelseg.com" style={styles.link}>
+              Ask an admin
+            </a>
           </div>
         </div>
       </div>
@@ -133,7 +144,7 @@ const styles: Record<string, React.CSSProperties> = {
   hero: {
     flex: "1 1 55%",
     minHeight: "100vh",
-    background: `linear-gradient(135deg, ${colors.brand.friendlyBlue} 0%, ${colors.brand.trustWorth} 100%)`,
+    background: `linear-gradient(135deg, ${colors.hero.deep} 0%, ${colors.hero.mid} 55%, ${colors.hero.bright} 100%)`,
     color: "#fff",
     position: "relative",
     overflow: "hidden",
@@ -145,7 +156,8 @@ const styles: Record<string, React.CSSProperties> = {
   heroPattern: {
     position: "absolute",
     inset: 0,
-    backgroundImage: "repeating-linear-gradient(-20deg, transparent 0 40px, rgba(255,255,255,0.04) 40px 41px)",
+    backgroundImage:
+      "repeating-linear-gradient(-20deg, transparent 0 40px, rgba(255,255,255,0.04) 40px 41px)",
     pointerEvents: "none",
   },
   heroPink: {
@@ -154,7 +166,13 @@ const styles: Record<string, React.CSSProperties> = {
     background: "radial-gradient(circle at 80% 30%, rgba(255,0,101,0.32), transparent 55%)",
     pointerEvents: "none",
   },
-  heroContent: { position: "relative", display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between" },
+  heroContent: {
+    position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+    justifyContent: "space-between",
+  },
   heroTitle: {
     fontFamily: "Anton, Impact, system-ui, sans-serif",
     fontSize: "clamp(48px, 6vw, 96px)",
@@ -163,7 +181,13 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     margin: 0,
   },
-  heroSub: { marginTop: 18, fontSize: 17, lineHeight: 1.55, color: "rgba(255,255,255,0.78)", maxWidth: 460 },
+  heroSub: {
+    marginTop: 18,
+    fontSize: 17,
+    lineHeight: 1.55,
+    color: "rgba(255,255,255,0.78)",
+    maxWidth: 460,
+  },
   heroFooter: {
     marginTop: "auto",
     display: "flex",
@@ -175,10 +199,29 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(255,255,255,0.6)",
     fontWeight: 700,
   },
-  heroFooterDot: { width: 8, height: 8, borderRadius: 4, background: colors.brand.trendyPink, boxShadow: "0 0 0 4px rgba(255,0,101,0.18)" },
-  formPanel: { flex: "1 1 45%", minWidth: 360, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 32 },
+  heroFooterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    background: colors.brand.trendyPink,
+    boxShadow: "0 0 0 4px rgba(255,0,101,0.18)",
+  },
+  formPanel: {
+    flex: "1 1 45%",
+    minWidth: 360,
+    background: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
   formInner: { width: "100%", maxWidth: 380 },
-  eyebrow: { fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: colors.brand.trendyPink },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: "0.12em",
+    color: colors.brand.trendyPink,
+  },
   formTitle: {
     fontFamily: "Anton, Impact, system-ui, sans-serif",
     fontSize: 44,
@@ -189,12 +232,65 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1,
   },
   formSub: { fontSize: 14, color: "#6B6A85", margin: 0 },
-  fieldLabel: { fontSize: 12, fontWeight: 700, color: "#4B4A6B", letterSpacing: "0.04em", textTransform: "uppercase" },
-  fieldWrap: { display: "flex", alignItems: "center", background: "#F4F4F7", borderRadius: 12, border: "1px solid #E8E8EE", padding: "0 14px", height: 48 },
-  input: { flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, fontFamily: "inherit", color: colors.brand.trustWorth, height: "100%" },
-  eye: { background: "transparent", border: "none", fontSize: 16, cursor: "pointer", padding: 4, color: "#6B6A85" },
-  error: { fontSize: 13, color: colors.brand.ultraRed, background: "rgba(255,0,0,0.08)", border: "1px solid rgba(255,0,0,0.18)", padding: "10px 12px", borderRadius: 10, fontWeight: 500 },
-  submit: { height: 48, borderRadius: 12, border: "none", background: colors.brand.friendlyBlue, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 6, boxShadow: `0 6px 18px ${colors.brand.friendlyBlue}33` },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#4B4A6B",
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+  },
+  fieldWrap: {
+    display: "flex",
+    alignItems: "center",
+    background: "#F4F4F7",
+    borderRadius: 12,
+    border: "1px solid #E8E8EE",
+    padding: "0 14px",
+    height: 48,
+  },
+  input: {
+    flex: 1,
+    border: "none",
+    outline: "none",
+    background: "transparent",
+    fontSize: 14,
+    fontFamily: "inherit",
+    color: colors.brand.trustWorth,
+    height: "100%",
+  },
+  eye: {
+    background: "transparent",
+    border: "none",
+    fontSize: 16,
+    cursor: "pointer",
+    padding: 4,
+    color: "#6B6A85",
+  },
+  error: {
+    fontSize: 13,
+    color: colors.brand.ultraRed,
+    background: "rgba(255,0,0,0.08)",
+    border: "1px solid rgba(255,0,0,0.18)",
+    padding: "10px 12px",
+    borderRadius: 10,
+    fontWeight: 500,
+  },
+  submit: {
+    height: 48,
+    borderRadius: 12,
+    border: "none",
+    background: colors.brand.friendlyBlue,
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: 700,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 6,
+    boxShadow: `0 6px 18px ${colors.brand.friendlyBlue}33`,
+  },
   submitArrow: { fontSize: 16, fontWeight: 400 },
   footnote: { marginTop: 24, fontSize: 13, color: "#6B6A85", textAlign: "center" },
   link: { color: colors.brand.friendlyBlue, fontWeight: 700, textDecoration: "none" },
