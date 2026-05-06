@@ -28,6 +28,8 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Operations",
     items: [
       { href: "/vehicles", label: "Vehicles", icon: "car" },
+      { href: "/fleet", label: "Fleet status", icon: "trend" },
+      { href: "/maintenance", label: "Maintenance", icon: "wrench" },
       { href: "/bookings", label: "Bookings", icon: "calendar" },
       { href: "/sales", label: "Sales", icon: "tag" },
       { href: "/repairs", label: "Repairs", icon: "wrench" },

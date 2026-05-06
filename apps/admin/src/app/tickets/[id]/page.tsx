@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupportTicket, TicketPriority, TicketStatus } from "@trendywheels/types";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { authedFetch } from "../../../lib/fetcher";
 
@@ -44,6 +45,25 @@ export default function AdminTicketDetailPage(): JSX.Element {
         body: JSON.stringify(update),
       }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["admin-ticket", id] }),
+  });
+
+  const [reply, setReply] = useState("");
+  const replyMutation = useMutation({
+    mutationFn: (message: string) => {
+      if (!data?.data) throw new Error("No ticket");
+      return authedFetch(`/api/messages`, {
+        method: "POST",
+        body: JSON.stringify({
+          recipientId: data.data.userId,
+          message,
+          attachments: [],
+        }),
+      });
+    },
+    onSuccess: () => {
+      setReply("");
+      void qc.invalidateQueries({ queryKey: ["admin-ticket", id] });
+    },
   });
 
   if (isLoading) return <div className="p-8 text-gray-400">Loading…</div>;
@@ -89,14 +109,38 @@ export default function AdminTicketDetailPage(): JSX.Element {
             </p>
           </div>
 
-          <div className="bg-white border rounded-lg p-4">
-            <p className="text-sm text-gray-500">
-              Detailed conversation thread is handled in the support dashboard. Use the controls on
-              the right to triage, reassign, or change status from here.
-            </p>
+          <div className="bg-white border rounded-lg p-4 space-y-3">
+            <div className="text-xs text-gray-500 uppercase tracking-wider">Reply to customer</div>
+            <textarea
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              placeholder="Write a reply…"
+              rows={4}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => replyMutation.mutate(reply)}
+                disabled={!reply.trim() || replyMutation.isPending}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md disabled:opacity-40"
+              >
+                {replyMutation.isPending ? "Sending…" : "Send reply"}
+              </button>
+              <button
+                onClick={() => {
+                  replyMutation.mutate(reply);
+                  updateMutation.mutate({ status: "resolved" });
+                }}
+                disabled={!reply.trim() || replyMutation.isPending}
+                className="px-4 py-2 border border-green-600 text-green-600 hover:bg-green-50 text-sm font-medium rounded-md disabled:opacity-40"
+              >
+                Reply &amp; resolve
+              </button>
+            </div>
+            {replyMutation.isError && <p className="text-xs text-red-600">Failed to send reply.</p>}
             <Link
               href={`/customers/${ticket.userId}`}
-              className="text-blue-600 hover:underline text-sm mt-3 inline-block"
+              className="text-blue-600 hover:underline text-xs mt-2 inline-block"
             >
               View full customer profile →
             </Link>
