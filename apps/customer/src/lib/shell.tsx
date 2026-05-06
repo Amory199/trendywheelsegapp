@@ -106,7 +106,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
       </div>
       <header
         style={{
-          background: `linear-gradient(135deg, ${colors.brand.friendlyBlue} 0%, ${colors.brand.trustWorth} 100%)`,
+          background: `linear-gradient(135deg, ${colors.hero.deep} 0%, ${colors.hero.mid} 55%, ${colors.hero.bright} 100%)`,
           color: "#fff",
           position: "sticky",
           top: 0,

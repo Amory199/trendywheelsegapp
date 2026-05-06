@@ -56,11 +56,11 @@ export default function LoginPage(): JSX.Element {
             <TWLogoLockup size={42} color="#FFFFFF" />
           </div>
           <h1 style={styles.heroTitle}>
-            Run<br />TrendyWheels<span style={{ color: colors.brand.trendyPink }}>.</span>
+            Run
+            <br />
+            TrendyWheels<span style={{ color: colors.brand.trendyPink }}>.</span>
           </h1>
-          <p style={styles.heroSub}>
-            Manage every booking, vehicle, and customer in one place.
-          </p>
+          <p style={styles.heroSub}>Manage every booking, vehicle, and customer in one place.</p>
           <div style={styles.heroFooter}>
             <span style={styles.heroFooterDot} />
             <span>Operations command centre · Cairo HQ</span>
@@ -112,7 +112,10 @@ export default function LoginPage(): JSX.Element {
           </form>
 
           <div style={styles.footnote}>
-            Trouble signing in? <a href="mailto:support@trendywheelseg.com" style={styles.link}>Contact support</a>
+            Trouble signing in?{" "}
+            <a href="mailto:support@trendywheelseg.com" style={styles.link}>
+              Contact support
+            </a>
           </div>
         </div>
       </div>
@@ -162,7 +165,7 @@ const styles: Record<string, React.CSSProperties> = {
   hero: {
     flex: "1 1 55%",
     minHeight: "100vh",
-    background: `linear-gradient(135deg, ${colors.brand.friendlyBlue} 0%, ${colors.brand.trustWorth} 100%)`,
+    background: `linear-gradient(135deg, ${colors.hero.deep} 0%, ${colors.hero.mid} 55%, ${colors.hero.bright} 100%)`,
     color: "#fff",
     position: "relative",
     overflow: "hidden",
@@ -181,8 +184,7 @@ const styles: Record<string, React.CSSProperties> = {
   heroPink: {
     position: "absolute",
     inset: 0,
-    background:
-      "radial-gradient(circle at 80% 30%, rgba(255,0,101,0.32), transparent 55%)",
+    background: "radial-gradient(circle at 80% 30%, rgba(255,0,101,0.32), transparent 55%)",
     pointerEvents: "none",
   },
   heroContent: {
@@ -267,7 +269,8 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid #E8E8EE",
     padding: "0 14px",
     height: 48,
-    transition: "border-color 180ms cubic-bezier(.2,.7,.3,1), box-shadow 180ms cubic-bezier(.2,.7,.3,1)",
+    transition:
+      "border-color 180ms cubic-bezier(.2,.7,.3,1), box-shadow 180ms cubic-bezier(.2,.7,.3,1)",
   },
   input: {
     flex: 1,

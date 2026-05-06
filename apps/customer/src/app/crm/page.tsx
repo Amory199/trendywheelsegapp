@@ -57,10 +57,25 @@ export default function CrmDashboardPage(): JSX.Element {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <span style={{ fontSize: 11, fontWeight: 700, color: colors.brand.trendyPink, letterSpacing: "0.12em" }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: colors.brand.trendyPink,
+            letterSpacing: "0.12em",
+          }}
+        >
           SALES WORKSPACE
         </span>
-        <h1 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 44, margin: "6px 0 0", textTransform: "uppercase", letterSpacing: "0.01em" }}>
+        <h1
+          style={{
+            fontFamily: "Anton, Impact, sans-serif",
+            fontSize: 44,
+            margin: "6px 0 0",
+            textTransform: "uppercase",
+            letterSpacing: "0.01em",
+          }}
+        >
           The pipeline<span style={{ color: colors.brand.trendyPink }}>.</span>
         </h1>
         <p style={{ color: "#6B6A85", marginTop: 4 }}>
@@ -70,7 +85,13 @@ export default function CrmDashboardPage(): JSX.Element {
 
       {data?.myTarget ? <TargetCard target={data.myTarget} /> : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 12,
+        }}
+      >
         {data?.byStatus.map((b) => (
           <div
             key={b.status}
@@ -85,10 +106,26 @@ export default function CrmDashboardPage(): JSX.Element {
               overflow: "hidden",
             }}
           >
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#6B6A85", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#6B6A85",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}
+            >
               {STATUS_LABEL[b.status] ?? b.status}
             </div>
-            <div style={{ fontSize: 30, fontWeight: 800, color: colors.brand.trustWorth, marginTop: 4, fontFamily: "Anton, Impact, sans-serif" }}>
+            <div
+              style={{
+                fontSize: 30,
+                fontWeight: 800,
+                color: colors.brand.trustWorth,
+                marginTop: 4,
+                fontFamily: "Anton, Impact, sans-serif",
+              }}
+            >
               {b.count}
             </div>
             <div style={{ fontSize: 12, color: "#6B6A85", marginTop: 2 }}>
@@ -98,10 +135,27 @@ export default function CrmDashboardPage(): JSX.Element {
         ))}
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, padding: 22 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+      <div
+        style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, padding: 22 }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 14,
+          }}
+        >
           <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Recent activity</h2>
-          <Link href="/crm/leads" style={{ fontSize: 12, color: colors.brand.friendlyBlue, fontWeight: 700, textDecoration: "none" }}>
+          <Link
+            href="/crm/leads"
+            style={{
+              fontSize: 12,
+              color: colors.brand.friendlyBlue,
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
             See all leads →
           </Link>
         </div>
@@ -110,7 +164,17 @@ export default function CrmDashboardPage(): JSX.Element {
             <Link
               key={r.id}
               href={`/crm/leads/${r.id}`}
-              style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 10, background: "#F7F7FB", border: "1px solid transparent" }}
+              style={{
+                textDecoration: "none",
+                color: "inherit",
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                padding: "12px 14px",
+                borderRadius: 10,
+                background: "#F7F7FB",
+                border: "1px solid transparent",
+              }}
             >
               <span
                 style={{
@@ -122,7 +186,15 @@ export default function CrmDashboardPage(): JSX.Element {
                 }}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {r.contactName}
                 </div>
                 <div style={{ fontSize: 12, color: "#6B6A85" }}>
@@ -135,7 +207,9 @@ export default function CrmDashboardPage(): JSX.Element {
             </Link>
           ))}
           {!data?.recent?.length && !q.isLoading ? (
-            <div style={{ padding: 24, textAlign: "center", color: "#6B6A85", fontSize: 13 }}>No leads yet — they appear automatically as customers sign up.</div>
+            <div style={{ padding: 24, textAlign: "center", color: "#6B6A85", fontSize: 13 }}>
+              No leads yet — they appear automatically as customers sign up.
+            </div>
           ) : null}
         </div>
       </div>
@@ -148,7 +222,7 @@ function TargetCard({ target }: { target: NonNullable<PipelineData["myTarget"]> 
   return (
     <div
       style={{
-        background: `linear-gradient(135deg, ${colors.brand.friendlyBlue}, ${colors.brand.trustWorth})`,
+        background: `linear-gradient(135deg, ${colors.hero.deep} 0%, ${colors.hero.mid} 55%, ${colors.hero.bright} 100%)`,
         color: "#fff",
         borderRadius: 18,
         padding: 22,
@@ -160,9 +234,25 @@ function TargetCard({ target }: { target: NonNullable<PipelineData["myTarget"]> 
         <div className="tw-hero-orb h-pink" />
         <div className="tw-hero-orb h-lime" />
       </div>
-      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 24,
+          flexWrap: "wrap",
+        }}
+      >
         <div>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: colors.brand.ecoLimelight }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              color: colors.brand.ecoLimelight,
+            }}
+          >
             MY TARGET · MONTH-TO-DATE
           </span>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 6 }}>
@@ -170,15 +260,26 @@ function TargetCard({ target }: { target: NonNullable<PipelineData["myTarget"]> 
               EGP {Math.round(target.wonAmount).toLocaleString()}
             </span>
             <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}>
-              of {target.targetMonthly ? `EGP ${Math.round(target.targetMonthly).toLocaleString()}` : "no target set"}
+              of{" "}
+              {target.targetMonthly
+                ? `EGP ${Math.round(target.targetMonthly).toLocaleString()}`
+                : "no target set"}
             </span>
           </div>
           <div style={{ marginTop: 10, fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
-            {target.wonCount} won · {target.openCount} open · EGP {Math.round(target.openValue).toLocaleString()} in pipeline
+            {target.wonCount} won · {target.openCount} open · EGP{" "}
+            {Math.round(target.openValue).toLocaleString()} in pipeline
           </div>
         </div>
         <div style={{ minWidth: 220 }}>
-          <div style={{ height: 12, borderRadius: 6, background: "rgba(255,255,255,0.12)", overflow: "hidden" }}>
+          <div
+            style={{
+              height: 12,
+              borderRadius: 6,
+              background: "rgba(255,255,255,0.12)",
+              overflow: "hidden",
+            }}
+          >
             <div
               style={{
                 height: "100%",
@@ -188,7 +289,9 @@ function TargetCard({ target }: { target: NonNullable<PipelineData["myTarget"]> 
               }}
             />
           </div>
-          <div style={{ marginTop: 8, fontSize: 13, color: "rgba(255,255,255,0.85)", fontWeight: 700 }}>
+          <div
+            style={{ marginTop: 8, fontSize: 13, color: "rgba(255,255,255,0.85)", fontWeight: 700 }}
+          >
             {target.targetMonthly ? `${pct}% to target` : "Set a target in Team settings"}
           </div>
         </div>
