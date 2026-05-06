@@ -1,14 +1,23 @@
 import { PrismaClient } from "@trendywheels/db";
 
+import { buildAuditExtension } from "../lib/prisma-audit.js";
 import { logger } from "../utils/logger.js";
 
-export const prisma = new PrismaClient({
+const basePrisma = new PrismaClient({
   log: [
     { emit: "event", level: "query" },
     { emit: "event", level: "error" },
     { emit: "event", level: "warn" },
   ],
 });
+
+// `$extends` returns a typed-but-different client; we re-cast to the base
+// client type so all existing import sites keep working unchanged. The
+// audit extension only intercepts query execution — public surface is
+// identical.
+export const prisma = basePrisma.$extends(
+  buildAuditExtension(basePrisma),
+) as unknown as PrismaClient;
 
 const SLOW_QUERY_MS = 500;
 

@@ -17,7 +17,9 @@ function toDbStatus(s: ApiStatus | DbStatus | undefined): DbStatus | undefined {
 }
 
 function fromDbStatus<T extends { status: DbStatus }>(t: T): T & { status: ApiStatus } {
-  return { ...t, status: t.status === "in_progress" ? "in-progress" : t.status } as T & { status: ApiStatus };
+  return { ...t, status: t.status === "in_progress" ? "in-progress" : t.status } as T & {
+    status: ApiStatus;
+  };
 }
 
 export async function list(req: Request, res: Response): Promise<void> {
@@ -74,12 +76,37 @@ export async function create(req: Request, res: Response): Promise<void> {
 export async function update(req: Request, res: Response): Promise<void> {
   const repair = await prisma.repairRequest.findUnique({ where: { id: req.params.id } });
   if (!repair) throw AppError.notFound("Repair request not found");
-  if (req.user!.accountType === "customer" && repair.userId !== req.user!.userId) {
+  const isCustomer = req.user!.accountType === "customer";
+  if (isCustomer && repair.userId !== req.user!.userId) {
     throw AppError.forbidden();
   }
 
-  const data = { ...req.body } as Record<string, unknown>;
-  if (req.body.status) data.status = toDbStatus(req.body.status as ApiStatus);
+  // Whitelist editable fields rather than passing req.body to Prisma raw.
+  // Customers may only adjust their own description / preferred date /
+  // category; status, mechanic, and cost are staff-driven.
+  const body = req.body as Partial<{
+    description: string;
+    category: string;
+    priority: string;
+    preferredDate: string;
+    status: ApiStatus;
+    assignedMechanicId: string;
+    estimatedCost: number;
+    actualCost: number;
+    notes: string;
+  }>;
+  const data: Record<string, unknown> = {};
+  if (body.description !== undefined) data.description = body.description;
+  if (body.category !== undefined) data.category = body.category;
+  if (body.priority !== undefined) data.priority = body.priority;
+  if (body.preferredDate !== undefined) data.preferredDate = new Date(body.preferredDate);
+  if (body.notes !== undefined) data.notes = body.notes;
+  if (!isCustomer) {
+    if (body.status !== undefined) data.status = toDbStatus(body.status);
+    if (body.assignedMechanicId !== undefined) data.assignedMechanicId = body.assignedMechanicId;
+    if (body.estimatedCost !== undefined) data.estimatedCost = body.estimatedCost;
+    if (body.actualCost !== undefined) data.actualCost = body.actualCost;
+  }
 
   const updated = await prisma.repairRequest.update({
     where: { id: req.params.id },
@@ -142,10 +169,7 @@ export async function cancel(req: Request, res: Response): Promise<void> {
   const repair = await prisma.repairRequest.findUnique({ where: { id: req.params.id } });
   if (!repair) throw AppError.notFound("Repair request not found");
   // Customer can cancel only their own; staff/admin can cancel anything.
-  if (
-    !STAFF_TYPES.has(req.user!.accountType) &&
-    repair.userId !== req.user!.userId
-  ) {
+  if (!STAFF_TYPES.has(req.user!.accountType) && repair.userId !== req.user!.userId) {
     throw AppError.forbidden();
   }
   const updated = await transition(req.params.id, "cancelled");
