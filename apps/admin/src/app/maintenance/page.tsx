@@ -75,7 +75,7 @@ export default function MaintenancePage(): JSX.Element {
   });
 
   const vehiclesQ = useQuery<{ data: Vehicle[] }>({
-    queryKey: ["maintenance-vehicles"],
+    queryKey: ["vehicles"],
     queryFn: () => authedFetch("/api/vehicles?limit=200"),
   });
 
@@ -164,19 +164,19 @@ export default function MaintenancePage(): JSX.Element {
         <div className="flex gap-2">
           <button
             onClick={() => setView("list")}
-            className={`px-3 py-1.5 rounded-md text-sm border transition ${view === "list" ? "bg-emerald-600 text-white border-emerald-600" : "border-gray-300 hover:bg-gray-50"}`}
+            className={`px-3 py-1.5 rounded-md text-sm border transition ${view === "list" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 hover:bg-gray-50"}`}
           >
             ☰ List
           </button>
           <button
             onClick={() => setView("calendar")}
-            className={`px-3 py-1.5 rounded-md text-sm border transition ${view === "calendar" ? "bg-emerald-600 text-white border-emerald-600" : "border-gray-300 hover:bg-gray-50"}`}
+            className={`px-3 py-1.5 rounded-md text-sm border transition ${view === "calendar" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 hover:bg-gray-50"}`}
           >
             📅 Calendar
           </button>
           <button
             onClick={() => setShowForm((v) => !v)}
-            className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-md transition"
+            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition"
           >
             + Schedule
           </button>
@@ -192,7 +192,7 @@ export default function MaintenancePage(): JSX.Element {
               <select
                 value={form.vehicleId}
                 onChange={(e) => setForm((f) => ({ ...f, vehicleId: e.target.value }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select vehicle…</option>
                 {vehicles.map((v) => (
@@ -207,7 +207,7 @@ export default function MaintenancePage(): JSX.Element {
               <select
                 value={form.type}
                 onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {MAINTENANCE_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -222,7 +222,7 @@ export default function MaintenancePage(): JSX.Element {
                 type="datetime-local"
                 value={form.scheduledAt}
                 onChange={(e) => setForm((f) => ({ ...f, scheduledAt: e.target.value }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -235,7 +235,7 @@ export default function MaintenancePage(): JSX.Element {
                 value={form.cost}
                 onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))}
                 placeholder="optional"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -246,14 +246,14 @@ export default function MaintenancePage(): JSX.Element {
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               rows={2}
               placeholder="Mechanic, parts needed, anything else…"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => createMutation.mutate()}
               disabled={!form.vehicleId || !form.type || createMutation.isPending}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-md transition disabled:opacity-40"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition disabled:opacity-40"
             >
               {createMutation.isPending ? "Saving…" : "Save appointment"}
             </button>
@@ -301,7 +301,7 @@ export default function MaintenancePage(): JSX.Element {
                 <div key={day} className="h-24 border-b border-r p-1 overflow-hidden">
                   <div
                     className={`text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-1 ${
-                      isToday ? "bg-emerald-600 text-white" : "text-gray-700"
+                      isToday ? "bg-blue-600 text-white" : "text-gray-700"
                     }`}
                   >
                     {day}
@@ -375,7 +375,7 @@ export default function MaintenancePage(): JSX.Element {
                         <button
                           onClick={() => completeMutation.mutate(m.id)}
                           disabled={completeMutation.isPending}
-                          className="px-3 py-1 text-xs font-medium border border-emerald-600 text-emerald-600 hover:bg-emerald-50 rounded-md transition"
+                          className="px-3 py-1 text-xs font-medium border border-blue-600 text-blue-600 hover:bg-blue-50 rounded-md transition"
                         >
                           ✓ Mark done
                         </button>

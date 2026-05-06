@@ -28,12 +28,11 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
-  // Known application errors → expected statuses; persist 5xx at error level,
-  // 4xx at warn (operational signal but not necessarily a bug). Drop scanner
-  // / probe noise — unauth 401s and 404s are background internet noise, not
-  // actionable signal.
+  // Known application errors → persist 5xx at error, 4xx at warn. Skip
+  // unauth probe noise — anonymous 401/404 hits are scanner traffic, but
+  // 403 from an authenticated user is real signal we want to keep.
   if (err instanceof AppError) {
-    const isNoise = err.statusCode === 401 || err.statusCode === 403 || err.statusCode === 404;
+    const isNoise = !req.user && (err.statusCode === 401 || err.statusCode === 404);
     if (!isNoise) {
       void writeError({
         level: err.statusCode >= 500 ? "error" : "warn",

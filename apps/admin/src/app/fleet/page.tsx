@@ -67,7 +67,6 @@ export default function AdminFleetPage(): JSX.Element {
       if (typeFilter !== "All") p.set("type", typeFilter);
       return authedFetch<{ data: Vehicle[] }>(`/api/vehicles?${p}`);
     },
-    refetchInterval: 30_000,
   });
 
   const vehicles = data?.data ?? [];

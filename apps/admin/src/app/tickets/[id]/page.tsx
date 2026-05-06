@@ -127,8 +127,8 @@ export default function AdminTicketDetailPage(): JSX.Element {
                 {replyMutation.isPending ? "Sending…" : "Send reply"}
               </button>
               <button
-                onClick={() => {
-                  replyMutation.mutate(reply);
+                onClick={async () => {
+                  await replyMutation.mutateAsync(reply);
                   updateMutation.mutate({ status: "resolved" });
                 }}
                 disabled={!reply.trim() || replyMutation.isPending}
