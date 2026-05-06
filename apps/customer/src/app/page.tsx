@@ -96,7 +96,7 @@ export default function HomePage(): JSX.Element {
           position: "relative",
           overflow: "hidden",
           minHeight: 240,
-          background: `linear-gradient(135deg, ${colors.brand.friendlyBlue} 0%, #0A0833 100%)`,
+          background: `linear-gradient(135deg, ${colors.hero.deep} 0%, ${colors.hero.mid} 55%, ${colors.hero.bright} 100%)`,
           color: "#fff",
         }}
       >
@@ -104,7 +104,7 @@ export default function HomePage(): JSX.Element {
           style={{
             position: "absolute",
             inset: 0,
-            background: "radial-gradient(80% 80% at 100% 0%, rgba(255,0,101,0.45), transparent 55%)",
+            background: `radial-gradient(80% 80% at 100% 0%, ${colors.hero.glow}55, transparent 55%)`,
             pointerEvents: "none",
           }}
         />
@@ -112,7 +112,8 @@ export default function HomePage(): JSX.Element {
           style={{
             position: "absolute",
             inset: 0,
-            backgroundImage: "repeating-linear-gradient(-18deg, transparent 0 24px, rgba(255,255,255,0.03) 24px 25px)",
+            backgroundImage:
+              "repeating-linear-gradient(-18deg, transparent 0 24px, rgba(255,255,255,0.03) 24px 25px)",
             pointerEvents: "none",
           }}
         />
@@ -146,7 +147,9 @@ export default function HomePage(): JSX.Element {
             <br />
             <span style={{ color: colors.brand.trendyPink }}>rent your next ride.</span>
           </div>
-          <div style={{ fontSize: 14, opacity: 0.8, marginTop: 10, maxWidth: 360, lineHeight: 1.55 }}>
+          <div
+            style={{ fontSize: 14, opacity: 0.8, marginTop: 10, maxWidth: 360, lineHeight: 1.55 }}
+          >
             Over 1,200 vehicles ready across 14 cities.
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
@@ -206,7 +209,14 @@ export default function HomePage(): JSX.Element {
       {/* ─── Quick actions — responsive grid, auto-fit so it never overflows ─── */}
       <section>
         <h2 style={sectionH2}>Quick actions</h2>
-        <div className="tw-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+        <div
+          className="tw-stagger"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 12,
+          }}
+        >
           {QUICK_ACTIONS.map((q) => {
             const tone = TONE[q.tone];
             return (
@@ -250,14 +260,36 @@ export default function HomePage(): JSX.Element {
 
       {/* ─── Featured vehicles — horizontal scroll, 220px cards ───────── */}
       <section>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
           <h2 style={sectionH2}>Featured vehicles</h2>
-          <Link href="/rent" style={{ color: colors.brand.trendyPink, textDecoration: "none", fontSize: 13, fontWeight: 700 }}>
+          <Link
+            href="/rent"
+            style={{
+              color: colors.brand.trendyPink,
+              textDecoration: "none",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
             See all
           </Link>
         </div>
         {featuredQ.isLoading ? (
-          <div className="tw-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
+          <div
+            className="tw-stagger"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+              gap: 16,
+            }}
+          >
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="tw-skeleton" style={{ height: 240, borderRadius: 14 }} />
             ))}
@@ -265,7 +297,14 @@ export default function HomePage(): JSX.Element {
         ) : featured.length === 0 ? (
           <div style={{ color: "#6B6A85", fontSize: 14 }}>No vehicles available right now.</div>
         ) : (
-          <div className="tw-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
+          <div
+            className="tw-stagger"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+              gap: 16,
+            }}
+          >
             {featured.slice(0, 4).map((v) => (
               <VehicleMiniCard key={v.id} v={v} />
             ))}
@@ -357,9 +396,21 @@ function VehicleMiniCard({ v }: { v: VehicleRow }): JSX.Element {
       <div style={{ height: 140, background: "#F0F0F8", position: "relative" }}>
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={img} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img
+            src={img}
+            alt={v.name}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
         ) : (
-          <div style={{ display: "grid", placeItems: "center", height: "100%", color: "#A0A0B0", fontSize: 40 }}>
+          <div
+            style={{
+              display: "grid",
+              placeItems: "center",
+              height: "100%",
+              color: "#A0A0B0",
+              fontSize: 40,
+            }}
+          >
             ⛳
           </div>
         )}
@@ -399,16 +450,42 @@ function VehicleMiniCard({ v }: { v: VehicleRow }): JSX.Element {
         </button>
       </div>
       <div style={{ padding: "10px 14px 14px" }}>
-        <div style={{ fontSize: 9, color: "#6B6A85", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+        <div
+          style={{
+            fontSize: 9,
+            color: "#6B6A85",
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
           {v.type}
         </div>
-        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 700,
+            marginTop: 2,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
           {v.name}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: 8,
+          }}
+        >
           <span style={{ fontSize: 13, color: colors.brand.trendyPink, fontWeight: 800 }}>
             EGP {Number(v.dailyRate).toLocaleString()}
-            <span style={{ fontSize: 10, color: "#6B6A85", fontWeight: 500, marginLeft: 2 }}>/day</span>
+            <span style={{ fontSize: 10, color: "#6B6A85", fontWeight: 500, marginLeft: 2 }}>
+              /day
+            </span>
           </span>
           <span style={{ fontSize: 11, fontWeight: 700, color: "#F5B800" }}>
             ★ {Number(v.averageRating ?? 0).toFixed(1)}

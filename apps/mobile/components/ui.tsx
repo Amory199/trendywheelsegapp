@@ -12,11 +12,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 export const palette = twPalette(false);
 export const darkPalette = twPalette(true);
@@ -196,9 +192,7 @@ export function TWChip({
         borderColor: active ? colors.brand.trendyPink : palette.border,
       }}
     >
-      {icon ? (
-        <Ionicons name={icon} size={12} color={active ? "#fff" : palette.muted} />
-      ) : null}
+      {icon ? <Ionicons name={icon} size={12} color={active ? "#fff" : palette.muted} /> : null}
       <Text
         style={{
           fontSize: 12,
@@ -266,9 +260,7 @@ export function TWScreen({
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }): React.JSX.Element {
-  return (
-    <View style={[{ flex: 1, backgroundColor: palette.bg }, style]}>{children}</View>
-  );
+  return <View style={[{ flex: 1, backgroundColor: palette.bg }, style]}>{children}</View>;
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -300,7 +292,8 @@ export function TWGradientHero({
       ]}
     >
       <LinearGradient
-        colors={[colors.brand.friendlyBlue, "#1E1B4B"]}
+        colors={[colors.hero.deep, colors.hero.mid, colors.hero.bright]}
+        locations={[0, 0.55, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}

@@ -32,6 +32,16 @@ export const colors = {
     trustWorth: "#02011F",
     loyalty: "#FFFFFF",
   },
+  // Hero gradient stops — deep navy → royal → bright cyan/teal. Used on
+  // every "feature" hero (mobile home, onboarding heroes, design-studio
+  // covers, customer-app login + home banners). Replaces the old
+  // friendlyBlue → trendyPink hero gradient.
+  hero: {
+    deep: "#0B2876",
+    mid: "#1559C9",
+    bright: "#1FD8E5",
+    glow: "#7AF0E5",
+  },
   // Dark mode — anchored on Trust Worth navy.
   dark: {
     bg: "#02011F",
