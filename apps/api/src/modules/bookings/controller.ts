@@ -1,8 +1,17 @@
+import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
 import { recordActivity } from "../crm/service.js";
+
+type BookingStatus =
+  | "pending"
+  | "confirmed"
+  | "in-progress"
+  | "completed"
+  | "cancelled"
+  | "refunded";
 
 export async function list(req: Request, res: Response): Promise<void> {
   const { status, userId, vehicleId, page = 1, limit = 20 } = req.query as Record<string, string>;
@@ -194,13 +203,34 @@ export async function update(req: Request, res: Response): Promise<void> {
     throw AppError.forbidden("Only staff can change payment status");
   }
 
+  // Whitelist the fields a caller may set; explicit picks beat passing
+  // req.body raw to Prisma so a future schema widening cannot silently
+  // become a privilege gap.
+  const body = req.body as Partial<{
+    status: BookingStatus;
+    paymentStatus: string;
+    startDate: string;
+    endDate: string;
+    pickupLocation: string;
+    returnLocation: string;
+    notes: string;
+  }>;
+  const data: Record<string, unknown> = {};
+  if (body.status !== undefined) data.status = body.status;
+  if (body.paymentStatus !== undefined) data.paymentStatus = body.paymentStatus;
+  if (body.startDate !== undefined) data.startDate = new Date(body.startDate);
+  if (body.endDate !== undefined) data.endDate = new Date(body.endDate);
+  if (body.pickupLocation !== undefined) data.pickupLocation = body.pickupLocation;
+  if (body.returnLocation !== undefined) data.returnLocation = body.returnLocation;
+  if (body.notes !== undefined) data.notes = body.notes;
+
   const updated = await prisma.booking.update({
     where: { id: req.params.id },
-    data: req.body,
+    data: data as Prisma.BookingUpdateInput,
   });
 
   // Booking-completion hook: award loyalty + check referral
-  if (req.body.status === "completed" && booking.status !== "completed") {
+  if (body.status === "completed" && booking.status !== "completed") {
     await onBookingCompleted(updated.id, updated.userId, Number(updated.totalCost));
   }
 
