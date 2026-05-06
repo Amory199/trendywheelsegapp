@@ -29,17 +29,22 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   }
 
   // Known application errors → expected statuses; persist 5xx at error level,
-  // 4xx at warn (operational signal but not necessarily a bug).
+  // 4xx at warn (operational signal but not necessarily a bug). Drop scanner
+  // / probe noise — unauth 401s and 404s are background internet noise, not
+  // actionable signal.
   if (err instanceof AppError) {
-    void writeError({
-      level: err.statusCode >= 500 ? "error" : "warn",
-      source: "api",
-      message: err.message,
-      stack: err.stack ?? null,
-      statusCode: err.statusCode,
-      ...contextFromRequest(req),
-      metadata: { code: err.code },
-    });
+    const isNoise = err.statusCode === 401 || err.statusCode === 403 || err.statusCode === 404;
+    if (!isNoise) {
+      void writeError({
+        level: err.statusCode >= 500 ? "error" : "warn",
+        source: "api",
+        message: err.message,
+        stack: err.stack ?? null,
+        statusCode: err.statusCode,
+        ...contextFromRequest(req),
+        metadata: { code: err.code },
+      });
+    }
     res.status(err.statusCode).json({
       message: err.message,
       code: err.code,

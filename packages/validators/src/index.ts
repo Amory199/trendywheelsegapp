@@ -38,10 +38,10 @@ const vehicleStatusEnum = z.enum(["available", "rented", "maintenance", "inactiv
 export const createVehicleSchema = z.object({
   name: z.string().min(1).max(100),
   type: vehicleTypeEnum,
-  seating: z.number().int().min(1).max(20),
+  seating: z.coerce.number().int().min(1).max(20),
   fuelType: fuelTypeEnum,
   transmission: transmissionEnum,
-  dailyRate: z.number().positive(),
+  dailyRate: z.coerce.number().positive(),
   location: z.string().min(1).max(200),
   features: z.array(z.string()).default([]),
   images: z.array(z.string().url()).max(10).default([]),
@@ -156,13 +156,13 @@ export const createSalesListingSchema = z.object({
   title: z.string().min(5).max(100),
   make: z.string().min(1).max(50),
   model: z.string().min(1).max(50),
-  year: z
+  year: z.coerce
     .number()
     .int()
     .min(1970)
     .max(new Date().getFullYear() + 1),
-  mileage: z.number().int().min(0),
-  price: z.number().positive(),
+  mileage: z.coerce.number().int().min(0),
+  price: z.coerce.number().positive(),
   transmission: transmissionEnum,
   fuelType: fuelTypeEnum,
   color: z.string().min(1).max(30),
