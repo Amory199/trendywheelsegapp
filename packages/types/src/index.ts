@@ -8,6 +8,7 @@ export type VehicleType = "4-seater" | "6-seater" | "LED";
 export type FuelType = "electric" | "gasoline" | "hybrid";
 export type Transmission = "automatic" | "manual";
 export type VehicleStatus = "available" | "rented" | "maintenance" | "inactive";
+export type ListingType = "rent" | "sale" | "both";
 
 export type BookingStatus = "confirmed" | "completed" | "cancelled";
 export type PaymentStatus = "pending" | "paid" | "refunded";
@@ -61,6 +62,9 @@ export interface Vehicle {
   dailyRate: number;
   location: string;
   status: VehicleStatus;
+  listingType: ListingType;
+  salePrice: number | null;
+  saleDescription: string | null;
   totalBookings: number;
   averageRating: number;
   images: string[];

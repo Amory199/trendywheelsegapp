@@ -1,6 +1,12 @@
 "use client";
 
-import type { FuelType, Transmission, VehicleStatus, VehicleType } from "@trendywheels/types";
+import type {
+  FuelType,
+  ListingType,
+  Transmission,
+  VehicleStatus,
+  VehicleType,
+} from "@trendywheels/types";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
@@ -16,9 +22,21 @@ interface VehicleForm {
   location: string;
   status: VehicleStatus;
   features: string;
+  listingType: ListingType;
+  salePrice: number;
+  saleDescription: string;
 }
 
-const FEATURES_SUGGESTIONS = ["AC", "GPS", "WiFi", "Child Seat", "Bluetooth", "USB Charging", "Sunroof", "Parking Sensors"];
+const FEATURES_SUGGESTIONS = [
+  "AC",
+  "GPS",
+  "WiFi",
+  "Child Seat",
+  "Bluetooth",
+  "USB Charging",
+  "Sunroof",
+  "Parking Sensors",
+];
 
 export default function VehicleCreatePage(): JSX.Element {
   const router = useRouter();
@@ -33,6 +51,9 @@ export default function VehicleCreatePage(): JSX.Element {
     location: "",
     status: "available",
     features: "",
+    listingType: "rent",
+    salePrice: 0,
+    saleDescription: "",
   });
   const [images, setImages] = useState<Array<{ file: File; preview: string }>>([]);
   const [loading, setLoading] = useState(false);
@@ -63,8 +84,18 @@ export default function VehicleCreatePage(): JSX.Element {
   };
 
   const submit = async (): Promise<void> => {
-    if (!form.name || !form.location || form.dailyRate <= 0) {
-      setError("Please fill in all required fields.");
+    if (!form.name || !form.location) {
+      setError("Please fill in name and location.");
+      return;
+    }
+    const needsRent = form.listingType === "rent" || form.listingType === "both";
+    const needsSale = form.listingType === "sale" || form.listingType === "both";
+    if (needsRent && form.dailyRate <= 0) {
+      setError("Daily rate is required when this cart is for rent.");
+      return;
+    }
+    if (needsSale && form.salePrice <= 0) {
+      setError("Sale price is required when this cart is for sale.");
       return;
     }
     setLoading(true);
@@ -87,9 +118,12 @@ export default function VehicleCreatePage(): JSX.Element {
         seating: form.seating,
         fuelType: form.fuelType,
         transmission: form.transmission,
-        dailyRate: form.dailyRate,
+        dailyRate: needsRent ? form.dailyRate : 1,
         location: form.location,
         status: form.status,
+        listingType: form.listingType,
+        salePrice: needsSale ? form.salePrice : undefined,
+        saleDescription: needsSale ? form.saleDescription || undefined : undefined,
         images: uploadedUrls,
         features: form.features
           .split(",")
@@ -121,6 +155,56 @@ export default function VehicleCreatePage(): JSX.Element {
       )}
 
       <div className="space-y-6">
+        {/* Listing intent */}
+        <div className="bg-white rounded-xl border p-6 space-y-4">
+          <div>
+            <h2 className="font-semibold">What is this cart for?</h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Pick how this cart will appear on the platform. You can change later.
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {(
+              [
+                {
+                  v: "rent",
+                  label: "For rent",
+                  hint: "Customers book by the day",
+                },
+                {
+                  v: "sale",
+                  label: "For sale",
+                  hint: "Listed in the used-cart marketplace",
+                },
+                {
+                  v: "both",
+                  label: "Rent & sell",
+                  hint: "Available for both",
+                },
+              ] as const
+            ).map(({ v, label, hint }) => {
+              const active = form.listingType === v;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, listingType: v }))}
+                  className={`text-left rounded-lg border-2 p-3 transition ${
+                    active ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div
+                    className={`text-sm font-semibold ${active ? "text-blue-700" : "text-gray-800"}`}
+                  >
+                    {label}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">{hint}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Basic info */}
         <div className="bg-white rounded-xl border p-6 space-y-4">
           <h2 className="font-semibold">Basic Information</h2>
@@ -143,7 +227,9 @@ export default function VehicleCreatePage(): JSX.Element {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 {(["4-seater", "6-seater", "LED"] as VehicleType[]).map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
               </select>
             </div>
@@ -166,7 +252,9 @@ export default function VehicleCreatePage(): JSX.Element {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 {(["gasoline", "electric", "hybrid"] as FuelType[]).map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
               </select>
             </div>
@@ -174,24 +262,32 @@ export default function VehicleCreatePage(): JSX.Element {
               <label className="text-xs font-medium text-gray-500 block mb-1">Transmission</label>
               <select
                 value={form.transmission}
-                onChange={(e) => setForm((f) => ({ ...f, transmission: e.target.value as Transmission }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, transmission: e.target.value as Transmission }))
+                }
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 {(["automatic", "manual"] as Transmission[]).map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">Daily Rate (EGP) *</label>
-              <input
-                type="number"
-                min={0}
-                value={form.dailyRate}
-                onChange={(e) => setForm((f) => ({ ...f, dailyRate: Number(e.target.value) }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
+            {form.listingType !== "sale" && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">
+                  Daily Rate (EGP) *
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.dailyRate}
+                  onChange={(e) => setForm((f) => ({ ...f, dailyRate: Number(e.target.value) }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">Location *</label>
               <input
@@ -206,12 +302,18 @@ export default function VehicleCreatePage(): JSX.Element {
               <label className="text-xs font-medium text-gray-500 block mb-1">Status</label>
               <select
                 value={form.status}
-                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as VehicleStatus }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, status: e.target.value as VehicleStatus }))
+                }
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                {(["available", "rented", "maintenance", "inactive"] as VehicleStatus[]).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                {(["available", "rented", "maintenance", "inactive"] as VehicleStatus[]).map(
+                  (s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ),
+                )}
               </select>
             </div>
           </div>
@@ -232,7 +334,10 @@ export default function VehicleCreatePage(): JSX.Element {
                   key={f}
                   type="button"
                   onClick={() => {
-                    const current = form.features.split(",").map((s) => s.trim()).filter(Boolean);
+                    const current = form.features
+                      .split(",")
+                      .map((s) => s.trim())
+                      .filter(Boolean);
                     if (!current.includes(f)) {
                       setForm((prev) => ({
                         ...prev,
@@ -248,6 +353,39 @@ export default function VehicleCreatePage(): JSX.Element {
             </div>
           </div>
         </div>
+
+        {/* Sale details (conditional) */}
+        {form.listingType !== "rent" && (
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <h2 className="font-semibold">Sale details</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">
+                  Sale price (EGP) *
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.salePrice}
+                  onChange={(e) => setForm((f) => ({ ...f, salePrice: Number(e.target.value) }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">
+                Sale description
+              </label>
+              <textarea
+                rows={3}
+                value={form.saleDescription}
+                onChange={(e) => setForm((f) => ({ ...f, saleDescription: e.target.value }))}
+                placeholder="Condition, year, kms, what's included…"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Images */}
         <div className="bg-white rounded-xl border p-6 space-y-4">
@@ -311,7 +449,9 @@ export default function VehicleCreatePage(): JSX.Element {
               e.target.value = "";
             }}
           />
-          <p className="text-xs text-gray-400">First image is used as the cover. Use arrows to reorder.</p>
+          <p className="text-xs text-gray-400">
+            First image is used as the cover. Use arrows to reorder.
+          </p>
         </div>
 
         <div className="flex gap-3">

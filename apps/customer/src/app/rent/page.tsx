@@ -29,7 +29,11 @@ export default function RentPage(): JSX.Element {
   const q = useQuery({
     queryKey: ["customer-rent-list", type],
     queryFn: () => {
-      const params = new URLSearchParams({ available: "true", limit: "60" });
+      const params = new URLSearchParams({
+        available: "true",
+        limit: "60",
+        listingType: "rent",
+      });
       if (type !== "all") params.set("type", type);
       return authedFetch<{ data: VehicleRow[] }>(`/api/vehicles?${params}`);
     },
@@ -52,7 +56,9 @@ export default function RentPage(): JSX.Element {
           Find your ride
           <span style={{ color: colors.brand.trendyPink }}>.</span>
         </h1>
-        <p style={{ color: "#6B6A85", marginTop: 6 }}>{vehicles.length} cars available right now.</p>
+        <p style={{ color: "#6B6A85", marginTop: 6 }}>
+          {vehicles.length} cars available right now.
+        </p>
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -82,11 +88,25 @@ export default function RentPage(): JSX.Element {
       {q.isLoading ? (
         <div style={{ color: "#6B6A85" }}>Loading…</div>
       ) : vehicles.length === 0 ? (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 40, textAlign: "center", color: "#6B6A85" }}>
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 16,
+            padding: 40,
+            textAlign: "center",
+            color: "#6B6A85",
+          }}
+        >
           No vehicles match this filter.
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+            gap: 16,
+          }}
+        >
           {vehicles.map((v) => (
             <Link
               key={v.id}
@@ -104,30 +124,61 @@ export default function RentPage(): JSX.Element {
               <div style={{ aspectRatio: "16/10", background: "#F0F0F8", position: "relative" }}>
                 {v.images?.[0]?.url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={v.images[0].url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img
+                    src={v.images[0].url}
+                    alt={v.name}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
                 ) : (
-                  <div style={{ display: "grid", placeItems: "center", height: "100%", color: "#A0A0B0", fontSize: 36 }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      placeItems: "center",
+                      height: "100%",
+                      color: "#A0A0B0",
+                      fontSize: 36,
+                    }}
+                  >
                     ⛳
                   </div>
                 )}
               </div>
               <div style={{ padding: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "#F0F0F8", color: "#6B6A85", fontWeight: 700, textTransform: "uppercase" }}>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      background: "#F0F0F8",
+                      color: "#6B6A85",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                    }}
+                  >
                     {v.type}
                   </span>
                   <span style={{ fontSize: 11, color: "#6B6A85" }}>👥 {v.seating}</span>
                 </div>
                 <div style={{ fontWeight: 700, fontSize: 16 }}>{v.name}</div>
                 <div style={{ fontSize: 12, color: "#6B6A85", marginTop: 4 }}>📍 {v.location}</div>
-                <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    marginTop: 10,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <div>
                     <span style={{ fontWeight: 700, fontSize: 18, color: colors.brand.trendyPink }}>
                       EGP {Number(v.dailyRate).toLocaleString()}
                     </span>
                     <span style={{ fontSize: 12, color: "#6B6A85", marginLeft: 4 }}>/ day</span>
                   </div>
-                  <span style={{ fontSize: 12, color: "#6B6A85" }}>⭐ {Number(v.averageRating ?? 0).toFixed(1)}</span>
+                  <span style={{ fontSize: 12, color: "#6B6A85" }}>
+                    ⭐ {Number(v.averageRating ?? 0).toFixed(1)}
+                  </span>
                 </div>
               </div>
             </Link>

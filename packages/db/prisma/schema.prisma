@@ -169,6 +169,12 @@ enum VehicleStatus {
   inactive
 }
 
+enum ListingType {
+  rent
+  sale
+  both
+}
+
 model Vehicle {
   id            String        @id @default(uuid()) @db.Uuid
   name          String
@@ -179,6 +185,9 @@ model Vehicle {
   dailyRate     Decimal       @map("daily_rate") @db.Decimal(10, 2)
   location      String
   status        VehicleStatus @default(available)
+  listingType   ListingType   @default(rent) @map("listing_type")
+  salePrice     Decimal?      @map("sale_price") @db.Decimal(12, 2)
+  saleDescription String?     @map("sale_description")
   totalBookings Int           @default(0) @map("total_bookings")
   averageRating Decimal       @default(0) @map("average_rating") @db.Decimal(3, 2)
   reviewCount   Int           @default(0) @map("review_count")

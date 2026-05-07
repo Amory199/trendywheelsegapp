@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Vehicle, VehicleStatus } from "@trendywheels/types";
+import type { ListingType, Vehicle, VehicleStatus } from "@trendywheels/types";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -15,20 +15,34 @@ const STATUS_STYLES: Record<VehicleStatus, string> = {
   inactive: "bg-gray-100 text-gray-600",
 };
 
+const LISTING_STYLES: Record<ListingType, string> = {
+  rent: "bg-blue-100 text-blue-700",
+  sale: "bg-purple-100 text-purple-700",
+  both: "bg-emerald-100 text-emerald-700",
+};
+
+const LISTING_LABEL: Record<ListingType, string> = {
+  rent: "Rent",
+  sale: "Sale",
+  both: "Rent + Sale",
+};
+
 export default function VehiclesPage(): JSX.Element {
   const qc = useQueryClient();
   const { data, isLoading } = useList<Vehicle>("/api/vehicles?limit=200", "vehicles");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<VehicleStatus>("inactive");
   const [search, setSearch] = useState("");
+  const [listingFilter, setListingFilter] = useState<"all" | ListingType>("all");
 
-  const filtered = search
-    ? data.filter(
-        (v) =>
-          v.name.toLowerCase().includes(search.toLowerCase()) ||
-          v.location.toLowerCase().includes(search.toLowerCase()),
-      )
-    : data;
+  const filtered = data.filter((v) => {
+    if (listingFilter !== "all" && v.listingType !== listingFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return v.name.toLowerCase().includes(q) || v.location.toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   const toggleAll = (): void => {
     if (selected.size === filtered.length) setSelected(new Set());
@@ -70,30 +84,49 @@ export default function VehiclesPage(): JSX.Element {
     <div className="p-8 space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Rental fleet</h1>
+          <h1 className="text-2xl font-bold">Inventory</h1>
           <p className="text-sm text-gray-500">
-            {data.length} cart{data.length === 1 ? "" : "s"} available to rent · use{" "}
-            <Link href="/sales" className="text-blue-600 hover:underline">
-              Sales
-            </Link>{" "}
-            for used carts being sold
+            {data.length} cart{data.length === 1 ? "" : "s"} · pick rent / sale / both per cart
           </p>
         </div>
         <Link
           href="/vehicles/create"
           className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition"
         >
-          + Add cart to fleet
+          + Add cart
         </Link>
       </header>
 
-      <input
-        type="text"
-        placeholder="Search by name or location…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full max-w-md border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-      />
+      <div className="flex gap-3 flex-wrap items-center">
+        <input
+          type="text"
+          placeholder="Search by name or location…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 min-w-48 max-w-md border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+        />
+        <div className="flex gap-1 bg-gray-100 rounded-md p-1">
+          {(["all", "rent", "sale", "both"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setListingFilter(f)}
+              className={`px-3 py-1 rounded text-xs font-medium transition ${
+                listingFilter === f
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              {f === "all"
+                ? "All"
+                : f === "both"
+                  ? "Rent + Sale"
+                  : f === "rent"
+                    ? "Rent only"
+                    : "Sale only"}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {selected.size > 0 && (
         <div className="flex items-center gap-3 bg-primary-50 border border-primary-200 rounded-lg px-4 py-3">
@@ -151,9 +184,10 @@ export default function VehiclesPage(): JSX.Element {
                 />
               </th>
               <th className="text-left px-4 py-3">Name</th>
+              <th className="text-left px-4 py-3">Listing</th>
               <th className="text-left px-4 py-3">Type</th>
               <th className="text-left px-4 py-3">Seats</th>
-              <th className="text-left px-4 py-3">Daily rate</th>
+              <th className="text-left px-4 py-3">Pricing</th>
               <th className="text-left px-4 py-3">Location</th>
               <th className="text-left px-4 py-3">Status</th>
               <th className="text-left px-4 py-3"></th>
@@ -162,52 +196,71 @@ export default function VehiclesPage(): JSX.Element {
           <tbody className="divide-y">
             {isLoading ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
                   Loading…
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
                   No vehicles found.
                 </td>
               </tr>
             ) : (
-              filtered.map((v) => (
-                <tr
-                  key={v.id}
-                  className={`hover:bg-gray-50 ${selected.has(v.id) ? "bg-primary-50" : ""}`}
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(v.id)}
-                      onChange={() => toggle(v.id)}
-                      className="cursor-pointer"
-                    />
-                  </td>
-                  <td className="px-4 py-3 font-medium">{v.name}</td>
-                  <td className="px-4 py-3">{v.type}</td>
-                  <td className="px-4 py-3">{v.seating}</td>
-                  <td className="px-4 py-3">{Number(v.dailyRate).toLocaleString()} EGP</td>
-                  <td className="px-4 py-3">{v.location}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded ${STATUS_STYLES[v.status]}`}
-                    >
-                      {v.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/vehicles/${v.id}`}
-                      className="text-primary-500 hover:underline text-xs"
-                    >
-                      Edit →
-                    </Link>
-                  </td>
-                </tr>
-              ))
+              filtered.map((v) => {
+                const listing = (v.listingType ?? "rent") as ListingType;
+                return (
+                  <tr
+                    key={v.id}
+                    className={`hover:bg-gray-50 ${selected.has(v.id) ? "bg-primary-50" : ""}`}
+                  >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(v.id)}
+                        onChange={() => toggle(v.id)}
+                        className="cursor-pointer"
+                      />
+                    </td>
+                    <td className="px-4 py-3 font-medium">{v.name}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded ${LISTING_STYLES[listing]}`}
+                      >
+                        {LISTING_LABEL[listing]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">{v.type}</td>
+                    <td className="px-4 py-3">{v.seating}</td>
+                    <td className="px-4 py-3 text-xs">
+                      {listing !== "sale" && (
+                        <div>{Number(v.dailyRate).toLocaleString()} EGP/day</div>
+                      )}
+                      {listing !== "rent" && v.salePrice != null && (
+                        <div className="text-purple-700">
+                          {Number(v.salePrice).toLocaleString()} EGP sale
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">{v.location}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded ${STATUS_STYLES[v.status]}`}
+                      >
+                        {v.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/vehicles/${v.id}`}
+                        className="text-primary-500 hover:underline text-xs"
+                      >
+                        Edit →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

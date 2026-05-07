@@ -34,21 +34,42 @@ const vehicleTypeEnum = z.enum(["4-seater", "6-seater", "LED"]);
 const fuelTypeEnum = z.enum(["electric", "gasoline", "hybrid"]);
 const transmissionEnum = z.enum(["automatic", "manual"]);
 const vehicleStatusEnum = z.enum(["available", "rented", "maintenance", "inactive"]);
+const listingTypeEnum = z.enum(["rent", "sale", "both"]);
 
-export const createVehicleSchema = z.object({
-  name: z.string().min(1).max(100),
-  type: vehicleTypeEnum,
-  seating: z.coerce.number().int().min(1).max(20),
-  fuelType: fuelTypeEnum,
-  transmission: transmissionEnum,
-  dailyRate: z.coerce.number().positive(),
-  location: z.string().min(1).max(200),
-  features: z.array(z.string()).default([]),
-  images: z.array(z.string().url()).max(10).default([]),
-});
+export const createVehicleSchema = z
+  .object({
+    name: z.string().min(1).max(100),
+    type: vehicleTypeEnum,
+    seating: z.coerce.number().int().min(1).max(20),
+    fuelType: fuelTypeEnum,
+    transmission: transmissionEnum,
+    dailyRate: z.coerce.number().positive(),
+    location: z.string().min(1).max(200),
+    features: z.array(z.string()).default([]),
+    images: z.array(z.string().url()).max(10).default([]),
+    listingType: listingTypeEnum.default("rent"),
+    salePrice: z.coerce.number().positive().optional(),
+    saleDescription: z.string().max(2000).optional(),
+  })
+  .refine((v) => v.listingType === "rent" || (v.salePrice !== undefined && v.salePrice > 0), {
+    message: "salePrice is required when listingType is 'sale' or 'both'",
+    path: ["salePrice"],
+  });
 
-export const updateVehicleSchema = createVehicleSchema.partial().extend({
+export const updateVehicleSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  type: vehicleTypeEnum.optional(),
+  seating: z.coerce.number().int().min(1).max(20).optional(),
+  fuelType: fuelTypeEnum.optional(),
+  transmission: transmissionEnum.optional(),
+  dailyRate: z.coerce.number().positive().optional(),
+  location: z.string().min(1).max(200).optional(),
+  features: z.array(z.string()).optional(),
+  images: z.array(z.string().url()).max(10).optional(),
   status: vehicleStatusEnum.optional(),
+  listingType: listingTypeEnum.optional(),
+  salePrice: z.coerce.number().positive().nullable().optional(),
+  saleDescription: z.string().max(2000).nullable().optional(),
 });
 
 export const vehicleFiltersSchema = z.object({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Vehicle } from "@trendywheels/types";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -20,6 +21,19 @@ interface SaleRow {
   inquiriesCount: number;
   images: string[];
   createdAt: string;
+}
+
+interface FleetSaleRow {
+  source: "fleet";
+  id: string;
+  name: string;
+  type: string;
+  salePrice: number;
+  saleDescription: string | null;
+  listingType: "sale" | "both";
+  status: string;
+  location: string;
+  images: { url: string }[];
 }
 
 const STATUS_STYLES: Record<SaleRow["status"], string> = {
@@ -43,16 +57,26 @@ export default function SalesPage(): JSX.Element {
     },
   });
 
+  const fleetSaleQ = useQuery({
+    queryKey: ["fleet-sale-listings"],
+    queryFn: async () => {
+      const res = await authedFetch<{ data: Vehicle[] }>("/api/vehicles?limit=200");
+      return res.data.filter((v) => v.listingType === "sale" || v.listingType === "both");
+    },
+  });
+
   const listings = data?.data ?? [];
+  const fleetForSale = fleetSaleQ.data ?? [];
   const selected = selectedId ? (listings.find((l) => l.id === selectedId) ?? null) : null;
 
   return (
     <div className="p-8 space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Used carts for sale</h1>
+          <h1 className="text-2xl font-bold">Sales board</h1>
           <p className="text-sm text-gray-500">
-            {listings.length} listings · separate from the rental fleet
+            {fleetForSale.length} from your fleet · {listings.length} customer listing
+            {listings.length === 1 ? "" : "s"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -74,6 +98,60 @@ export default function SalesPage(): JSX.Element {
           </button>
         </div>
       </header>
+
+      {fleetForSale.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-gray-700 mb-2">
+            From your fleet ({fleetForSale.length})
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {fleetForSale.map((v) => (
+              <Link
+                key={v.id}
+                href={`/vehicles/${v.id}`}
+                className="bg-white border rounded-xl p-4 hover:shadow-sm transition block"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-semibold text-gray-900">{v.name}</div>
+                    <div className="text-xs text-gray-500 capitalize">
+                      {v.type} · {v.location}
+                    </div>
+                  </div>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      v.listingType === "both"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-purple-100 text-purple-700"
+                    }`}
+                  >
+                    {v.listingType === "both" ? "Rent + Sale" : "For sale"}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-lg font-bold text-purple-700">
+                    EGP {Number(v.salePrice ?? 0).toLocaleString()}
+                  </span>
+                  {v.listingType === "both" && (
+                    <span className="text-xs text-gray-500">
+                      · also {Number(v.dailyRate).toLocaleString()} EGP/day
+                    </span>
+                  )}
+                </div>
+                {v.saleDescription && (
+                  <p className="text-xs text-gray-600 mt-2 line-clamp-2">{v.saleDescription}</p>
+                )}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div>
+        <h2 className="text-sm font-semibold text-gray-700 mb-2">
+          Customer listings ({listings.length})
+        </h2>
+      </div>
 
       <div className="bg-white border rounded-lg overflow-hidden">
         <table className="w-full text-sm">
