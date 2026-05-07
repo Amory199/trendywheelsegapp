@@ -38,7 +38,9 @@ export async function list(req: Request, res: Response): Promise<void> {
   const pageNum = Number(page);
   const limitNum = Math.min(Number(limit), 100);
 
-  const cacheKey = `${VEHICLES_CACHE_PREFIX}${JSON.stringify({ type, priceMin, priceMax, available, page, limit })}`;
+  const listingType = (req.query.listingType ?? "") as string;
+
+  const cacheKey = `${VEHICLES_CACHE_PREFIX}${JSON.stringify({ type, priceMin, priceMax, available, listingType, page, limit })}`;
   const cached = await redis.get(cacheKey);
   if (cached) {
     res.setHeader("X-Cache", "HIT");
@@ -49,6 +51,9 @@ export async function list(req: Request, res: Response): Promise<void> {
   const where: Record<string, unknown> = { status: { not: "inactive" } };
   if (type) where.type = type;
   if (available === "true") where.status = "available";
+  if (listingType === "rent") where.listingType = { in: ["rent", "both"] };
+  else if (listingType === "sale") where.listingType = { in: ["sale", "both"] };
+  else if (listingType === "both") where.listingType = "both";
   if (priceMin || priceMax) {
     where.dailyRate = {};
     if (priceMin) (where.dailyRate as Record<string, unknown>).gte = Number(priceMin);
