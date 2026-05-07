@@ -70,14 +70,20 @@ export default function VehiclesPage(): JSX.Element {
     <div className="p-8 space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Vehicles</h1>
-          <p className="text-sm text-gray-500">{data.length} vehicles in fleet</p>
+          <h1 className="text-2xl font-bold">Rental fleet</h1>
+          <p className="text-sm text-gray-500">
+            {data.length} cart{data.length === 1 ? "" : "s"} available to rent · use{" "}
+            <Link href="/sales" className="text-blue-600 hover:underline">
+              Sales
+            </Link>{" "}
+            for used carts being sold
+          </p>
         </div>
         <Link
           href="/vehicles/create"
           className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition"
         >
-          + Add Vehicle
+          + Add cart to fleet
         </Link>
       </header>
 
@@ -99,7 +105,9 @@ export default function VehiclesPage(): JSX.Element {
               className="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none"
             >
               {(["available", "rented", "maintenance", "inactive"] as VehicleStatus[]).map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s}>
+                  {s}
+                </option>
               ))}
             </select>
             <button
@@ -120,7 +128,10 @@ export default function VehiclesPage(): JSX.Element {
             >
               {bulkDeleteMutation.isPending ? "Deleting…" : "Delete"}
             </button>
-            <button onClick={() => setSelected(new Set())} className="text-gray-400 hover:text-gray-600 text-xl leading-none">
+            <button
+              onClick={() => setSelected(new Set())}
+              className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+            >
               ×
             </button>
           </div>
@@ -151,17 +162,29 @@ export default function VehiclesPage(): JSX.Element {
           <tbody className="divide-y">
             {isLoading ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-gray-400">Loading…</td>
+                <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                  Loading…
+                </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-gray-400">No vehicles found.</td>
+                <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                  No vehicles found.
+                </td>
               </tr>
             ) : (
               filtered.map((v) => (
-                <tr key={v.id} className={`hover:bg-gray-50 ${selected.has(v.id) ? "bg-primary-50" : ""}`}>
+                <tr
+                  key={v.id}
+                  className={`hover:bg-gray-50 ${selected.has(v.id) ? "bg-primary-50" : ""}`}
+                >
                   <td className="px-4 py-3">
-                    <input type="checkbox" checked={selected.has(v.id)} onChange={() => toggle(v.id)} className="cursor-pointer" />
+                    <input
+                      type="checkbox"
+                      checked={selected.has(v.id)}
+                      onChange={() => toggle(v.id)}
+                      className="cursor-pointer"
+                    />
                   </td>
                   <td className="px-4 py-3 font-medium">{v.name}</td>
                   <td className="px-4 py-3">{v.type}</td>
@@ -169,12 +192,17 @@ export default function VehiclesPage(): JSX.Element {
                   <td className="px-4 py-3">{Number(v.dailyRate).toLocaleString()} EGP</td>
                   <td className="px-4 py-3">{v.location}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${STATUS_STYLES[v.status]}`}>
+                    <span
+                      className={`text-xs font-medium px-2 py-0.5 rounded ${STATUS_STYLES[v.status]}`}
+                    >
                       {v.status}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <Link href={`/vehicles/${v.id}`} className="text-primary-500 hover:underline text-xs">
+                    <Link
+                      href={`/vehicles/${v.id}`}
+                      className="text-primary-500 hover:underline text-xs"
+                    >
                       Edit →
                     </Link>
                   </td>

@@ -28,6 +28,7 @@ const STATUS_STYLES: Record<UserRow["status"], string> = {
 export default function UsersPage(): JSX.Element {
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["users"],
@@ -39,9 +40,17 @@ export default function UsersPage(): JSX.Element {
 
   return (
     <div className="p-8 space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold">Users</h1>
-        <p className="text-sm text-gray-500">{users.length} users — click a row to manage.</p>
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Users</h1>
+          <p className="text-sm text-gray-500">{users.length} users — click a row to manage.</p>
+        </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
+        >
+          + Add staff member
+        </button>
       </header>
 
       <div className="bg-white border rounded-lg overflow-hidden">
@@ -106,6 +115,130 @@ export default function UsersPage(): JSX.Element {
           onChange={() => void qc.invalidateQueries({ queryKey: ["users"] })}
         />
       )}
+
+      {showCreate && (
+        <CreateStaffDrawer
+          onClose={() => setShowCreate(false)}
+          onCreated={() => {
+            void qc.invalidateQueries({ queryKey: ["users"] });
+            setShowCreate(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CreateStaffDrawer({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+}): JSX.Element {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    staffRole: "sales" as "admin" | "sales" | "support" | "inventory" | "mechanic",
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const create = useMutation({
+    mutationFn: () => authedFetch("/api/users", { method: "POST", body: JSON.stringify(form) }),
+    onSuccess: onCreated,
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const valid =
+    form.name.trim().length > 0 &&
+    /\S+@\S+/.test(form.email) &&
+    form.phone.length >= 6 &&
+    form.password.length >= 8;
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
+      <div
+        className="w-full max-w-md bg-white h-full overflow-y-auto p-6 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold">New staff member</h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Sales / support / inventory / mechanic / admin.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <Field
+            label="Full name"
+            value={form.name}
+            onChange={(v) => setForm({ ...form, name: v })}
+          />
+          <Field
+            label="Email"
+            type="email"
+            value={form.email}
+            onChange={(v) => setForm({ ...form, email: v })}
+          />
+          <Field
+            label="Phone"
+            value={form.phone}
+            onChange={(v) => setForm({ ...form, phone: v })}
+            placeholder="+201234567890"
+          />
+          <Field
+            label="Temporary password"
+            type="password"
+            value={form.password}
+            onChange={(v) => setForm({ ...form, password: v })}
+            placeholder="≥ 8 characters"
+          />
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Role</label>
+            <select
+              value={form.staffRole}
+              onChange={(e) =>
+                setForm({ ...form, staffRole: e.target.value as typeof form.staffRole })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="sales">Sales agent</option>
+              <option value="support">Support agent</option>
+              <option value="inventory">Inventory / fleet</option>
+              <option value="mechanic">Mechanic</option>
+              <option value="admin">Admin (full access)</option>
+            </select>
+          </div>
+        </div>
+
+        {error && <div className="text-xs text-red-600">{error}</div>}
+
+        <div className="flex gap-2 pt-2 border-t">
+          <button
+            onClick={() => create.mutate()}
+            disabled={!valid || create.isPending}
+            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md disabled:opacity-40"
+          >
+            {create.isPending ? "Creating…" : "Create user"}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm rounded-md"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -338,17 +471,22 @@ function Field({
   label,
   value,
   onChange,
+  type,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
 }): JSX.Element {
   return (
     <label className="block">
       <span className="text-xs font-medium text-gray-500 block mb-1">{label}</span>
       <input
-        type="text"
+        type={type ?? "text"}
         value={value}
+        placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       />

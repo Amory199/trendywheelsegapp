@@ -9,6 +9,7 @@ import * as userController from "./controller.js";
 const router: RouterType = Router();
 
 router.get("/", authenticate, authorize("admin", "staff"), userController.list);
+router.post("/", authenticate, authorize("admin"), userController.createStaff);
 router.get("/me", authenticate, userController.getMe);
 router.get("/:id", authenticate, validate({ params: idParamSchema }), userController.getById);
 router.put(

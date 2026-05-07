@@ -23,7 +23,14 @@ interface LeadDetail {
   reassignmentCount: number;
   createdAt: string;
   owner: { id: string; name: string; email: string; staffRole: string | null } | null;
-  customer: { id: string; name: string; phone: string; email: string | null; loyaltyTier: string; createdAt: string } | null;
+  customer: {
+    id: string;
+    name: string;
+    phone: string;
+    email: string | null;
+    loyaltyTier: string;
+    createdAt: string;
+  } | null;
   activities: Array<{
     id: string;
     type: string;
@@ -33,7 +40,14 @@ interface LeadDetail {
   }>;
 }
 
-const STATUSES: LeadDetail["status"][] = ["new", "contacted", "qualified", "proposal", "won", "lost"];
+const STATUSES: LeadDetail["status"][] = [
+  "new",
+  "contacted",
+  "qualified",
+  "proposal",
+  "won",
+  "lost",
+];
 
 const STATUS_COLOR: Record<string, string> = {
   new: colors.brand.poolBlue,
@@ -70,23 +84,32 @@ export default function LeadDetailPage(): JSX.Element {
 
   const lead = q.data?.data;
 
+  const invalidate = (): void => {
+    void qc.invalidateQueries({ queryKey: ["crm-lead", id] });
+    void qc.invalidateQueries({ queryKey: ["crm-leads"] });
+    void qc.invalidateQueries({ queryKey: ["crm-pipeline"] });
+  };
+
   const setStatus = useMutation({
     mutationFn: (status: LeadDetail["status"]) =>
       authedFetch(`/api/crm/leads/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-lead", id] }),
+    onSuccess: invalidate,
   });
 
   const claim = useMutation({
     mutationFn: () => authedFetch(`/api/crm/leads/${id}/claim`, { method: "POST" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-lead", id] }),
+    onSuccess: invalidate,
   });
 
   const addActivity = useMutation({
     mutationFn: (body: { type: string; body: string }) =>
-      authedFetch(`/api/crm/leads/${id}/activities`, { method: "POST", body: JSON.stringify(body) }),
+      authedFetch(`/api/crm/leads/${id}/activities`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
     onSuccess: () => {
       setActivityBody("");
-      void qc.invalidateQueries({ queryKey: ["crm-lead", id] });
+      invalidate();
     },
   });
 
@@ -98,24 +121,86 @@ export default function LeadDetailPage(): JSX.Element {
   const overdue = ttlMs !== null && ttlMs < 0;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.6fr) minmax(280px, 380px)", gap: 24 }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1.6fr) minmax(280px, 380px)",
+        gap: 24,
+      }}
+    >
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        <Link href="/crm/leads" style={{ fontSize: 12, color: colors.brand.friendlyBlue, fontWeight: 700, textDecoration: "none" }}>
+        <Link
+          href="/crm/leads"
+          style={{
+            fontSize: 12,
+            color: colors.brand.friendlyBlue,
+            fontWeight: 700,
+            textDecoration: "none",
+          }}
+        >
           ← back to board
         </Link>
 
-        <div style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, padding: 24 }}>
+        <div
+          style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, padding: 24 }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <span style={{ width: 12, height: 12, borderRadius: 6, background: STATUS_COLOR[lead.status] }} />
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: STATUS_COLOR[lead.status] }}>
+            <span
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: 6,
+                background: STATUS_COLOR[lead.status],
+              }}
+            />
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: STATUS_COLOR[lead.status],
+              }}
+            >
               {lead.status} · {lead.source}
             </span>
-            {overdue ? <span className="tw-pulse" style={{ marginLeft: 8, padding: "2px 8px", borderRadius: 999, background: colors.brand.ultraRed, color: "#fff", fontSize: 10, fontWeight: 700 }}>OVERDUE</span> : null}
+            {overdue ? (
+              <span
+                className="tw-pulse"
+                style={{
+                  marginLeft: 8,
+                  padding: "2px 8px",
+                  borderRadius: 999,
+                  background: colors.brand.ultraRed,
+                  color: "#fff",
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}
+              >
+                OVERDUE
+              </span>
+            ) : null}
           </div>
-          <h1 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 40, margin: 0, textTransform: "uppercase" }}>
+          <h1
+            style={{
+              fontFamily: "Anton, Impact, sans-serif",
+              fontSize: 40,
+              margin: 0,
+              textTransform: "uppercase",
+            }}
+          >
             {lead.contactName}
           </h1>
-          <div style={{ display: "flex", gap: 16, marginTop: 12, color: "#6B6A85", fontSize: 13, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 16,
+              marginTop: 12,
+              color: "#6B6A85",
+              fontSize: 13,
+              flexWrap: "wrap",
+            }}
+          >
             {lead.contactPhone ? <span>📞 {lead.contactPhone}</span> : null}
             {lead.contactEmail ? <span>✉️ {lead.contactEmail}</span> : null}
             <span>EGP {Math.round(Number(lead.estimatedValue)).toLocaleString()}</span>
@@ -153,7 +238,18 @@ export default function LeadDetailPage(): JSX.Element {
               <button
                 onClick={() => claim.mutate()}
                 className="tw-press"
-                style={{ padding: "8px 14px", borderRadius: 999, border: "none", background: colors.brand.friendlyBlue, color: "#fff", fontSize: 11, fontWeight: 700, textTransform: "uppercase", cursor: "pointer", letterSpacing: "0.06em" }}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 999,
+                  border: "none",
+                  background: colors.brand.friendlyBlue,
+                  color: "#fff",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                  letterSpacing: "0.06em",
+                }}
               >
                 Claim
               </button>
@@ -161,8 +257,12 @@ export default function LeadDetailPage(): JSX.Element {
           </div>
         </div>
 
-        <div style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, padding: 24 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, marginBottom: 14 }}>Log activity</h2>
+        <div
+          style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, padding: 24 }}
+        >
+          <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, marginBottom: 14 }}>
+            Log activity
+          </h2>
           <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
             {(["note", "call", "email"] as const).map((t) => (
               <button
@@ -194,24 +294,59 @@ export default function LeadDetailPage(): JSX.Element {
                   ? "Subject + summary…"
                   : "Quick note…"
             }
-            style={{ width: "100%", minHeight: 80, border: "1px solid #ECECF1", borderRadius: 10, padding: 12, fontFamily: "inherit", fontSize: 13, resize: "vertical" }}
+            style={{
+              width: "100%",
+              minHeight: 80,
+              border: "1px solid #ECECF1",
+              borderRadius: 10,
+              padding: 12,
+              fontFamily: "inherit",
+              fontSize: 13,
+              resize: "vertical",
+            }}
           />
           <button
             disabled={!activityBody.trim() || addActivity.isPending}
             onClick={() => addActivity.mutate({ type: activityType, body: activityBody.trim() })}
             className="tw-press"
-            style={{ marginTop: 10, padding: "10px 16px", borderRadius: 10, border: "none", background: colors.brand.friendlyBlue, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !activityBody.trim() ? 0.5 : 1 }}
+            style={{
+              marginTop: 10,
+              padding: "10px 16px",
+              borderRadius: 10,
+              border: "none",
+              background: colors.brand.friendlyBlue,
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: "pointer",
+              opacity: !activityBody.trim() ? 0.5 : 1,
+            }}
           >
             {addActivity.isPending ? "Saving…" : "Log activity →"}
           </button>
         </div>
 
-        <div style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, padding: 24 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, marginBottom: 14 }}>Activity timeline</h2>
+        <div
+          style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, padding: 24 }}
+        >
+          <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, marginBottom: 14 }}>
+            Activity timeline
+          </h2>
           <div className="tw-stagger" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {lead.activities.map((a) => (
               <div key={a.id} style={{ display: "flex", gap: 10 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 14, background: "#F4F4F7", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 14 }}>
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    background: "#F4F4F7",
+                    display: "grid",
+                    placeItems: "center",
+                    flexShrink: 0,
+                    fontSize: 14,
+                  }}
+                >
                   {ACTIVITY_ICON[a.type] ?? "•"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -232,10 +367,14 @@ export default function LeadDetailPage(): JSX.Element {
             <>
               <div style={{ fontWeight: 700 }}>{lead.owner.name}</div>
               <div style={{ fontSize: 12, color: "#6B6A85" }}>{lead.owner.email}</div>
-              <div style={{ fontSize: 11, color: "#6B6A85", marginTop: 4 }}>{lead.owner.staffRole ?? "staff"}</div>
+              <div style={{ fontSize: 11, color: "#6B6A85", marginTop: 4 }}>
+                {lead.owner.staffRole ?? "staff"}
+              </div>
             </>
           ) : (
-            <div style={{ fontSize: 13, color: "#6B6A85" }}>Unassigned · waiting for round-robin</div>
+            <div style={{ fontSize: 13, color: "#6B6A85" }}>
+              Unassigned · waiting for round-robin
+            </div>
           )}
         </SidePanel>
 
@@ -243,9 +382,14 @@ export default function LeadDetailPage(): JSX.Element {
           <SidePanel title="Customer">
             <div style={{ fontWeight: 700 }}>{lead.customer.name}</div>
             <div style={{ fontSize: 12, color: "#6B6A85" }}>{lead.customer.phone}</div>
-            {lead.customer.email ? <div style={{ fontSize: 12, color: "#6B6A85" }}>{lead.customer.email}</div> : null}
-            <div style={{ fontSize: 11, color: "#6B6A85", marginTop: 6, textTransform: "capitalize" }}>
-              {lead.customer.loyaltyTier} · joined {new Date(lead.customer.createdAt).toLocaleDateString()}
+            {lead.customer.email ? (
+              <div style={{ fontSize: 12, color: "#6B6A85" }}>{lead.customer.email}</div>
+            ) : null}
+            <div
+              style={{ fontSize: 11, color: "#6B6A85", marginTop: 6, textTransform: "capitalize" }}
+            >
+              {lead.customer.loyaltyTier} · joined{" "}
+              {new Date(lead.customer.createdAt).toLocaleDateString()}
             </div>
           </SidePanel>
         ) : null}
@@ -264,7 +408,18 @@ export default function LeadDetailPage(): JSX.Element {
 function SidePanel({ title, children }: { title: string; children: React.ReactNode }): JSX.Element {
   return (
     <div style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 14, padding: 18 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#6B6A85", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>{title}</div>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "#6B6A85",
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          marginBottom: 8,
+        }}
+      >
+        {title}
+      </div>
       {children}
     </div>
   );
@@ -272,7 +427,15 @@ function SidePanel({ title, children }: { title: string; children: React.ReactNo
 
 function Row({ label, value }: { label: string; value: string }): JSX.Element {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", color: "#4B4A6B" }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 12,
+        padding: "4px 0",
+        color: "#4B4A6B",
+      }}
+    >
       <span style={{ color: "#6B6A85" }}>{label}</span>
       <span style={{ fontWeight: 700, textTransform: "capitalize" }}>{value}</span>
     </div>

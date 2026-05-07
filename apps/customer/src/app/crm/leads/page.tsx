@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
@@ -63,8 +72,24 @@ export default function LeadsBoardPage(): JSX.Element {
   const setStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: Lead["status"] }) =>
       authedFetch(`/api/crm/leads/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-leads"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["crm-leads"] });
+      void qc.invalidateQueries({ queryKey: ["crm-lead"] });
+      void qc.invalidateQueries({ queryKey: ["crm-pipeline"] });
+    },
   });
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const onDragEnd = (e: DragEndEvent): void => {
+    const { active, over } = e;
+    if (!over) return;
+    const leadId = String(active.id);
+    const target = over.id as Lead["status"];
+    const lead = leads.find((l) => l.id === leadId);
+    if (!lead || lead.status === target) return;
+    setStatus.mutate({ id: leadId, status: target });
+  };
 
   const logCall = useMutation({
     mutationFn: (id: string) =>
@@ -146,77 +171,129 @@ export default function LeadsBoardPage(): JSX.Element {
         ) : null}
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(6, minmax(220px, 1fr))",
-          gap: 12,
-          overflowX: "auto",
-          paddingBottom: 8,
-        }}
-      >
-        {COLUMNS.map((col) => {
-          const items = leads.filter((l) => l.status === col.status);
-          const value = items.reduce((acc, l) => acc + Number(l.estimatedValue), 0);
-          return (
-            <div
-              key={col.status}
-              style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 220 }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 12px",
-                  background: "#fff",
-                  border: "1px solid #ECECF1",
-                  borderTop: `3px solid ${col.color}`,
-                  borderRadius: 10,
-                }}
-              >
-                <span
+      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(6, minmax(220px, 1fr))",
+            gap: 12,
+            overflowX: "auto",
+            paddingBottom: 8,
+          }}
+        >
+          {COLUMNS.map((col) => {
+            const items = leads.filter((l) => l.status === col.status);
+            const value = items.reduce((acc, l) => acc + Number(l.estimatedValue), 0);
+            return (
+              <DroppableColumn key={col.status} status={col.status}>
+                <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#4B4A6B",
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 12px",
+                    background: "#fff",
+                    border: "1px solid #ECECF1",
+                    borderTop: `3px solid ${col.color}`,
+                    borderRadius: 10,
                   }}
                 >
-                  {col.label}
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#6B6A85" }}>
-                  {items.length}
-                </span>
-              </div>
-              <div
-                className="tw-stagger"
-                style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 60 }}
-              >
-                {items.map((lead) => (
-                  <LeadCard
-                    key={lead.id}
-                    lead={lead}
-                    isMine={lead.ownerId === user?.id}
-                    onClaim={() => claim.mutate(lead.id)}
-                    onAdvance={(status) => setStatus.mutate({ id: lead.id, status })}
-                    onLogCall={() => logCall.mutate(lead.id)}
-                  />
-                ))}
-              </div>
-              {value > 0 ? (
-                <div
-                  style={{ fontSize: 11, color: "#6B6A85", textAlign: "right", padding: "0 4px" }}
-                >
-                  EGP {Math.round(value).toLocaleString()}
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#4B4A6B",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      flex: 1,
+                    }}
+                  >
+                    {col.label}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#6B6A85" }}>
+                    {items.length}
+                  </span>
                 </div>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+                <div
+                  className="tw-stagger"
+                  style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 60 }}
+                >
+                  {items.map((lead) => (
+                    <DraggableWrapper key={lead.id} id={lead.id}>
+                      <LeadCard
+                        lead={lead}
+                        isMine={lead.ownerId === user?.id}
+                        onClaim={() => claim.mutate(lead.id)}
+                        onAdvance={(status) => setStatus.mutate({ id: lead.id, status })}
+                        onLogCall={() => logCall.mutate(lead.id)}
+                      />
+                    </DraggableWrapper>
+                  ))}
+                </div>
+                {value > 0 ? (
+                  <div
+                    style={{ fontSize: 11, color: "#6B6A85", textAlign: "right", padding: "0 4px" }}
+                  >
+                    EGP {Math.round(value).toLocaleString()}
+                  </div>
+                ) : null}
+              </DroppableColumn>
+            );
+          })}
+        </div>
+      </DndContext>
+    </div>
+  );
+}
+
+function DroppableColumn({
+  status,
+  children,
+}: {
+  status: Lead["status"];
+  children: React.ReactNode;
+}): JSX.Element {
+  const { isOver, setNodeRef } = useDroppable({ id: status });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        minWidth: 220,
+        outline: isOver ? `2px dashed ${colors.brand.friendlyBlue}` : "none",
+        outlineOffset: 4,
+        borderRadius: 10,
+        transition: "outline-color 120ms",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DraggableWrapper({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}): JSX.Element {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={{
+        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+        opacity: isDragging ? 0.5 : 1,
+        cursor: isDragging ? "grabbing" : "grab",
+        touchAction: "none",
+      }}
+    >
+      {children}
     </div>
   );
 }

@@ -18,6 +18,7 @@
     "@trendywheels/ui-brand": "workspace:*",
     "@trendywheels/ui-tokens": "workspace:*",
     "@trendywheels/validators": "workspace:*",
+    "lottie-react": "^2.4.1",
     "next": "14.2.15",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
@@ -26,9 +27,9 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "14.2.15",
     "@trendywheels/eslint-config": "workspace:*",
     "@trendywheels/tsconfig": "workspace:*",
-    "@next/eslint-plugin-next": "14.2.15",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
