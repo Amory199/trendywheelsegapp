@@ -6,7 +6,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,6 +26,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { TWSkiaConfetti } from "../../components/skia/confetti";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 
@@ -483,9 +483,6 @@ const styles = StyleSheet.create({
 });
 
 // ─── Success screen with confetti + animated checkmark ────────────
-const CONFETTI_COUNT = 36;
-const SCREEN_W = Dimensions.get("window").width;
-const SCREEN_H = Dimensions.get("window").height;
 
 function SuccessScreen({
   bookingRef,
@@ -516,7 +513,7 @@ function SuccessScreen({
 
   return (
     <View style={styles.successContainer}>
-      <ConfettiBurst />
+      <TWSkiaConfetti count={80} />
       <Animated.View entering={FadeInRight.springify()} style={styles.successCard}>
         <Animated.View style={[styles.successIcon, checkAnim]}>
           <Ionicons name="checkmark-circle" size={88} color={colors.success} />
@@ -536,75 +533,5 @@ function SuccessScreen({
         </Pressable>
       </Animated.View>
     </View>
-  );
-}
-
-function ConfettiBurst(): JSX.Element {
-  const particles = Array.from({ length: CONFETTI_COUNT });
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {particles.map((_, i) => (
-        <ConfettiParticle key={i} index={i} />
-      ))}
-    </View>
-  );
-}
-
-const CONFETTI_COLORS = ["#FF0065", "#2B0FF8", "#A9F453", "#00C7EA", "#FFD93D"];
-
-function ConfettiParticle({ index }: { index: number }): JSX.Element {
-  const startX = (index / CONFETTI_COUNT) * SCREEN_W + (Math.random() * 30 - 15);
-  const drift = (Math.random() - 0.5) * 80;
-  const size = 6 + Math.random() * 8;
-  const rot = Math.random() * 360;
-  const color = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
-  const fallDuration = 2200 + Math.random() * 1400;
-  const delay = Math.random() * 300;
-
-  const y = useSharedValue(-20);
-  const x = useSharedValue(0);
-  const rotation = useSharedValue(rot);
-  const opacity = useSharedValue(1);
-
-  useEffect(() => {
-    y.value = withDelay(
-      delay,
-      withTiming(SCREEN_H + 40, { duration: fallDuration, easing: Easing.in(Easing.quad) }),
-    );
-    x.value = withDelay(
-      delay,
-      withTiming(drift, { duration: fallDuration, easing: Easing.inOut(Easing.ease) }),
-    );
-    rotation.value = withDelay(
-      delay,
-      withTiming(rot + 720, { duration: fallDuration, easing: Easing.linear }),
-    );
-    opacity.value = withDelay(delay + fallDuration - 600, withTiming(0, { duration: 600 }));
-  }, []);
-
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: x.value },
-      { translateY: y.value },
-      { rotate: `${rotation.value}deg` },
-    ],
-    opacity: opacity.value,
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        {
-          position: "absolute",
-          left: startX,
-          top: 0,
-          width: size,
-          height: size * 0.5,
-          borderRadius: 2,
-          backgroundColor: color,
-        },
-        style,
-      ]}
-    />
   );
 }
