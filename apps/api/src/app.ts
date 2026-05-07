@@ -39,7 +39,31 @@ const app: Express = express();
 app.set("trust proxy", 1);
 
 // ─── Global middleware ───────────────────────────────────────
-app.use(helmet());
+// API only serves JSON, so we can lock CSP down hard. No inline scripts /
+// styles, no third-party origins. Anything the API ever returned as HTML
+// (Swagger UI) explicitly opts out below.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        connectSrc: ["'self'"],
+        imgSrc: ["'self'", "data:"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    referrerPolicy: { policy: "no-referrer" },
+    hsts:
+      env.NODE_ENV === "production"
+        ? { maxAge: 31_536_000, includeSubDomains: true, preload: true }
+        : false,
+  }),
+);
 app.use(
   cors({
     origin: env.CORS_ORIGINS.split(",").map((s) => s.trim()),
@@ -129,8 +153,13 @@ app.use("/api/tickets", ticketRoutes);
 app.use("/api/crm", crmRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 
-// OpenAPI docs
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
+// OpenAPI docs — Swagger UI needs inline scripts/styles, so opt out of strict CSP.
+app.use(
+  "/api/docs",
+  helmet({ contentSecurityPolicy: false }),
+  swaggerUi.serve,
+  swaggerUi.setup(openapiSpec),
+);
 app.get("/api/openapi.json", (_req, res) => res.json(openapiSpec));
 
 // ─── Error handling ──────────────────────────────────────────

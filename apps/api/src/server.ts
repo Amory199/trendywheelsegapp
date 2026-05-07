@@ -10,12 +10,16 @@ import { registerSocketNamespaces } from "./sockets/index.js";
 import { writeError } from "./utils/error-sink.js";
 import { registerIO } from "./utils/io-registry.js";
 import { logger } from "./utils/logger.js";
+import { initSentry, Sentry } from "./utils/sentry.js";
 import { ensureBucket } from "./utils/storage.js";
+
+initSentry();
 
 // ─── Process-level safety net ───────────────────────────────────
 // Anything that escapes both Express and the worker handlers lands here.
 // We log + persist, then keep running (PM2 will restart on fatal anyway).
 process.on("uncaughtException", (err) => {
+  Sentry.captureException(err);
   void writeError({
     level: "fatal",
     source: "process",
@@ -26,6 +30,7 @@ process.on("uncaughtException", (err) => {
 
 process.on("unhandledRejection", (reason) => {
   const err = reason instanceof Error ? reason : new Error(String(reason));
+  Sentry.captureException(err);
   void writeError({
     level: "fatal",
     source: "process",

@@ -1,7 +1,16 @@
 import type { Request, Response } from "express";
 
+import { redis } from "../../config/redis.js";
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
+
+const SALES_CACHE_TTL = 60;
+const SALES_CACHE_PREFIX = "sales:list:";
+
+async function invalidateSalesCache(): Promise<void> {
+  const keys = await redis.keys(`${SALES_CACHE_PREFIX}*`);
+  if (keys.length > 0) await redis.del(...keys);
+}
 
 export async function list(req: Request, res: Response): Promise<void> {
   const { status, userId, page = 1, limit = 20 } = req.query as Record<string, string>;
@@ -16,6 +25,19 @@ export async function list(req: Request, res: Response): Promise<void> {
   else where.status = "active";
   if (userId) where.userId = userId;
 
+  // Cache only the public/anonymous unfiltered case — that's the hot path
+  // (customer browse). Staff filters bypass cache to keep them fresh.
+  const isCacheable = !req.user && !status && !userId;
+  const cacheKey = `${SALES_CACHE_PREFIX}${pageNum}:${limitNum}`;
+  if (isCacheable) {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      res.setHeader("X-Cache", "HIT");
+      res.json(JSON.parse(cached));
+      return;
+    }
+  }
+
   const [data, total] = await Promise.all([
     prisma.salesListing.findMany({
       where,
@@ -26,7 +48,12 @@ export async function list(req: Request, res: Response): Promise<void> {
     prisma.salesListing.count({ where }),
   ]);
 
-  res.json({ data, total, page: pageNum, limit: limitNum });
+  const result = { data, total, page: pageNum, limit: limitNum };
+  if (isCacheable) {
+    await redis.setex(cacheKey, SALES_CACHE_TTL, JSON.stringify(result));
+    res.setHeader("X-Cache", "MISS");
+  }
+  res.json(result);
 }
 
 export async function getById(req: Request, res: Response): Promise<void> {
@@ -48,6 +75,7 @@ export async function create(req: Request, res: Response): Promise<void> {
   const listing = await prisma.salesListing.create({
     data: { ...req.body, userId: req.user!.userId, status: "active", images: [] },
   });
+  await invalidateSalesCache();
   res.status(201).json({ data: listing, id: listing.id });
 }
 
@@ -62,6 +90,7 @@ export async function update(req: Request, res: Response): Promise<void> {
     where: { id: req.params.id },
     data: req.body,
   });
+  await invalidateSalesCache();
   res.json({ data: updated });
 }
 
@@ -77,6 +106,7 @@ async function setStatus(
     where: { id: req.params.id },
     data: { status },
   });
+  await invalidateSalesCache();
   res.json({ data: listing });
 }
 
@@ -99,5 +129,6 @@ export async function remove(req: Request, res: Response): Promise<void> {
     throw AppError.forbidden();
   }
   await prisma.salesListing.delete({ where: { id: req.params.id } });
+  await invalidateSalesCache();
   res.json({ success: true });
 }

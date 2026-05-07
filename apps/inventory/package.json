@@ -11,6 +11,7 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.52.0",
     "@tanstack/react-query": "^5.0.0",
     "@trendywheels/api-client": "workspace:*",
     "@trendywheels/i18n": "workspace:*",
@@ -24,9 +25,9 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "14.2.15",
     "@trendywheels/eslint-config": "workspace:*",
     "@trendywheels/tsconfig": "workspace:*",
-    "@next/eslint-plugin-next": "14.2.15",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
