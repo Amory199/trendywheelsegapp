@@ -8,9 +8,12 @@ import { useEffect } from "react";
 import { Share, ScrollView, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { TWLoyaltyBadge } from "../../components/skia/loyalty-badge";
 import { TWBadge, TWButton, TWCard, TWPressable, palette } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+
+type Tier = "bronze" | "silver" | "gold" | "platinum";
 
 const TIER_COLORS: Record<string, [string, string]> = {
   bronze: ["#CD7F32", "#8B5A2B"],
@@ -159,18 +162,7 @@ export default function ProfileScreen(): React.JSX.Element {
                 250 more to unlock next tier
               </Text>
             </View>
-            <View
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 28,
-                backgroundColor: `${colors.brand.trendyPink}1A`,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Ionicons name="star" size={26} color={colors.brand.trendyPink} />
-            </View>
+            <TWLoyaltyBadge tier={tier as Tier} size={64} />
           </View>
         </TWCard>
       </Animated.View>
