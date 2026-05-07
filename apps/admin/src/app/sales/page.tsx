@@ -32,6 +32,7 @@ export default function SalesPage(): JSX.Element {
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<SaleRow["status"] | "">("");
+  const [showCreate, setShowCreate] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["sales", statusFilter],
@@ -43,25 +44,35 @@ export default function SalesPage(): JSX.Element {
   });
 
   const listings = data?.data ?? [];
-  const selected = selectedId ? listings.find((l) => l.id === selectedId) ?? null : null;
+  const selected = selectedId ? (listings.find((l) => l.id === selectedId) ?? null) : null;
 
   return (
     <div className="p-8 space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Sales listings</h1>
-          <p className="text-sm text-gray-500">{listings.length} listings</p>
+          <h1 className="text-2xl font-bold">Used carts for sale</h1>
+          <p className="text-sm text-gray-500">
+            {listings.length} listings · separate from the rental fleet
+          </p>
         </div>
-        <TWSelect
-          value={statusFilter}
-          onChange={(v) => setStatusFilter(v as SaleRow["status"] | "")}
-          options={[
-            { value: "", label: "All statuses" },
-            { value: "active", label: "Active", color: "#0A6B0A" },
-            { value: "sold", label: "Sold", color: "#1338A8" },
-            { value: "pending", label: "Taken down", color: "#888899" },
-          ]}
-        />
+        <div className="flex items-center gap-2">
+          <TWSelect
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v as SaleRow["status"] | "")}
+            options={[
+              { value: "", label: "All statuses" },
+              { value: "active", label: "Active", color: "#0A6B0A" },
+              { value: "sold", label: "Sold", color: "#1338A8" },
+              { value: "pending", label: "Taken down", color: "#888899" },
+            ]}
+          />
+          <button
+            onClick={() => setShowCreate(true)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
+          >
+            + Create listing
+          </button>
+        </div>
       </header>
 
       <div className="bg-white border rounded-lg overflow-hidden">
@@ -132,7 +143,193 @@ export default function SalesPage(): JSX.Element {
           onChange={() => void qc.invalidateQueries({ queryKey: ["sales"] })}
         />
       )}
+
+      {showCreate && (
+        <CreateListingDrawer
+          onClose={() => setShowCreate(false)}
+          onCreated={() => {
+            void qc.invalidateQueries({ queryKey: ["sales"] });
+            setShowCreate(false);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function CreateListingDrawer({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+}): JSX.Element {
+  const [form, setForm] = useState({
+    title: "",
+    make: "",
+    model: "",
+    year: new Date().getFullYear(),
+    mileage: 0,
+    price: 0,
+    transmission: "automatic" as "automatic" | "manual",
+    fuelType: "electric" as "electric" | "gasoline" | "hybrid",
+    color: "",
+    description: "",
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const create = useMutation({
+    mutationFn: () => authedFetch("/api/sales", { method: "POST", body: JSON.stringify(form) }),
+    onSuccess: onCreated,
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const valid =
+    form.title.length >= 5 &&
+    form.make.length > 0 &&
+    form.model.length > 0 &&
+    form.price > 0 &&
+    form.color.length > 0 &&
+    form.description.length >= 10;
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
+      <div
+        className="w-full max-w-md bg-white h-full overflow-y-auto p-6 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold">New sales listing</h2>
+            <p className="text-xs text-gray-500 mt-1">
+              For used carts being sold — separate from the rental fleet.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+
+        <Field label="Title" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Make" value={form.make} onChange={(v) => setForm({ ...form, make: v })} />
+          <Field
+            label="Model"
+            value={form.model}
+            onChange={(v) => setForm({ ...form, model: v })}
+          />
+          <Field
+            label="Year"
+            type="number"
+            value={String(form.year)}
+            onChange={(v) => setForm({ ...form, year: Number(v) })}
+          />
+          <Field
+            label="Mileage (km)"
+            type="number"
+            value={String(form.mileage)}
+            onChange={(v) => setForm({ ...form, mileage: Number(v) })}
+          />
+          <Field
+            label="Price (EGP)"
+            type="number"
+            value={String(form.price)}
+            onChange={(v) => setForm({ ...form, price: Number(v) })}
+          />
+          <Field
+            label="Color"
+            value={form.color}
+            onChange={(v) => setForm({ ...form, color: v })}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Transmission</label>
+            <select
+              value={form.transmission}
+              onChange={(e) =>
+                setForm({ ...form, transmission: e.target.value as "automatic" | "manual" })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="automatic">Automatic</option>
+              <option value="manual">Manual</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Fuel type</label>
+            <select
+              value={form.fuelType}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  fuelType: e.target.value as "electric" | "gasoline" | "hybrid",
+                })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="electric">Electric</option>
+              <option value="gasoline">Gasoline</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-500 block mb-1">Description</label>
+          <textarea
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            rows={4}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+
+        {error && <div className="text-xs text-red-600">{error}</div>}
+
+        <div className="flex gap-2 pt-2 border-t">
+          <button
+            onClick={() => create.mutate()}
+            disabled={!valid || create.isPending}
+            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md disabled:opacity-40"
+          >
+            {create.isPending ? "Creating…" : "Create listing"}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm rounded-md"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+}): JSX.Element {
+  return (
+    <label className="block">
+      <span className="text-xs font-medium text-gray-500 block mb-1">{label}</span>
+      <input
+        type={type ?? "text"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+      />
+    </label>
   );
 }
 
@@ -203,10 +400,7 @@ function SaleDrawer({
           <Row label="Views">{listing.viewsCount}</Row>
           <Row label="Inquiries">{listing.inquiriesCount}</Row>
           <Row label="Owner">
-            <Link
-              href={`/customers/${listing.userId}`}
-              className="text-blue-600 hover:underline"
-            >
+            <Link href={`/customers/${listing.userId}`} className="text-blue-600 hover:underline">
               View profile
             </Link>
           </Row>

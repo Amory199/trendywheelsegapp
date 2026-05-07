@@ -1,9 +1,19 @@
 import type { Request, Response } from "express";
 
 import { updateUserSchema } from "@trendywheels/validators";
+import bcrypt from "bcryptjs";
+import { z } from "zod";
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
+
+const createStaffSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  phone: z.string().min(6).max(40),
+  password: z.string().min(8).max(72),
+  staffRole: z.enum(["admin", "sales", "support", "inventory", "mechanic"]),
+});
 
 export async function list(req: Request, res: Response): Promise<void> {
   const { page = "1", limit = "20" } = req.query as Record<string, string>;
@@ -199,6 +209,43 @@ export async function enable(req: Request, res: Response): Promise<void> {
     select: { id: true, status: true },
   });
   res.json({ data: user });
+}
+
+export async function createStaff(req: Request, res: Response): Promise<void> {
+  const input = createStaffSchema.parse(req.body);
+  const existing = await prisma.user.findFirst({
+    where: { OR: [{ email: input.email }, { phone: input.phone }] },
+    select: { id: true, email: true, phone: true },
+  });
+  if (existing) {
+    throw AppError.conflict(
+      existing.email === input.email ? "Email already in use" : "Phone already in use",
+      "USER_EXISTS",
+    );
+  }
+  const passwordHash = await bcrypt.hash(input.password, 12);
+  const user = await prisma.user.create({
+    data: {
+      name: input.name,
+      email: input.email,
+      phone: input.phone,
+      passwordHash,
+      accountType: input.staffRole === "admin" ? "admin" : "staff",
+      staffRole: input.staffRole,
+      status: "active",
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      accountType: true,
+      staffRole: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+  res.status(201).json({ data: user });
 }
 
 export async function getInteractions(req: Request, res: Response): Promise<void> {
