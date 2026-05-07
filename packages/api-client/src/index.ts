@@ -54,23 +54,36 @@ class ApiClient {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    let response = await fetch(url.toString(), {
-      method,
-      headers,
-      body: options?.body ? JSON.stringify(options.body) : undefined,
-    });
+    const fetchWithTimeout = async (auth: string | undefined): Promise<Response> => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10_000);
+      const reqHeaders = { ...headers };
+      if (auth) reqHeaders["Authorization"] = auth;
+      try {
+        return await fetch(url.toString(), {
+          method,
+          headers: reqHeaders,
+          body: options?.body ? JSON.stringify(options.body) : undefined,
+          signal: controller.signal,
+        });
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          throw new ApiClientError("Request timed out", 0, "TIMEOUT");
+        }
+        throw err;
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+
+    let response = await fetchWithTimeout(headers["Authorization"]);
 
     if (response.status === 401) {
       const refreshToken = await this.config.getRefreshToken();
       if (refreshToken) {
         const newTokens = await this.config.refreshTokens(refreshToken);
         await this.config.onTokenRefresh(newTokens);
-        headers["Authorization"] = `Bearer ${newTokens.token}`;
-        response = await fetch(url.toString(), {
-          method,
-          headers,
-          body: options?.body ? JSON.stringify(options.body) : undefined,
-        });
+        response = await fetchWithTimeout(`Bearer ${newTokens.token}`);
       }
     }
 
@@ -106,8 +119,12 @@ class ApiClient {
 
   // ─── Vehicles ────────────────────────────────────────────
 
-  async getVehicles(filters?: VehicleFilters & PaginationParams): Promise<PaginatedResponse<Vehicle>> {
-    return this.request("GET", "/api/vehicles", { params: filters as Record<string, string | number | boolean | undefined> });
+  async getVehicles(
+    filters?: VehicleFilters & PaginationParams,
+  ): Promise<PaginatedResponse<Vehicle>> {
+    return this.request("GET", "/api/vehicles", {
+      params: filters as Record<string, string | number | boolean | undefined>,
+    });
   }
 
   async getVehicle(id: string): Promise<ApiResponse<Vehicle>> {
@@ -128,15 +145,26 @@ class ApiClient {
 
   // ─── Bookings ────────────────────────────────────────────
 
-  async getBookings(filters?: BookingFilters & PaginationParams): Promise<PaginatedResponse<Booking>> {
-    return this.request("GET", "/api/bookings", { params: filters as Record<string, string | number | boolean | undefined> });
+  async getBookings(
+    filters?: BookingFilters & PaginationParams,
+  ): Promise<PaginatedResponse<Booking>> {
+    return this.request("GET", "/api/bookings", {
+      params: filters as Record<string, string | number | boolean | undefined>,
+    });
   }
 
-  async createBooking(data: { vehicleId: string; startDate: string; endDate: string }): Promise<ApiResponse<Booking>> {
+  async createBooking(data: {
+    vehicleId: string;
+    startDate: string;
+    endDate: string;
+  }): Promise<ApiResponse<Booking>> {
     return this.request("POST", "/api/bookings", { body: data });
   }
 
-  async updateBooking(id: string, data: Partial<Pick<Booking, "status" | "startDate" | "endDate">>): Promise<ApiResponse<Booking>> {
+  async updateBooking(
+    id: string,
+    data: Partial<Pick<Booking, "status" | "startDate" | "endDate">>,
+  ): Promise<ApiResponse<Booking>> {
     return this.request("PUT", `/api/bookings/${encodeURIComponent(id)}`, { body: data });
   }
 
@@ -154,14 +182,23 @@ class ApiClient {
     return this.request("PUT", `/api/users/${encodeURIComponent(id)}`, { body: data });
   }
 
-  async getUserInteractions(id: string, params?: PaginationParams & { type?: string }): Promise<PaginatedResponse<unknown>> {
-    return this.request("GET", `/api/users/${encodeURIComponent(id)}/interactions`, { params: params as Record<string, string | number | boolean | undefined> });
+  async getUserInteractions(
+    id: string,
+    params?: PaginationParams & { type?: string },
+  ): Promise<PaginatedResponse<unknown>> {
+    return this.request("GET", `/api/users/${encodeURIComponent(id)}/interactions`, {
+      params: params as Record<string, string | number | boolean | undefined>,
+    });
   }
 
   // ─── Sales Listings ──────────────────────────────────────
 
-  async getSalesListings(params?: PaginationParams & { status?: string }): Promise<PaginatedResponse<SalesListing>> {
-    return this.request("GET", "/api/sales", { params: params as Record<string, string | number | boolean | undefined> });
+  async getSalesListings(
+    params?: PaginationParams & { status?: string },
+  ): Promise<PaginatedResponse<SalesListing>> {
+    return this.request("GET", "/api/sales", {
+      params: params as Record<string, string | number | boolean | undefined>,
+    });
   }
 
   async getSalesListing(id: string): Promise<ApiResponse<SalesListing>> {
@@ -172,7 +209,10 @@ class ApiClient {
     return this.request("POST", "/api/sales", { body: data });
   }
 
-  async updateSalesListing(id: string, data: Partial<SalesListing>): Promise<ApiResponse<SalesListing>> {
+  async updateSalesListing(
+    id: string,
+    data: Partial<SalesListing>,
+  ): Promise<ApiResponse<SalesListing>> {
     return this.request("PUT", `/api/sales/${encodeURIComponent(id)}`, { body: data });
   }
 
@@ -182,8 +222,12 @@ class ApiClient {
 
   // ─── Repair Requests ─────────────────────────────────────
 
-  async getRepairRequests(params?: PaginationParams & { status?: string }): Promise<PaginatedResponse<RepairRequest>> {
-    return this.request("GET", "/api/repairs", { params: params as Record<string, string | number | boolean | undefined> });
+  async getRepairRequests(
+    params?: PaginationParams & { status?: string },
+  ): Promise<PaginatedResponse<RepairRequest>> {
+    return this.request("GET", "/api/repairs", {
+      params: params as Record<string, string | number | boolean | undefined>,
+    });
   }
 
   async getRepairRequest(id: string): Promise<ApiResponse<RepairRequest>> {
@@ -194,7 +238,10 @@ class ApiClient {
     return this.request("POST", "/api/repairs", { body: data });
   }
 
-  async updateRepairRequest(id: string, data: Partial<RepairRequest>): Promise<ApiResponse<RepairRequest>> {
+  async updateRepairRequest(
+    id: string,
+    data: Partial<RepairRequest>,
+  ): Promise<ApiResponse<RepairRequest>> {
     return this.request("PUT", `/api/repairs/${encodeURIComponent(id)}`, { body: data });
   }
 
@@ -208,18 +255,34 @@ class ApiClient {
     return this.request("GET", "/api/messages/conversations");
   }
 
-  async getMessages(conversationId: string, params?: PaginationParams): Promise<PaginatedResponse<Message>> {
-    return this.request("GET", `/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`, {
-      params: params as Record<string, string | number | boolean | undefined>,
+  async getMessages(
+    conversationId: string,
+    params?: PaginationParams,
+  ): Promise<PaginatedResponse<Message>> {
+    return this.request(
+      "GET",
+      `/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`,
+      {
+        params: params as Record<string, string | number | boolean | undefined>,
+      },
+    );
+  }
+
+  async sendMessage(
+    recipientId: string,
+    message: string,
+    attachments?: string[],
+  ): Promise<ApiResponse<Message>> {
+    return this.request("POST", "/api/messages", {
+      body: { recipientId, message, attachments: attachments ?? [] },
     });
   }
 
-  async sendMessage(recipientId: string, message: string, attachments?: string[]): Promise<ApiResponse<Message>> {
-    return this.request("POST", "/api/messages", { body: { recipientId, message, attachments: attachments ?? [] } });
-  }
-
   async markConversationRead(conversationId: string): Promise<{ success: boolean }> {
-    return this.request("POST", `/api/messages/conversations/${encodeURIComponent(conversationId)}/read`);
+    return this.request(
+      "POST",
+      `/api/messages/conversations/${encodeURIComponent(conversationId)}/read`,
+    );
   }
 
   // ─── Notifications ───────────────────────────────────────
@@ -238,25 +301,39 @@ class ApiClient {
 
   // ─── Support Tickets ─────────────────────────────────────
 
-  async getTickets(params?: PaginationParams & { status?: string; priority?: string }): Promise<PaginatedResponse<SupportTicket>> {
-    return this.request("GET", "/api/tickets", { params: params as Record<string, string | number | boolean | undefined> });
+  async getTickets(
+    params?: PaginationParams & { status?: string; priority?: string },
+  ): Promise<PaginatedResponse<SupportTicket>> {
+    return this.request("GET", "/api/tickets", {
+      params: params as Record<string, string | number | boolean | undefined>,
+    });
   }
 
   async getTicket(id: string): Promise<ApiResponse<SupportTicket>> {
     return this.request("GET", `/api/tickets/${encodeURIComponent(id)}`);
   }
 
-  async createTicket(data: { subject: string; message: string; priority?: string }): Promise<ApiResponse<SupportTicket>> {
+  async createTicket(data: {
+    subject: string;
+    message: string;
+    priority?: string;
+  }): Promise<ApiResponse<SupportTicket>> {
     return this.request("POST", "/api/tickets", { body: data });
   }
 
-  async updateTicket(id: string, data: Partial<SupportTicket>): Promise<ApiResponse<SupportTicket>> {
+  async updateTicket(
+    id: string,
+    data: Partial<SupportTicket>,
+  ): Promise<ApiResponse<SupportTicket>> {
     return this.request("PUT", `/api/tickets/${encodeURIComponent(id)}`, { body: data });
   }
 
   // ─── Storage ─────────────────────────────────────────────
 
-  async getUploadUrl(mimeType: string, prefix = "uploads"): Promise<{ uploadUrl: string; fileUrl: string; key: string }> {
+  async getUploadUrl(
+    mimeType: string,
+    prefix = "uploads",
+  ): Promise<{ uploadUrl: string; fileUrl: string; key: string }> {
     return this.request("POST", "/api/storage/presign", { body: { mimeType, prefix } });
   }
 

@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { initBrowserSentry, reportError } from "./sentry";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const SOURCE = "customer" as const;
 
@@ -41,7 +43,10 @@ export function reportClientError(payload: ReportPayload): void {
  */
 export function ErrorReporter(): null {
   useEffect(() => {
+    initBrowserSentry();
+
     const onError = (event: ErrorEvent) => {
+      reportError(event.error);
       reportClientError({
         level: "error",
         message: event.message || "window.onerror",
@@ -52,6 +57,7 @@ export function ErrorReporter(): null {
 
     const onUnhandled = (event: PromiseRejectionEvent) => {
       const reason = event.reason;
+      reportError(reason);
       const message = reason instanceof Error ? reason.message : String(reason);
       const stack = reason instanceof Error ? reason.stack : undefined;
       reportClientError({

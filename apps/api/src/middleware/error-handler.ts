@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import { contextFromRequest, writeError } from "../utils/error-sink.js";
 import { AppError } from "../utils/errors.js";
+import { Sentry } from "../utils/sentry.js";
 
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   // Zod validation errors → 400, persisted at warn level (client-side bug).
@@ -53,6 +54,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   }
 
   // Unknown / uncaught errors → 500 + persisted at error level with full stack.
+  if (err instanceof Error) Sentry.captureException(err);
   void writeError({
     level: "error",
     source: "api",
