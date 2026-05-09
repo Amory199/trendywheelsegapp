@@ -54,3 +54,9 @@ minio-data/
 
 # iOS
 *.ipa
+
+# Firebase client config — public repo, so these stay local. For EAS CI builds,
+# upload them once via `eas secret:create --type file --name GOOGLE_SERVICES_JSON ...`
+# and `eas secret:create --type file --name GOOGLE_SERVICES_INFO_PLIST ...`.
+apps/mobile/GoogleService-Info.plist
+apps/mobile/google-services.json

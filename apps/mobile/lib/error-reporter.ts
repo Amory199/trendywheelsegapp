@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { initMobileSentry, reportError } from "./sentry";
 
 const SOURCE = "mobile" as const;
 
@@ -34,6 +35,8 @@ export function installMobileErrorReporter(): void {
   if (installed) return;
   installed = true;
 
+  initMobileSentry();
+
   const ErrorUtils = (
     global as unknown as {
       ErrorUtils?: {
@@ -46,6 +49,7 @@ export function installMobileErrorReporter(): void {
     const previous = ErrorUtils.getGlobalHandler();
     ErrorUtils.setGlobalHandler((err: Error, isFatal?: boolean) => {
       try {
+        reportError(err);
         reportClientError({
           level: isFatal ? "fatal" : "error",
           message: err?.message ?? "Unknown JS error",
@@ -64,6 +68,7 @@ export function installMobileErrorReporter(): void {
   if (typeof g.addEventListener === "function") {
     g.addEventListener("unhandledrejection", (event: unknown) => {
       const reason = (event as { reason?: unknown })?.reason;
+      reportError(reason);
       const message = reason instanceof Error ? reason.message : String(reason);
       const stack = reason instanceof Error ? reason.stack : undefined;
       reportClientError({ level: "error", message: `unhandledRejection: ${message}`, stack });
