@@ -15,14 +15,16 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.trendywheels.app"
+      "bundleIdentifier": "com.trendywheels.app",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.trendywheels.app"
+      "package": "com.trendywheels.app",
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       "expo-router",
@@ -34,6 +36,14 @@
           "icon": "./assets/notification-icon.png",
           "color": "#2B0FF8",
           "defaultChannel": "default"
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
+      [
+        "expo-build-properties",
+        {
+          "ios": { "useFrameworks": "static" }
         }
       ]
     ],
