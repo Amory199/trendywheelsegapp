@@ -27,7 +27,7 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.trendywheelseg.com",
-        "EXPO_PUBLIC_SENTRY_DSN": ""
+        "EXPO_PUBLIC_SENTRY_DSN": "https://93ce0c39e197aeac754e220bd597fc67@o4511359676252160.ingest.de.sentry.io/4511359744344144"
       }
     },
     "production": {
@@ -40,7 +40,7 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.trendywheelseg.com",
-        "EXPO_PUBLIC_SENTRY_DSN": ""
+        "EXPO_PUBLIC_SENTRY_DSN": "https://93ce0c39e197aeac754e220bd597fc67@o4511359676252160.ingest.de.sentry.io/4511359744344144"
       }
     }
   },
