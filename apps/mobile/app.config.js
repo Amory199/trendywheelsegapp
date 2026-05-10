@@ -1,5 +1,6 @@
-// Firebase config files are referenced once we re-add @react-native-firebase
-// plugins (after Expo SDK 53 upgrade). For now they're not used.
+// SDK 53 — Firebase v24 plugins are now supported.
+// EAS injects GOOGLE_SERVICES_INFO_PLIST + GOOGLE_SERVICES_JSON file secrets;
+// locally, Expo will look for the files alongside this config.
 
 module.exports = {
   expo: {
@@ -19,6 +20,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.trendywheels.app",
+      googleServicesFile: process.env.GOOGLE_SERVICES_INFO_PLIST ?? "./GoogleService-Info.plist",
     },
     android: {
       adaptiveIcon: {
@@ -27,11 +29,14 @@ module.exports = {
       },
       package: "com.trendywheels.app",
       permissions: ["android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"],
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
     },
     plugins: [
       "expo-router",
       "expo-secure-store",
       "expo-local-authentication",
+      "expo-asset",
+      "expo-font",
       [
         "expo-notifications",
         {
@@ -40,8 +45,15 @@ module.exports = {
           defaultChannel: "default",
         },
       ],
-      // Firebase config plugins are temporarily dropped — installed @react-native-firebase
-      // v24 needs Expo SDK 53; this app is on SDK 51. Re-enable after the SDK upgrade.
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
+      "@sentry/react-native",
+      [
+        "expo-build-properties",
+        {
+          ios: { useFrameworks: "static" },
+        },
+      ],
     ],
     experiments: {
       typedRoutes: true,

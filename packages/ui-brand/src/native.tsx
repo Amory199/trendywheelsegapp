@@ -1,6 +1,24 @@
 import * as React from "react";
 import { View, Text } from "react-native";
-import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
+import SvgRaw, {
+  Circle as CircleRaw,
+  Defs as DefsRaw,
+  LinearGradient as LinearGradientRaw,
+  Path as PathRaw,
+  Stop as StopRaw,
+} from "react-native-svg";
+
+// React 19 tightened Component<P,S,SS> to require a legacy `refs` field that
+// react-native-svg's class components don't carry. Runtime is unchanged; we
+// just retype them as function components for JSX.
+const Svg = SvgRaw as unknown as React.FC<React.ComponentProps<typeof SvgRaw>>;
+const Defs = DefsRaw as unknown as React.FC<React.ComponentProps<typeof DefsRaw>>;
+const LinearGradient = LinearGradientRaw as unknown as React.FC<
+  React.ComponentProps<typeof LinearGradientRaw>
+>;
+const Stop = StopRaw as unknown as React.FC<React.ComponentProps<typeof StopRaw>>;
+const Path = PathRaw as unknown as React.FC<React.ComponentProps<typeof PathRaw>>;
+const Circle = CircleRaw as unknown as React.FC<React.ComponentProps<typeof CircleRaw>>;
 
 // TrendyWheels brand primitives — React Native version for the mobile app.
 // Same shapes and proportions as the web version; consumed via `react-native-svg`.
@@ -35,15 +53,8 @@ export function TWMonogram({
         d="M26 8 h12 a4 4 0 0 1 4 4 v40 a4 4 0 0 1 -4 4 h-12 a4 4 0 0 1 -4 -4 v-40 a4 4 0 0 1 4 -4 z"
         fill={`url(#${gid}-solid)`}
       />
-      <Path
-        d="M10 16 h20 v12 h-12 a8 8 0 0 1 -8 -8 z"
-        fill={`url(#${gid}-solid)`}
-        opacity="0.92"
-      />
-      <Path
-        d="M34 16 h20 a0 0 0 0 1 0 0 v4 a8 8 0 0 1 -8 8 h-12 z"
-        fill={`url(#${gid}-fade)`}
-      />
+      <Path d="M10 16 h20 v12 h-12 a8 8 0 0 1 -8 -8 z" fill={`url(#${gid}-solid)`} opacity="0.92" />
+      <Path d="M34 16 h20 a0 0 0 0 1 0 0 v4 a8 8 0 0 1 -8 8 h-12 z" fill={`url(#${gid}-fade)`} />
       <Circle cx="50" cy="50" r="4" fill={TRENDY_PINK} />
     </Svg>
   );
