@@ -1,10 +1,16 @@
-import { Router, type Router as RouterType } from "express";
+import express, { Router, type Router as RouterType } from "express";
 import multer from "multer";
 import { z } from "zod";
 
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { AppError } from "../../utils/errors.js";
-import { deleteObject, presignUpload, uploadObject } from "../../utils/storage.js";
+import {
+  deleteObject,
+  presignUpload,
+  uploadObject,
+  verifyUploadSignature,
+  writeObjectAtKey,
+} from "../../utils/storage.js";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
@@ -68,6 +74,29 @@ router.post("/presign", authenticate, async (req, res) => {
 
   const { uploadUrl, key, fileUrl } = await presignUpload(prefix, parsed.data.mimeType);
   res.json({ uploadUrl, key, fileUrl });
+});
+
+// Raw PUT upload — receives the file body directly (mimics S3 PutObject
+// presigned URL). Auth is provided by the HMAC sig in the query string,
+// not by the bearer token (clients fetch the URL from /presign first,
+// then PUT to it without re-attaching their JWT). 10 MB cap.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+router.put("/put", express.raw({ type: "*/*", limit: MAX_UPLOAD_BYTES }), async (req, res) => {
+  const key = String(req.query.key ?? "");
+  const mimeType = String(req.query.mimeType ?? "");
+  const exp = Number(req.query.exp ?? 0);
+  const sig = String(req.query.sig ?? "");
+  if (!key || !mimeType || !exp || !sig) {
+    throw AppError.badRequest("Missing upload parameters");
+  }
+  if (!verifyUploadSignature(key, mimeType, exp, sig)) {
+    throw AppError.badRequest("Invalid or expired upload signature");
+  }
+  if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+    throw AppError.badRequest("Empty request body");
+  }
+  await writeObjectAtKey(key, req.body);
+  res.status(200).json({ key });
 });
 
 // Delete an object — admin/staff only. Customer-driven cleanup happens

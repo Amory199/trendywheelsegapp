@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import type {
   FuelType,
   ListingType,
@@ -40,6 +41,7 @@ const FEATURES_SUGGESTIONS = [
 
 export default function VehicleCreatePage(): JSX.Element {
   const router = useRouter();
+  const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<VehicleForm>({
     name: "",
@@ -131,6 +133,7 @@ export default function VehicleCreatePage(): JSX.Element {
           .filter(Boolean),
       });
 
+      await qc.invalidateQueries({ queryKey: ["vehicles"] });
       router.push("/vehicles");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create vehicle");
