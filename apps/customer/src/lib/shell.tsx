@@ -11,11 +11,10 @@ import { useAuth } from "./auth-store";
 
 const CUSTOMER_NAV: Array<{ href: string; label: string; match?: string }> = [
   { href: "/", label: "Home" },
+  { href: "/buy", label: "Buy" },
   { href: "/rent", label: "Rent" },
   { href: "/sell", label: "Sell" },
-  { href: "/repair", label: "Repair" },
-  { href: "/bookings", label: "My bookings" },
-  { href: "/messages", label: "Messages" },
+  { href: "/service", label: "Service" },
   { href: "/profile", label: "Profile" },
 ];
 

@@ -32,29 +32,20 @@ export default function TabLayout(): JSX.Element {
         }}
       />
       <Tabs.Screen
+        name="buy"
+        options={{
+          title: "Buy",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "bag" : "bag-outline"} size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="rent"
         options={{
           title: "Rent",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "car" : "car-outline"} size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="sell"
-        options={{
-          title: "Sell",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "pricetag" : "pricetag-outline"} size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="repair"
-        options={{
-          title: "Repair",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "construct" : "construct-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -67,6 +58,9 @@ export default function TabLayout(): JSX.Element {
           ),
         }}
       />
+      {/* Hide previously-tabbed surfaces — still routable via deep links + home chips */}
+      <Tabs.Screen name="sell" options={{ href: null }} />
+      <Tabs.Screen name="repair" options={{ href: null }} />
     </Tabs>
   );
 }
