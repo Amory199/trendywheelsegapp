@@ -19,16 +19,15 @@ export const env = cleanEnv(process.env, {
   TWILIO_AUTH_TOKEN: str({ default: "" }),
   TWILIO_PHONE_NUMBER: str({ default: "" }),
 
-  // MinIO / S3
-  S3_ENDPOINT: url({ default: "http://localhost:9000" }),
-  S3_ACCESS_KEY: str({ default: "minioadmin" }),
-  S3_SECRET_KEY: str({ default: "minioadmin" }),
-  S3_BUCKET: str({ default: "trendywheels" }),
-  S3_REGION: str({ default: "us-east-1" }),
-  // Public URL clients use to fetch uploaded objects. Falls back to the API
-  // endpoint, but in production this should point at the CDN vhost
-  // (e.g. https://cdn.trendywheelseg.com).
-  S3_PUBLIC_URL: url({ default: "http://localhost:9000" }),
+  // Local filesystem-backed object storage (replaced MinIO/S3).
+  UPLOADS_DIR: str({ default: "/var/lib/trendywheels/uploads" }),
+  // Public URL clients use to fetch uploaded objects (served by nginx).
+  UPLOADS_PUBLIC_URL: url({ default: "https://cdn.trendywheelseg.com" }),
+  // Public origin of this API — used to build presigned PUT URLs.
+  API_PUBLIC_URL: url({ default: "https://api.trendywheelseg.com" }),
+  // HMAC secret used to sign upload URLs. Keep secret; rotate to invalidate
+  // any in-flight signed URLs.
+  STORAGE_SIGNING_SECRET: str(),
 
   // Sentry (optional)
   SENTRY_DSN: str({ default: "" }),

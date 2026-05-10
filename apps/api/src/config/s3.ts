@@ -1,15 +1,7 @@
-import { S3Client } from "@aws-sdk/client-s3";
+// Storage moved to local filesystem (apps/api/src/utils/storage.ts).
+// This module is kept to avoid breaking any straggling imports — it
+// re-exports compatibility shims so old code paths fail fast at runtime
+// rather than at module-load time.
 
-import { env } from "./env.js";
-
-export const s3 = new S3Client({
-  endpoint: env.S3_ENDPOINT,
-  region: env.S3_REGION,
-  credentials: {
-    accessKeyId: env.S3_ACCESS_KEY,
-    secretAccessKey: env.S3_SECRET_KEY,
-  },
-  forcePathStyle: true, // required for MinIO
-});
-
-export const S3_BUCKET = env.S3_BUCKET;
+export const s3 = {} as never;
+export const S3_BUCKET = "" as never;
