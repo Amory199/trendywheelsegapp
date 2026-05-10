@@ -50,3 +50,14 @@ echo "✓ Deploy complete at $(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_DIR/de
 sleep 3
 STATUS=$(curl -sf http://localhost:4000/healthz | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','?'))" 2>/dev/null || echo "unreachable")
 echo "→ API health: $STATUS"
+
+# Smoke test the whole API surface so a regression (broken validator,
+# wrong env, signed URL pointing at localhost, etc) fails loudly here
+# instead of in front of the client.
+echo "→ Running smoke tests..."
+if "$APP_DIR/infra/scripts/smoke.sh" "https://api.trendywheelseg.com"; then
+  echo "✓ Smoke green"
+else
+  echo "✗ Smoke FAILED — review logs above."
+  exit 1
+fi
