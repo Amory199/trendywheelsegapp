@@ -47,7 +47,13 @@ module.exports = {
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
-      "@sentry/react-native",
+      [
+        "@sentry/react-native/expo",
+        {
+          organization: process.env.SENTRY_ORG ?? "amrco-yk",
+          project: process.env.SENTRY_PROJECT ?? "react-native",
+        },
+      ],
       [
         "expo-build-properties",
         {
