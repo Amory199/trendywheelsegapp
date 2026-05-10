@@ -47,13 +47,17 @@ module.exports = {
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
-      [
-        "@sentry/react-native/expo",
-        {
-          organization: process.env.SENTRY_ORG ?? "amrco-yk",
-          project: process.env.SENTRY_PROJECT ?? "react-native",
-        },
-      ],
+      // Sentry plugin disabled — pnpm strict isolation hides sentry-cli at a
+      // path Gradle can't resolve, breaking the source-map upload task. JS
+      // Sentry init in lib/sentry.ts still works at runtime; we'll re-enable
+      // source-map upload for production builds once we hoist sentry-cli.
+      // [
+      //   "@sentry/react-native/expo",
+      //   {
+      //     organization: process.env.SENTRY_ORG ?? "amrco-yk",
+      //     project: process.env.SENTRY_PROJECT ?? "react-native",
+      //   },
+      // ],
       [
         "expo-build-properties",
         {
