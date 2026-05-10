@@ -17,17 +17,21 @@
     "react-native-svg": ">=15"
   },
   "peerDependenciesMeta": {
-    "react-native": { "optional": true },
-    "react-native-svg": { "optional": true }
+    "react-native": {
+      "optional": true
+    },
+    "react-native-svg": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trendywheels/eslint-config": "workspace:*",
     "@trendywheels/tsconfig": "workspace:*",
-    "@types/react": "^18.0.0",
+    "@types/react": "~19.0.0",
     "eslint": "^8.57.0",
-    "react": "^18.0.0",
-    "react-native": "0.74.5",
-    "react-native-svg": "^15.0.0",
+    "react": "19.0.0",
+    "react-native": "0.79.6",
+    "react-native-svg": "^15.11.2",
     "typescript": "^5.0.0"
   }
 }
