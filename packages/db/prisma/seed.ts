@@ -548,6 +548,266 @@ async function main() {
     "✓ Seeded God-Mode config (3 promo codes, 2 pricing rules, 5 templates, 5 flags, 2 holidays, 7 business-hour rows)",
   );
 
+  // ─── Golf-cart product universe (TRACK AA) ────────────────
+  await prisma.orderItem.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.tradeInQuote.deleteMany({});
+  await prisma.transportRequest.deleteMany({});
+  await prisma.product.deleteMany({});
+
+  const cartNew = [
+    {
+      name: "Club Car Onward 4P (2026)",
+      brand: "Club Car",
+      model: "Onward 4P",
+      year: 2026,
+      priceEgp: 480_000,
+      image: "club-car-onward-4p",
+    },
+    {
+      name: "E-Z-GO RXV Lithium (2026)",
+      brand: "E-Z-GO",
+      model: "RXV Lithium",
+      year: 2026,
+      priceEgp: 440_000,
+      image: "ezgo-rxv-lithium",
+    },
+    {
+      name: "Garia Via 6 Resort (2026)",
+      brand: "Garia",
+      model: "Via 6 Resort",
+      year: 2026,
+      priceEgp: 920_000,
+      image: "garia-via-6",
+    },
+    {
+      name: "Star EV Capella LED Lounge",
+      brand: "Star EV",
+      model: "Capella LED",
+      year: 2026,
+      priceEgp: 1_350_000,
+      image: "star-ev-capella",
+    },
+    {
+      name: "Yamaha Drive2 PTV (2026)",
+      brand: "Yamaha",
+      model: "Drive2 PTV",
+      year: 2026,
+      priceEgp: 380_000,
+      image: "yamaha-drive2",
+    },
+    {
+      name: "Hisun Sector E1 6P (2026)",
+      brand: "Hisun",
+      model: "Sector E1 6P",
+      year: 2026,
+      priceEgp: 720_000,
+      image: "hisun-sector-e1",
+    },
+  ];
+
+  const cartUsed = [
+    {
+      name: "2024 Club Car Tempo — Single owner",
+      brand: "Club Car",
+      model: "Tempo",
+      year: 2024,
+      priceEgp: 280_000,
+      image: "used-club-car-tempo",
+    },
+    {
+      name: "2022 E-Z-GO Express L6 — 6 seater",
+      brand: "E-Z-GO",
+      model: "Express L6",
+      year: 2022,
+      priceEgp: 220_000,
+      image: "used-ezgo-express",
+    },
+    {
+      name: "2023 Yamaha Drive2 — Resort fleet",
+      brand: "Yamaha",
+      model: "Drive2",
+      year: 2023,
+      priceEgp: 240_000,
+      image: "used-yamaha-drive2",
+    },
+    {
+      name: "2021 Garia Via 4 — Concours",
+      brand: "Garia",
+      model: "Via 4",
+      year: 2021,
+      priceEgp: 320_000,
+      image: "used-garia-via-4",
+    },
+    {
+      name: "2024 Hisun Sector E1 — Lightly used",
+      brand: "Hisun",
+      model: "Sector E1",
+      year: 2024,
+      priceEgp: 460_000,
+      image: "used-hisun-sector",
+    },
+    {
+      name: "2020 Club Car Villager 6 — Mass mover",
+      brand: "Club Car",
+      model: "Villager 6",
+      year: 2020,
+      priceEgp: 180_000,
+      image: "used-club-car-villager",
+    },
+  ];
+
+  const parts = [
+    {
+      name: "48V Trojan Lithium battery pack",
+      brand: "Trojan",
+      priceEgp: 38_000,
+      image: "battery-trojan-48v",
+    },
+    {
+      name: "Curtis 1268 motor controller",
+      brand: "Curtis",
+      priceEgp: 9_500,
+      image: "controller-curtis-1268",
+    },
+    { name: "AC induction motor 5kW", brand: "GE", priceEgp: 14_200, image: "motor-ge-5kw" },
+    {
+      name: "Front suspension kit (heavy-duty)",
+      brand: "JakesLift",
+      priceEgp: 6_400,
+      image: "suspension-jakes",
+    },
+    {
+      name: "Hydraulic brake caliper set",
+      brand: "MadJax",
+      priceEgp: 2_800,
+      image: "brake-madjax",
+    },
+    { name: "Steering rack assembly", brand: "OEM", priceEgp: 4_200, image: "steering-oem" },
+    {
+      name: '10" alloy wheel set (4 wheels)',
+      brand: "RHOX",
+      priceEgp: 5_600,
+      image: "wheels-rhox-10",
+    },
+    {
+      name: "All-terrain tire (single, 22x10)",
+      brand: "Duro",
+      priceEgp: 1_400,
+      image: "tire-duro",
+    },
+    {
+      name: "On-board charger (48V, 15A)",
+      brand: "Lester",
+      priceEgp: 7_900,
+      image: "charger-lester",
+    },
+    { name: "OBC fuse + circuit breaker", brand: "Cooper", priceEgp: 380, image: "fuse-cooper" },
+    {
+      name: "Solenoid 600A heavy-duty",
+      brand: "Albright",
+      priceEgp: 1_650,
+      image: "solenoid-albright",
+    },
+    { name: "Dash cluster digital", brand: "Curtis", priceEgp: 3_400, image: "dash-curtis" },
+  ];
+
+  const accessories = [
+    {
+      name: "Premium leather seat cover set",
+      brand: "MadJax",
+      priceEgp: 4_200,
+      image: "seat-leather",
+    },
+    {
+      name: "Bluetooth premium audio system",
+      brand: "Kicker",
+      priceEgp: 8_900,
+      image: "audio-kicker",
+    },
+    { name: "RGB LED underglow kit (full)", brand: "GTW", priceEgp: 3_500, image: "led-underglow" },
+    {
+      name: "Sun canopy with rain enclosure",
+      brand: "Reliable",
+      priceEgp: 5_200,
+      image: "canopy-rain",
+    },
+    { name: "Cargo bed conversion kit", brand: "JakesLift", priceEgp: 4_800, image: "cargo-bed" },
+    { name: "Cooler cup holder + tray", brand: "Tempo", priceEgp: 1_200, image: "cooler" },
+    { name: "Side mirrors + rear-view (set)", brand: "OEM", priceEgp: 980, image: "mirrors" },
+    {
+      name: "Steering wheel wood-grain upgrade",
+      brand: "RHOX",
+      priceEgp: 2_400,
+      image: "steering-wood",
+    },
+    {
+      name: "Wireless phone charger mount",
+      brand: "Anker",
+      priceEgp: 1_100,
+      image: "wireless-charger",
+    },
+    {
+      name: "Ambient floor lighting (8-color)",
+      brand: "GTW",
+      priceEgp: 2_800,
+      image: "floor-lights",
+    },
+    {
+      name: "Sand-tire upgrade (set of 4)",
+      brand: "Carlisle",
+      priceEgp: 6_200,
+      image: "sand-tires",
+    },
+    { name: "Dash cam 1080p", brand: "Garmin", priceEgp: 3_900, image: "dashcam" },
+  ];
+
+  const allProducts = [
+    ...cartNew.map((p, i) => ({
+      category: "cart_new" as const,
+      name: p.name,
+      description: `Brand-new ${p.brand} ${p.model}. Resort-ready. Full warranty.`,
+      priceEgp: p.priceEgp,
+      images: [`https://picsum.photos/seed/${p.image}-${i}/1200/900`],
+      brand: p.brand,
+      model: p.model,
+      year: p.year,
+    })),
+    ...cartUsed.map((p, i) => ({
+      category: "cart_used" as const,
+      name: p.name,
+      description: `${p.brand} ${p.model} (${p.year}). Inspected, road-ready, 90-day warranty.`,
+      priceEgp: p.priceEgp,
+      images: [`https://picsum.photos/seed/${p.image}-${i}/1200/900`],
+      brand: p.brand,
+      model: p.model,
+      year: p.year,
+    })),
+    ...parts.map((p, i) => ({
+      category: "parts" as const,
+      name: p.name,
+      description: `Genuine ${p.brand} part. OEM-grade replacement.`,
+      priceEgp: p.priceEgp,
+      images: [`https://picsum.photos/seed/${p.image}-${i}/800/800`],
+      brand: p.brand,
+      stockCount: 25,
+    })),
+    ...accessories.map((p, i) => ({
+      category: "accessory" as const,
+      name: p.name,
+      description: `Premium ${p.brand} accessory. Install kit included.`,
+      priceEgp: p.priceEgp,
+      images: [`https://picsum.photos/seed/${p.image}-${i}/800/800`],
+      brand: p.brand,
+      stockCount: 40,
+    })),
+  ];
+
+  await prisma.product.createMany({ data: allProducts });
+  console.log(
+    `✓ Seeded golf-cart product universe (${cartNew.length} new carts, ${cartUsed.length} used carts, ${parts.length} parts, ${accessories.length} accessories)`,
+  );
+
   console.log("\n🎉 Seed complete!\n");
   console.log("Logins (3-role model):");
   console.log("  admin@trendywheelseg.com      / Admin@123!     (superadmin)");

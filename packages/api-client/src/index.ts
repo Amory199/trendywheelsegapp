@@ -38,7 +38,7 @@ class ApiClient {
     this.config = config;
   }
 
-  private async request<T>(
+  async request<T>(
     method: string,
     path: string,
     options?: { body?: unknown; params?: Record<string, string | number | boolean | undefined> },

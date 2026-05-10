@@ -21,10 +21,14 @@ import { kbRoutes } from "./modules/kb/routes.js";
 import { maintenanceRoutes } from "./modules/maintenance/routes.js";
 import { messageRoutes } from "./modules/messages/routes.js";
 import { notificationRoutes } from "./modules/notifications/routes.js";
+import { orderRoutes } from "./modules/orders/routes.js";
+import { productRoutes } from "./modules/products/routes.js";
 import { repairRoutes } from "./modules/repairs/routes.js";
 import { salesRoutes } from "./modules/sales/routes.js";
 import { storageRoutes } from "./modules/storage/routes.js";
 import { ticketRoutes } from "./modules/tickets/routes.js";
+import { tradeInRoutes } from "./modules/trade-in/routes.js";
+import { transportRoutes } from "./modules/transport/routes.js";
 import { userRoutes } from "./modules/users/routes.js";
 import { vehicleRoutes } from "./modules/vehicles/routes.js";
 import { openapiSpec } from "./openapi.js";
@@ -147,11 +151,17 @@ app.use("/api/admin", godModeRoutes);
 // a top-level authenticate middleware that intercepts every request entering
 // its `/api` mount, which would block the public POST /api/client-errors.
 app.use("/api", diagnosticsRoutes);
+// Mount before customerFeaturesRoutes — that router has a top-level
+// authenticate that would block public catalog browsing.
+app.use("/api/products", productRoutes);
 app.use("/api", customerFeaturesRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/crm", crmRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/trade-in", tradeInRoutes);
+app.use("/api/transport", transportRoutes);
 
 // OpenAPI docs — Swagger UI needs inline scripts/styles, so opt out of strict CSP.
 app.use(

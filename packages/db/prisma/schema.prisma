@@ -107,6 +107,9 @@ model User {
   broadcasts       Broadcast[]               @relation("BroadcastAuthor")
   cannedReplies    CannedReply[]
   salesTargets     SalesTarget[]
+  orders           Order[]
+  tradeInQuotes    TradeInQuote[]
+  transportRequests TransportRequest[]
 
   @@map("users")
 }
@@ -202,6 +205,7 @@ model Vehicle {
   conditionReports VehicleConditionReport[]
   alertEvents      AlertEvent[]
   reviews          Review[]
+  products         Product[]
 
   @@index([status])
   @@index([type])
@@ -886,4 +890,114 @@ model ErrorLog {
   @@index([userId])
   @@index([resolvedAt])
   @@map("error_logs")
+}
+
+// ─── Golf-cart product universe (TRACK AA) ───────────────────
+
+enum ProductCategory {
+  cart_new
+  cart_used
+  parts
+  accessory
+}
+
+model Product {
+  id          String          @id @default(uuid()) @db.Uuid
+  category    ProductCategory
+  name        String
+  description String?
+  priceEgp    Decimal         @map("price_egp") @db.Decimal(12, 2)
+  images      String[]        @default([])
+  inStock     Boolean         @default(true) @map("in_stock")
+  stockCount  Int?            @map("stock_count")
+  attributes  Json            @default("{}")
+  vehicleId   String?         @map("vehicle_id") @db.Uuid
+  brand       String?
+  model       String?
+  year        Int?
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  vehicle    Vehicle?    @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  orderItems OrderItem[]
+
+  @@index([category, inStock])
+  @@index([priceEgp])
+  @@map("products")
+}
+
+model TradeInQuote {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  brand            String
+  model            String
+  year             Int
+  condition        String
+  notes            String?
+  photos           String[]  @default([])
+  status           String    @default("submitted")
+  quoteEgp         Decimal?  @map("quote_egp") @db.Decimal(12, 2)
+  quoteValidUntil  DateTime? @map("quote_valid_until")
+  appliedToOrderId String?   @map("applied_to_order_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [appliedToOrderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status])
+  @@map("trade_in_quotes")
+}
+
+model TransportRequest {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  fromAddress String    @map("from_address")
+  toAddress   String    @map("to_address")
+  pickupAt    DateTime  @map("pickup_at")
+  cargoNotes  String?   @map("cargo_notes")
+  status      String    @default("submitted")
+  priceEgp    Decimal?  @map("price_egp") @db.Decimal(12, 2)
+  driverId    String?   @map("driver_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, pickupAt])
+  @@map("transport_requests")
+}
+
+model Order {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  status    String      @default("pending")
+  totalEgp  Decimal     @map("total_egp") @db.Decimal(12, 2)
+  tradeInId String?     @map("trade_in_id") @db.Uuid
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  user      User           @relation(fields: [userId], references: [id])
+  items     OrderItem[]
+  tradeIns  TradeInQuote[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String  @id @default(uuid()) @db.Uuid
+  orderId      String  @map("order_id") @db.Uuid
+  productId    String  @map("product_id") @db.Uuid
+  quantity     Int     @default(1)
+  unitPriceEgp Decimal @map("unit_price_egp") @db.Decimal(12, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
 }
