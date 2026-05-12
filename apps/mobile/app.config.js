@@ -68,7 +68,11 @@ module.exports = {
     experiments: {
       typedRoutes: true,
     },
+    // expo-updates auto-check disabled — we haven't published any OTA updates,
+    // so the fetch to u.expo.dev fails (DNS or 404), blocking the JS bundle at
+    // launch. Re-enable once we actually publish updates.
     updates: {
+      enabled: false,
       url: "https://u.expo.dev/trendywheels",
     },
     runtimeVersion: {
