@@ -4,7 +4,12 @@ import { StatusBar } from "expo-status-bar";
 
 import { installMobileErrorReporter } from "../lib/error-reporter";
 
-installMobileErrorReporter();
+// Wrap in try/catch — nothing at module-load should ever block first paint.
+try {
+  installMobileErrorReporter();
+} catch {
+  // never let error reporting break boot
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
