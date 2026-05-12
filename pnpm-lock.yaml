@@ -567,9 +567,6 @@ importers:
       react-native-gesture-handler:
         specifier: ^2.24.0
         version: 2.24.0(react-native@0.79.6(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
-      react-native-helmet-async:
-        specifier: ^2.0.4
-        version: 2.0.4(react@19.0.0)
       react-native-reanimated:
         specifier: ~3.17.5
         version: 3.17.5(@babel/core@7.29.0)(react-native@0.79.6(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
@@ -7642,11 +7639,6 @@ packages:
     peerDependencies:
       react: '*'
       react-native: '*'
-
-  react-native-helmet-async@2.0.4:
-    resolution: {integrity: sha512-m3CkXWss6B1dd6mCMleLpzDCJJGGaHOLQsUzZv8kAASJmMfmVT4d2fx375iXKTRWT25ThBfae3dECuX5cq/8hg==}
-    peerDependencies:
-      react: ^16.6.0 || ^17.0.0 || ^18.0.0
 
   react-native-is-edge-to-edge@1.1.7:
     resolution: {integrity: sha512-EH6i7E8epJGIcu7KpfXYXiV2JFIYITtq+rVS8uEb+92naMRBdxhTuS8Wn2Q7j9sqyO0B+Xbaaf9VdipIAmGW4w==}
@@ -17633,13 +17625,6 @@ snapshots:
       invariant: 2.2.4
       react: 19.0.0
       react-native: 0.79.6(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@types/react@19.0.14)(react@19.0.0)
-
-  react-native-helmet-async@2.0.4(react@19.0.0):
-    dependencies:
-      invariant: 2.2.4
-      react: 19.0.0
-      react-fast-compare: 3.2.2
-      shallowequal: 1.1.0
 
   react-native-is-edge-to-edge@1.1.7(react-native@0.79.6(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0):
     dependencies:
