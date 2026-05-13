@@ -1001,3 +1001,20 @@ model OrderItem {
   @@index([orderId])
   @@map("order_items")
 }
+
+/// Self-service account-deletion requests submitted from the public web form at
+/// app.trendywheelseg.com/account/delete (Google Play Store requirement).
+model DeletionRequest {
+  id          String    @id @default(uuid()) @db.Uuid
+  email       String
+  phone       String
+  reason      String?
+  userId      String?   @map("user_id") @db.Uuid
+  status      String    @default("pending") // pending | confirmed | completed | rejected
+  requestedAt DateTime  @default(now()) @map("requested_at")
+  completedAt DateTime? @map("completed_at")
+
+  @@index([status, requestedAt])
+  @@index([email])
+  @@map("deletion_requests")
+}
