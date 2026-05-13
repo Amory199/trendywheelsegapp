@@ -166,7 +166,14 @@ PICKUP=$(date -u -d '+2 days' +%Y-%m-%dT%H:%M:%S.000Z)
 CODE=$(req POST "/api/transport" "$CUST_TOKEN" "{\"fromAddress\":\"Marassi Marina\",\"toAddress\":\"El Gouna\",\"pickupAt\":\"$PICKUP\"}")
 assert_status "customer submits transport" 201 "$CODE" "$(cat /tmp/smoke-body)"
 
-# ─── 6 · auth gate sanity ───────────────────────────────────
+# ─── 6 · account deletion request (public, Play Store requirement) ──
+echo "=== Account deletion ==="
+CODE=$(req POST "/api/users/request-deletion" "" '{"email":"smoketest@trendywheelseg.com","phone":"+201111111111","reason":"smoke test"}')
+assert_status "public deletion request (no auth) → 202" 202 "$CODE" "$(cat /tmp/smoke-body)"
+CODE=$(req POST "/api/users/request-deletion" "" '{"email":"not-an-email","phone":"+201111111111"}')
+assert_status "deletion request bad email → 400" 400 "$CODE" "$(cat /tmp/smoke-body)"
+
+# ─── 7 · auth gate sanity ───────────────────────────────────
 echo "=== Auth gate ==="
 CODE=$(req GET "/api/orders/admin/all")
 assert_status "admin endpoint without token → 401" 401 "$CODE" "$(cat /tmp/smoke-body)"
