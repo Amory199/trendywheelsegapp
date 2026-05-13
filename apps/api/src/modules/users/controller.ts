@@ -163,6 +163,36 @@ export async function exportData(req: Request, res: Response): Promise<void> {
   });
 }
 
+const requestDeletionSchema = z.object({
+  email: z.string().email(),
+  phone: z.string().min(6).max(40),
+  reason: z.string().max(500).optional(),
+});
+
+// Public endpoint backing the /account/delete form (Google Play Store requires
+// a self-service deletion path accessible without app login). Creates a
+// DeletionRequest the ops team processes within 30 days, in line with our
+// privacy policy.
+export async function requestDeletion(req: Request, res: Response): Promise<void> {
+  const { email, phone, reason } = requestDeletionSchema.parse(req.body);
+
+  // Best-effort link to an existing user (by email or phone) but the request is
+  // still recorded even if no match — ops verifies offline.
+  const user = await prisma.user.findFirst({
+    where: { OR: [{ email }, { phone }] },
+    select: { id: true },
+  });
+
+  await prisma.deletionRequest.create({
+    data: { email, phone, reason, userId: user?.id ?? null },
+  });
+
+  res.status(202).json({
+    message:
+      "Deletion request received. We'll process it within 30 days and email you when complete.",
+  });
+}
+
 export async function deleteAccount(req: Request, res: Response): Promise<void> {
   // Only admins can delete any account; customers can delete their own
   if (req.user!.accountType === "customer" && req.params.id !== req.user!.userId) {
