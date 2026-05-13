@@ -22,10 +22,13 @@ export const useAuth = create<AuthState>((set) => ({
       set({ initialized: true });
       return;
     }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
     try {
       const baseUrl = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:4000";
       const res = await fetch(`${baseUrl}/api/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       });
       if (res.ok) {
         const json = (await res.json()) as { data: User };
@@ -35,7 +38,10 @@ export const useAuth = create<AuthState>((set) => ({
         set({ initialized: true });
       }
     } catch {
+      await clearTokens();
       set({ initialized: true });
+    } finally {
+      clearTimeout(timeout);
     }
   },
 
