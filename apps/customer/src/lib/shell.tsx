@@ -38,20 +38,29 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
     if (!initialized) void hydrate();
   }, [initialized, hydrate]);
 
+  // Public paths reachable without auth — Play Store policy requires
+  // /account/delete to be world-readable; /support and /legal/privacy linked
+  // from the store listing.
+  const isPublic =
+    path === "/login" ||
+    path === "/account/delete" ||
+    path === "/support" ||
+    path.startsWith("/legal");
+
   useEffect(() => {
-    if (initialized && !user && path !== "/login") router.replace("/login");
-  }, [initialized, user, path, router]);
+    if (initialized && !user && !isPublic) router.replace("/login");
+  }, [initialized, user, isPublic, router]);
 
   const isStaff = user && (user.accountType === "admin" || user.accountType === "staff");
   const isCrmPath = path.startsWith("/crm");
   // Auto-redirect: staff landing on customer pages → CRM; customers landing on /crm → home.
   useEffect(() => {
     if (!user) return;
-    if (isStaff && !isCrmPath && path !== "/login") router.replace("/crm");
+    if (isStaff && !isCrmPath && !isPublic) router.replace("/crm");
     if (!isStaff && isCrmPath) router.replace("/");
-  }, [user, isStaff, isCrmPath, path, router]);
+  }, [user, isStaff, isCrmPath, isPublic, router]);
 
-  if (path === "/login") return <>{children}</>;
+  if (isPublic) return <>{children}</>;
   if (!initialized) {
     return (
       <div

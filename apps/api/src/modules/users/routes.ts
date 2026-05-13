@@ -8,6 +8,10 @@ import * as userController from "./controller.js";
 
 const router: RouterType = Router();
 
+// Public — backs the /account/delete web form (Google Play Store requires a
+// self-service deletion path reachable without app login).
+router.post("/request-deletion", userController.requestDeletion);
+
 router.get("/", authenticate, authorize("admin", "staff"), userController.list);
 router.post("/", authenticate, authorize("admin"), userController.createStaff);
 router.get("/me", authenticate, userController.getMe);
