@@ -5,6 +5,7 @@
   "license": "UNLICENSED",
   "exports": {
     "./web": "./src/web.tsx",
+    "./web-canvas": "./src/web-canvas.tsx",
     "./native": "./src/native.tsx"
   },
   "scripts": {

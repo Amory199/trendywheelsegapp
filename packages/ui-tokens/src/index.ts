@@ -222,6 +222,23 @@ export const layout = {
   buttonPaddingHorizontal: 24,
 } as const;
 
+// Minimum touch-target size — Apple HIG & Material both require 44px square
+// hit targets. Use this anywhere a finger lands: buttons, chips, icon-only
+// taps, drawer close buttons.
+export const minTouch = 44;
+
+// Fluid type scale — clamp(min, fluid, max). Plug into `font-size` directly
+// in inline styles or via a wrapper class. Each role scales from the smallest
+// readable size on a 320px viewport up to the desktop target.
+export const fluidType = {
+  display: "clamp(2.5rem, 8vw, 5rem)", // 40 → 80px
+  h1: "clamp(1.75rem, 5vw, 3rem)", // 28 → 48px
+  h2: "clamp(1.375rem, 3vw, 1.75rem)", // 22 → 28px
+  h3: "clamp(1.125rem, 2vw, 1.375rem)", // 18 → 22px
+  body: "clamp(0.9375rem, 1.2vw, 1rem)", // 15 → 16px
+  caption: "0.8125rem", // 13px fixed
+} as const;
+
 // Tailwind CSS preset for web dashboards
 export const tailwindPreset = {
   theme: {

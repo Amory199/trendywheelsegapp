@@ -39,16 +39,9 @@ export function TWMonogram({
         fill={`url(#${gid}-solid)`}
       />
       {/* left upper wedge */}
-      <path
-        d="M10 16 h20 v12 h-12 a8 8 0 0 1 -8 -8 z"
-        fill={`url(#${gid}-solid)`}
-        opacity="0.92"
-      />
+      <path d="M10 16 h20 v12 h-12 a8 8 0 0 1 -8 -8 z" fill={`url(#${gid}-solid)`} opacity="0.92" />
       {/* right upper wedge (fades to white per brief) */}
-      <path
-        d="M34 16 h20 a0 0 0 0 1 0 0 v4 a8 8 0 0 1 -8 8 h-12 z"
-        fill={`url(#${gid}-fade)`}
-      />
+      <path d="M34 16 h20 a0 0 0 0 1 0 0 v4 a8 8 0 0 1 -8 8 h-12 z" fill={`url(#${gid}-fade)`} />
       {/* accent pink dot */}
       <circle cx="50" cy="50" r="4" fill={TRENDY_PINK} />
     </svg>
@@ -56,8 +49,7 @@ export function TWMonogram({
 }
 
 const FONT_DISPLAY = "Anton, Impact, 'Bebas Neue', system-ui, sans-serif";
-const FONT_BODY =
-  "'Source Sans 3', 'Source Sans Pro', 'Myriad Pro', system-ui, sans-serif";
+const FONT_BODY = "'Source Sans 3', 'Source Sans Pro', 'Myriad Pro', system-ui, sans-serif";
 
 export function TWWordmark({
   size = 22,
@@ -141,5 +133,139 @@ export function TWLogoLockup({
       <TWMonogram size={size} />
       <TWWordmark size={size * 0.62} color={color} />
     </div>
+  );
+}
+
+// MobileNavDrawer — slide-from-side panel + scrim. Pure CSS, no Shadcn.
+// Used by admin/support/inventory shells on small screens to hide the
+// 240px sidebar behind a hamburger. Locks body scroll while open, traps
+// Escape, and clicking outside closes it.
+export function MobileNavDrawer({
+  open,
+  onClose,
+  children,
+  side = "left",
+  width = 280,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  side?: "left" | "right";
+  width?: number;
+}): React.JSX.Element | null {
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const translateClosed = side === "left" ? -100 : 100;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 60,
+        display: "flex",
+        flexDirection: side === "left" ? "row" : "row-reverse",
+      }}
+    >
+      <div
+        onClick={onClose}
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "rgba(2,1,31,0.45)",
+          backdropFilter: "blur(2px)",
+          animation: "twNavFade 180ms cubic-bezier(.2,.7,.3,1) both",
+        }}
+      />
+      <aside
+        style={{
+          position: "relative",
+          width: `min(${width}px, 86vw)`,
+          maxWidth: width,
+          height: "100%",
+          background: "#FFFFFF",
+          boxShadow:
+            side === "left" ? "8px 0 32px rgba(2,1,31,0.18)" : "-8px 0 32px rgba(2,1,31,0.18)",
+          overflowY: "auto",
+          paddingBottom: "env(safe-area-inset-bottom)",
+          animation: `twNavSlide${side === "left" ? "L" : "R"} 220ms cubic-bezier(.2,.7,.3,1) both`,
+        }}
+      >
+        {children}
+      </aside>
+      <style>{`
+        @keyframes twNavFade { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes twNavSlideL { from { transform: translateX(${translateClosed}%) } to { transform: translateX(0) } }
+        @keyframes twNavSlideR { from { transform: translateX(${translateClosed}%) } to { transform: translateX(0) } }
+      `}</style>
+    </div>
+  );
+}
+
+// Hamburger icon — 24×24 SVG. Pair with a button that opens MobileNavDrawer.
+export function TWHamburgerIcon({
+  size = 22,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}): React.JSX.Element {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+      style={{ display: "block" }}
+    >
+      <line x1="4" y1="7" x2="20" y2="7" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="17" x2="20" y2="17" />
+    </svg>
+  );
+}
+
+export function TWCloseIcon({
+  size = 22,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}): React.JSX.Element {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+      style={{ display: "block" }}
+    >
+      <line x1="6" y1="6" x2="18" y2="18" />
+      <line x1="18" y1="6" x2="6" y2="18" />
+    </svg>
   );
 }
