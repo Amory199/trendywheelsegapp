@@ -1,11 +1,16 @@
 "use client";
 
-import { TWLogoLockup } from "@trendywheels/ui-brand/web";
+import {
+  MobileNavDrawer,
+  TWCloseIcon,
+  TWHamburgerIcon,
+  TWLogoLockup,
+} from "@trendywheels/ui-brand/web";
 import { colors, twPalette } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "./auth-store";
 
@@ -99,6 +104,11 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
   const path = usePathname();
   const { user, initialized, hydrate, logout } = useAuth();
   const palette = twPalette(false);
+  const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    setNavOpen(false);
+  }, [path]);
 
   useEffect(() => {
     if (!initialized) void hydrate();
@@ -158,6 +168,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
         <div className="tw-ambient-orb orb-lime" />
       </div>
       <aside
+        className="tw-desktop-only"
         style={{
           width: 240,
           flexShrink: 0,
@@ -314,15 +325,32 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
         <header
           style={{
             height: 60,
-            padding: "0 24px",
+            padding: "0 clamp(12px, 3vw, 24px)",
             borderBottom: `1px solid ${palette.border}`,
             background: palette.card,
             display: "flex",
             alignItems: "center",
-            gap: 16,
+            gap: 12,
             flexShrink: 0,
           }}
         >
+          <button
+            className="tw-mobile-only tw-tap"
+            onClick={() => setNavOpen(true)}
+            aria-label="Open navigation"
+            style={{
+              padding: 8,
+              borderRadius: 10,
+              border: "none",
+              background: palette.cardAlt,
+              color: palette.text,
+              display: "grid",
+              placeItems: "center",
+              cursor: "pointer",
+            }}
+          >
+            <TWHamburgerIcon size={22} />
+          </button>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <TWLogoLockup size={20} color={colors.brand.friendlyBlue} />
             <span
@@ -339,8 +367,12 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
               SUPPORT
             </span>
           </div>
-          <div style={{ width: 1, height: 24, background: palette.hairline }} />
           <div
+            className="tw-desktop-only"
+            style={{ width: 1, height: 24, background: palette.hairline }}
+          />
+          <div
+            className="tw-desktop-only"
             style={{
               display: "flex",
               alignItems: "center",
@@ -367,6 +399,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
           </div>
           <div style={{ flex: 1 }} />
           <div
+            className="tw-desktop-only"
             style={{
               width: 280,
               height: 36,
@@ -417,6 +450,120 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
         </header>
         <div style={{ flex: 1, overflow: "auto" }}>{children}</div>
       </main>
+
+      <MobileNavDrawer open={navOpen} onClose={() => setNavOpen(false)} side="left" width={300}>
+        <div
+          style={{
+            padding: "18px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            borderBottom: `1px solid ${palette.hairline}`,
+          }}
+        >
+          <TWLogoLockup size={24} color={palette.text} />
+          <span
+            style={{
+              padding: "3px 8px",
+              borderRadius: 999,
+              background: colors.brand.trendyPink,
+              color: "#fff",
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: 0.5,
+            }}
+          >
+            SUPPORT
+          </span>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => setNavOpen(false)}
+            aria-label="Close navigation"
+            className="tw-tap"
+            style={{
+              padding: 8,
+              borderRadius: 8,
+              background: palette.cardAlt,
+              border: "none",
+              color: palette.text,
+              display: "grid",
+              placeItems: "center",
+              cursor: "pointer",
+            }}
+          >
+            <TWCloseIcon size={20} />
+          </button>
+        </div>
+        <nav style={{ padding: "12px", display: "flex", flexDirection: "column", gap: 4 }}>
+          {NAV.map((n) => {
+            const active = path.startsWith(n.match ?? n.href);
+            return (
+              <Link
+                key={n.href}
+                href={n.href}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "14px 14px",
+                  textDecoration: "none",
+                  borderRadius: 12,
+                  background: active ? "rgba(43,15,248,0.08)" : "transparent",
+                  color: active ? colors.brand.friendlyBlue : palette.text,
+                  fontWeight: active ? 700 : 500,
+                  fontSize: 15,
+                }}
+              >
+                <Icon name={n.icon} size={20} stroke={active ? 2.2 : 1.8} />
+                <span style={{ flex: 1 }}>{n.label}</span>
+                {n.badge ? (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "2px 8px",
+                      borderRadius: 10,
+                      background: active ? colors.brand.trendyPink : palette.cardAlt,
+                      color: active ? "#fff" : palette.muted,
+                    }}
+                  >
+                    {n.badge}
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
+        </nav>
+        <div
+          style={{
+            padding: 14,
+            borderTop: `1px solid ${palette.hairline}`,
+            marginTop: "auto",
+          }}
+        >
+          <button
+            onClick={() => {
+              void logout();
+              setNavOpen(false);
+              router.replace("/login");
+            }}
+            className="tw-tap"
+            style={{
+              width: "100%",
+              padding: "14px 16px",
+              borderRadius: 12,
+              border: `1px solid ${palette.border}`,
+              background: "transparent",
+              color: palette.text,
+              cursor: "pointer",
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            Sign out
+          </button>
+        </div>
+      </MobileNavDrawer>
     </div>
   );
 }
