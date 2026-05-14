@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { ErrorReporter } from "../lib/error-reporter";
 import { Providers } from "../lib/providers";
@@ -9,6 +9,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "TrendyWheels Inventory",
   description: "Inventory management — vehicle availability, maintenance, and alerts",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }): JSX.Element {
