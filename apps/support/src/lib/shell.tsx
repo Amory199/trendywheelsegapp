@@ -127,11 +127,18 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
           minHeight: "100vh",
           alignItems: "center",
           justifyContent: "center",
-          color: palette.muted,
-          fontSize: 14,
+          background: "#02011F",
         }}
       >
-        Loading…
+        <img
+          src="/loading.webp"
+          alt="TrendyWheels"
+          style={{
+            width: "min(60vw, 380px)",
+            maxHeight: "70vh",
+            objectFit: "contain",
+          }}
+        />
       </div>
     );
   }

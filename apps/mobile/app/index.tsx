@@ -1,9 +1,12 @@
 import { colors } from "@trendywheels/ui-tokens";
+import { Image } from "expo-image";
 import { Redirect } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { useAuth } from "../lib/auth-store";
+
+const LOADING_SRC = require("../assets/loading.webp");
 
 export default function Index(): JSX.Element {
   const { user, initialized, hydrate } = useAuth();
@@ -15,7 +18,7 @@ export default function Index(): JSX.Element {
   if (!initialized) {
     return (
       <View style={styles.splash}>
-        <ActivityIndicator size="small" color={colors.accent.DEFAULT} />
+        <Image source={LOADING_SRC} style={styles.logo} contentFit="contain" transition={120} />
       </View>
     );
   }
@@ -36,5 +39,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dark.bg,
     alignItems: "center",
     justifyContent: "center",
+  },
+  logo: {
+    width: "70%",
+    aspectRatio: 4 / 5,
+    maxWidth: 360,
+    maxHeight: 450,
   },
 });

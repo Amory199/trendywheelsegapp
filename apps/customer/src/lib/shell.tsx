@@ -85,7 +85,15 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
           fontSize: 14,
         }}
       >
-        Loading…
+        <img
+          src="/loading.webp"
+          alt="TrendyWheels"
+          style={{
+            width: "min(60vw, 380px)",
+            maxHeight: "70vh",
+            objectFit: "contain",
+          }}
+        />
       </div>
     );
   }
