@@ -68,16 +68,11 @@ module.exports = {
     experiments: {
       typedRoutes: true,
     },
-    // expo-updates auto-check disabled — we haven't published any OTA updates,
-    // so the fetch to u.expo.dev fails (DNS or 404), blocking the JS bundle at
-    // launch. Re-enable once we actually publish updates.
-    updates: {
-      enabled: false,
-      url: "https://u.expo.dev/trendywheels",
-    },
-    runtimeVersion: {
-      policy: "appVersion",
-    },
+    // expo-updates fully disabled until we actually publish OTA updates.
+    // The url + runtimeVersion are intentionally omitted: with url set,
+    // EAS warns about a missing channel on every build even though we
+    // never fetch from it. Re-add both (plus channel in eas.json) when
+    // OTA goes live.
     extra: {
       eas: {
         projectId: "6463af40-c34e-4dd4-840f-1193dccaa575",
