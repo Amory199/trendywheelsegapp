@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { ErrorReporter } from "../lib/error-reporter";
 import { Providers } from "../lib/providers";
@@ -13,6 +13,13 @@ export const metadata: Metadata = {
   icons: {
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232B0FF8'/><circle cx='24' cy='9' r='3' fill='%23FF0065'/><text x='5' y='23' font-family='Impact,Anton,sans-serif' font-size='18' fill='%23fff'>tw</text></svg>",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#02011F",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }): JSX.Element {

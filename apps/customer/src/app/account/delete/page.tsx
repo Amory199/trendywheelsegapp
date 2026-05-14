@@ -39,19 +39,26 @@ export default function DeleteAccountPage(): JSX.Element {
         minHeight: "100vh",
         background: "#02011F",
         color: "#fff",
-        padding: "48px 24px 96px",
+        padding: "clamp(24px, 6vw, 48px) clamp(16px, 4vw, 24px) clamp(48px, 10vw, 96px)",
         fontFamily: "Source Sans 3, system-ui, sans-serif",
       }}
     >
-      <div style={{ maxWidth: 640, margin: "0 auto" }}>
-        <a href="/" style={{ display: "inline-block", textDecoration: "none", marginBottom: 32 }}>
+      <div style={{ maxWidth: "min(640px, 100%)", margin: "0 auto" }}>
+        <a
+          href="/"
+          style={{
+            display: "inline-block",
+            textDecoration: "none",
+            marginBottom: "clamp(20px, 5vw, 32px)",
+          }}
+        >
           <TWLogoLockup size={36} color="#fff" />
         </a>
 
         <h1
           style={{
             fontFamily: "Anton, sans-serif",
-            fontSize: 44,
+            fontSize: "clamp(1.875rem, 7vw, 2.75rem)",
             lineHeight: 1.05,
             marginBottom: 16,
             letterSpacing: ".01em",
@@ -60,7 +67,14 @@ export default function DeleteAccountPage(): JSX.Element {
           Delete your account
         </h1>
 
-        <p style={{ fontSize: 16, opacity: 0.8, lineHeight: 1.7, marginBottom: 32 }}>
+        <p
+          style={{
+            fontSize: "clamp(15px, 1.2vw, 16px)",
+            opacity: 0.8,
+            lineHeight: 1.7,
+            marginBottom: 32,
+          }}
+        >
           Submit this form and we'll permanently delete your TrendyWheels account within{" "}
           <strong>30 days</strong>. You'll receive a confirmation email when it's done. If you
           prefer to email us directly:{" "}
@@ -173,6 +187,8 @@ export default function DeleteAccountPage(): JSX.Element {
                 fontWeight: 600,
                 cursor: status === "submitting" ? "wait" : "pointer",
                 letterSpacing: ".02em",
+                width: "100%",
+                minHeight: 48,
               }}
             >
               {status === "submitting" ? "Sending…" : "Request account deletion"}
@@ -214,13 +230,16 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         style={{
-          padding: "12px 14px",
+          padding: "14px 14px",
           borderRadius: 10,
           border: "1px solid rgba(255,255,255,.12)",
           background: "rgba(255,255,255,.04)",
           color: "#fff",
-          fontSize: 15,
+          fontSize: 16,
           outline: "none",
+          minHeight: 48,
+          width: "100%",
+          boxSizing: "border-box",
         }}
       />
     </label>
@@ -247,15 +266,17 @@ function TextareaField({
         placeholder={placeholder}
         rows={3}
         style={{
-          padding: "12px 14px",
+          padding: "14px 14px",
           borderRadius: 10,
           border: "1px solid rgba(255,255,255,.12)",
           background: "rgba(255,255,255,.04)",
           color: "#fff",
-          fontSize: 15,
+          fontSize: 16,
           outline: "none",
           resize: "vertical",
           fontFamily: "inherit",
+          width: "100%",
+          boxSizing: "border-box",
         }}
       />
     </label>

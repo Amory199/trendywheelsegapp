@@ -38,18 +38,25 @@ export default function SupportPage(): JSX.Element {
         minHeight: "100vh",
         background: "#02011F",
         color: "#fff",
-        padding: "48px 24px 96px",
+        padding: "clamp(24px, 6vw, 48px) clamp(16px, 4vw, 24px) clamp(48px, 10vw, 96px)",
         fontFamily: "Source Sans 3, system-ui, sans-serif",
       }}
     >
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <a href="/" style={{ display: "inline-block", marginBottom: 32, textDecoration: "none" }}>
+      <div style={{ maxWidth: "min(720px, 100%)", margin: "0 auto" }}>
+        <a
+          href="/"
+          style={{
+            display: "inline-block",
+            marginBottom: "clamp(20px, 5vw, 32px)",
+            textDecoration: "none",
+          }}
+        >
           <TWLogoLockup size={36} color="#fff" />
         </a>
         <h1
           style={{
             fontFamily: "Anton, sans-serif",
-            fontSize: 48,
+            fontSize: "clamp(2rem, 8vw, 3rem)",
             lineHeight: 1.05,
             marginBottom: 16,
             letterSpacing: ".01em",
@@ -57,7 +64,14 @@ export default function SupportPage(): JSX.Element {
         >
           Help & Support
         </h1>
-        <p style={{ fontSize: 16, opacity: 0.8, lineHeight: 1.7, marginBottom: 40 }}>
+        <p
+          style={{
+            fontSize: "clamp(15px, 1.2vw, 16px)",
+            opacity: 0.8,
+            lineHeight: 1.7,
+            marginBottom: "clamp(28px, 6vw, 40px)",
+          }}
+        >
           We're a small Egyptian team. Reach us any of these ways and we'll come back to you the
           same day.
         </p>
@@ -65,9 +79,9 @@ export default function SupportPage(): JSX.Element {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-            gap: 14,
-            marginBottom: 56,
+            gridTemplateColumns: "repeat(auto-fit,minmax(min(220px, 100%), 1fr))",
+            gap: "clamp(10px, 2.5vw, 14px)",
+            marginBottom: "clamp(40px, 9vw, 56px)",
           }}
         >
           <Channel
@@ -88,7 +102,7 @@ export default function SupportPage(): JSX.Element {
         <h2
           style={{
             fontFamily: "Anton, sans-serif",
-            fontSize: 28,
+            fontSize: "clamp(1.375rem, 5vw, 1.75rem)",
             marginBottom: 20,
             letterSpacing: ".02em",
           }}

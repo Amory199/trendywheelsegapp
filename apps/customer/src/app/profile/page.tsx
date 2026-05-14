@@ -53,11 +53,11 @@ export default function ProfilePage(): JSX.Element {
     .toUpperCase();
 
   return (
-    <div style={{ display: "grid", gap: 24, maxWidth: 720 }}>
+    <div style={{ display: "grid", gap: 24, maxWidth: "min(720px, 100%)" }}>
       <h1
         style={{
           fontFamily: "Anton, Impact, system-ui, sans-serif",
-          fontSize: 48,
+          fontSize: "clamp(2rem, 7vw, 3rem)",
           textTransform: "uppercase",
           margin: 0,
           color: colors.brand.trustWorth,

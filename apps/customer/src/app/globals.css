@@ -369,3 +369,40 @@ body {
   animation: twRipple 1.4s ease-out infinite;
   pointer-events: none;
 }
+
+/* ───────────────────────── Mobile helpers ───────────────────────── */
+@media (max-width: 767.98px) {
+  .tw-desktop-only {
+    display: none !important;
+  }
+}
+@media (min-width: 768px) {
+  .tw-mobile-only {
+    display: none !important;
+  }
+}
+.tw-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.tw-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.tw-h-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.tw-h-scroll::-webkit-scrollbar {
+  display: none;
+}
+.tw-h-scroll > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+.tw-tap {
+  min-width: 44px;
+  min-height: 44px;
+}

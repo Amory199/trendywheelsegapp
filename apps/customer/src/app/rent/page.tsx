@@ -47,7 +47,7 @@ export default function RentPage(): JSX.Element {
         <h1
           style={{
             fontFamily: "Anton, Impact, system-ui, sans-serif",
-            fontSize: 48,
+            fontSize: "clamp(2rem, 7vw, 3rem)",
             textTransform: "uppercase",
             margin: 0,
             color: colors.brand.trustWorth,
@@ -103,7 +103,7 @@ export default function RentPage(): JSX.Element {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 100%), 1fr))",
             gap: 16,
           }}
         >
