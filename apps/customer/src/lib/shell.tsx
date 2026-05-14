@@ -45,6 +45,23 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
     setNavOpen(false);
   }, [path]);
 
+  // Auto-recover from stale chunks after an in-place deploy: when a
+  // dynamic import fails (old chunk filename → new build on server),
+  // do a single hard reload so the user lands on the new bundle.
+  useEffect(() => {
+    const onError = (e: ErrorEvent) => {
+      const msg = e.message || "";
+      if (msg.includes("ChunkLoadError") || msg.includes("Loading chunk")) {
+        if (!sessionStorage.getItem("tw-chunk-reloaded")) {
+          sessionStorage.setItem("tw-chunk-reloaded", "1");
+          window.location.reload();
+        }
+      }
+    };
+    window.addEventListener("error", onError);
+    return () => window.removeEventListener("error", onError);
+  }, []);
+
   useEffect(() => {
     if (!initialized) void hydrate();
   }, [initialized, hydrate]);
