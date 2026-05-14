@@ -40,7 +40,7 @@ export default function ServicePage(): JSX.Element {
         style={{
           display: "grid",
           gap: 18,
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))",
         }}
       >
         {PATHS.map((p) => (

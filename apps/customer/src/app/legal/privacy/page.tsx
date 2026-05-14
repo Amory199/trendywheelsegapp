@@ -14,12 +14,19 @@ export default function PrivacyPolicyPage(): JSX.Element {
         minHeight: "100vh",
         background: "#02011F",
         color: "#fff",
-        padding: "48px 24px 96px",
+        padding: "clamp(24px, 6vw, 48px) clamp(16px, 4vw, 24px) clamp(48px, 10vw, 96px)",
         fontFamily: "Source Sans 3, system-ui, sans-serif",
       }}
     >
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <a href="/" style={{ display: "inline-block", marginBottom: 32, textDecoration: "none" }}>
+      <div style={{ maxWidth: "min(720px, 100%)", margin: "0 auto" }}>
+        <a
+          href="/"
+          style={{
+            display: "inline-block",
+            marginBottom: "clamp(20px, 5vw, 32px)",
+            textDecoration: "none",
+          }}
+        >
           <TWLogoLockup size={36} color="#fff" />
         </a>
         <div
@@ -36,7 +43,7 @@ export default function PrivacyPolicyPage(): JSX.Element {
         <h1
           style={{
             fontFamily: "Anton, sans-serif",
-            fontSize: 48,
+            fontSize: "clamp(2rem, 8vw, 3rem)",
             lineHeight: 1.05,
             marginBottom: 24,
             letterSpacing: ".01em",
@@ -45,7 +52,14 @@ export default function PrivacyPolicyPage(): JSX.Element {
           Privacy Policy
         </h1>
 
-        <p style={{ fontSize: 16, opacity: 0.8, lineHeight: 1.7, marginBottom: 32 }}>
+        <p
+          style={{
+            fontSize: "clamp(15px, 1.2vw, 16px)",
+            opacity: 0.8,
+            lineHeight: 1.7,
+            marginBottom: 32,
+          }}
+        >
           TrendyWheels ("we", "us") operates a golf-cart rental, sales, and service platform across
           Egypt's North Coast, Red Sea, and Greater Cairo. This policy explains what data we
           collect, why we collect it, how long we keep it, and the rights you have over it. It
@@ -180,7 +194,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2
         style={{
           fontFamily: "Anton, sans-serif",
-          fontSize: 22,
+          fontSize: "clamp(1.25rem, 4vw, 1.5rem)",
           marginBottom: 12,
           letterSpacing: ".02em",
           color: "#FF0065",
@@ -188,7 +202,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       >
         {title}
       </h2>
-      <div style={{ fontSize: 15, opacity: 0.78, lineHeight: 1.75 }}>{children}</div>
+      <div style={{ fontSize: "clamp(14px, 1.1vw, 15px)", opacity: 0.78, lineHeight: 1.75 }}>
+        {children}
+      </div>
     </section>
   );
 }

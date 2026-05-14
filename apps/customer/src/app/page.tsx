@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { TWParticleHero } from "@trendywheels/ui-brand/web-canvas";
 import { colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -44,15 +45,15 @@ export default function HomePage(): JSX.Element {
     heroes[heroIdx]?.images?.[0] || "https://picsum.photos/seed/golf-cart-fallback/1600/900";
 
   return (
-    <div style={{ marginTop: -28 }}>
+    <div style={{ marginTop: "clamp(-16px, -4vw, -28px)" }}>
       {/* HERO */}
       <section
         style={{
           position: "relative",
-          height: "min(72vh, 640px)",
-          minHeight: 480,
-          marginLeft: -24,
-          marginRight: -24,
+          height: "min(56vh, 560px)",
+          minHeight: 360,
+          marginLeft: "calc(-1 * clamp(14px, 4vw, 24px))",
+          marginRight: "calc(-1 * clamp(14px, 4vw, 24px))",
           overflow: "hidden",
           borderRadius: 0,
         }}
@@ -85,6 +86,9 @@ export default function HomePage(): JSX.Element {
           />
         ) : null}
 
+        {/* Animated brand particle field — Canvas 2D, no WASM. */}
+        <TWParticleHero count={14} blend="screen" />
+
         {/* Gradient overlay for text legibility */}
         <div
           style={{
@@ -103,7 +107,7 @@ export default function HomePage(): JSX.Element {
             display: "flex",
             flexDirection: "column",
             justifyContent: "flex-end",
-            padding: "0 24px 36px",
+            padding: "0 clamp(16px, 4vw, 24px) clamp(20px, 5vw, 36px)",
             maxWidth: 1120,
             margin: "0 auto",
             color: "#fff",
@@ -111,11 +115,11 @@ export default function HomePage(): JSX.Element {
         >
           <div
             style={{
-              fontSize: 12,
+              fontSize: "clamp(10px, 1.5vw, 12px)",
               letterSpacing: 2.4,
               textTransform: "uppercase",
               opacity: 0.8,
-              marginBottom: 10,
+              marginBottom: 8,
             }}
           >
             {user?.name ? `Hey, ${user.name.split(" ")[0]}` : "Cruise bold"}
@@ -123,7 +127,7 @@ export default function HomePage(): JSX.Element {
           <h1
             style={{
               fontFamily: "Anton, sans-serif",
-              fontSize: "clamp(40px, 8vw, 96px)",
+              fontSize: "clamp(34px, 9vw, 96px)",
               lineHeight: 0.95,
               letterSpacing: 0.5,
               margin: 0,
@@ -137,22 +141,23 @@ export default function HomePage(): JSX.Element {
         </div>
       </section>
 
-      {/* CHIPS */}
+      {/* CHIPS — 2 per row on phones, auto-fit on bigger screens */}
       <section
         style={{
-          marginTop: 24,
+          marginTop: "clamp(16px, 4vw, 24px)",
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 14,
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: "clamp(10px, 2.5vw, 14px)",
         }}
+        className="tw-home-chips"
       >
         {CHIPS.map((c) => (
           <Link
             key={c.href}
             href={c.href}
-            className="tw-press"
+            className="tw-press tw-tap"
             style={{
-              padding: "22px 24px",
+              padding: "clamp(16px, 4vw, 22px) clamp(14px, 3vw, 24px)",
               borderRadius: 18,
               background: "#fff",
               boxShadow: "0 6px 24px rgba(2,1,31,0.06)",
@@ -163,22 +168,30 @@ export default function HomePage(): JSX.Element {
               flexDirection: "column",
               gap: 6,
               transition: "transform 180ms ease, box-shadow 180ms ease",
+              minHeight: 96,
             }}
           >
             <div
               style={{
                 fontFamily: "Anton, sans-serif",
-                fontSize: 32,
+                fontSize: "clamp(22px, 5vw, 32px)",
                 lineHeight: 1,
                 letterSpacing: 0.5,
               }}
             >
               {c.label}
             </div>
-            <div style={{ fontSize: 12, opacity: 0.6 }}>{c.sub}</div>
+            <div style={{ fontSize: "clamp(11px, 2.5vw, 12px)", opacity: 0.6 }}>{c.sub}</div>
           </Link>
         ))}
       </section>
+      <style jsx>{`
+        @media (min-width: 768px) {
+          .tw-home-chips {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+      `}</style>
     </div>
   );
 }

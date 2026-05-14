@@ -239,6 +239,7 @@ export default function ProductDetailPage(): JSX.Element {
 
       {/* Sticky CTA */}
       <div
+        className="tw-safe-bottom"
         style={{
           position: "fixed",
           left: 0,
@@ -246,7 +247,7 @@ export default function ProductDetailPage(): JSX.Element {
           bottom: 0,
           background: "#fff",
           borderTop: "1px solid rgba(2,1,31,0.06)",
-          padding: "14px 24px",
+          padding: "14px clamp(14px, 4vw, 24px)",
           zIndex: 10,
           boxShadow: "0 -8px 30px rgba(2,1,31,0.06)",
         }}

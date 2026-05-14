@@ -90,8 +90,8 @@ export default function BuyPage(): JSX.Element {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-            gap: 18,
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(220px, calc(50% - 6px)), 1fr))",
+            gap: 14,
           }}
         >
           {items.map((p) => (
