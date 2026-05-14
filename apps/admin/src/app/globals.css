@@ -366,3 +366,54 @@ body {
 .tw-pulse-pink {
   animation: twPinkPulse 1.6s ease-in-out infinite;
 }
+
+/* ───────────────────────── Mobile helpers ───────────────────────── */
+/* Visibility flips that don't override the element's own display rule. */
+@media (max-width: 1023.98px) {
+  .tw-desktop-only {
+    display: none !important;
+  }
+}
+@media (min-width: 1024px) {
+  .tw-mobile-only {
+    display: none !important;
+  }
+}
+.tw-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.tw-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.tw-h-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tw-h-scroll::-webkit-scrollbar {
+  display: none;
+}
+.tw-h-scroll > * {
+  flex-shrink: 0;
+}
+.tw-tap {
+  min-width: 44px;
+  min-height: 44px;
+}
+/* Card-row pattern for ResponsiveTable on mobile */
+.tw-card-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+}
+.tw-card-row-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+}

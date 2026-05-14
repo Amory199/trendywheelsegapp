@@ -1,11 +1,16 @@
 "use client";
 
-import { TWLogoLockup } from "@trendywheels/ui-brand/web";
+import {
+  MobileNavDrawer,
+  TWCloseIcon,
+  TWHamburgerIcon,
+  TWLogoLockup,
+} from "@trendywheels/ui-brand/web";
 import { colors, twPalette } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "./auth-store";
 
@@ -209,6 +214,11 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
   const path = usePathname();
   const { user, initialized, hydrate, logout } = useAuth();
   const palette = twPalette(false);
+  const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    setNavOpen(false);
+  }, [path]);
 
   useEffect(() => {
     if (!initialized) void hydrate();
@@ -267,8 +277,9 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
         <div className="tw-ambient-orb orb-pool" />
         <div className="tw-ambient-orb orb-lime" />
       </div>
-      {/* ─── Sidebar ─────────────────────────────────────────────────── */}
+      {/* ─── Sidebar (desktop only) ─────────────────────────────────── */}
       <aside
+        className="tw-desktop-only"
         style={{
           width: 240,
           flexShrink: 0,
@@ -433,16 +444,37 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
         <header
           style={{
             height: 60,
-            padding: "0 24px",
+            padding: "0 clamp(12px, 3vw, 24px)",
             borderBottom: `1px solid ${palette.border}`,
             background: palette.card,
             display: "flex",
             alignItems: "center",
-            gap: 16,
+            gap: 12,
             flexShrink: 0,
           }}
         >
+          <button
+            className="tw-mobile-only tw-tap"
+            onClick={() => setNavOpen(true)}
+            aria-label="Open navigation"
+            style={{
+              padding: 8,
+              borderRadius: 10,
+              border: "none",
+              background: palette.cardAlt,
+              color: palette.text,
+              display: "grid",
+              placeItems: "center",
+              cursor: "pointer",
+            }}
+          >
+            <TWHamburgerIcon size={22} />
+          </button>
+          <div className="tw-mobile-only" style={{ display: "flex", alignItems: "center" }}>
+            <TWLogoLockup size={22} color={palette.text} />
+          </div>
           <div
+            className="tw-desktop-only"
             style={{
               display: "flex",
               alignItems: "center",
@@ -469,6 +501,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
           </div>
           <div style={{ flex: 1 }} />
           <div
+            className="tw-desktop-only"
             style={{
               width: 280,
               height: 36,
@@ -534,6 +567,157 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
         {/* Content */}
         <div style={{ flex: 1, overflow: "auto" }}>{children}</div>
       </main>
+
+      <MobileNavDrawer open={navOpen} onClose={() => setNavOpen(false)} side="left" width={300}>
+        <div
+          style={{
+            padding: "18px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            borderBottom: `1px solid ${palette.hairline}`,
+          }}
+        >
+          <TWLogoLockup size={26} color={palette.text} />
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => setNavOpen(false)}
+            aria-label="Close navigation"
+            className="tw-tap"
+            style={{
+              padding: 8,
+              borderRadius: 8,
+              background: palette.cardAlt,
+              border: "none",
+              color: palette.text,
+              display: "grid",
+              placeItems: "center",
+              cursor: "pointer",
+            }}
+          >
+            <TWCloseIcon size={20} />
+          </button>
+        </div>
+        <div style={{ padding: "8px 12px 12px" }} className="tw-scrollbar-none">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} style={{ marginTop: 14 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: 0.8,
+                  textTransform: "uppercase",
+                  color: palette.muted,
+                  padding: "0 14px 6px",
+                  opacity: 0.7,
+                }}
+              >
+                {group.label}
+              </div>
+              {group.items.map((n) => {
+                const active = n.href === "/" ? path === "/" : path.startsWith(n.href);
+                return (
+                  <Link
+                    key={n.href}
+                    href={n.href}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "12px 14px",
+                      margin: "1px 0",
+                      textDecoration: "none",
+                      borderRadius: 10,
+                      background: active ? "rgba(43,15,248,0.08)" : "transparent",
+                      color: active ? colors.brand.friendlyBlue : palette.text,
+                      fontWeight: active ? 700 : 500,
+                      fontSize: 14,
+                    }}
+                  >
+                    <TWIcon name={n.icon} size={18} stroke={active ? 2.2 : 1.8} />
+                    <span style={{ flex: 1 }}>{n.label}</span>
+                    {n.badge ? (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: "2px 7px",
+                          borderRadius: 10,
+                          background: active ? colors.brand.trendyPink : palette.cardAlt,
+                          color: active ? "#fff" : palette.muted,
+                        }}
+                      >
+                        {n.badge}
+                      </span>
+                    ) : null}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+        <div
+          style={{
+            padding: 14,
+            borderTop: `1px solid ${palette.hairline}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              background: "linear-gradient(135deg,#2B0FF8,#FF0065)",
+              color: "#fff",
+              display: "grid",
+              placeItems: "center",
+              fontWeight: 700,
+              fontSize: 13,
+            }}
+          >
+            {initials}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: palette.text,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {user.name}
+            </div>
+            <div style={{ fontSize: 11, color: palette.muted }}>Admin</div>
+          </div>
+          <button
+            onClick={() => {
+              void logout();
+              setNavOpen(false);
+              router.replace("/login");
+            }}
+            className="tw-tap"
+            aria-label="Sign out"
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: `1px solid ${palette.border}`,
+              background: "transparent",
+              color: palette.text,
+              cursor: "pointer",
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            Sign out
+          </button>
+        </div>
+      </MobileNavDrawer>
     </div>
   );
 }
