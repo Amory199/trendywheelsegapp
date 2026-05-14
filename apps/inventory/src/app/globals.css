@@ -314,3 +314,56 @@ body {
   text-transform: uppercase;
   color: #6b7280;
 }
+
+@media (max-width: 767.98px) {
+  div.overflow-hidden:has(> table) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tw-toolbar-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap !important;
+  }
+  .tw-toolbar-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .tw-toolbar-scroll > * {
+    flex-shrink: 0;
+  }
+  main > div.p-8 {
+    padding: 16px !important;
+  }
+  /* Inventory pages have 4-col KPI grids and map+sidebar splits — both
+     reduce to single column on phones */
+  main .grid-cols-2,
+  main .grid-cols-3,
+  main .grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+  main .w-1\/2,
+  main .w-1\/3,
+  main .w-2\/3 {
+    width: 100% !important;
+  }
+  /* Leaflet container: shrink height on phones so the list below is reachable */
+  .leaflet-container {
+    height: 50vh !important;
+    min-height: 320px !important;
+  }
+  /* react-big-calendar: month/week views are unusable on phones; force list view's
+     row layout */
+  .rbc-time-view,
+  .rbc-month-view {
+    font-size: 12px !important;
+  }
+  .rbc-toolbar {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .rbc-toolbar > * {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
