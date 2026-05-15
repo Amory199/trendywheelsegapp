@@ -406,3 +406,42 @@ body {
   min-width: 44px;
   min-height: 44px;
 }
+
+/* ─────────────────── Native-app feel ─────────────────── */
+html {
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+body {
+  /* No accidental selection on chrome */
+  -webkit-user-select: none;
+  user-select: none;
+  /* Kill the gray flash on tap */
+  -webkit-tap-highlight-color: transparent;
+  /* No 300ms tap delay; no double-tap zoom on UI */
+  touch-action: manipulation;
+}
+/* Re-enable selection on prose + inputs only */
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+li,
+td,
+th,
+input,
+textarea,
+[contenteditable],
+[data-selectable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* When installed as a PWA, breathe into the iOS notch */
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+  }
+}

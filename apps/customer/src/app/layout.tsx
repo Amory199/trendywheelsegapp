@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { ErrorReporter } from "../lib/error-reporter";
 import { Providers } from "../lib/providers";
 import { Shell } from "../lib/shell";
+import { ServiceWorkerRegistrar } from "../lib/sw-registrar";
 
 import "./globals.css";
 
@@ -10,8 +11,17 @@ export const metadata: Metadata = {
   title: "TrendyWheels — Cruise bold. Cruise trendy.",
   description:
     "Egypt's smartest resort mobility app. Rent, sell, and service your golf cart all in one place.",
+  manifest: "/manifest.webmanifest",
+  applicationName: "TrendyWheels",
+  appleWebApp: {
+    capable: true,
+    title: "TrendyWheels",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232B0FF8'/><circle cx='24' cy='9' r='3' fill='%23FF0065'/><text x='5' y='23' font-family='Impact,Anton,sans-serif' font-size='18' fill='%23fff'>tw</text></svg>",
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
 
@@ -34,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
         />
       </head>
       <body className="antialiased">
+        <ServiceWorkerRegistrar />
         <Providers>
           <>
             <ErrorReporter />
