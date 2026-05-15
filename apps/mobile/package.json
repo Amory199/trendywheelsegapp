@@ -53,6 +53,7 @@
     "expo-status-bar": "~2.2.3",
     "expo-system-ui": "^5.0.11",
     "expo-updates": "~0.28.18",
+    "expo-video": "^55.0.17",
     "fbjs": "^3.0.5",
     "invariant": "^2.2.4",
     "lottie-react-native": "^7.2.2",

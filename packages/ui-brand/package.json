@@ -6,6 +6,7 @@
   "exports": {
     "./web": "./src/web.tsx",
     "./web-canvas": "./src/web-canvas.tsx",
+    "./intro-overlay-web": "./src/intro-overlay-web.tsx",
     "./native": "./src/native.tsx"
   },
   "scripts": {

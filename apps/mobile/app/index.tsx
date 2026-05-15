@@ -8,12 +8,22 @@ import { useAuth } from "../lib/auth-store";
 
 const LOADING_SRC = require("../assets/loading.webp");
 
+// Module-level flag so the intro reel plays exactly once per JS session
+// (cold launch). Backgrounding + foregrounding the app keeps the flag set,
+// so the user doesn't sit through the intro every time they return.
+let hasPlayedIntro = false;
+
 export default function Index(): JSX.Element {
   const { user, initialized, hydrate } = useAuth();
 
   useEffect(() => {
     if (!initialized) void hydrate();
   }, [initialized, hydrate]);
+
+  if (!hasPlayedIntro) {
+    hasPlayedIntro = true;
+    return <Redirect href="/intro" />;
+  }
 
   if (!initialized) {
     return (

@@ -1,3 +1,4 @@
+import { IntroOverlay } from "@trendywheels/ui-brand/intro-overlay-web";
 import type { Metadata, Viewport } from "next";
 
 import { ErrorReporter } from "../lib/error-reporter";
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
         />
       </head>
       <body className="antialiased">
+        <IntroOverlay mode="session" />
         <ServiceWorkerRegistrar />
         <Providers>
           <ErrorReporter />
