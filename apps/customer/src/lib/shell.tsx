@@ -13,6 +13,7 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 
 import { BottomTabBar } from "../components/bottom-tab-bar";
+import { InstallPrompt } from "../components/install-prompt";
 import { useAuth } from "./auth-store";
 
 const CUSTOMER_NAV: Array<{ href: string; label: string; match?: string }> = [
@@ -460,6 +461,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
       {/* Bottom-tab nav for customer users on mobile. Staff get the
           hamburger drawer instead (above) since CRM has 8+ nav items. */}
       {!isStaff ? <BottomTabBar /> : null}
+      {!isStaff ? <InstallPrompt /> : null}
       <style jsx>{`
         @media (max-width: 767.98px) {
           :global(.tw-customer-main) {
