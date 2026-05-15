@@ -12,6 +12,7 @@ import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import { useEffect, useState } from "react";
 
+import { BottomTabBar } from "../components/bottom-tab-bar";
 import { useAuth } from "./auth-store";
 
 const CUSTOMER_NAV: Array<{ href: string; label: string; match?: string }> = [
@@ -278,23 +279,28 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
           >
             Sign out
           </button>
-          <button
-            className="tw-mobile-only tw-tap"
-            onClick={() => setNavOpen(true)}
-            aria-label="Open navigation"
-            style={{
-              padding: 10,
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.2)",
-              background: "transparent",
-              color: "#fff",
-              display: "grid",
-              placeItems: "center",
-              cursor: "pointer",
-            }}
-          >
-            <TWHamburgerIcon size={22} color="#fff" />
-          </button>
+          {/* Staff users get a hamburger on mobile (8+ CRM items don't fit
+              in a bottom tab bar). Customer users get a 5-tab bottom bar
+              instead — rendered below outside the header. */}
+          {isStaff ? (
+            <button
+              className="tw-mobile-only tw-tap"
+              onClick={() => setNavOpen(true)}
+              aria-label="Open navigation"
+              style={{
+                padding: 10,
+                borderRadius: 10,
+                border: "1px solid rgba(255,255,255,0.2)",
+                background: "transparent",
+                color: "#fff",
+                display: "grid",
+                placeItems: "center",
+                cursor: "pointer",
+              }}
+            >
+              <TWHamburgerIcon size={22} color="#fff" />
+            </button>
+          ) : null}
         </div>
       </header>
       <MobileNavDrawer open={navOpen} onClose={() => setNavOpen(false)} side="right" width={300}>
@@ -447,9 +453,25 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
           position: "relative",
           zIndex: 1,
         }}
+        className={!isStaff ? "tw-customer-main" : undefined}
       >
         {children}
       </main>
+      {/* Bottom-tab nav for customer users on mobile. Staff get the
+          hamburger drawer instead (above) since CRM has 8+ nav items. */}
+      {!isStaff ? <BottomTabBar /> : null}
+      <style jsx>{`
+        @media (max-width: 767.98px) {
+          :global(.tw-customer-main) {
+            padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+          }
+        }
+        @media (min-width: 768px) {
+          :global(.tw-bottom-tabs) {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
