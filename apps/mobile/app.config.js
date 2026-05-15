@@ -1,11 +1,13 @@
-// SDK 53 — Firebase v24 plugins are now supported.
-// EAS injects GOOGLE_SERVICES_INFO_PLIST + GOOGLE_SERVICES_JSON file secrets;
-// locally, Expo will look for the files alongside this config.
+// Firebase config temporarily stripped: new EAS account doesn't have
+// GOOGLE_SERVICES_JSON / GOOGLE_SERVICES_INFO_PLIST file env vars yet, and
+// no JS code imports @react-native-firebase/* so dropping plugins + the
+// googleServicesFile entries unblocks the build. Re-add when Firebase
+// Console + EAS file secrets are wired on the new account.
 
 module.exports = {
   expo: {
     name: "TrendyWheels",
-    slug: "trendywheels",
+    slug: "trendy",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -20,7 +22,6 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.trendywheels.app",
-      googleServicesFile: process.env.GOOGLE_SERVICES_INFO_PLIST ?? "./GoogleService-Info.plist",
     },
     android: {
       adaptiveIcon: {
@@ -29,7 +30,6 @@ module.exports = {
       },
       package: "com.trendywheels.app",
       permissions: ["android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"],
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
     },
     plugins: [
       "expo-router",
@@ -45,19 +45,6 @@ module.exports = {
           defaultChannel: "default",
         },
       ],
-      "@react-native-firebase/app",
-      "@react-native-firebase/crashlytics",
-      // Sentry plugin disabled — pnpm strict isolation hides sentry-cli at a
-      // path Gradle can't resolve, breaking the source-map upload task. JS
-      // Sentry init in lib/sentry.ts still works at runtime; we'll re-enable
-      // source-map upload for production builds once we hoist sentry-cli.
-      // [
-      //   "@sentry/react-native/expo",
-      //   {
-      //     organization: process.env.SENTRY_ORG ?? "amrco-yk",
-      //     project: process.env.SENTRY_PROJECT ?? "react-native",
-      //   },
-      // ],
       [
         "expo-build-properties",
         {
@@ -75,9 +62,8 @@ module.exports = {
     // OTA goes live.
     extra: {
       eas: {
-        projectId: "6463af40-c34e-4dd4-840f-1193dccaa575",
+        projectId: "5ec5cee4-e343-4990-be07-71f550d4d86d",
       },
     },
-    owner: "amro1999",
   },
 };
