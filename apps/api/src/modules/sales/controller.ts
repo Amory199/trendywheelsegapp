@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 
 import { redis } from "../../config/redis.js";
 import { prisma } from "../../config/database.js";
+import { notificationsQueue } from "../../queues/index.js";
 import { AppError } from "../../utils/errors.js";
 
 const SALES_CACHE_TTL = 60;
@@ -73,9 +74,29 @@ export async function getById(req: Request, res: Response): Promise<void> {
 
 export async function create(req: Request, res: Response): Promise<void> {
   const listing = await prisma.salesListing.create({
-    data: { ...req.body, userId: req.user!.userId, status: "active", images: [] },
+    data: { ...req.body, userId: req.user!.userId, status: "pending", images: [] },
   });
   await invalidateSalesCache();
+  // Notify staff that a listing is awaiting approval.
+  const staff = await prisma.user.findMany({
+    where: { accountType: { in: ["admin", "staff"] }, status: "active" },
+    select: { id: true },
+  });
+  await Promise.all(
+    staff.map((s) =>
+      notificationsQueue.add(
+        `listing-pending-${listing.id}-${s.id}`,
+        {
+          userId: s.id,
+          type: "listing_pending",
+          title: "New sale listing awaiting approval",
+          body: listing.title ?? "Untitled listing",
+          data: { listingId: listing.id },
+        },
+        { removeOnComplete: true },
+      ),
+    ),
+  );
   res.status(201).json({ data: listing, id: listing.id });
 }
 

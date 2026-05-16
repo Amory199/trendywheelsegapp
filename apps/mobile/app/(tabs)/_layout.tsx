@@ -50,6 +50,24 @@ export default function TabLayout(): JSX.Element {
         }}
       />
       <Tabs.Screen
+        name="sell"
+        options={{
+          title: "Sell",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "pricetag" : "pricetag-outline"} size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="repair"
+        options={{
+          title: "Service",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "construct" : "construct-outline"} size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
@@ -58,9 +76,6 @@ export default function TabLayout(): JSX.Element {
           ),
         }}
       />
-      {/* Hide previously-tabbed surfaces — still routable via deep links + home chips */}
-      <Tabs.Screen name="sell" options={{ href: null }} />
-      <Tabs.Screen name="repair" options={{ href: null }} />
     </Tabs>
   );
 }

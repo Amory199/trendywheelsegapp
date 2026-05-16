@@ -116,6 +116,7 @@ export const bookingFiltersSchema = z.object({
 
 export const updateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  age: z.number().int().min(13).max(120).nullable().optional(),
   email: z.string().email().nullable().optional(),
   phone: sendOtpSchema.shape.phone.optional(),
   avatarUrl: z.string().url().nullable().optional(),

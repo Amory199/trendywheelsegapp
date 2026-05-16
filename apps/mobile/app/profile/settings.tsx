@@ -109,52 +109,7 @@ export default function SettingsScreen(): JSX.Element {
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Appearance */}
-        <Animated.View entering={FadeInDown.springify()}>
-          <Text style={styles.sectionTitle}>Appearance</Text>
-          <View style={styles.settingsCard}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingIcon}>
-                <Ionicons name="moon-outline" size={18} color={colors.primary[400]} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Theme</Text>
-                <Text style={styles.settingHint}>
-                  {theme === "dark" ? "Dark Mode" : "Light Mode"}
-                </Text>
-              </View>
-              <View style={styles.segmentSmall}>
-                <Pressable
-                  style={[styles.segmentBtn, theme === "dark" && styles.segmentBtnActive]}
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setTheme("dark");
-                  }}
-                >
-                  <Ionicons
-                    name="moon"
-                    size={14}
-                    color={theme === "dark" ? "#000" : colors.text.secondary}
-                  />
-                </Pressable>
-                <Pressable
-                  style={[styles.segmentBtn, theme === "light" && styles.segmentBtnActive]}
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setTheme("light");
-                  }}
-                >
-                  <Ionicons
-                    name="sunny"
-                    size={14}
-                    color={theme === "light" ? "#000" : colors.text.secondary}
-                  />
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Animated.View>
-
+        {/* Appearance — theme toggle hidden until light-mode styles are wired. */}
         {/* Language */}
         <Animated.View entering={FadeInDown.delay(80).springify()}>
           <Text style={styles.sectionTitle}>Language</Text>
@@ -260,10 +215,7 @@ export default function SettingsScreen(): JSX.Element {
               }}
             />
             <View style={styles.rowDivider} />
-            <Pressable
-              style={styles.settingRow}
-              onPress={() => router.push("/privacy")}
-            >
+            <Pressable style={styles.settingRow} onPress={() => router.push("/privacy")}>
               <View style={styles.settingIcon}>
                 <Ionicons name="document-text-outline" size={18} color={colors.primary[400]} />
               </View>
@@ -278,17 +230,16 @@ export default function SettingsScreen(): JSX.Element {
               style={styles.settingRow}
               onPress={() => {
                 if (!user) return;
-                Alert.alert(
-                  "Export My Data",
-                  "Your data will be downloaded as a JSON file.",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Export",
-                      onPress: () => void Linking.openURL(`https://api.trendywheelseg.com/api/users/${user.id}/export`),
-                    },
-                  ],
-                );
+                Alert.alert("Export My Data", "Your data will be downloaded as a JSON file.", [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Export",
+                    onPress: () =>
+                      void Linking.openURL(
+                        `https://api.trendywheelseg.com/api/users/${user.id}/export`,
+                      ),
+                  },
+                ]);
               }}
             >
               <View style={styles.settingIcon}>
@@ -327,7 +278,10 @@ export default function SettingsScreen(): JSX.Element {
                             {
                               text: "Yes, delete my account",
                               style: "destructive",
-                              onPress: () => void Linking.openURL("mailto:support@trendywheelseg.com?subject=Account%20Deletion%20Request"),
+                              onPress: () =>
+                                void Linking.openURL(
+                                  "mailto:support@trendywheelseg.com?subject=Account%20Deletion%20Request",
+                                ),
                             },
                           ],
                         );

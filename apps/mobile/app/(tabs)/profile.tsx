@@ -244,8 +244,7 @@ export default function ProfileScreen(): React.JSX.Element {
           <MenuRow
             icon="notifications-outline"
             label="Notifications"
-            badge="3"
-            onPress={() => router.push("/profile/settings")}
+            onPress={() => router.push("/profile/notifications")}
           />
           <MenuRow
             icon="language-outline"
@@ -303,7 +302,9 @@ function ActivityTile({
     <TWPressable
       onPress={onPress}
       style={{
-        width: "47%",
+        flexBasis: "47%",
+        flexGrow: 1,
+        minWidth: 140,
         backgroundColor: palette.card,
         borderRadius: 14,
         borderWidth: 1,
@@ -324,7 +325,13 @@ function ActivityTile({
       >
         <Ionicons name={icon} size={18} color={color} />
       </View>
-      <Text style={{ fontSize: 14, fontWeight: "700", color: palette.text }}>{label}</Text>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        style={{ fontSize: 14, fontWeight: "700", color: palette.text }}
+      >
+        {label}
+      </Text>
     </TWPressable>
   );
 }
