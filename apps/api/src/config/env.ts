@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { cleanEnv, port, str, url } from "envalid";
+import { bool, cleanEnv, port, str, url } from "envalid";
 
 export const env = cleanEnv(process.env, {
   NODE_ENV: str({ choices: ["development", "production", "test"], default: "development" }),
@@ -18,6 +18,10 @@ export const env = cleanEnv(process.env, {
   TWILIO_ACCOUNT_SID: str({ default: "" }),
   TWILIO_AUTH_TOKEN: str({ default: "" }),
   TWILIO_PHONE_NUMBER: str({ default: "" }),
+
+  // Trial OTP bypass — accepts hardcoded codes for the four pinned test
+  // accounts. Must be FALSE in production. See auth/service.ts TRIAL_OTP_BYPASS.
+  ENABLE_TRIAL_OTP_BYPASS: bool({ default: false }),
 
   // Local filesystem-backed object storage (replaced MinIO/S3).
   UPLOADS_DIR: str({ default: "/var/lib/trendywheels/uploads" }),

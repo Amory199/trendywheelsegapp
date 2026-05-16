@@ -5,22 +5,31 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Linking } f
 
 import { useAuth } from "../../lib/auth-store";
 
+const EGYPT_DIAL_CODE = "+20";
+
 export default function PhoneScreen(): JSX.Element {
   const router = useRouter();
   const sendOtp = useAuth((s) => s.sendOtp);
-  const [phone, setPhone] = useState("");
+  const [localPhone, setLocalPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [consented, setConsented] = useState(false);
+
+  const localValid = /^1[0-9]{9}$/.test(localPhone);
+  const fullPhone = `${EGYPT_DIAL_CODE}${localPhone}`;
 
   const handleSendOtp = async (): Promise<void> => {
     if (!consented) {
       Alert.alert("Required", "Please accept the Privacy Policy to continue.");
       return;
     }
+    if (!localValid) {
+      Alert.alert("Invalid number", "Enter a 10-digit Egyptian mobile starting with 1.");
+      return;
+    }
     setLoading(true);
     try {
-      await sendOtp(phone);
-      router.push({ pathname: "/(auth)/otp", params: { phone } });
+      await sendOtp(fullPhone);
+      router.push({ pathname: "/(auth)/otp", params: { phone: fullPhone } });
     } catch (err) {
       Alert.alert("Could not send OTP", err instanceof Error ? err.message : "Try again");
     } finally {
@@ -34,15 +43,20 @@ export default function PhoneScreen(): JSX.Element {
         <Text style={styles.title}>Welcome to TrendyWheels</Text>
         <Text style={styles.subtitle}>Enter your phone number to get started</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="+20 1XX XXX XXXX"
-          placeholderTextColor={colors.text.placeholder}
-          keyboardType="phone-pad"
-          value={phone}
-          onChangeText={setPhone}
-          maxLength={15}
-        />
+        <View style={styles.phoneRow}>
+          <View style={styles.dialChip}>
+            <Text style={styles.dialChipText}>{EGYPT_DIAL_CODE}</Text>
+          </View>
+          <TextInput
+            style={styles.phoneInput}
+            placeholder="1XX XXX XXXX"
+            placeholderTextColor={colors.text.placeholder}
+            keyboardType="phone-pad"
+            value={localPhone}
+            onChangeText={(v) => setLocalPhone(v.replace(/[^0-9]/g, "").slice(0, 10))}
+            maxLength={10}
+          />
+        </View>
 
         <TouchableOpacity
           style={styles.consentRow}
@@ -59,15 +73,15 @@ export default function PhoneScreen(): JSX.Element {
               onPress={() => void Linking.openURL("https://trendywheelseg.com/privacy")}
             >
               Privacy Policy
-            </Text>
-            {" "}and consent to processing my personal data.
+            </Text>{" "}
+            and consent to processing my personal data.
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, (!phone || loading || !consented) && styles.buttonDisabled]}
+          style={[styles.button, (!localValid || loading || !consented) && styles.buttonDisabled]}
           onPress={() => void handleSendOtp()}
-          disabled={!phone || loading || !consented}
+          disabled={!localValid || loading || !consented}
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>{loading ? "Sending…" : "Send OTP"}</Text>
@@ -100,8 +114,29 @@ const styles = StyleSheet.create({
     marginBottom: spacing["2xl"],
     textAlign: "center",
   },
-  input: {
+  phoneRow: {
+    flexDirection: "row",
     width: "100%",
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  dialChip: {
+    height: 44,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+    backgroundColor: colors.dark.card,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dialChipText: {
+    color: colors.text.light,
+    fontSize: typography.fontSize.bodyLarge,
+    fontWeight: typography.fontWeight.bold,
+  },
+  phoneInput: {
+    flex: 1,
     height: 44,
     borderWidth: 1,
     borderColor: colors.dark.border,
@@ -110,7 +145,6 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.bodyLarge,
     color: colors.text.light,
     backgroundColor: colors.dark.card,
-    marginBottom: spacing.lg,
   },
   consentRow: {
     flexDirection: "row",
