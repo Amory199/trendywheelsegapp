@@ -14,6 +14,17 @@ function generateOtp(): string {
   return crypto.randomInt(100000, 999999).toString();
 }
 
+// ⚠️ TRIAL BYPASS — REMOVE WHEN FIREBASE PHONE AUTH SHIPS.
+// Hardcoded test accounts for internal QA. These phones skip the OTP DB
+// round-trip and accept the fixed code below. Disabled by default; gated
+// by ENABLE_TRIAL_OTP_BYPASS in apps/api/.env.
+const TRIAL_OTP_BYPASS: Record<string, string> = {
+  "+201000000001": "111111", // Admin — Mostafa
+  "+201000000010": "222222", // Sales — Amira
+  "+201000000011": "333333", // Sales — Youssef
+  "+201112223344": "555555", // Customer — Mohamed
+};
+
 export function signAccessToken(payload: AuthPayload, expiresIn?: string): string {
   return jwt.sign(payload, env.JWT_PRIVATE_KEY, {
     algorithm: "RS256",
@@ -26,6 +37,12 @@ function generateRefreshToken(): string {
 }
 
 export async function sendOtp(phone: string): Promise<{ success: boolean; message: string }> {
+  // Trial bypass — these phones accept a fixed hardcoded code, no DB row.
+  if (env.ENABLE_TRIAL_OTP_BYPASS && TRIAL_OTP_BYPASS[phone]) {
+    logger.info({ phone, msg: "trial-bypass: no OTP row written" });
+    return { success: true, message: "OTP sent successfully" };
+  }
+
   const otp = generateOtp();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
@@ -53,25 +70,30 @@ export async function verifyOtp(
   phone: string,
   otp: string,
 ): Promise<{ token: string; refreshToken: string; user: object }> {
-  const otpRecord = await prisma.otpCode.findFirst({
-    where: {
-      phone,
-      code: otp,
-      usedAt: null,
-      expiresAt: { gt: new Date() },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  // Trial bypass — accept the hardcoded code for the four pinned test phones.
+  const isTrialBypass = env.ENABLE_TRIAL_OTP_BYPASS && TRIAL_OTP_BYPASS[phone] === otp;
 
-  if (!otpRecord) {
-    throw AppError.unauthorized("Invalid or expired OTP");
+  if (!isTrialBypass) {
+    const otpRecord = await prisma.otpCode.findFirst({
+      where: {
+        phone,
+        code: otp,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!otpRecord) {
+      throw AppError.unauthorized("Invalid or expired OTP");
+    }
+
+    // Mark OTP as used
+    await prisma.otpCode.update({
+      where: { id: otpRecord.id },
+      data: { usedAt: new Date() },
+    });
   }
-
-  // Mark OTP as used
-  await prisma.otpCode.update({
-    where: { id: otpRecord.id },
-    data: { usedAt: new Date() },
-  });
 
   // Find or create user
   let user = await prisma.user.findUnique({ where: { phone } });
