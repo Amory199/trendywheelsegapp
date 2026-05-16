@@ -81,10 +81,37 @@ export async function send(req: Request, res: Response): Promise<void> {
   res.status(201).json({ data: created });
 }
 
+export async function supportContact(_req: Request, res: Response): Promise<void> {
+  // Deterministic default support user: first active admin/staff, ordered by
+  // creation so the same person is returned every time until they're removed.
+  // Customers tap "Message support" and the mobile app uses this id to start
+  // or resume a thread.
+  const support = await prisma.user.findFirst({
+    where: { accountType: { in: ["admin", "staff"] }, status: "active" },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, name: true, avatarUrl: true },
+  });
+  if (!support) throw AppError.notFound("No support staff available");
+  res.json({ data: support });
+}
+
+export async function createConversation(req: Request, res: Response): Promise<void> {
+  const { recipientId } = req.body as { recipientId?: string };
+  if (!recipientId) throw AppError.badRequest("recipientId required");
+  const userId = req.user!.userId;
+  if (recipientId === userId) throw AppError.badRequest("Cannot message yourself");
+  const conversationId = await findOrCreateConversation(userId, recipientId);
+  res.status(201).json({ data: { id: conversationId } });
+}
+
 export async function markRead(req: Request, res: Response): Promise<void> {
   await assertParticipant(req.params.conversationId, req.user!.userId);
   await prisma.message.updateMany({
-    where: { conversationId: req.params.conversationId, recipientId: req.user!.userId, readAt: null },
+    where: {
+      conversationId: req.params.conversationId,
+      recipientId: req.user!.userId,
+      readAt: null,
+    },
     data: { readAt: new Date() },
   });
   res.json({ success: true });

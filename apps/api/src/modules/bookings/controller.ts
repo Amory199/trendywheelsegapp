@@ -2,16 +2,13 @@ import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
+import { notificationsQueue } from "../../queues/index.js";
 import { AppError } from "../../utils/errors.js";
 import { recordActivity } from "../crm/service.js";
 
-type BookingStatus =
-  | "pending"
-  | "confirmed"
-  | "in-progress"
-  | "completed"
-  | "cancelled"
-  | "refunded";
+type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
+
+const STAFF_TYPES = new Set(["admin", "staff"]);
 
 export async function list(req: Request, res: Response): Promise<void> {
   const { status, userId, vehicleId, page = 1, limit = 20 } = req.query as Record<string, string>;
@@ -51,16 +48,20 @@ export async function create(req: Request, res: Response): Promise<void> {
   if (!vehicle) throw AppError.notFound("Vehicle not found");
   if (vehicle.status !== "available") throw AppError.conflict("Vehicle is not available");
 
-  // Check for overlapping bookings
-  const overlap = await prisma.booking.findFirst({
+  // Stock check: count active overlapping bookings against the vehicle's
+  // quantity. A vehicle with quantity > 1 represents N identical units that
+  // can be rented in parallel; quantity = 1 (default) is single-unit.
+  const overlapCount = await prisma.booking.count({
     where: {
       vehicleId,
-      status: "confirmed",
+      status: { in: ["pending", "confirmed"] },
       startDate: { lte: new Date(endDate) },
       endDate: { gte: new Date(startDate) },
     },
   });
-  if (overlap) throw AppError.conflict("Vehicle is already booked for these dates");
+  if (overlapCount >= vehicle.quantity) {
+    throw AppError.conflict("Out of stock for these dates");
+  }
 
   // Calculate total cost
   const days = Math.ceil(
@@ -111,7 +112,7 @@ export async function create(req: Request, res: Response): Promise<void> {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       totalCost,
-      status: "confirmed",
+      status: "pending",
       paymentStatus: "pending",
       promoCode: validPromo?.code ?? null,
       promoDiscount: promoDiscount > 0 ? promoDiscount : null,
@@ -180,7 +181,79 @@ export async function create(req: Request, res: Response): Promise<void> {
     );
   }
 
+  // Notify staff that there's a pending booking to approve.
+  const staff = await prisma.user.findMany({
+    where: { accountType: { in: ["admin", "staff"] }, status: "active" },
+    select: { id: true },
+  });
+  await Promise.all(
+    staff.map((s) =>
+      notificationsQueue.add(
+        `booking-pending-${booking.id}-${s.id}`,
+        {
+          userId: s.id,
+          type: "booking_pending",
+          title: "New booking awaiting approval",
+          body: `${vehicle.name} · ${days} day${days === 1 ? "" : "s"} · EGP ${totalCost.toLocaleString()}`,
+          data: { bookingId: booking.id, vehicleId },
+        },
+        { removeOnComplete: true },
+      ),
+    ),
+  );
+
   res.status(201).json({ data: booking, id: booking.id });
+}
+
+export async function approve(req: Request, res: Response): Promise<void> {
+  if (!STAFF_TYPES.has(req.user!.accountType)) throw AppError.forbidden();
+  const booking = await prisma.booking.findUnique({ where: { id: req.params.id } });
+  if (!booking) throw AppError.notFound("Booking not found");
+  if (booking.status !== "pending") {
+    throw AppError.conflict(`Cannot approve a booking in status "${booking.status}"`);
+  }
+  const updated = await prisma.booking.update({
+    where: { id: booking.id },
+    data: { status: "confirmed" },
+  });
+  await notificationsQueue.add(
+    `booking-approved-${booking.id}`,
+    {
+      userId: booking.userId,
+      type: "booking_approved",
+      title: "Booking confirmed",
+      body: "Your booking has been approved. See you soon.",
+      data: { bookingId: booking.id },
+    },
+    { removeOnComplete: true },
+  );
+  res.json({ data: updated });
+}
+
+export async function reject(req: Request, res: Response): Promise<void> {
+  if (!STAFF_TYPES.has(req.user!.accountType)) throw AppError.forbidden();
+  const booking = await prisma.booking.findUnique({ where: { id: req.params.id } });
+  if (!booking) throw AppError.notFound("Booking not found");
+  if (booking.status !== "pending") {
+    throw AppError.conflict(`Cannot reject a booking in status "${booking.status}"`);
+  }
+  const reason = typeof req.body?.reason === "string" ? req.body.reason : undefined;
+  const updated = await prisma.booking.update({
+    where: { id: booking.id },
+    data: { status: "cancelled", notes: reason },
+  });
+  await notificationsQueue.add(
+    `booking-rejected-${booking.id}`,
+    {
+      userId: booking.userId,
+      type: "booking_rejected",
+      title: "Booking declined",
+      body: reason ?? "Your booking was declined. Please contact support.",
+      data: { bookingId: booking.id },
+    },
+    { removeOnComplete: true },
+  );
+  res.json({ data: updated });
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
@@ -302,8 +375,6 @@ async function onBookingCompleted(
     }
   }
 }
-
-const STAFF_TYPES = new Set(["admin", "staff"]);
 
 export async function cancel(req: Request, res: Response): Promise<void> {
   const booking = await prisma.booking.findUnique({ where: { id: req.params.id } });

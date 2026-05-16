@@ -22,13 +22,17 @@ export type TicketPriority = "low" | "medium" | "high" | "urgent";
 
 // ─── Domain Models ───────────────────────────────────────────
 
+export type StaffRole = "admin" | "sales" | "support" | "inventory" | "mechanic";
+
 export interface User {
   id: string;
   phone: string;
   email: string | null;
   name: string;
+  age?: number | null;
   avatarUrl: string | null;
   accountType: AccountType;
+  staffRole?: StaffRole | null;
   status: UserStatus;
   preferences: UserPreferences | null;
   loyaltyTier: LoyaltyTier;

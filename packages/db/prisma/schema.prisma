@@ -62,6 +62,7 @@ model User {
   phone         String      @unique
   email         String?     @unique
   name          String      @default("")
+  age           Int?
   avatarUrl     String?     @map("avatar_url")
   accountType   AccountType @default(customer) @map("account_type")
   status        UserStatus  @default(active)
@@ -194,6 +195,7 @@ model Vehicle {
   totalBookings Int           @default(0) @map("total_bookings")
   averageRating Decimal       @default(0) @map("average_rating") @db.Decimal(3, 2)
   reviewCount   Int           @default(0) @map("review_count")
+  quantity      Int           @default(1)
   features      Json          @default("[]")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
@@ -229,6 +231,7 @@ model VehicleImage {
 // ─── Bookings ────────────────────────────────────────────────
 
 enum BookingStatus {
+  pending
   confirmed
   completed
   cancelled

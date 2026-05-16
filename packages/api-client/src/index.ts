@@ -285,6 +285,16 @@ class ApiClient {
     );
   }
 
+  async getSupportContact(): Promise<
+    ApiResponse<{ id: string; name: string; avatarUrl: string | null }>
+  > {
+    return this.request("GET", "/api/messages/support-contact");
+  }
+
+  async createConversation(recipientId: string): Promise<ApiResponse<{ id: string }>> {
+    return this.request("POST", "/api/messages/conversations", { body: { recipientId } });
+  }
+
   // ─── Notifications ───────────────────────────────────────
 
   async getNotifications(): Promise<{ data: Notification[] }> {

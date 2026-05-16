@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { colors, spacing, typography } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
@@ -6,6 +7,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -124,17 +126,12 @@ export default function BookScreen(): JSX.Element {
         {step === 0 && (
           <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
             <Text style={styles.stepHeading}>Select Dates</Text>
-            <LabeledInput
-              label="Pickup Date"
-              value={startDate}
-              onChangeText={setStartDate}
-              placeholder="YYYY-MM-DD"
-            />
-            <LabeledInput
+            <DateField label="Pickup Date" value={startDate} onChange={setStartDate} />
+            <DateField
               label="Return Date"
               value={endDate}
-              onChangeText={setEndDate}
-              placeholder="YYYY-MM-DD"
+              onChange={setEndDate}
+              minimumDate={startDate ? new Date(startDate) : undefined}
             />
             {days > 0 && (
               <View style={styles.summaryCard}>
@@ -265,6 +262,60 @@ function canProceed(
   return true;
 }
 
+function DateField({
+  label,
+  value,
+  onChange,
+  minimumDate,
+}: {
+  label: string;
+  value: string; // YYYY-MM-DD
+  onChange: (next: string) => void;
+  minimumDate?: Date;
+}): JSX.Element {
+  const [show, setShow] = useState(false);
+  const dateValue = value ? new Date(value) : new Date();
+  const formatted = value
+    ? dateValue.toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "Tap to choose";
+
+  return (
+    <View style={styles.inputGroup}>
+      <Text style={styles.inputLabel}>{label}</Text>
+      <Pressable style={[styles.input, { justifyContent: "center" }]} onPress={() => setShow(true)}>
+        <Text style={{ color: value ? colors.text.light : colors.text.secondary, fontSize: 15 }}>
+          {formatted}
+        </Text>
+      </Pressable>
+      {show && (
+        <DateTimePicker
+          value={dateValue}
+          mode="date"
+          display={Platform.OS === "ios" ? "inline" : "default"}
+          minimumDate={minimumDate ?? new Date()}
+          onChange={(_, picked) => {
+            if (Platform.OS !== "ios") setShow(false);
+            if (picked) {
+              const iso = picked.toISOString().slice(0, 10);
+              onChange(iso);
+            }
+          }}
+        />
+      )}
+      {show && Platform.OS === "ios" && (
+        <Pressable onPress={() => setShow(false)} style={styles.pickerDoneBtn}>
+          <Text style={styles.pickerDoneBtnText}>Done</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 function LabeledInput({
   label,
   value,
@@ -376,6 +427,14 @@ const styles = StyleSheet.create({
   summaryPrice: { color: colors.accent.DEFAULT, fontWeight: "700" },
   inputGroup: { gap: 6 },
   inputLabel: { color: colors.text.secondary, fontSize: 13 },
+  pickerDoneBtn: {
+    alignSelf: "flex-end",
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    backgroundColor: colors.accent.DEFAULT,
+    borderRadius: 8,
+  },
+  pickerDoneBtnText: { color: "#000", fontSize: 13, fontWeight: "700" },
   input: {
     backgroundColor: colors.dark.card,
     borderRadius: 10,

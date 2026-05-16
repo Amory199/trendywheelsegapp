@@ -40,5 +40,17 @@ router.post(
   validate({ params: idParamSchema }),
   bookingController.refund,
 );
+router.post(
+  "/:id/approve",
+  authenticate,
+  validate({ params: idParamSchema }),
+  bookingController.approve,
+);
+router.post(
+  "/:id/reject",
+  authenticate,
+  validate({ params: idParamSchema }),
+  bookingController.reject,
+);
 
 export { router as bookingRoutes };

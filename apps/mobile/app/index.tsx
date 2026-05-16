@@ -35,8 +35,9 @@ export default function Index(): JSX.Element {
 
   if (!user) return <Redirect href="/(auth)/phone" />;
 
-  // First-time customers must finish onboarding (license required for rentals).
-  if (user.accountType === "customer" && !user.licenseNumber) {
+  // First-time customers must finish onboarding (name is the gate now —
+  // license is collected later when they actually try to rent).
+  if (user.accountType === "customer" && !user.name) {
     return <Redirect href="/(auth)/onboarding" />;
   }
 

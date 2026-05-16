@@ -1,8 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { colors, spacing, typography } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
@@ -24,6 +32,17 @@ export default function MessagesScreen(): JSX.Element {
 
   const conversations = (data?.data ?? []) as Conversation[];
 
+  const openSupportChat = useMutation({
+    mutationFn: async () => {
+      const support = await api.getSupportContact();
+      const conv = await api.createConversation(support.data.id);
+      return conv.data.id;
+    },
+    onSuccess: (id) => router.push(`/messages/${id}`),
+    onError: (err) =>
+      Alert.alert("Couldn't open support", err instanceof Error ? err.message : "Try again"),
+  });
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -31,7 +50,17 @@ export default function MessagesScreen(): JSX.Element {
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
         <Text style={styles.title}>Messages</Text>
-        <View style={{ width: 24 }} />
+        <Pressable
+          onPress={() => openSupportChat.mutate()}
+          disabled={openSupportChat.isPending}
+          hitSlop={12}
+        >
+          <Ionicons
+            name="add-circle"
+            size={28}
+            color={openSupportChat.isPending ? colors.text.secondary : colors.brand.friendlyBlue}
+          />
+        </Pressable>
       </View>
 
       {isLoading ? (
@@ -40,6 +69,20 @@ export default function MessagesScreen(): JSX.Element {
         <View style={styles.empty}>
           <Ionicons name="chatbubbles-outline" size={64} color={colors.text.secondary} />
           <Text style={styles.emptyText}>No conversations yet</Text>
+          <Pressable
+            style={styles.cta}
+            onPress={() => openSupportChat.mutate()}
+            disabled={openSupportChat.isPending}
+          >
+            {openSupportChat.isPending ? (
+              <ActivityIndicator color="#000" size="small" />
+            ) : (
+              <>
+                <Ionicons name="headset" size={18} color="#000" />
+                <Text style={styles.ctaText}>Message support</Text>
+              </>
+            )}
+          </Pressable>
         </View>
       ) : (
         <FlatList<Conversation>
@@ -50,14 +93,14 @@ export default function MessagesScreen(): JSX.Element {
             const lastMsg = item.messages[0];
             const unread = lastMsg && !lastMsg.readAt;
             const otherParticipant = item.participants[0];
-            const name =
-              otherParticipant?.user?.name ??
-              otherParticipant?.user?.phone ??
-              "Unknown";
+            const name = otherParticipant?.user?.name ?? otherParticipant?.user?.phone ?? "Unknown";
             return (
               <Animated.View entering={FadeInDown.delay(index * 40).springify()}>
                 <Pressable
-                  style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.dark.border }]}
+                  style={({ pressed }) => [
+                    styles.row,
+                    pressed && { backgroundColor: colors.dark.border },
+                  ]}
                   onPress={() => router.push(`/messages/${item.id}`)}
                 >
                   <View style={styles.avatar}>
@@ -70,7 +113,10 @@ export default function MessagesScreen(): JSX.Element {
                         {new Date(item.lastMessageAt).toLocaleDateString()}
                       </Text>
                     </View>
-                    <Text style={[styles.preview, unread && styles.previewUnread]} numberOfLines={1}>
+                    <Text
+                      style={[styles.preview, unread && styles.previewUnread]}
+                      numberOfLines={1}
+                    >
                       {lastMsg?.message ?? "No messages yet"}
                     </Text>
                   </View>
@@ -125,6 +171,23 @@ const styles = StyleSheet.create({
   preview: { color: colors.text.secondary, fontSize: 13, marginTop: 2 },
   previewUnread: { color: colors.text.light },
   unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent.DEFAULT },
-  empty: { flex: 1, justifyContent: "center", alignItems: "center", gap: spacing.md },
+  empty: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
   emptyText: { color: colors.text.secondary, fontSize: 16 },
+  cta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 12,
+    backgroundColor: colors.accent.DEFAULT,
+    borderRadius: 999,
+    marginTop: spacing.md,
+  },
+  ctaText: { color: "#000", fontSize: 14, fontWeight: "700" },
 });

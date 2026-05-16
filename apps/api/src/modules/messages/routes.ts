@@ -9,12 +9,14 @@ import * as messagesController from "./controller.js";
 const router: RouterType = Router();
 
 router.get("/conversations", authenticate, messagesController.listConversations);
-router.get("/conversations/:conversationId/messages", authenticate, messagesController.listMessages);
-router.post(
-  "/conversations/:conversationId/read",
+router.post("/conversations", authenticate, messagesController.createConversation);
+router.get(
+  "/conversations/:conversationId/messages",
   authenticate,
-  messagesController.markRead,
+  messagesController.listMessages,
 );
+router.post("/conversations/:conversationId/read", authenticate, messagesController.markRead);
+router.get("/support-contact", authenticate, messagesController.supportContact);
 router.post("/", authenticate, validate({ body: sendMessageSchema }), messagesController.send);
 
 export { router as messageRoutes };
