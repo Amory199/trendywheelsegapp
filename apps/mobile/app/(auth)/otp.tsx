@@ -1,12 +1,9 @@
 import { colors, spacing, typography, borderRadius } from "@trendywheels/ui-tokens";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Linking } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 
 import { useAuth } from "../../lib/auth-store";
-
-const ADMIN_WEB_URL = "https://admin.trendywheelseg.com";
-const CRM_WEB_URL = "https://app.trendywheelseg.com/crm";
 
 export default function OtpScreen(): JSX.Element {
   const router = useRouter();
@@ -20,19 +17,21 @@ export default function OtpScreen(): JSX.Element {
     try {
       await verifyOtp(phone ?? "", otp);
       const u = useAuth.getState().user;
+
+      // Role-aware native routing: every staff role gets its own workspace.
       if (u?.accountType === "admin") {
-        Alert.alert("Admin workspace", "Open the admin dashboard in your browser.", [
-          { text: "Open", onPress: () => void Linking.openURL(ADMIN_WEB_URL) },
-        ]);
+        router.replace("/admin/dashboard");
         return;
       }
       if (u?.staffRole === "sales") {
-        Alert.alert("Sales workspace", "Open your CRM dashboard in your browser.", [
-          { text: "Open", onPress: () => void Linking.openURL(CRM_WEB_URL) },
-        ]);
+        router.replace("/crm/pipeline");
         return;
       }
-      // Customer (and first-time customers without a name) → onboarding gate
+      if (u?.staffRole === "support") {
+        router.replace("/support/tickets");
+        return;
+      }
+      // Customers without a name need to finish onboarding before tabs.
       if (u?.accountType === "customer" && !u.name) {
         router.replace("/(auth)/onboarding");
         return;

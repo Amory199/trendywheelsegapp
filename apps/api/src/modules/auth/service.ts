@@ -22,6 +22,7 @@ const TRIAL_OTP_BYPASS: Record<string, string> = {
   "+201000000001": "111111", // Admin — Mostafa
   "+201000000010": "222222", // Sales — Amira
   "+201000000011": "333333", // Sales — Youssef
+  "+201000000020": "444444", // Support — Layla
   "+201112223344": "555555", // Customer — Mohamed
 };
 

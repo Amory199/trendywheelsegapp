@@ -99,7 +99,7 @@ export function IntroOverlay({ mode }: Props): React.JSX.Element | null {
         style={{
           width: "100%",
           height: "100%",
-          objectFit: "cover",
+          objectFit: "contain",
           background: INTRO_BG,
         }}
       >
