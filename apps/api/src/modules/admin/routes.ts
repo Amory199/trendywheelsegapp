@@ -44,19 +44,25 @@ router.get("/metrics", async (_req, res) => {
   const [
     totalUsers,
     activeBookings,
+    pendingBookings,
     availableVehicles,
     totalVehicles,
     pendingRepairs,
     activeListings,
+    pendingListings,
     openTickets,
     revenueAgg,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.booking.count({ where: { status: "confirmed" } }),
+    prisma.booking.count({ where: { status: "pending" } }),
     prisma.vehicle.count({ where: { status: "available" } }),
     prisma.vehicle.count(),
-    prisma.repairRequest.count({ where: { status: { in: ["submitted", "assigned", "in_progress"] } } }),
+    prisma.repairRequest.count({
+      where: { status: { in: ["submitted", "assigned", "in_progress"] } },
+    }),
     prisma.salesListing.count({ where: { status: "active" } }),
+    prisma.salesListing.count({ where: { status: "pending" } }),
     prisma.supportTicket.count({ where: { status: { in: ["open", "in_progress"] } } }),
     prisma.booking.aggregate({
       where: { paymentStatus: "paid" },
@@ -67,12 +73,20 @@ router.get("/metrics", async (_req, res) => {
   res.json({
     data: {
       users: { total: totalUsers },
-      bookings: { active: activeBookings },
+      bookings: { active: activeBookings, pending: pendingBookings },
       vehicles: { available: availableVehicles, total: totalVehicles },
       repairs: { pending: pendingRepairs },
-      sales: { active: activeListings },
+      sales: { active: activeListings, pending: pendingListings },
       support: { open: openTickets },
       revenue: { total: Number(revenueAgg._sum.totalCost ?? 0) },
+      // Flat aliases so mobile + admin web can share a single client shape.
+      totalUsers,
+      totalVehicles,
+      totalBookings: activeBookings + pendingBookings,
+      pendingBookings,
+      pendingListings,
+      openTickets,
+      monthlyRevenue: Number(revenueAgg._sum.totalCost ?? 0),
     },
   });
 });

@@ -295,6 +295,55 @@ class ApiClient {
     return this.request("POST", "/api/messages/conversations", { body: { recipientId } });
   }
 
+  // ─── Admin (mobile role workspaces) ──────────────────────
+
+  async adminMetrics(): Promise<{ data: Record<string, unknown> }> {
+    return this.request("GET", "/api/admin/metrics");
+  }
+
+  async adminListBookings(status?: string): Promise<{ data: unknown[]; total: number }> {
+    return this.request("GET", "/api/bookings", {
+      params: { status, limit: 50 },
+    });
+  }
+
+  async approveBooking(id: string): Promise<{ data: unknown }> {
+    return this.request("POST", `/api/bookings/${encodeURIComponent(id)}/approve`);
+  }
+
+  async rejectBooking(id: string, reason?: string): Promise<{ data: unknown }> {
+    return this.request("POST", `/api/bookings/${encodeURIComponent(id)}/reject`, {
+      body: reason ? { reason } : undefined,
+    });
+  }
+
+  async adminListUsers(): Promise<{ data: unknown[] }> {
+    return this.request("GET", "/api/users", { params: { limit: 100 } });
+  }
+
+  // ─── CRM (sales workspace) ───────────────────────────────
+
+  async crmPipeline(): Promise<{ data: Record<string, unknown[]> }> {
+    return this.request("GET", "/api/crm/pipeline");
+  }
+
+  async crmLead(id: string): Promise<{ data: Record<string, unknown> }> {
+    return this.request("GET", `/api/crm/leads/${encodeURIComponent(id)}`);
+  }
+
+  async crmInventory(): Promise<{ data: unknown[] }> {
+    return this.request("GET", "/api/crm/inventory");
+  }
+
+  async crmLogActivity(
+    leadId: string,
+    activity: { type: string; note?: string; nextStatus?: string },
+  ): Promise<{ data: unknown }> {
+    return this.request("POST", `/api/crm/leads/${encodeURIComponent(leadId)}/activities`, {
+      body: activity,
+    });
+  }
+
   // ─── Notifications ───────────────────────────────────────
 
   async getNotifications(): Promise<{ data: Notification[] }> {

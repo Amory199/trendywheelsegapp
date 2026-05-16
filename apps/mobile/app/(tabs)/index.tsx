@@ -22,8 +22,8 @@ interface Product {
 const CHIPS = [
   { href: "/(tabs)/buy" as const, label: "Buy", sub: "Carts · Parts" },
   { href: "/(tabs)/rent" as const, label: "Rent", sub: "By the day" },
-  { href: "/sell" as const, label: "Sell", sub: "Sell · Trade in" },
-  { href: "/service/transport" as const, label: "Service", sub: "Repair · Trip" },
+  { href: "/(tabs)/sell" as const, label: "Sell", sub: "Sell · Trade in" },
+  { href: "/(tabs)/repair" as const, label: "Service", sub: "Repair · Trip" },
 ] as const;
 
 export default function HomeScreen(): React.JSX.Element {

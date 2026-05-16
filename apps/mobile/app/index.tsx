@@ -35,6 +35,12 @@ export default function Index(): JSX.Element {
 
   if (!user) return <Redirect href="/(auth)/phone" />;
 
+  // Role-aware cold-start routing — admins, sales, support each go straight to
+  // their own native workspace; customers go to tabs.
+  if (user.accountType === "admin") return <Redirect href="/admin/dashboard" />;
+  if (user.staffRole === "sales") return <Redirect href="/crm/pipeline" />;
+  if (user.staffRole === "support") return <Redirect href="/support/tickets" />;
+
   // First-time customers must finish onboarding (name is the gate now —
   // license is collected later when they actually try to rent).
   if (user.accountType === "customer" && !user.name) {

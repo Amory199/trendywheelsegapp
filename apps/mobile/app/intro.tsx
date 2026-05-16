@@ -41,7 +41,7 @@ export default function Intro(): JSX.Element {
       <VideoView
         player={player}
         style={StyleSheet.absoluteFill}
-        contentFit="cover"
+        contentFit="contain"
         nativeControls={false}
       />
       <Pressable onPress={dismiss} style={styles.skip} hitSlop={12}>

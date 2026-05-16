@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { colors, twPalette, layout } from "@trendywheels/ui-tokens";
+import { colors } from "@trendywheels/ui-tokens";
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 
-// iOS 26-style glassy bottom tab bar. Translucent BlurView background +
-// hairline brand-tinted top border. Falls back to a solid card color on
-// android where BlurView intensity is uneven across OEMs.
+// Admin workspace — bottom tabs for the role's daily-driver flows.
+// Sales/support get their own layout under app/crm and app/support.
+
 function GlassTabBar(): JSX.Element {
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -34,16 +34,14 @@ function GlassTabBar(): JSX.Element {
   );
 }
 
-export default function TabLayout(): JSX.Element {
-  const palette = twPalette(false);
-
+export default function AdminLayout(): JSX.Element {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarBackground: () => <GlassTabBar />,
         tabBarStyle: {
-          height: layout.bottomTabHeight + 14,
+          height: 70,
           backgroundColor: "transparent",
           borderTopWidth: 0,
           paddingBottom: 12,
@@ -52,61 +50,47 @@ export default function TabLayout(): JSX.Element {
           elevation: 0,
         },
         tabBarActiveTintColor: colors.brand.friendlyBlue,
-        tabBarInactiveTintColor: palette.tabInactive,
+        tabBarInactiveTintColor: "rgba(255,255,255,0.55)",
         tabBarLabelStyle: { fontSize: 11, fontWeight: "700" },
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="dashboard"
         options={{
-          title: "Home",
+          title: "Dashboard",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
+            <Ionicons name={focused ? "grid" : "grid-outline"} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="buy"
+        name="bookings"
         options={{
-          title: "Buy",
+          title: "Bookings",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "bag" : "bag-outline"} size={24} color={color} />
+            <Ionicons name={focused ? "calendar" : "calendar-outline"} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="rent"
+        name="users"
         options={{
-          title: "Rent",
+          title: "Users",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "car" : "car-outline"} size={24} color={color} />
+            <Ionicons name={focused ? "people" : "people-outline"} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="sell"
+        name="more"
         options={{
-          title: "Sell",
+          title: "More",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "pricetag" : "pricetag-outline"} size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="repair"
-        options={{
-          title: "Service",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "construct" : "construct-outline"} size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
+            <Ionicons
+              name={focused ? "ellipsis-horizontal-circle" : "ellipsis-horizontal-circle-outline"}
+              size={22}
+              color={color}
+            />
           ),
         }}
       />
