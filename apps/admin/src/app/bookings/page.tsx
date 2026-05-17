@@ -15,7 +15,7 @@ interface BookingRow {
   endDate: string;
   pickupDate?: string | null;
   returnDate?: string | null;
-  status: "confirmed" | "active" | "completed" | "cancelled";
+  status: "pending" | "confirmed" | "active" | "completed" | "cancelled";
   paymentStatus: "pending" | "paid" | "refunded";
   totalCost: string | number;
   createdAt: string;
@@ -24,6 +24,7 @@ interface BookingRow {
 }
 
 const STATUS_STYLES: Record<BookingRow["status"], string> = {
+  pending: "bg-amber-100 text-amber-700",
   confirmed: "bg-blue-100 text-blue-700",
   active: "bg-purple-100 text-purple-700",
   completed: "bg-green-100 text-green-700",
@@ -51,7 +52,7 @@ export default function BookingsPage(): JSX.Element {
   });
 
   const bookings = data?.data ?? [];
-  const selected = selectedId ? bookings.find((b) => b.id === selectedId) ?? null : null;
+  const selected = selectedId ? (bookings.find((b) => b.id === selectedId) ?? null) : null;
 
   return (
     <div className="p-8 space-y-6">
@@ -65,6 +66,7 @@ export default function BookingsPage(): JSX.Element {
           onChange={(v) => setStatusFilter(v as BookingRow["status"] | "")}
           options={[
             { value: "", label: "All statuses" },
+            { value: "pending", label: "Pending", color: "#B45309" },
             { value: "confirmed", label: "Confirmed", color: "#1338A8" },
             { value: "active", label: "Active", color: "#5300A8" },
             { value: "completed", label: "Completed", color: "#0A6B0A" },
@@ -160,6 +162,19 @@ function BookingDrawer({
   onClose: () => void;
   onChange: () => void;
 }): JSX.Element {
+  const approveMutation = useMutation({
+    mutationFn: () => authedFetch(`/api/bookings/${booking.id}/approve`, { method: "POST" }),
+    onSuccess: () => onChange(),
+  });
+  const rejectMutation = useMutation({
+    mutationFn: (reason: string) =>
+      authedFetch(`/api/bookings/${booking.id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      }),
+    onSuccess: () => onChange(),
+  });
   const cancelMutation = useMutation({
     mutationFn: () => authedFetch(`/api/bookings/${booking.id}/cancel`, { method: "POST" }),
     onSuccess: () => onChange(),
@@ -197,10 +212,7 @@ function BookingDrawer({
         <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
           <Row label="Customer">
             {booking.user ? (
-              <Link
-                href={`/customers/${booking.userId}`}
-                className="text-blue-600 hover:underline"
-              >
+              <Link href={`/customers/${booking.userId}`} className="text-blue-600 hover:underline">
                 {booking.user.name}
               </Link>
             ) : (
@@ -229,7 +241,28 @@ function BookingDrawer({
 
         <div className="border-t pt-4 space-y-2">
           <div className="text-xs uppercase tracking-wider text-gray-500 mb-1">Actions</div>
-          {booking.paymentStatus !== "paid" && !isCancelled && (
+          {booking.status === "pending" && (
+            <>
+              <button
+                onClick={() => approveMutation.mutate()}
+                disabled={approveMutation.isPending}
+                className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md disabled:opacity-40"
+              >
+                {approveMutation.isPending ? "…" : "Approve booking"}
+              </button>
+              <button
+                onClick={() => {
+                  const reason = prompt("Reason for declining (shown to customer):") ?? "";
+                  if (reason.trim().length > 0) rejectMutation.mutate(reason.trim());
+                }}
+                disabled={rejectMutation.isPending}
+                className="w-full px-4 py-2 border border-red-500 text-red-600 hover:bg-red-50 text-sm font-medium rounded-md disabled:opacity-40"
+              >
+                {rejectMutation.isPending ? "…" : "Reject booking"}
+              </button>
+            </>
+          )}
+          {booking.paymentStatus !== "paid" && !isCancelled && booking.status !== "pending" && (
             <button
               onClick={() => markPaidMutation.mutate()}
               disabled={markPaidMutation.isPending}
