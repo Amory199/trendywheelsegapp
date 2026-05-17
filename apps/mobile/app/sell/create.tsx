@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { VEHICLE_CATEGORIES, type VehicleCategory } from "@trendywheels/types";
 import { borderRadius, colors, spacing } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
@@ -26,6 +27,7 @@ type FuelType = "electric" | "gasoline" | "hybrid";
 
 interface FormData {
   title: string;
+  category: VehicleCategory;
   make: string;
   model: string;
   year: string;
@@ -49,6 +51,7 @@ export default function SellCreateScreen(): JSX.Element {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>({
     title: "",
+    category: "golf-cart",
     make: "",
     model: "",
     year: String(new Date().getFullYear()),
@@ -61,7 +64,7 @@ export default function SellCreateScreen(): JSX.Element {
     images: [],
   });
 
-  const set = (key: keyof FormData, value: string | string[]): void =>
+  const set = (key: keyof FormData, value: string | string[] | VehicleCategory): void =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const mutation = useMutation({
@@ -86,6 +89,7 @@ export default function SellCreateScreen(): JSX.Element {
 
       return api.createSalesListing({
         title: form.title,
+        category: form.category,
         make: form.make,
         model: form.model,
         year: parseInt(form.year, 10),
@@ -108,7 +112,8 @@ export default function SellCreateScreen(): JSX.Element {
   });
 
   const canProceed = (): boolean => {
-    if (step === 0) return !!(form.title.trim() && form.make.trim() && form.model.trim() && form.year);
+    if (step === 0)
+      return !!(form.title.trim() && form.make.trim() && form.model.trim() && form.year);
     if (step === 1) return !!(form.price && form.mileage && form.color.trim());
     if (step === 2) return true; // images optional
     return true;
@@ -128,7 +133,10 @@ export default function SellCreateScreen(): JSX.Element {
   };
 
   const removeImage = (idx: number): void => {
-    set("images", form.images.filter((_, i) => i !== idx));
+    set(
+      "images",
+      form.images.filter((_, i) => i !== idx),
+    );
   };
 
   return (
@@ -159,9 +167,7 @@ export default function SellCreateScreen(): JSX.Element {
               {i < step ? (
                 <Ionicons name="checkmark" size={14} color="#000" />
               ) : (
-                <Text style={[styles.stepNum, i === step && styles.stepNumActive]}>
-                  {i + 1}
-                </Text>
+                <Text style={[styles.stepNum, i === step && styles.stepNumActive]}>{i + 1}</Text>
               )}
             </View>
             {i < STEPS.length - 1 && (
@@ -186,6 +192,45 @@ export default function SellCreateScreen(): JSX.Element {
               value={form.title}
               onChangeText={(v) => set("title", v)}
             />
+            <Text style={styles.fieldLabel}>Category *</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {VEHICLE_CATEGORIES.map((c) => {
+                const active = form.category === c.key;
+                return (
+                  <Pressable
+                    key={c.key}
+                    onPress={() => set("category", c.key)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: 14,
+                      paddingVertical: 10,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      marginRight: 8,
+                      backgroundColor: active ? colors.brand.poolBlue : colors.dark.card,
+                      borderColor: active ? colors.brand.poolBlue : colors.dark.border,
+                    }}
+                  >
+                    <Ionicons
+                      name={c.icon as keyof typeof Ionicons.glyphMap}
+                      size={14}
+                      color={active ? "#000" : colors.text.secondary}
+                    />
+                    <Text
+                      style={{
+                        color: active ? "#000" : colors.text.secondary,
+                        fontWeight: "700",
+                        fontSize: 12,
+                      }}
+                    >
+                      {c.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Field
@@ -380,11 +425,7 @@ function Field({
   return (
     <View>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={styles.input}
-        placeholderTextColor={colors.text.secondary}
-        {...props}
-      />
+      <TextInput style={styles.input} placeholderTextColor={colors.text.secondary} {...props} />
     </View>
   );
 }
@@ -410,9 +451,7 @@ function SegmentField({
             style={[styles.segmentOption, opt === value && styles.segmentOptionActive]}
             onPress={() => onChange(opt)}
           >
-            <Text
-              style={[styles.segmentText, opt === value && styles.segmentTextActive]}
-            >
+            <Text style={[styles.segmentText, opt === value && styles.segmentTextActive]}>
               {opt.charAt(0).toUpperCase() + opt.slice(1)}
             </Text>
           </Pressable>

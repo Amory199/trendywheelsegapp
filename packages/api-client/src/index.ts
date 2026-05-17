@@ -194,7 +194,7 @@ class ApiClient {
   // ─── Sales Listings ──────────────────────────────────────
 
   async getSalesListings(
-    params?: PaginationParams & { status?: string },
+    params?: PaginationParams & { status?: string; category?: string },
   ): Promise<PaginatedResponse<SalesListing>> {
     return this.request("GET", "/api/sales", {
       params: params as Record<string, string | number | boolean | undefined>,

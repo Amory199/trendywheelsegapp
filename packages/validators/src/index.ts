@@ -31,6 +31,14 @@ export const staffLoginSchema = z.object({
 // ─── Vehicles ────────────────────────────────────────────────
 
 const vehicleTypeEnum = z.enum(["4-seater", "6-seater", "LED"]);
+const vehicleCategoryEnum = z.enum([
+  "golf-cart",
+  "hover-board",
+  "scooter",
+  "buggy",
+  "utv",
+  "jet-ski",
+]);
 const fuelTypeEnum = z.enum(["electric", "gasoline", "hybrid"]);
 const transmissionEnum = z.enum(["automatic", "manual"]);
 const vehicleStatusEnum = z.enum(["available", "rented", "maintenance", "inactive"]);
@@ -39,6 +47,7 @@ const listingTypeEnum = z.enum(["rent", "sale", "both"]);
 export const createVehicleSchema = z
   .object({
     name: z.string().min(1).max(100),
+    category: vehicleCategoryEnum.default("golf-cart"),
     type: vehicleTypeEnum,
     seating: z.coerce.number().int().min(1).max(20),
     fuelType: fuelTypeEnum,
@@ -58,6 +67,7 @@ export const createVehicleSchema = z
 
 export const updateVehicleSchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  category: vehicleCategoryEnum.optional(),
   type: vehicleTypeEnum.optional(),
   seating: z.coerce.number().int().min(1).max(20).optional(),
   fuelType: fuelTypeEnum.optional(),
@@ -74,6 +84,7 @@ export const updateVehicleSchema = z.object({
 
 export const vehicleFiltersSchema = z.object({
   type: vehicleTypeEnum.optional(),
+  category: vehicleCategoryEnum.optional(),
   priceMin: z.coerce.number().positive().optional(),
   priceMax: z.coerce.number().positive().optional(),
   available: z.coerce.boolean().optional(),
@@ -176,6 +187,7 @@ export const updateRepairRequestSchema = z.object({
 
 export const createSalesListingSchema = z.object({
   title: z.string().min(5).max(100),
+  category: vehicleCategoryEnum.default("golf-cart"),
   make: z.string().min(1).max(50),
   model: z.string().min(1).max(50),
   year: z.coerce

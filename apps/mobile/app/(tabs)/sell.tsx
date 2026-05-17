@@ -1,28 +1,29 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import type { SalesListing } from "@trendywheels/types";
+import type { SalesListing, VehicleCategory } from "@trendywheels/types";
 import { colors, spacing, typography } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useCallback } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { useCallback, useState } from "react";
+
+import { CategoryStrip } from "../../components/CategoryStrip";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 
 export default function SellScreen(): JSX.Element {
   const router = useRouter();
+  const [category, setCategory] = useState<VehicleCategory | "all">("all");
 
   const q = useInfiniteQuery({
-    queryKey: ["sales-listings"],
-    queryFn: ({ pageParam = 1 }) => api.getSalesListings({ page: pageParam, limit: 20 }),
+    queryKey: ["sales-listings", category],
+    queryFn: ({ pageParam = 1 }) =>
+      api.getSalesListings({
+        page: pageParam,
+        limit: 20,
+        ...(category !== "all" ? { category } : {}),
+      }),
     getNextPageParam: (last, all) => (last.data.length === 20 ? all.length + 1 : undefined),
     initialPageParam: 1,
   });
@@ -37,15 +38,23 @@ export default function SellScreen(): JSX.Element {
           onPress={() => router.push(`/sell/${item.id}`)}
         >
           <Image
-            source={{ uri: (item.images as string[] | undefined)?.[0] ?? "https://placehold.co/400x300/2B0FF8/FFFFFF" }}
+            source={{
+              uri:
+                (item.images as string[] | undefined)?.[0] ??
+                "https://placehold.co/400x300/2B0FF8/FFFFFF",
+            }}
             style={styles.cardImage}
             contentFit="cover"
             transition={200}
           />
           <View style={styles.cardBody}>
-            <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+            <Text style={styles.cardTitle} numberOfLines={2}>
+              {item.title}
+            </Text>
             <Text style={styles.cardPrice}>{Number(item.price).toLocaleString()} EGP</Text>
-            <Text style={styles.cardMeta}>{item.year} · {(item.mileage as number | undefined)?.toLocaleString()} km</Text>
+            <Text style={styles.cardMeta}>
+              {item.year} · {(item.mileage as number | undefined)?.toLocaleString()} km
+            </Text>
           </View>
         </Pressable>
       </Animated.View>
@@ -59,9 +68,11 @@ export default function SellScreen(): JSX.Element {
         <Text style={styles.title}>Buy & Sell</Text>
         <Pressable style={styles.addBtn} onPress={() => router.push("/sell/create")}>
           <Ionicons name="add" size={22} color="#000" />
-          <Text style={styles.addBtnText}>List a Car</Text>
+          <Text style={styles.addBtnText}>List</Text>
         </Pressable>
       </View>
+
+      <CategoryStrip value={category} onChange={setCategory} />
 
       {q.isLoading ? (
         <ActivityIndicator color={colors.accent.DEFAULT} style={{ marginTop: 40 }} size="large" />
@@ -104,7 +115,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
   },
-  title: { fontSize: typography.fontSize.h1, fontWeight: typography.fontWeight.bold, color: colors.text.light },
+  title: {
+    fontSize: typography.fontSize.h1,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.light,
+  },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
