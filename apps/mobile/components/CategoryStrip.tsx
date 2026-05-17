@@ -1,15 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import { VEHICLE_CATEGORIES, type VehicleCategory } from "@trendywheels/types";
 import { colors } from "@trendywheels/ui-tokens";
+import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const CATEGORY_VIDEOS: Partial<Record<VehicleCategory, number>> = {
   "golf-cart": require("../assets/category/golf-cart.mp4"),
   scooter: require("../assets/category/scooter.mp4"),
   "jet-ski": require("../assets/category/jet-ski.mp4"),
 };
+
+const SCREEN_W = Dimensions.get("window").width;
+const H_PADDING = 14;
+const GAP = 10;
+const BLOCK_W = (SCREEN_W - H_PADDING * 2 - GAP) / 2;
+const BLOCK_H = Math.round(BLOCK_W * 1.25); // 4:5 portrait
 
 interface Props {
   value: VehicleCategory | "all";
@@ -18,105 +24,157 @@ interface Props {
 }
 
 export function CategoryStrip({ value, onChange, showAll = true }: Props): JSX.Element {
-  const [previewKey, setPreviewKey] = useState<VehicleCategory | null>(
-    value !== "all" ? value : null,
-  );
-
-  useEffect(() => {
-    if (value !== "all") setPreviewKey(value);
-  }, [value]);
-
-  const hasVideo = previewKey && CATEGORY_VIDEOS[previewKey];
-
   return (
-    <View>
-      {hasVideo ? <CategoryHero categoryKey={previewKey!} /> : null}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.strip}
-      >
-        {showAll ? (
-          <Pressable
-            onPress={() => onChange("all")}
-            style={[styles.chip, value === "all" && styles.chipActive]}
-          >
-            <Ionicons
-              name="grid-outline"
-              size={14}
-              color={value === "all" ? "#000" : colors.text.secondary}
-            />
-            <Text style={[styles.chipText, value === "all" && styles.chipTextActive]}>All</Text>
-          </Pressable>
-        ) : null}
-        {VEHICLE_CATEGORIES.map((c) => {
-          const active = value === c.key;
-          return (
-            <Pressable
-              key={c.key}
-              onPress={() => onChange(c.key)}
-              style={[styles.chip, active && styles.chipActive]}
-            >
-              <Ionicons
-                name={c.icon as keyof typeof Ionicons.glyphMap}
-                size={14}
-                color={active ? "#000" : colors.text.secondary}
-              />
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{c.label}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    </View>
+    <ScrollView
+      contentContainerStyle={styles.grid}
+      showsVerticalScrollIndicator={false}
+      horizontal={false}
+    >
+      {showAll ? (
+        <Pressable
+          onPress={() => onChange("all")}
+          style={[styles.block, value === "all" && styles.blockActive]}
+        >
+          <LinearGradient
+            colors={[colors.brand.poolBlue, colors.brand.friendlyBlue]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.allBadge}>
+            <Ionicons name="grid" size={28} color="#fff" />
+          </View>
+          <BlockLabel label="All categories" active={value === "all"} />
+        </Pressable>
+      ) : null}
+      {VEHICLE_CATEGORIES.map((c) => (
+        <CategoryBlock
+          key={c.key}
+          categoryKey={c.key}
+          label={c.label}
+          icon={c.icon}
+          active={value === c.key}
+          onPress={() => onChange(c.key)}
+        />
+      ))}
+    </ScrollView>
   );
 }
 
-function CategoryHero({ categoryKey }: { categoryKey: VehicleCategory }): JSX.Element {
-  const source = CATEGORY_VIDEOS[categoryKey]!;
+function CategoryBlock({
+  categoryKey,
+  label,
+  icon,
+  active,
+  onPress,
+}: {
+  categoryKey: VehicleCategory;
+  label: string;
+  icon: string;
+  active: boolean;
+  onPress: () => void;
+}): JSX.Element {
+  const source = CATEGORY_VIDEOS[categoryKey] ?? null;
+  return (
+    <Pressable onPress={onPress} style={[styles.block, active && styles.blockActive]}>
+      {source ? <BlockVideo source={source} /> : <BlockFallback icon={icon} />}
+      <LinearGradient
+        colors={["rgba(2,1,31,0)", "rgba(2,1,31,0.88)"]}
+        style={[StyleSheet.absoluteFill, { top: BLOCK_H * 0.5 }]}
+        pointerEvents="none"
+      />
+      <BlockLabel label={label} active={active} />
+    </Pressable>
+  );
+}
+
+function BlockVideo({ source }: { source: number }): JSX.Element {
   const player = useVideoPlayer(source, (p) => {
     p.loop = true;
     p.muted = true;
     p.play();
   });
-
   return (
-    <View style={styles.hero}>
-      <VideoView
-        player={player}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        nativeControls={false}
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+      nativeControls={false}
+    />
+  );
+}
+
+function BlockFallback({ icon }: { icon: string }): JSX.Element {
+  return (
+    <View style={[StyleSheet.absoluteFill, styles.fallback]}>
+      <Ionicons
+        name={icon as keyof typeof import("@expo/vector-icons").Ionicons.glyphMap}
+        size={44}
+        color="rgba(255,255,255,0.55)"
       />
     </View>
   );
 }
 
+function BlockLabel({ label, active }: { label: string; active: boolean }): JSX.Element {
+  return (
+    <View style={styles.labelWrap}>
+      <Text style={styles.labelText} numberOfLines={1}>
+        {label}
+      </Text>
+      {active ? <View style={styles.activeUnderline} /> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  hero: {
-    height: 180,
-    marginHorizontal: 14,
-    marginTop: 10,
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "rgba(0,0,0,0.4)",
-  },
-  strip: { paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
-  chip: {
+  grid: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
+    flexWrap: "wrap",
+    paddingHorizontal: H_PADDING,
+    paddingTop: 12,
+    paddingBottom: 6,
+    gap: GAP,
+  },
+  block: {
+    width: BLOCK_W,
+    height: BLOCK_H,
+    borderRadius: 18,
+    overflow: "hidden",
     backgroundColor: colors.dark.card,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    marginRight: 8,
+    borderWidth: 2,
+    borderColor: "transparent",
   },
-  chipActive: {
-    backgroundColor: colors.brand.poolBlue,
-    borderColor: colors.brand.poolBlue,
+  blockActive: {
+    borderColor: colors.brand.trendyPink,
   },
-  chipText: { color: colors.text.secondary, fontSize: 12, fontWeight: "700" },
-  chipTextActive: { color: "#000" },
+  fallback: {
+    backgroundColor: colors.dark.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  allBadge: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  labelWrap: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    bottom: 12,
+  },
+  labelText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+  },
+  activeUnderline: {
+    marginTop: 4,
+    height: 3,
+    width: 28,
+    borderRadius: 999,
+    backgroundColor: colors.brand.trendyPink,
+  },
 });

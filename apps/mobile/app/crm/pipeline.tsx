@@ -80,7 +80,13 @@ export default function CrmPipeline(): JSX.Element {
           <Text style={styles.hello}>Hi, {user?.name?.split(" ")[0] ?? "Sales"}</Text>
           <Text style={styles.role}>SALES · PIPELINE</Text>
         </View>
-        <Pressable hitSlop={12} onPress={() => void logout()}>
+        <Pressable
+          hitSlop={12}
+          onPress={async () => {
+            await logout();
+            router.replace("/(auth)/phone");
+          }}
+        >
           <Ionicons name="log-out-outline" size={22} color={colors.text.light} />
         </Pressable>
       </View>

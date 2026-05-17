@@ -67,7 +67,10 @@ class ApiClient {
           signal: controller.signal,
         });
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") {
+        // Detect abort by name — `DOMException` isn't always a global on Hermes,
+        // so referencing it directly throws ReferenceError on some RN builds.
+        const e = err as { name?: string } | null;
+        if (e && e.name === "AbortError") {
           throw new ApiClientError("Request timed out", 0, "TIMEOUT");
         }
         throw err;
