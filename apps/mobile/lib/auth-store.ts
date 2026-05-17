@@ -9,6 +9,7 @@ interface AuthState {
   hydrate: () => Promise<void>;
   sendOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, otp: string) => Promise<void>;
+  verifyFirebaseIdToken: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
 }
@@ -52,6 +53,16 @@ export const useAuth = create<AuthState>((set) => ({
 
   async verifyOtp(phone, otp) {
     const res = await api.verifyOtp(phone, otp);
+    await setTokens(res.token, res.refreshToken);
+    set({ user: res.user });
+  },
+
+  async verifyFirebaseIdToken(idToken) {
+    const res = await api.request<{ token: string; refreshToken: string; user: User }>(
+      "POST",
+      "/api/auth/firebase-token",
+      { body: { idToken } },
+    );
     await setTokens(res.token, res.refreshToken);
     set({ user: res.user });
   },

@@ -165,6 +165,78 @@ export async function verifyOtp(
   };
 }
 
+/**
+ * Issue a JWT pair for a given phone number. Caller is responsible for having
+ * already verified the phone (via OTP, Firebase ID token, etc.). Auto-creates
+ * the user + signup lead on first call. Returns the same shape as verifyOtp().
+ */
+export async function issueTokensForPhone(
+  phone: string,
+): Promise<{ token: string; refreshToken: string; user: object }> {
+  let user = await prisma.user.findUnique({ where: { phone } });
+  let isNewSignup = false;
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        phone,
+        accountType: "customer",
+        status: "active",
+        loyaltyTier: "bronze",
+        loyaltyPoints: 0,
+      },
+    });
+    isNewSignup = true;
+  }
+
+  if (isNewSignup && user.accountType === "customer") {
+    try {
+      const lead = await prisma.lead.create({
+        data: {
+          customerId: user.id,
+          contactName: user.name || `Customer ${user.phone.slice(-4)}`,
+          contactPhone: user.phone,
+          contactEmail: user.email,
+          source: "signup",
+          status: "new",
+          estimatedValue: 0,
+        },
+      });
+      await recordActivity(lead.id, null, "created", "Lead auto-created from signup");
+      await assignLeadRoundRobin(lead.id);
+    } catch (err) {
+      logger.warn({ err, userId: user.id }, "Failed to create signup lead");
+    }
+  }
+
+  const payload: AuthPayload = { userId: user.id, accountType: user.accountType };
+  const accessToken = signAccessToken(payload);
+  const refreshToken = generateRefreshToken();
+  const tokenHash = await bcrypt.hash(refreshToken, 12);
+  await prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      tokenHash,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  return {
+    token: accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      phone: user.phone,
+      name: user.name,
+      email: user.email,
+      age: user.age,
+      accountType: user.accountType,
+      staffRole: user.staffRole,
+      loyaltyTier: user.loyaltyTier,
+      loyaltyPoints: user.loyaltyPoints,
+    },
+  };
+}
+
 export async function refreshAccessToken(refreshToken: string): Promise<{ token: string }> {
   // Find all non-revoked, non-expired refresh tokens
   const tokens = await prisma.refreshToken.findMany({

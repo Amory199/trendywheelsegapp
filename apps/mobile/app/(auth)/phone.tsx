@@ -4,6 +4,7 @@ import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Linking } from "react-native";
 
 import { useAuth } from "../../lib/auth-store";
+import { isTrialPhone, sendFirebaseOtp } from "../../lib/firebase-phone-auth";
 
 const EGYPT_DIAL_CODE = "+20";
 
@@ -28,8 +29,16 @@ export default function PhoneScreen(): JSX.Element {
     }
     setLoading(true);
     try {
-      await sendOtp(fullPhone);
-      router.push({ pathname: "/(auth)/otp", params: { phone: fullPhone } });
+      const useFirebase = !isTrialPhone(fullPhone);
+      if (useFirebase) {
+        await sendFirebaseOtp(fullPhone);
+      } else {
+        await sendOtp(fullPhone);
+      }
+      router.push({
+        pathname: "/(auth)/otp",
+        params: { phone: fullPhone, mode: useFirebase ? "firebase" : "trial" },
+      });
     } catch (err) {
       Alert.alert("Could not send OTP", err instanceof Error ? err.message : "Try again");
     } finally {

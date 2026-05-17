@@ -4,18 +4,25 @@ import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 
 import { useAuth } from "../../lib/auth-store";
+import { confirmFirebaseOtp } from "../../lib/firebase-phone-auth";
 
 export default function OtpScreen(): JSX.Element {
   const router = useRouter();
-  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const { phone, mode } = useLocalSearchParams<{ phone: string; mode?: string }>();
   const verifyOtp = useAuth((s) => s.verifyOtp);
+  const verifyFirebaseIdToken = useAuth((s) => s.verifyFirebaseIdToken);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleVerify = async (): Promise<void> => {
     setLoading(true);
     try {
-      await verifyOtp(phone ?? "", otp);
+      if (mode === "firebase") {
+        const idToken = await confirmFirebaseOtp(otp);
+        await verifyFirebaseIdToken(idToken);
+      } else {
+        await verifyOtp(phone ?? "", otp);
+      }
       const u = useAuth.getState().user;
 
       // Role-aware native routing: every staff role gets its own workspace.

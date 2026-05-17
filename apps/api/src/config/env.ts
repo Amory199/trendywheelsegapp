@@ -36,6 +36,9 @@ export const env = cleanEnv(process.env, {
   // Sentry (optional)
   SENTRY_DSN: str({ default: "" }),
 
+  // Firebase project ID — required for verifying Firebase Phone Auth ID tokens.
+  FIREBASE_PROJECT_ID: str({ default: "" }),
+
   // SendGrid (optional)
   SENDGRID_API_KEY: str({ default: "" }),
 
