@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
+import { notificationsQueue } from "../../queues/index.js";
 import { AppError } from "../../utils/errors.js";
 import { getIO } from "../../utils/io-registry.js";
 
@@ -77,6 +78,23 @@ export async function send(req: Request, res: Response): Promise<void> {
   if (io) {
     io.of("/messages").to(`user:${recipientId}`).emit("message:new", created);
   }
+
+  // Queue an in-app + push notification for the recipient.
+  const sender = await prisma.user.findUnique({
+    where: { id: senderId },
+    select: { name: true },
+  });
+  await notificationsQueue.add(
+    `message-${created.id}`,
+    {
+      userId: recipientId,
+      type: "message_new",
+      title: sender?.name || "New message",
+      body: typeof message === "string" ? message.slice(0, 140) : "New message",
+      data: { conversationId, messageId: created.id, url: `/messages/${conversationId}` },
+    },
+    { removeOnComplete: 100, removeOnFail: 50 },
+  );
 
   res.status(201).json({ data: created });
 }
