@@ -3,9 +3,39 @@ import { useQuery } from "@tanstack/react-query";
 import type { RepairRequest } from "@trendywheels/types";
 import { colors } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
+import { useVideoPlayer, VideoView } from "expo-video";
 import * as React from "react";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+
+const REPAIR_VIDEO = require("../../assets/category/repair.mp4");
+
+function RepairHero(): React.JSX.Element {
+  const player = useVideoPlayer(REPAIR_VIDEO, (p) => {
+    p.loop = true;
+    p.muted = true;
+    p.play();
+  });
+  return (
+    <View
+      style={{
+        height: 160,
+        marginHorizontal: 20,
+        marginBottom: 12,
+        borderRadius: 16,
+        overflow: "hidden",
+        backgroundColor: "rgba(0,0,0,0.4)",
+      }}
+    >
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls={false}
+      />
+    </View>
+  );
+}
 
 import { TWBadge, TWButton, TWCard, TWPressable, palette } from "../../components/ui";
 import { api } from "../../lib/api";
@@ -44,12 +74,32 @@ export default function RepairScreen(): React.JSX.Element {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
-      <View style={{ paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" }}>
+      <View
+        style={{
+          paddingTop: 56,
+          paddingHorizontal: 20,
+          paddingBottom: 16,
+          flexDirection: "row",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+        }}
+      >
         <View>
-          <Text style={{ fontSize: 11, color: palette.muted, fontWeight: "700", letterSpacing: 0.8 }}>
+          <Text
+            style={{ fontSize: 11, color: palette.muted, fontWeight: "700", letterSpacing: 0.8 }}
+          >
             BOOK REPAIRS IN MINUTES
           </Text>
-          <Text style={{ fontFamily: "Anton", fontSize: 30, color: palette.text, textTransform: "uppercase", letterSpacing: 0.3, marginTop: 4 }}>
+          <Text
+            style={{
+              fontFamily: "Anton",
+              fontSize: 30,
+              color: palette.text,
+              textTransform: "uppercase",
+              letterSpacing: 0.3,
+              marginTop: 4,
+            }}
+          >
             My repairs
           </Text>
         </View>
@@ -58,10 +108,24 @@ export default function RepairScreen(): React.JSX.Element {
         </TWButton>
       </View>
 
+      <RepairHero />
+
       {q.isLoading ? (
-        <ActivityIndicator color={colors.brand.friendlyBlue} style={{ marginTop: 40 }} size="large" />
+        <ActivityIndicator
+          color={colors.brand.friendlyBlue}
+          style={{ marginTop: 40 }}
+          size="large"
+        />
       ) : repairs.length === 0 ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 16, paddingHorizontal: 40 }}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 16,
+            paddingHorizontal: 40,
+          }}
+        >
           <View
             style={{
               width: 80,
@@ -74,7 +138,16 @@ export default function RepairScreen(): React.JSX.Element {
           >
             <Ionicons name="construct-outline" size={36} color={colors.brand.friendlyBlue} />
           </View>
-          <Text style={{ fontFamily: "Anton", fontSize: 22, color: palette.text, textTransform: "uppercase", textAlign: "center", letterSpacing: 0.3 }}>
+          <Text
+            style={{
+              fontFamily: "Anton",
+              fontSize: 22,
+              color: palette.text,
+              textTransform: "uppercase",
+              textAlign: "center",
+              letterSpacing: 0.3,
+            }}
+          >
             No repairs yet
           </Text>
           <Text style={{ fontSize: 14, color: palette.muted, textAlign: "center", lineHeight: 20 }}>
@@ -95,9 +168,18 @@ export default function RepairScreen(): React.JSX.Element {
               <Animated.View entering={FadeInDown.delay(index * 60).duration(420)}>
                 <TWPressable onPress={() => router.push(`/repair/${item.id}`)}>
                   <TWCard>
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 15, fontWeight: "700", color: palette.text }} numberOfLines={1}>
+                        <Text
+                          style={{ fontSize: 15, fontWeight: "700", color: palette.text }}
+                          numberOfLines={1}
+                        >
                           {item.category}
                         </Text>
                         <Text style={{ fontSize: 12, color: palette.muted, marginTop: 2 }}>
@@ -109,12 +191,17 @@ export default function RepairScreen(): React.JSX.Element {
                       </TWBadge>
                     </View>
 
-                    <Text style={{ fontSize: 13, color: palette.text, marginTop: 10, lineHeight: 18 }} numberOfLines={2}>
+                    <Text
+                      style={{ fontSize: 13, color: palette.text, marginTop: 10, lineHeight: 18 }}
+                      numberOfLines={2}
+                    >
                       {item.description}
                     </Text>
 
                     {/* Timeline */}
-                    <View style={{ flexDirection: "row", alignItems: "center", marginTop: 14, gap: 4 }}>
+                    <View
+                      style={{ flexDirection: "row", alignItems: "center", marginTop: 14, gap: 4 }}
+                    >
                       {STATUS_ORDER.map((s, i) => {
                         const reached = i <= activeIdx;
                         const active = i === activeIdx && item.status !== "completed";
@@ -125,7 +212,9 @@ export default function RepairScreen(): React.JSX.Element {
                                 width: active ? 14 : 10,
                                 height: active ? 14 : 10,
                                 borderRadius: 999,
-                                backgroundColor: reached ? colors.brand.friendlyBlue : palette.faint,
+                                backgroundColor: reached
+                                  ? colors.brand.friendlyBlue
+                                  : palette.faint,
                                 borderWidth: active ? 3 : 0,
                                 borderColor: `${colors.brand.trendyPink}66`,
                               }}
@@ -135,7 +224,8 @@ export default function RepairScreen(): React.JSX.Element {
                                 style={{
                                   flex: 1,
                                   height: 2,
-                                  backgroundColor: i < activeIdx ? colors.brand.friendlyBlue : palette.faint,
+                                  backgroundColor:
+                                    i < activeIdx ? colors.brand.friendlyBlue : palette.faint,
                                 }}
                               />
                             ) : null}

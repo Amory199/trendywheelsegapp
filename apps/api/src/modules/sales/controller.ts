@@ -13,8 +13,17 @@ async function invalidateSalesCache(): Promise<void> {
   if (keys.length > 0) await redis.del(...keys);
 }
 
+const CATEGORY_MAP: Record<string, string> = {
+  "golf-cart": "golf_cart",
+  "hover-board": "hover_board",
+  scooter: "scooter",
+  buggy: "buggy",
+  utv: "utv",
+  "jet-ski": "jet_ski",
+};
+
 export async function list(req: Request, res: Response): Promise<void> {
-  const { status, userId, page = 1, limit = 20 } = req.query as Record<string, string>;
+  const { status, userId, category, page = 1, limit = 20 } = req.query as Record<string, string>;
   const pageNum = Number(page);
   const limitNum = Number(limit);
 
@@ -25,10 +34,11 @@ export async function list(req: Request, res: Response): Promise<void> {
   if (status && isStaff) where.status = status;
   else where.status = "active";
   if (userId) where.userId = userId;
+  if (category && category in CATEGORY_MAP) where.category = CATEGORY_MAP[category];
 
   // Cache only the public/anonymous unfiltered case — that's the hot path
   // (customer browse). Staff filters bypass cache to keep them fresh.
-  const isCacheable = !req.user && !status && !userId;
+  const isCacheable = !req.user && !status && !userId && !category;
   const cacheKey = `${SALES_CACHE_PREFIX}${pageNum}:${limitNum}`;
   if (isCacheable) {
     const cached = await redis.get(cacheKey);
@@ -73,8 +83,12 @@ export async function getById(req: Request, res: Response): Promise<void> {
 }
 
 export async function create(req: Request, res: Response): Promise<void> {
+  const body = req.body as Record<string, unknown>;
+  if (typeof body.category === "string" && body.category in CATEGORY_MAP) {
+    body.category = CATEGORY_MAP[body.category];
+  }
   const listing = await prisma.salesListing.create({
-    data: { ...req.body, userId: req.user!.userId, status: "pending", images: [] },
+    data: { ...body, userId: req.user!.userId, status: "pending", images: [] } as never,
   });
   await invalidateSalesCache();
   // Notify staff that a listing is awaiting approval.

@@ -155,6 +155,15 @@ enum VehicleType {
   LED
 }
 
+enum VehicleCategory {
+  golf_cart   @map("golf-cart")
+  hover_board @map("hover-board")
+  scooter
+  buggy
+  utv
+  jet_ski     @map("jet-ski")
+}
+
 enum FuelType {
   electric
   gasoline
@@ -182,6 +191,7 @@ enum ListingType {
 model Vehicle {
   id            String        @id @default(uuid()) @db.Uuid
   name          String
+  category      VehicleCategory @default(golf_cart)
   type          VehicleType
   seating       Int
   fuelType      FuelType      @map("fuel_type")
@@ -380,6 +390,7 @@ model SalesListing {
   id             String        @id @default(uuid()) @db.Uuid
   userId         String        @map("user_id") @db.Uuid
   title          String
+  category       VehicleCategory @default(golf_cart)
   make           String
   model          String
   year           Int

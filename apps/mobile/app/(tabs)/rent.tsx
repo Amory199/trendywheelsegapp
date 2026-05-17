@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import type { Vehicle } from "@trendywheels/types";
+import type { Vehicle, VehicleCategory } from "@trendywheels/types";
 import { colors, spacing, twEGP, twPalette } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { CategoryStrip } from "../../components/CategoryStrip";
 import { api } from "../../lib/api";
 
 const PAGE_SIZE = 20;
@@ -24,12 +25,17 @@ const palette = twPalette(false);
 export default function RentScreen(): JSX.Element {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<VehicleCategory | "all">("all");
 
   const q = useInfiniteQuery({
-    queryKey: ["vehicles", search],
-    queryFn: ({ pageParam = 1 }) => api.getVehicles({ page: pageParam, limit: PAGE_SIZE }),
-    getNextPageParam: (last, all) =>
-      last.data.length === PAGE_SIZE ? all.length + 1 : undefined,
+    queryKey: ["vehicles", search, category],
+    queryFn: ({ pageParam = 1 }) =>
+      api.getVehicles({
+        page: pageParam,
+        limit: PAGE_SIZE,
+        ...(category !== "all" ? { category } : {}),
+      }),
+    getNextPageParam: (last, all) => (last.data.length === PAGE_SIZE ? all.length + 1 : undefined),
     initialPageParam: 1,
   });
 
@@ -43,14 +49,16 @@ export default function RentScreen(): JSX.Element {
           onPress={() => router.push(`/rent/${item.id}`)}
         >
           <Image
-            source={{ uri: (item.images as string[] | undefined)?.[0] ?? "https://placehold.co/400x225/2B0FF8/FFFFFF" }}
+            source={{
+              uri:
+                (item.images as string[] | undefined)?.[0] ??
+                "https://placehold.co/400x225/2B0FF8/FFFFFF",
+            }}
             style={styles.cardImage}
             contentFit="cover"
             transition={200}
           />
-          {item.status === "available" ? (
-            <View style={styles.availableDot} />
-          ) : null}
+          {item.status === "available" ? <View style={styles.availableDot} /> : null}
           <View style={styles.cardBody}>
             <Text style={styles.cardName} numberOfLines={1}>
               {item.name}
@@ -59,9 +67,7 @@ export default function RentScreen(): JSX.Element {
               {item.type} · {item.seating} seats · {item.transmission}
             </Text>
             <View style={styles.cardFooter}>
-              <Text style={styles.cardPrice}>
-                {twEGP(Number(item.dailyRate))}/day
-              </Text>
+              <Text style={styles.cardPrice}>{twEGP(Number(item.dailyRate))}/day</Text>
               <View style={styles.locationRow}>
                 <Ionicons name="location-outline" size={12} color={palette.muted} />
                 <Text style={styles.cardLocation} numberOfLines={1}>
@@ -79,7 +85,9 @@ export default function RentScreen(): JSX.Element {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>TRENDY<Text style={styles.eyebrowDot}>.</Text>WHEELS</Text>
+        <Text style={styles.eyebrow}>
+          TRENDY<Text style={styles.eyebrowDot}>.</Text>WHEELS
+        </Text>
         <Text style={styles.title}>Find your ride</Text>
         <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={18} color={palette.muted} />
@@ -93,8 +101,14 @@ export default function RentScreen(): JSX.Element {
         </View>
       </View>
 
+      <CategoryStrip value={category} onChange={setCategory} />
+
       {q.isLoading ? (
-        <ActivityIndicator color={colors.brand.friendlyBlue} style={{ marginTop: 40 }} size="large" />
+        <ActivityIndicator
+          color={colors.brand.friendlyBlue}
+          style={{ marginTop: 40 }}
+          size="large"
+        />
       ) : vehicles.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="car-outline" size={64} color={palette.muted} />
@@ -110,7 +124,10 @@ export default function RentScreen(): JSX.Element {
           onEndReachedThreshold={0.5}
           ListFooterComponent={
             q.isFetchingNextPage ? (
-              <ActivityIndicator color={colors.brand.friendlyBlue} style={{ padding: spacing.md }} />
+              <ActivityIndicator
+                color={colors.brand.friendlyBlue}
+                style={{ padding: spacing.md }}
+              />
             ) : null
           }
         />

@@ -5,6 +5,21 @@ export type UserStatus = "active" | "inactive" | "suspended";
 export type LoyaltyTier = "bronze" | "silver" | "gold" | "platinum";
 
 export type VehicleType = "4-seater" | "6-seater" | "LED";
+export type VehicleCategory = "golf-cart" | "hover-board" | "scooter" | "buggy" | "utv" | "jet-ski";
+
+export const VEHICLE_CATEGORIES: ReadonlyArray<{
+  key: VehicleCategory;
+  label: string;
+  icon: string;
+}> = [
+  { key: "golf-cart", label: "Golf Carts", icon: "car-sport" },
+  { key: "hover-board", label: "Hover Boards", icon: "rocket" },
+  { key: "scooter", label: "Scooters", icon: "bicycle" },
+  { key: "buggy", label: "Buggies", icon: "speedometer" },
+  { key: "utv", label: "UTVs", icon: "car" },
+  { key: "jet-ski", label: "Jet Skis", icon: "boat" },
+];
+
 export type FuelType = "electric" | "gasoline" | "hybrid";
 export type Transmission = "automatic" | "manual";
 export type VehicleStatus = "available" | "rented" | "maintenance" | "inactive";
@@ -59,6 +74,7 @@ export interface UserPreferences {
 export interface Vehicle {
   id: string;
   name: string;
+  category: VehicleCategory;
   type: VehicleType;
   seating: number;
   fuelType: FuelType;
@@ -128,6 +144,7 @@ export interface SalesListing {
   id: string;
   userId: string;
   title: string;
+  category: VehicleCategory;
   make: string;
   model: string;
   year: number;
@@ -210,6 +227,7 @@ export interface LoginResponse extends AuthTokens {
 
 export interface VehicleFilters {
   type?: VehicleType;
+  category?: VehicleCategory;
   priceMin?: number;
   priceMax?: number;
   available?: boolean;

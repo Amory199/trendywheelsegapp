@@ -19,16 +19,30 @@ const VEHICLE_TYPE_MAP: Record<string, "FOUR_SEATER" | "SIX_SEATER" | "LED"> = {
   LED: "LED",
 };
 
-function normalizeVehicleData<T extends { type?: unknown }>(input: T): T {
+const VEHICLE_CATEGORY_MAP: Record<string, string> = {
+  "golf-cart": "golf_cart",
+  "hover-board": "hover_board",
+  scooter: "scooter",
+  buggy: "buggy",
+  utv: "utv",
+  "jet-ski": "jet_ski",
+};
+
+function normalizeVehicleData<T extends { type?: unknown; category?: unknown }>(input: T): T {
+  let out = input;
   if (typeof input.type === "string" && input.type in VEHICLE_TYPE_MAP) {
-    return { ...input, type: VEHICLE_TYPE_MAP[input.type] };
+    out = { ...out, type: VEHICLE_TYPE_MAP[input.type] };
   }
-  return input;
+  if (typeof input.category === "string" && input.category in VEHICLE_CATEGORY_MAP) {
+    out = { ...out, category: VEHICLE_CATEGORY_MAP[input.category] };
+  }
+  return out;
 }
 
 export async function list(req: Request, res: Response): Promise<void> {
   const {
     type,
+    category,
     priceMin,
     priceMax,
     available,
@@ -40,7 +54,7 @@ export async function list(req: Request, res: Response): Promise<void> {
 
   const listingType = (req.query.listingType ?? "") as string;
 
-  const cacheKey = `${VEHICLES_CACHE_PREFIX}${JSON.stringify({ type, priceMin, priceMax, available, listingType, page, limit })}`;
+  const cacheKey = `${VEHICLES_CACHE_PREFIX}${JSON.stringify({ type, category, priceMin, priceMax, available, listingType, page, limit })}`;
   const cached = await redis.get(cacheKey);
   if (cached) {
     res.setHeader("X-Cache", "HIT");
@@ -50,6 +64,7 @@ export async function list(req: Request, res: Response): Promise<void> {
 
   const where: Record<string, unknown> = { status: { not: "inactive" } };
   if (type) where.type = type;
+  if (category && category in VEHICLE_CATEGORY_MAP) where.category = VEHICLE_CATEGORY_MAP[category];
   if (available === "true") where.status = "available";
   if (listingType === "rent") where.listingType = { in: ["rent", "both"] };
   else if (listingType === "sale") where.listingType = { in: ["sale", "both"] };
