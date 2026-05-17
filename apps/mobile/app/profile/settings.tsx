@@ -22,7 +22,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 
-type Theme = "dark" | "light";
+type Theme = "dark" | "light" | "system";
 type Language = "en" | "ar";
 
 export default function SettingsScreen(): JSX.Element {
@@ -30,7 +30,7 @@ export default function SettingsScreen(): JSX.Element {
   const { user, hydrate } = useAuth();
   const prefs = user?.preferences;
 
-  const [theme, setTheme] = useState<Theme>(prefs?.theme ?? "dark");
+  const [theme, setTheme] = useState<Theme>((prefs?.theme as Theme) ?? "dark");
   const [language, setLanguage] = useState<Language>(prefs?.language ?? "en");
   const [notifEmail, setNotifEmail] = useState(prefs?.notifications?.email ?? true);
   const [notifSms, setNotifSms] = useState(prefs?.notifications?.sms ?? true);
@@ -41,7 +41,7 @@ export default function SettingsScreen(): JSX.Element {
 
   useEffect(() => {
     if (prefs) {
-      setTheme(prefs.theme ?? "dark");
+      setTheme((prefs.theme as Theme) ?? "dark");
       setLanguage(prefs.language ?? "en");
       setNotifEmail(prefs.notifications?.email ?? true);
       setNotifSms(prefs.notifications?.sms ?? true);
@@ -109,7 +109,54 @@ export default function SettingsScreen(): JSX.Element {
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Appearance — theme toggle hidden until light-mode styles are wired. */}
+        {/* Appearance */}
+        <Animated.View entering={FadeInDown.delay(40).springify()}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
+          <View style={styles.settingsCard}>
+            {(["system", "light", "dark"] as Theme[]).map((t, i) => (
+              <View key={t}>
+                {i > 0 && <View style={styles.langDivider} />}
+                <Pressable
+                  style={[styles.langOption, theme === t && styles.langOptionActive]}
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setTheme(t);
+                  }}
+                >
+                  <View style={styles.settingIcon}>
+                    <Ionicons
+                      name={
+                        t === "system"
+                          ? "phone-portrait-outline"
+                          : t === "light"
+                            ? "sunny-outline"
+                            : "moon-outline"
+                      }
+                      size={18}
+                      color={colors.primary[400]}
+                    />
+                  </View>
+                  <View style={styles.langInfo}>
+                    <Text style={[styles.langLabel, theme === t && styles.langLabelActive]}>
+                      {t === "system" ? "Match system" : t === "light" ? "Light" : "Dark"}
+                    </Text>
+                    <Text style={styles.langHint}>
+                      {t === "system"
+                        ? "Follows your phone's setting"
+                        : t === "light"
+                          ? "Always light theme"
+                          : "Always dark theme"}
+                    </Text>
+                  </View>
+                  {theme === t && (
+                    <Ionicons name="checkmark-circle" size={20} color={colors.accent.DEFAULT} />
+                  )}
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        </Animated.View>
+
         {/* Language */}
         <Animated.View entering={FadeInDown.delay(80).springify()}>
           <Text style={styles.sectionTitle}>Language</Text>

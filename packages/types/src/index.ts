@@ -60,7 +60,7 @@ export interface User {
 }
 
 export interface UserPreferences {
-  theme: "light" | "dark";
+  theme: "light" | "dark" | "system";
   language: "en" | "ar";
   notifications: {
     email: boolean;
