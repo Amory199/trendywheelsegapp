@@ -15,6 +15,7 @@ const router: RouterType = Router();
 
 router.post("/send-otp", validate({ body: sendOtpSchema }), authController.sendOtp);
 router.post("/verify-otp", validate({ body: verifyOtpSchema }), authController.verifyOtp);
+router.post("/firebase-token", authController.firebaseToken);
 router.post("/login", validate({ body: staffLoginSchema }), authController.login);
 router.post("/refresh-token", validate({ body: refreshTokenSchema }), authController.refreshToken);
 router.post("/logout", authenticate, authController.logout);

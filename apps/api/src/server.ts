@@ -8,12 +8,14 @@ import { app } from "./app.js";
 import { env } from "./config/env.js";
 import { registerSocketNamespaces } from "./sockets/index.js";
 import { writeError } from "./utils/error-sink.js";
+import { initFirebase } from "./utils/firebase.js";
 import { registerIO } from "./utils/io-registry.js";
 import { logger } from "./utils/logger.js";
 import { initSentry, Sentry } from "./utils/sentry.js";
 import { ensureBucket } from "./utils/storage.js";
 
 initSentry();
+initFirebase();
 
 // ─── Process-level safety net ───────────────────────────────────
 // Anything that escapes both Express and the worker handlers lands here.
