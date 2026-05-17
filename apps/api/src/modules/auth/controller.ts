@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 
+import { writeError } from "../../utils/error-sink.js";
 import { AppError } from "../../utils/errors.js";
 import { verifyFirebaseIdToken } from "../../utils/firebase.js";
 
@@ -47,7 +48,26 @@ export async function firebaseToken(req: Request, res: Response): Promise<void> 
   if (!idToken || typeof idToken !== "string") {
     throw AppError.badRequest("idToken is required");
   }
-  const decoded = await verifyFirebaseIdToken(idToken);
+  let decoded;
+  try {
+    decoded = await verifyFirebaseIdToken(idToken);
+  } catch (err) {
+    void writeError({
+      level: "warn",
+      source: "api",
+      message: "Firebase ID token verification failed",
+      stack: err instanceof Error ? err.stack : null,
+      route: "/api/auth/firebase-token",
+      method: "POST",
+      ipAddress:
+        (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ||
+        req.ip ||
+        null,
+      userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
+      metadata: { reason: err instanceof Error ? err.message : "unknown" },
+    });
+    throw AppError.unauthorized("Invalid Firebase token");
+  }
   const phone = decoded.phone_number;
   if (!phone) {
     throw AppError.unauthorized("Firebase token has no phone claim");

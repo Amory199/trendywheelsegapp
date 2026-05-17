@@ -5,12 +5,51 @@ import { Worker } from "bullmq";
 import { Expo, type ExpoPushMessage, type ExpoPushTicket } from "expo-server-sdk";
 
 import { prisma } from "../config/database.js";
+import { redis } from "../config/redis.js";
 import { sweepStaleLeads } from "../modules/crm/service.js";
 import { queueConnection, scheduleRecurringSweeps } from "../queues/index.js";
 import { getIO } from "../utils/io-registry.js";
 import { logger } from "../utils/logger.js";
 
 const expo = new Expo();
+
+// Push policy knobs.
+const PUSH_DEDUPE_TTL_SEC = 60;
+const PUSH_FATIGUE_DAILY_CAP = 30;
+const PUSH_FATIGUE_TTL_SEC = 26 * 60 * 60;
+// Critical types always go through, regardless of fatigue cap or push prefs.
+const CRITICAL_PUSH_TYPES = new Set([
+  "booking_approved",
+  "booking_rejected",
+  "message_new",
+  "payment_failed",
+  "security_alert",
+]);
+
+interface UserPrefs {
+  notifications?: { push?: boolean };
+}
+function shouldSkipForPrefs(prefs: unknown, type: string): boolean {
+  if (CRITICAL_PUSH_TYPES.has(type)) return false;
+  const p = (prefs ?? null) as UserPrefs | null;
+  return p?.notifications?.push === false;
+}
+
+function dedupeKey(job: NotifyJob): string {
+  const data = job.data ?? {};
+  const ref =
+    (data as { bookingId?: string }).bookingId ??
+    (data as { messageId?: string }).messageId ??
+    (data as { leadId?: string }).leadId ??
+    (data as { ticketId?: string }).ticketId ??
+    "";
+  return `push:dedupe:${job.userId}:${job.type}:${ref}`;
+}
+
+function fatigueKey(userId: string): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return `push:count:${userId}:${today}`;
+}
 
 void scheduleRecurringSweeps().catch((err) =>
   logger.error({ err }, "Failed to schedule recurring sweeps"),
@@ -53,8 +92,40 @@ const notificationsWorker = new Worker<NotifyJob>(
       io.of("/notifications").to(`user:${job.data.userId}`).emit("notification:new", notification);
     }
 
-    // Dispatch Expo push to all of the user's registered devices.
+    // Dispatch Expo push to all of the user's registered devices, gated by
+    // user prefs + dedupe + fatigue cap (with critical types bypassing prefs
+    // and the cap but still subject to dedupe).
     try {
+      const user = await prisma.user.findUnique({
+        where: { id: job.data.userId },
+        select: { preferences: true },
+      });
+      if (shouldSkipForPrefs(user?.preferences, job.data.type)) {
+        logger.info({ userId: job.data.userId, type: job.data.type }, "Push skipped (user pref)");
+        return;
+      }
+
+      const key = dedupeKey(job.data);
+      // SET NX — returns "OK" on first set, null on collision.
+      const claimed = await redis.set(key, "1", "EX", PUSH_DEDUPE_TTL_SEC, "NX");
+      if (claimed === null) {
+        logger.info({ key, userId: job.data.userId, type: job.data.type }, "Push deduped");
+        return;
+      }
+
+      if (!CRITICAL_PUSH_TYPES.has(job.data.type)) {
+        const fKey = fatigueKey(job.data.userId);
+        const count = await redis.incr(fKey);
+        if (count === 1) await redis.expire(fKey, PUSH_FATIGUE_TTL_SEC);
+        if (count > PUSH_FATIGUE_DAILY_CAP) {
+          logger.info(
+            { userId: job.data.userId, type: job.data.type, count },
+            "Push skipped (fatigue cap)",
+          );
+          return;
+        }
+      }
+
       const tokens = await prisma.pushToken.findMany({
         where: { userId: job.data.userId },
         select: { token: true },

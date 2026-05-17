@@ -195,7 +195,7 @@ export async function create(req: Request, res: Response): Promise<void> {
           type: "booking_pending",
           title: "New booking awaiting approval",
           body: `${vehicle.name} · ${days} day${days === 1 ? "" : "s"} · EGP ${totalCost.toLocaleString()}`,
-          data: { bookingId: booking.id, vehicleId },
+          data: { bookingId: booking.id, vehicleId, url: "/admin/bookings" },
         },
         { removeOnComplete: true },
       ),
@@ -223,7 +223,7 @@ export async function approve(req: Request, res: Response): Promise<void> {
       type: "booking_approved",
       title: "Booking confirmed",
       body: "Your booking has been approved. See you soon.",
-      data: { bookingId: booking.id },
+      data: { bookingId: booking.id, url: `/rent/my-bookings` },
     },
     { removeOnComplete: true },
   );
@@ -249,7 +249,7 @@ export async function reject(req: Request, res: Response): Promise<void> {
       type: "booking_rejected",
       title: "Booking declined",
       body: reason ?? "Your booking was declined. Please contact support.",
-      data: { bookingId: booking.id },
+      data: { bookingId: booking.id, url: `/rent/my-bookings` },
     },
     { removeOnComplete: true },
   );

@@ -1,7 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Vehicle, VehicleType } from "@trendywheels/types";
+import {
+  VEHICLE_CATEGORIES,
+  type Vehicle,
+  type VehicleCategory,
+  type VehicleType,
+} from "@trendywheels/types";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -46,15 +51,17 @@ export default function AvailabilityPage(): JSX.Element {
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<VehicleStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState("All");
+  const [categoryFilter, setCategoryFilter] = useState<VehicleCategory | "all">("all");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["vehicles", statusFilter, typeFilter],
+    queryKey: ["vehicles", statusFilter, typeFilter, categoryFilter],
     queryFn: () =>
       api.getVehicles({
         ...(statusFilter !== "all" ? { status: statusFilter } : {}),
         ...(typeFilter !== "All" ? { type: typeFilter as VehicleType } : {}),
+        ...(categoryFilter !== "all" ? { category: categoryFilter } : {}),
         limit: 100,
       }),
     refetchInterval: 30_000,
@@ -110,7 +117,9 @@ export default function AvailabilityPage(): JSX.Element {
               key={s}
               onClick={() => setStatusFilter(statusFilter === s ? "all" : s)}
               className={`bg-white rounded-xl border p-4 text-left transition hover:shadow-sm ${
-                statusFilter === s ? cfg.border + " ring-2 ring-offset-1 ring-emerald-400" : "border-gray-200"
+                statusFilter === s
+                  ? cfg.border + " ring-2 ring-offset-1 ring-emerald-400"
+                  : "border-gray-200"
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
@@ -143,6 +152,18 @@ export default function AvailabilityPage(): JSX.Element {
             </option>
           ))}
         </select>
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value as VehicleCategory | "all")}
+          className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          <option value="all">All categories</option>
+          {VEHICLE_CATEGORIES.map((c) => (
+            <option key={c.key} value={c.key}>
+              {c.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {isLoading ? (
@@ -155,29 +176,29 @@ export default function AvailabilityPage(): JSX.Element {
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filtered.map((v) => {
-            const statusKey = (v.status as VehicleStatus) in STATUS_CONFIG
-              ? (v.status as VehicleStatus)
-              : "inactive";
+            const statusKey =
+              (v.status as VehicleStatus) in STATUS_CONFIG
+                ? (v.status as VehicleStatus)
+                : "inactive";
             const cfg = STATUS_CONFIG[statusKey];
             return (
-              <div
-                key={v.id}
-                className={`bg-white rounded-xl border p-4 space-y-3 ${cfg.border}`}
-              >
+              <div key={v.id} className={`bg-white rounded-xl border p-4 space-y-3 ${cfg.border}`}>
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-semibold text-gray-900">{v.name}</div>
-                    <div className="text-xs text-gray-400 capitalize">{v.type}</div>
+                    <div className="text-xs text-gray-400 capitalize">
+                      {VEHICLE_CATEGORIES.find((c) => c.key === v.category)?.label ?? v.type}
+                    </div>
                   </div>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${cfg.badge}`}
-                  >
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cfg.badge}`}>
                     {cfg.label}
                   </span>
                 </div>
 
                 <div className="text-xs text-gray-500 space-y-0.5">
-                  <div>{v.type} · {v.seating} seats</div>
+                  <div>
+                    {v.type} · {v.seating} seats
+                  </div>
                   <div>{v.dailyRate ? `${v.dailyRate} EGP/day` : "—"}</div>
                 </div>
 
@@ -212,6 +233,7 @@ export default function AvailabilityPage(): JSX.Element {
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Vehicle</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">Category</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Plate</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Type</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Rate</th>
@@ -221,15 +243,19 @@ export default function AvailabilityPage(): JSX.Element {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((v) => {
-                const statusKey = (v.status as VehicleStatus) in STATUS_CONFIG
-                  ? (v.status as VehicleStatus)
-                  : "inactive";
+                const statusKey =
+                  (v.status as VehicleStatus) in STATUS_CONFIG
+                    ? (v.status as VehicleStatus)
+                    : "inactive";
                 const cfg = STATUS_CONFIG[statusKey];
                 return (
                   <tr key={v.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="font-medium">{v.name}</div>
                       <div className="text-xs text-gray-400">{v.location}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {VEHICLE_CATEGORIES.find((c) => c.key === v.category)?.label ?? "—"}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">{v.location ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-600 capitalize">{v.type}</td>
