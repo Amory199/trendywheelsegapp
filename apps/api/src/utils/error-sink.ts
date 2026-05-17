@@ -3,6 +3,7 @@ import type { Request } from "express";
 import { prisma } from "../config/database.js";
 
 import { logger } from "./logger.js";
+import { Sentry } from "./sentry.js";
 
 export type ErrorSource =
   | "api"
@@ -58,6 +59,33 @@ export async function writeError(ctx: ErrorContext): Promise<void> {
     },
     ctx.message,
   );
+
+  try {
+    Sentry.withScope((scope) => {
+      scope.setLevel(level === "fatal" ? "fatal" : level === "warn" ? "warning" : "error");
+      scope.setTag("source", ctx.source);
+      scope.setTag(
+        "origin",
+        ctx.source === "mobile" ||
+          ["admin", "support", "inventory", "customer"].includes(ctx.source)
+          ? "client-forwarded"
+          : "server",
+      );
+      if (ctx.route) scope.setTag("route", ctx.route);
+      if (ctx.method) scope.setTag("method", ctx.method);
+      if (ctx.userId) scope.setUser({ id: ctx.userId });
+      if (ctx.metadata) scope.setExtras(ctx.metadata);
+      if (ctx.stack) {
+        const err = new Error(ctx.message);
+        err.stack = ctx.stack;
+        Sentry.captureException(err);
+      } else {
+        Sentry.captureMessage(ctx.message);
+      }
+    });
+  } catch {
+    /* never let Sentry breakage prevent local logging */
+  }
 
   try {
     await prisma.errorLog.create({

@@ -32,4 +32,30 @@ router.post("/read-all", authenticate, async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
+// Register an Expo push token for the authenticated user.
+router.post("/push-tokens", authenticate, async (req: Request, res: Response) => {
+  const { token, platform } = req.body as { token?: string; platform?: string };
+  if (!token || typeof token !== "string" || token.length < 8) {
+    res.status(400).json({ error: { message: "Invalid token" } });
+    return;
+  }
+  await prisma.pushToken.upsert({
+    where: { token },
+    create: {
+      token,
+      platform: platform === "ios" || platform === "android" ? platform : "unknown",
+      userId: req.user!.userId,
+    },
+    update: { userId: req.user!.userId, lastSeenAt: new Date() },
+  });
+  res.json({ success: true });
+});
+
+router.delete("/push-tokens/:token", authenticate, async (req: Request, res: Response) => {
+  await prisma.pushToken.deleteMany({
+    where: { token: req.params.token, userId: req.user!.userId },
+  });
+  res.json({ success: true });
+});
+
 export { router as notificationRoutes };

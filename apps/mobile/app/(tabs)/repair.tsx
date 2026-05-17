@@ -100,7 +100,7 @@ export default function RepairScreen(): React.JSX.Element {
               marginTop: 4,
             }}
           >
-            My repairs
+            Service
           </Text>
         </View>
         <TWButton kind="pink" size="sm" icon="add" onPress={() => router.push("/repair/request")}>
@@ -109,6 +109,72 @@ export default function RepairScreen(): React.JSX.Element {
       </View>
 
       <RepairHero />
+
+      <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+          {[
+            { key: "repair", label: "Repair", icon: "construct", route: "/repair/request" },
+            {
+              key: "maintenance",
+              label: "Maintenance",
+              icon: "build",
+              route: "/service/maintenance",
+            },
+            {
+              key: "pickup",
+              label: "Pickup & Delivery",
+              icon: "cube",
+              route: "/service/pickup-delivery",
+            },
+            {
+              key: "customize",
+              label: "Customization",
+              icon: "color-palette",
+              route: "/service/customization",
+            },
+          ].map((s) => (
+            <TWPressable
+              key={s.key}
+              onPress={() => router.push(s.route as never)}
+              style={{
+                flexBasis: "47%",
+                flexGrow: 1,
+                aspectRatio: 1.4,
+                padding: 14,
+                borderRadius: 16,
+                backgroundColor: colors.dark.card,
+                borderWidth: 1,
+                borderColor: colors.dark.border,
+                justifyContent: "space-between",
+              }}
+            >
+              <Ionicons
+                name={s.icon as keyof typeof Ionicons.glyphMap}
+                size={24}
+                color={colors.brand.poolBlue}
+              />
+              <Text
+                style={{ color: palette.text, fontSize: 14, fontWeight: "700" }}
+                numberOfLines={1}
+              >
+                {s.label}
+              </Text>
+            </TWPressable>
+          ))}
+        </View>
+        <Text
+          style={{
+            color: palette.muted,
+            fontSize: 11,
+            fontWeight: "700",
+            letterSpacing: 0.8,
+            textTransform: "uppercase",
+            marginTop: 18,
+          }}
+        >
+          My repairs
+        </Text>
+      </View>
 
       {q.isLoading ? (
         <ActivityIndicator

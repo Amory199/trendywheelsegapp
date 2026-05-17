@@ -2,12 +2,15 @@
  * BullMQ workers. Run as a separate process: `tsx src/workers/index.ts`.
  */
 import { Worker } from "bullmq";
+import { Expo, type ExpoPushMessage, type ExpoPushTicket } from "expo-server-sdk";
 
 import { prisma } from "../config/database.js";
 import { sweepStaleLeads } from "../modules/crm/service.js";
 import { queueConnection, scheduleRecurringSweeps } from "../queues/index.js";
 import { getIO } from "../utils/io-registry.js";
 import { logger } from "../utils/logger.js";
+
+const expo = new Expo();
 
 void scheduleRecurringSweeps().catch((err) =>
   logger.error({ err }, "Failed to schedule recurring sweeps"),
@@ -48,6 +51,46 @@ const notificationsWorker = new Worker<NotifyJob>(
     const io = getIO();
     if (io) {
       io.of("/notifications").to(`user:${job.data.userId}`).emit("notification:new", notification);
+    }
+
+    // Dispatch Expo push to all of the user's registered devices.
+    try {
+      const tokens = await prisma.pushToken.findMany({
+        where: { userId: job.data.userId },
+        select: { token: true },
+      });
+      const valid = tokens.map((t) => t.token).filter((t) => Expo.isExpoPushToken(t));
+      if (valid.length === 0) return;
+
+      const messages: ExpoPushMessage[] = valid.map((to) => ({
+        to,
+        sound: "default",
+        title: job.data.title,
+        body: job.data.body,
+        data: { ...(job.data.data ?? {}), type: job.data.type, notificationId: notification.id },
+      }));
+      const chunks = expo.chunkPushNotifications(messages);
+      const tickets: ExpoPushTicket[] = [];
+      for (const chunk of chunks) {
+        try {
+          const sent = await expo.sendPushNotificationsAsync(chunk);
+          tickets.push(...sent);
+        } catch (err) {
+          logger.warn({ err }, "Expo push chunk failed");
+        }
+      }
+      // Drop stale tokens reported by Expo.
+      const stale: string[] = [];
+      tickets.forEach((ticket, idx) => {
+        if (ticket.status === "error" && ticket.details?.error === "DeviceNotRegistered") {
+          stale.push(valid[idx]);
+        }
+      });
+      if (stale.length) {
+        await prisma.pushToken.deleteMany({ where: { token: { in: stale } } });
+      }
+    } catch (err) {
+      logger.error({ err, userId: job.data.userId }, "Expo push dispatch failed");
     }
   },
   { connection: queueConnection },

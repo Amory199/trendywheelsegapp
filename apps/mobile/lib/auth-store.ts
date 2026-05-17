@@ -10,6 +10,7 @@ interface AuthState {
   sendOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, otp: string) => Promise<void>;
   logout: () => Promise<void>;
+  setUser: (user: User) => void;
 }
 
 export const useAuth = create<AuthState>((set) => ({
@@ -63,5 +64,9 @@ export const useAuth = create<AuthState>((set) => ({
     }
     await clearTokens();
     set({ user: null });
+  },
+
+  setUser(user) {
+    set({ user });
   },
 }));

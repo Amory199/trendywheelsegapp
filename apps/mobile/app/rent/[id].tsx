@@ -16,6 +16,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { TWBadge, TWButton, TWCard, TWChip, TWPressable, palette } from "../../components/ui";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -324,16 +325,22 @@ export default function RentDetailScreen(): React.JSX.Element {
           size="lg"
           icon="arrow-forward"
           iconRight
-          onPress={() =>
-            router.push({
-              pathname: "/rent/book",
-              params: {
-                vehicleId: vehicle.id,
-                dailyRate: String(vehicle.dailyRate),
-                name: vehicle.name,
-              },
-            })
-          }
+          onPress={() => {
+            const u = useAuth.getState().user;
+            const bookParams = {
+              vehicleId: vehicle.id,
+              dailyRate: String(vehicle.dailyRate),
+              name: vehicle.name,
+            };
+            if (!u?.licenseNumber) {
+              router.push({
+                pathname: "/profile/license",
+                params: { next: "/rent/book", ...bookParams },
+              });
+            } else {
+              router.push({ pathname: "/rent/book", params: bookParams });
+            }
+          }}
           style={{ paddingHorizontal: 28 }}
         >
           Book now

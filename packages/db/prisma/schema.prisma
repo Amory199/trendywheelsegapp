@@ -111,6 +111,7 @@ model User {
   orders           Order[]
   tradeInQuotes    TradeInQuote[]
   transportRequests TransportRequest[]
+  pushTokens       PushToken[]
 
   @@map("users")
 }
@@ -153,6 +154,20 @@ enum VehicleType {
   FOUR_SEATER @map("4-seater")
   SIX_SEATER  @map("6-seater")
   LED
+}
+
+model PushToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  token      String   @unique
+  platform   String
+  createdAt  DateTime @default(now()) @map("created_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_tokens")
 }
 
 enum VehicleCategory {
