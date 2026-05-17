@@ -60,7 +60,13 @@ export default function SupportTickets(): JSX.Element {
           <Text style={styles.hello}>Hi, {user?.name?.split(" ")[0] ?? "Agent"}</Text>
           <Text style={styles.role}>SUPPORT · INBOX</Text>
         </View>
-        <Pressable hitSlop={12} onPress={() => void logout()}>
+        <Pressable
+          hitSlop={12}
+          onPress={async () => {
+            await logout();
+            router.replace("/(auth)/phone");
+          }}
+        >
           <Ionicons name="log-out-outline" size={22} color={colors.text.light} />
         </Pressable>
       </View>

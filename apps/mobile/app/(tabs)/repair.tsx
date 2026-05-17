@@ -5,10 +5,15 @@ import { colors } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as React from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Dimensions, FlatList, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 const REPAIR_VIDEO = require("../../assets/category/repair.mp4");
+
+const SCREEN_W = Dimensions.get("window").width;
+const SERVICE_H_PADDING = 20;
+const SERVICE_GAP = 12;
+const SERVICE_TILE_W = (SCREEN_W - SERVICE_H_PADDING * 2 - SERVICE_GAP) / 2;
 
 function RepairHero(): React.JSX.Element {
   const player = useVideoPlayer(REPAIR_VIDEO, (p) => {
@@ -19,10 +24,10 @@ function RepairHero(): React.JSX.Element {
   return (
     <View
       style={{
-        height: 160,
+        height: 240,
         marginHorizontal: 20,
-        marginBottom: 12,
-        borderRadius: 16,
+        marginBottom: 14,
+        borderRadius: 18,
         overflow: "hidden",
         backgroundColor: "rgba(0,0,0,0.4)",
       }}
@@ -137,9 +142,8 @@ export default function RepairScreen(): React.JSX.Element {
               key={s.key}
               onPress={() => router.push(s.route as never)}
               style={{
-                flexBasis: "47%",
-                flexGrow: 1,
-                aspectRatio: 1.4,
+                width: SERVICE_TILE_W,
+                minHeight: 110,
                 padding: 14,
                 borderRadius: 16,
                 backgroundColor: colors.dark.card,

@@ -46,7 +46,13 @@ export default function AdminDashboard(): JSX.Element {
           <Text style={styles.hello}>Hi, {user?.name ?? "Admin"}</Text>
           <Text style={styles.role}>ADMIN</Text>
         </View>
-        <Pressable hitSlop={12} onPress={() => void logout()}>
+        <Pressable
+          hitSlop={12}
+          onPress={async () => {
+            await logout();
+            router.replace("/(auth)/phone");
+          }}
+        >
           <Ionicons name="log-out-outline" size={22} color={colors.text.light} />
         </Pressable>
       </View>
