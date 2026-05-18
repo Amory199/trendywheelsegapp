@@ -16,7 +16,9 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.trendywheels.app",
-      googleServicesFile: "./GoogleService-Info.plist",
+      // On EAS, GOOGLE_SERVICES_PLIST is injected via file secret. Locally
+      // it falls back to the gitignored plist next to this config.
+      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ?? "./GoogleService-Info.plist",
     },
     android: {
       adaptiveIcon: {
@@ -24,7 +26,9 @@ module.exports = {
         backgroundColor: "#FFFFFF",
       },
       package: "com.trendywheels.app",
-      googleServicesFile: "./google-services.json",
+      // On EAS, GOOGLE_SERVICES_JSON is injected via file secret. Locally
+      // it falls back to the gitignored JSON next to this config.
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
       permissions: ["android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"],
     },
     plugins: [
