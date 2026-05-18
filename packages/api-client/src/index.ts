@@ -320,8 +320,98 @@ class ApiClient {
     });
   }
 
-  async adminListUsers(): Promise<{ data: unknown[] }> {
-    return this.request("GET", "/api/users", { params: { limit: 100 } });
+  async adminListUsers(params?: {
+    accountType?: string;
+    staffRole?: string;
+    q?: string;
+  }): Promise<{ data: unknown[] }> {
+    return this.request("GET", "/api/users", {
+      params: { limit: 100, ...params } as Record<string, string | number | boolean | undefined>,
+    });
+  }
+
+  async adminUpdateUser(id: string, patch: Record<string, unknown>): Promise<{ data: unknown }> {
+    return this.request("PUT", `/api/users/${encodeURIComponent(id)}`, { body: patch });
+  }
+
+  async adminDisableUser(id: string): Promise<{ data: unknown }> {
+    return this.request("POST", `/api/users/${encodeURIComponent(id)}/disable`);
+  }
+
+  async adminEnableUser(id: string): Promise<{ data: unknown }> {
+    return this.request("POST", `/api/users/${encodeURIComponent(id)}/enable`);
+  }
+
+  async adminGetSystemConfig(): Promise<{ data: Record<string, unknown> }> {
+    return this.request("GET", "/api/admin/system-config");
+  }
+
+  async adminUpdateSystemConfig(patch: Record<string, unknown>): Promise<{ data: unknown }> {
+    return this.request("PATCH", "/api/admin/system-config", { body: patch });
+  }
+
+  async adminRecentActivity(limit = 50): Promise<{ data: unknown[] }> {
+    return this.request("GET", "/api/admin/recent-activity", { params: { limit } });
+  }
+
+  async adminBookingTrend(days = 30): Promise<{ data: unknown[] }> {
+    return this.request("GET", "/api/admin/booking-trend", { params: { days } });
+  }
+
+  async adminRevenueBreakdown(): Promise<{ data: unknown[] }> {
+    return this.request("GET", "/api/admin/revenue-breakdown");
+  }
+
+  async adminListRepairs(params?: { status?: string }): Promise<{ data: RepairRequest[] }> {
+    return this.request("GET", "/api/repairs", {
+      params: { limit: 100, ...params } as Record<string, string | number | boolean | undefined>,
+    });
+  }
+
+  async adminUpdateRepair(
+    id: string,
+    patch: Record<string, unknown>,
+  ): Promise<{ data: RepairRequest }> {
+    return this.request("PUT", `/api/repairs/${encodeURIComponent(id)}`, { body: patch });
+  }
+
+  async adminStartRepair(id: string): Promise<{ data: RepairRequest }> {
+    return this.request("POST", `/api/repairs/${encodeURIComponent(id)}/start`);
+  }
+
+  async adminCompleteRepair(id: string): Promise<{ data: RepairRequest }> {
+    return this.request("POST", `/api/repairs/${encodeURIComponent(id)}/complete`);
+  }
+
+  async adminListSales(): Promise<{ data: SalesListing[] }> {
+    return this.request("GET", "/api/sales", { params: { limit: 100 } });
+  }
+
+  async adminUpdateSale(
+    id: string,
+    patch: Record<string, unknown>,
+  ): Promise<{ data: SalesListing }> {
+    return this.request("PUT", `/api/sales/${encodeURIComponent(id)}`, { body: patch });
+  }
+
+  async adminListMaintenance(status?: string): Promise<{ data: unknown[] }> {
+    return this.request("GET", "/api/service/maintenance", { params: { status } });
+  }
+
+  async adminListCustomization(status?: string): Promise<{ data: unknown[] }> {
+    return this.request("GET", "/api/service/customization", { params: { status } });
+  }
+
+  async adminListTransport(status?: string): Promise<{ data: unknown[] }> {
+    return this.request("GET", "/api/service/transport", { params: { status } });
+  }
+
+  async adminUpdateServiceRequest(
+    kind: "maintenance" | "customization" | "transport",
+    id: string,
+    patch: Record<string, unknown>,
+  ): Promise<{ data: unknown }> {
+    return this.request("PATCH", `/api/service/${kind}/${encodeURIComponent(id)}`, { body: patch });
   }
 
   // ─── CRM (sales workspace) ───────────────────────────────
@@ -330,12 +420,64 @@ class ApiClient {
     return this.request("GET", "/api/crm/pipeline");
   }
 
+  async crmLeads(params?: { status?: string; q?: string }): Promise<{ data: unknown[] }> {
+    return this.request("GET", "/api/crm/leads", {
+      params: { limit: 100, ...params } as Record<string, string | number | boolean | undefined>,
+    });
+  }
+
   async crmLead(id: string): Promise<{ data: Record<string, unknown> }> {
     return this.request("GET", `/api/crm/leads/${encodeURIComponent(id)}`);
   }
 
+  async crmCreateLead(payload: {
+    contactName: string;
+    contactPhone?: string;
+    contactEmail?: string;
+    source?: string;
+    estimatedValue?: number;
+    notes?: string;
+  }): Promise<{ data: Record<string, unknown> }> {
+    return this.request("POST", "/api/crm/leads", { body: payload });
+  }
+
+  async crmUpdateLead(
+    id: string,
+    patch: Record<string, unknown>,
+  ): Promise<{ data: Record<string, unknown> }> {
+    return this.request("PATCH", `/api/crm/leads/${encodeURIComponent(id)}`, { body: patch });
+  }
+
+  async crmClaimLead(id: string): Promise<{ data: Record<string, unknown> }> {
+    return this.request("POST", `/api/crm/leads/${encodeURIComponent(id)}/claim`);
+  }
+
+  async crmReassignLead(id: string, agentId: string): Promise<{ data: Record<string, unknown> }> {
+    return this.request("POST", `/api/crm/leads/${encodeURIComponent(id)}/reassign`, {
+      body: { agentId },
+    });
+  }
+
   async crmInventory(): Promise<{ data: unknown[] }> {
     return this.request("GET", "/api/crm/inventory");
+  }
+
+  async crmAttachVehicle(
+    leadId: string,
+    vehicleId: string,
+    terms?: Record<string, unknown>,
+  ): Promise<{ data: unknown }> {
+    return this.request("POST", "/api/crm/inventory/attach", {
+      body: { leadId, vehicleId, ...terms },
+    });
+  }
+
+  async crmTeam(): Promise<{ data: unknown[] }> {
+    return this.request("GET", "/api/crm/team");
+  }
+
+  async crmRules(): Promise<{ data: Record<string, unknown> }> {
+    return this.request("GET", "/api/crm/rules");
   }
 
   async crmLogActivity(

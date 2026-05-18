@@ -73,7 +73,17 @@ export default function CrmLayout(): JSX.Element {
           ),
         }}
       />
+      <Tabs.Screen
+        name="team"
+        options={{
+          title: "Team",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "people" : "people-outline"} size={22} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen name="leads/[id]" options={{ href: null }} />
+      <Tabs.Screen name="leads/new" options={{ href: null }} />
     </Tabs>
   );
 }

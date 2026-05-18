@@ -1,12 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -20,22 +22,38 @@ import { api } from "../../../lib/api";
 
 interface Ticket {
   id: string;
+  userId?: string;
   subject: string;
   status: string;
   priority: string;
   category?: string;
   message?: string;
   createdAt: string;
-  user?: { name?: string; phone?: string; email?: string };
+  user?: { id?: string; name?: string; phone?: string; email?: string };
+  agent?: { id?: string; name?: string };
+  assignedAgentId?: string | null;
 }
 
-const STATUSES = ["open", "in_progress", "resolved", "closed"];
+interface Agent {
+  id: string;
+  name?: string;
+  phone?: string;
+}
 
-export default function SupportTicketDetail(): JSX.Element {
-  const router = useRouter();
+const STATUSES = ["open", "in-progress", "resolved", "closed"];
+const PRIORITIES = ["low", "medium", "high", "urgent"];
+const PRIORITY_COLOR: Record<string, string> = {
+  urgent: "#FF3D6E",
+  high: "#FF7A00",
+  medium: "#F5B800",
+  low: colors.brand.poolBlue,
+};
+
+export default function SupportTicketDetail(): React.JSX.Element {
   const qc = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [reply, setReply] = useState("");
+  const [assignOpen, setAssignOpen] = useState(false);
 
   const ticketQ = useQuery({
     queryKey: ["support", "ticket", id],
@@ -46,11 +64,20 @@ export default function SupportTicketDetail(): JSX.Element {
     enabled: !!id,
   });
 
-  const updateStatus = useMutation({
-    mutationFn: async (next: string) => api.updateTicket(id!, { status: next } as never),
+  const agentsQ = useQuery({
+    queryKey: ["support", "agents"],
+    queryFn: async (): Promise<Agent[]> => {
+      const r = await api.adminListUsers({ staffRole: "support" });
+      return ((r as { data?: Agent[] }).data ?? []) as Agent[];
+    },
+    enabled: assignOpen,
+  });
+
+  const update = useMutation({
+    mutationFn: async (patch: Record<string, unknown>) => api.updateTicket(id!, patch as never),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["support"] }),
     onError: (err) =>
-      Alert.alert("Couldn't update status", err instanceof Error ? err.message : "Try again"),
+      Alert.alert("Update failed", err instanceof Error ? err.message : "Try again"),
   });
 
   const t = ticketQ.data;
@@ -71,13 +98,30 @@ export default function SupportTicketDetail(): JSX.Element {
         {ticketQ.isLoading || !t ? (
           <ActivityIndicator color={colors.brand.poolBlue} style={{ marginTop: 24 }} />
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 14 }}>
-            <View style={styles.card}>
-              <Text style={styles.subject}>{t.subject}</Text>
-              <Text style={styles.meta}>
-                {t.user?.name ?? t.user?.phone ?? "Customer"} · {t.category ?? "general"}
-              </Text>
-              <Text style={styles.priority}>Priority: {t.priority}</Text>
+          <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
+            <View style={styles.heroCard}>
+              <View style={styles.heroTop}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.subject}>{t.subject}</Text>
+                  <Text style={styles.meta}>
+                    {t.user?.name ?? t.user?.phone ?? "Customer"} · {t.category ?? "general"}
+                  </Text>
+                  <Text style={styles.date}>{new Date(t.createdAt).toLocaleString()}</Text>
+                </View>
+                <View style={[styles.priorityChip, { borderColor: PRIORITY_COLOR[t.priority] }]}>
+                  <View
+                    style={[styles.priorityDot, { backgroundColor: PRIORITY_COLOR[t.priority] }]}
+                  />
+                  <Text style={[styles.priorityText, { color: PRIORITY_COLOR[t.priority] }]}>
+                    {t.priority}
+                  </Text>
+                </View>
+              </View>
+              {t.agent?.name ? (
+                <Text style={styles.assigned}>Assigned to {t.agent.name}</Text>
+              ) : (
+                <Text style={styles.unassigned}>Unassigned</Text>
+              )}
             </View>
 
             {t.message && (
@@ -88,19 +132,22 @@ export default function SupportTicketDetail(): JSX.Element {
             )}
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Status</Text>
-              <View style={styles.stageRow}>
-                {STATUSES.map((s) => (
+              <Text style={styles.sectionTitle}>Priority</Text>
+              <View style={styles.chipRow}>
+                {PRIORITIES.map((p) => (
                   <Pressable
-                    key={s}
-                    onPress={() => updateStatus.mutate(s)}
+                    key={p}
+                    onPress={() => update.mutate({ priority: p })}
                     style={[
-                      styles.stage,
-                      t.status === s && { backgroundColor: colors.brand.poolBlue },
+                      styles.chip,
+                      t.priority === p && {
+                        backgroundColor: PRIORITY_COLOR[p],
+                        borderColor: PRIORITY_COLOR[p],
+                      },
                     ]}
                   >
-                    <Text style={[styles.stageText, t.status === s && { color: "#000" }]}>
-                      {s.replace("_", " ")}
+                    <Text style={[styles.chipText, t.priority === p && { color: "#fff" }]}>
+                      {p}
                     </Text>
                   </Pressable>
                 ))}
@@ -108,7 +155,52 @@ export default function SupportTicketDetail(): JSX.Element {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Reply</Text>
+              <Text style={styles.sectionTitle}>Status</Text>
+              <View style={styles.chipRow}>
+                {STATUSES.map((s) => (
+                  <Pressable
+                    key={s}
+                    onPress={() => update.mutate({ status: s })}
+                    style={[
+                      styles.chip,
+                      t.status === s && {
+                        backgroundColor: colors.brand.poolBlue,
+                        borderColor: colors.brand.poolBlue,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.chipText, t.status === s && { color: "#000" }]}>
+                      {s.replace("_", " ").replace("-", " ")}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.actionRow}>
+              <Pressable
+                style={[styles.assignBtn, { flex: 1 }]}
+                onPress={() => setAssignOpen(true)}
+              >
+                <Ionicons name="person-add" size={14} color="#fff" />
+                <Text style={styles.assignText}>{t.agent?.name ? "Reassign" : "Assign"}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.closeBtn, { flex: 1 }]}
+                onPress={() =>
+                  Alert.alert("Close ticket?", "Mark this ticket as closed?", [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Close", onPress: () => update.mutate({ status: "closed" }) },
+                  ])
+                }
+              >
+                <Ionicons name="checkmark-done" size={14} color="#000" />
+                <Text style={styles.closeText}>Close</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Reply to customer</Text>
               <TextInput
                 value={reply}
                 onChangeText={setReply}
@@ -121,14 +213,7 @@ export default function SupportTicketDetail(): JSX.Element {
                 style={[styles.sendBtn, !reply.trim() && { opacity: 0.4 }]}
                 disabled={!reply.trim()}
                 onPress={() => {
-                  // Reply flow uses the messaging endpoint. We need the user id from the ticket
-                  // to start a conversation. Falls back to logging the reply as an internal note.
-                  if (!t.user) {
-                    Alert.alert("No customer linked", "Cannot send reply on this ticket.");
-                    return;
-                  }
-                  // Use sendMessage if user has an id field.
-                  const userId = (t as unknown as { userId?: string }).userId;
+                  const userId = t.user?.id ?? t.userId;
                   if (!userId) {
                     Alert.alert("No recipient");
                     return;
@@ -150,6 +235,45 @@ export default function SupportTicketDetail(): JSX.Element {
             </View>
           </ScrollView>
         )}
+
+        <Modal
+          visible={assignOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setAssignOpen(false)}
+        >
+          <Pressable style={styles.modalBg} onPress={() => setAssignOpen(false)}>
+            <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
+              <Text style={styles.modalTitle}>Pick support agent</Text>
+              {agentsQ.isLoading ? (
+                <ActivityIndicator color={colors.brand.poolBlue} />
+              ) : (
+                <FlatList
+                  data={agentsQ.data ?? []}
+                  keyExtractor={(a) => a.id}
+                  ListEmptyComponent={
+                    <Text style={styles.emptyText}>No support agents found.</Text>
+                  }
+                  renderItem={({ item }) => (
+                    <Pressable
+                      style={styles.agentRow}
+                      onPress={() => {
+                        update.mutate({ assignedAgentId: item.id });
+                        setAssignOpen(false);
+                      }}
+                    >
+                      <Ionicons name="person-circle" size={28} color={colors.brand.poolBlue} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.agentName}>{item.name ?? "Agent"}</Text>
+                        <Text style={styles.agentPhone}>{item.phone ?? ""}</Text>
+                      </View>
+                    </Pressable>
+                  )}
+                />
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
       </KeyboardAvoidingView>
     </>
   );
@@ -157,7 +281,7 @@ export default function SupportTicketDetail(): JSX.Element {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dark.bg },
-  card: {
+  heroCard: {
     backgroundColor: colors.dark.card,
     borderRadius: 14,
     borderWidth: 1,
@@ -165,13 +289,35 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 8,
   },
-  subject: { color: colors.text.light, fontSize: 18, fontWeight: "700" },
-  meta: { color: colors.text.secondary, fontSize: 12 },
-  priority: { color: colors.brand.poolBlue, fontSize: 12, fontWeight: "700" },
+  heroTop: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
+  subject: { color: colors.text.light, fontSize: 17, fontWeight: "800" },
+  meta: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },
+  date: { color: colors.text.secondary, fontSize: 10, marginTop: 2 },
+  priorityChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  priorityDot: { width: 6, height: 6, borderRadius: 3 },
+  priorityText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
+  assigned: { color: colors.brand.poolBlue, fontSize: 11, fontWeight: "700" },
+  unassigned: { color: "#F5B800", fontSize: 11, fontWeight: "700" },
+  card: {
+    backgroundColor: colors.dark.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+    padding: 12,
+    gap: 8,
+  },
   sectionTitle: { color: colors.text.secondary, fontSize: 11, fontWeight: "700", letterSpacing: 1 },
   body: { color: colors.text.light, fontSize: 14, lineHeight: 20 },
-  stageRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  stage: {
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  chip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
@@ -179,12 +325,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.dark.border,
   },
-  stageText: {
+  chipText: {
     color: colors.text.secondary,
     fontSize: 11,
     fontWeight: "700",
     textTransform: "capitalize",
   },
+  actionRow: { flexDirection: "row", gap: 8 },
+  assignBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: colors.brand.friendlyBlue,
+    borderRadius: 10,
+    paddingVertical: 11,
+  },
+  assignText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  closeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: colors.brand.ecoLimelight ?? "#A9F453",
+    borderRadius: 10,
+    paddingVertical: 11,
+  },
+  closeText: { color: "#000", fontWeight: "800", fontSize: 13 },
   replyInput: {
     backgroundColor: colors.dark.bg,
     borderRadius: 10,
@@ -206,4 +373,30 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   sendBtnText: { color: "#000", fontWeight: "700" },
+  modalBg: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modal: {
+    backgroundColor: colors.dark.bg,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+    maxHeight: "70%",
+  },
+  modalTitle: { color: colors.text.light, fontSize: 18, fontWeight: "700", marginBottom: 14 },
+  agentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.dark.border,
+  },
+  agentName: { color: colors.text.light, fontSize: 14, fontWeight: "700" },
+  agentPhone: { color: colors.text.secondary, fontSize: 11 },
+  emptyText: {
+    color: colors.text.secondary,
+    fontSize: 13,
+    textAlign: "center",
+    paddingVertical: 20,
+  },
 });

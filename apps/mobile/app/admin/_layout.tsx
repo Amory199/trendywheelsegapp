@@ -82,18 +82,27 @@ export default function AdminLayout(): JSX.Element {
         }}
       />
       <Tabs.Screen
-        name="more"
+        name="catalog"
         options={{
-          title: "More",
+          title: "Catalog",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "ellipsis-horizontal-circle" : "ellipsis-horizontal-circle-outline"}
-              size={22}
-              color={color}
-            />
+            <Ionicons name={focused ? "apps" : "apps-outline"} size={22} color={color} />
           ),
         }}
       />
+      <Tabs.Screen name="more" options={{ href: null }} />
+      <Tabs.Screen name="vehicles/index" options={{ href: null }} />
+      <Tabs.Screen name="vehicles/[id]" options={{ href: null }} />
+      <Tabs.Screen name="vehicles/new" options={{ href: null }} />
+      <Tabs.Screen name="repairs/index" options={{ href: null }} />
+      <Tabs.Screen name="repairs/[id]" options={{ href: null }} />
+      <Tabs.Screen name="sales/index" options={{ href: null }} />
+      <Tabs.Screen name="sales/[id]" options={{ href: null }} />
+      <Tabs.Screen name="service-requests/index" options={{ href: null }} />
+      <Tabs.Screen name="service-requests/[kind]/[id]" options={{ href: null }} />
+      <Tabs.Screen name="system-config" options={{ href: null }} />
+      <Tabs.Screen name="recent-activity" options={{ href: null }} />
+      <Tabs.Screen name="users/[id]" options={{ href: null }} />
     </Tabs>
   );
 }
