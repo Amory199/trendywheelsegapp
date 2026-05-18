@@ -9,9 +9,10 @@ import { Share, ScrollView, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { TWLoyaltyBadge } from "../../components/skia/loyalty-badge";
-import { TWBadge, TWButton, TWCard, TWPressable, palette } from "../../components/ui";
+import { TWBadge, TWButton, TWCard, TWPressable } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useTheme } from "../../lib/use-theme";
 
 type Tier = "bronze" | "silver" | "gold" | "platinum";
 
@@ -24,6 +25,7 @@ const TIER_COLORS: Record<string, [string, string]> = {
 
 export default function ProfileScreen(): React.JSX.Element {
   const router = useRouter();
+  const { palette } = useTheme();
   const { user, hydrate, logout, initialized } = useAuth();
 
   useEffect(() => {
@@ -291,6 +293,7 @@ function ActivityTile({
   tone: "blue" | "pink" | "amber" | "pool";
   onPress: () => void;
 }): React.JSX.Element {
+  const { palette } = useTheme();
   const toneMap: Record<typeof tone, string> = {
     blue: colors.brand.friendlyBlue,
     pink: colors.brand.trendyPink,
@@ -351,6 +354,7 @@ function MenuRow({
   onPress: () => void;
   last?: boolean;
 }): React.JSX.Element {
+  const { palette } = useTheme();
   return (
     <TWPressable
       onPress={onPress}

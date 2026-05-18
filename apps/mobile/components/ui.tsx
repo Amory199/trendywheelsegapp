@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { colors, twPalette } from "@trendywheels/ui-tokens";
+import { colors, twPalette, type Palette } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
 import * as React from "react";
 import {
@@ -9,16 +9,23 @@ import {
   StyleSheet,
   Text,
   type TextStyle,
+  TextInput,
+  type TextInputProps,
   View,
   type ViewStyle,
 } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
-export const palette = twPalette(false);
-export const darkPalette = twPalette(true);
+import { useTheme } from "../lib/use-theme";
+
+// Frozen palettes kept for legacy module-level styles. Prefer useTheme() in
+// new code so screens respond to the user's theme toggle.
+export const palette: Palette = twPalette(true);
+export const darkPalette: Palette = twPalette(true);
+export const lightPalette: Palette = twPalette(false);
 
 // ──────────────────────────────────────────────────────────────────────────
-// Typography — single source for headline vs body, mirrored on ui-tokens.
+// Typography
 // ──────────────────────────────────────────────────────────────────────────
 
 export const typo = StyleSheet.create({
@@ -49,14 +56,15 @@ export function TWCard({
   style?: StyleProp<ViewStyle>;
   padded?: boolean;
 }): React.JSX.Element {
+  const { palette: p } = useTheme();
   return (
     <View
       style={[
         {
-          backgroundColor: palette.card,
+          backgroundColor: p.card,
           borderRadius: 16,
           borderWidth: 1,
-          borderColor: palette.border,
+          borderColor: p.border,
           padding: padded ? 16 : 0,
           overflow: "hidden",
         },
@@ -95,6 +103,7 @@ export function TWButton({
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }): React.JSX.Element {
+  const { palette: p } = useTheme();
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -104,27 +113,11 @@ export function TWButton({
     lg: { paddingVertical: 16, paddingHorizontal: 24, fontSize: 16 },
   }[size];
 
-  const palette_ = {
-    pink: {
-      bg: colors.brand.trendyPink,
-      fg: "#FFFFFF",
-      border: "transparent",
-    },
-    blue: {
-      bg: colors.brand.friendlyBlue,
-      fg: "#FFFFFF",
-      border: "transparent",
-    },
-    outline: {
-      bg: "transparent",
-      fg: palette.text,
-      border: palette.border,
-    },
-    ghost: {
-      bg: "transparent",
-      fg: palette.text,
-      border: "transparent",
-    },
+  const tone = {
+    pink: { bg: colors.brand.trendyPink, fg: "#FFFFFF", border: "transparent" },
+    blue: { bg: colors.brand.friendlyBlue, fg: "#FFFFFF", border: "transparent" },
+    outline: { bg: "transparent", fg: p.text, border: p.border },
+    ghost: { bg: "transparent", fg: p.text, border: "transparent" },
   }[kind];
 
   return (
@@ -140,9 +133,9 @@ export function TWButton({
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
-            backgroundColor: palette_.bg,
+            backgroundColor: tone.bg,
             borderWidth: kind === "outline" ? 1 : 0,
-            borderColor: palette_.border,
+            borderColor: tone.border,
             borderRadius: 12,
             paddingVertical: base.paddingVertical,
             paddingHorizontal: base.paddingHorizontal,
@@ -151,9 +144,9 @@ export function TWButton({
           style,
         ]}
       >
-        {icon ? <Ionicons name={icon} size={base.fontSize + 3} color={palette_.fg} /> : null}
+        {icon ? <Ionicons name={icon} size={base.fontSize + 3} color={tone.fg} /> : null}
         {children != null ? (
-          <Text style={{ color: palette_.fg, fontSize: base.fontSize, fontWeight: "700" }}>
+          <Text style={{ color: tone.fg, fontSize: base.fontSize, fontWeight: "700" }}>
             {children}
           </Text>
         ) : null}
@@ -163,7 +156,7 @@ export function TWButton({
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// TWChip — filter / tag with optional active state.
+// TWChip
 // ──────────────────────────────────────────────────────────────────────────
 
 export function TWChip({
@@ -177,6 +170,7 @@ export function TWChip({
   onPress?: () => void;
   icon?: React.ComponentProps<typeof Ionicons>["name"];
 }): React.JSX.Element {
+  const { palette: p } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -187,17 +181,17 @@ export function TWChip({
         paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 999,
-        backgroundColor: active ? colors.brand.trendyPink : palette.cardAlt,
+        backgroundColor: active ? colors.brand.trendyPink : p.cardAlt,
         borderWidth: 1,
-        borderColor: active ? colors.brand.trendyPink : palette.border,
+        borderColor: active ? colors.brand.trendyPink : p.border,
       }}
     >
-      {icon ? <Ionicons name={icon} size={12} color={active ? "#fff" : palette.muted} /> : null}
+      {icon ? <Ionicons name={icon} size={12} color={active ? "#fff" : p.muted} /> : null}
       <Text
         style={{
           fontSize: 12,
           fontWeight: "700",
-          color: active ? "#fff" : palette.text,
+          color: active ? "#fff" : p.text,
         }}
       >
         {children}
@@ -207,7 +201,7 @@ export function TWChip({
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// TWBadge — colored pill for statuses.
+// TWBadge
 // ──────────────────────────────────────────────────────────────────────────
 
 type Tone = "blue" | "pink" | "lime" | "pool" | "red" | "amber" | "muted";
@@ -221,14 +215,15 @@ export function TWBadge({
   tone?: Tone;
   style?: StyleProp<ViewStyle>;
 }): React.JSX.Element {
+  const { palette: p } = useTheme();
   const tones: Record<Tone, { bg: string; fg: string }> = {
-    blue: { bg: "rgba(43,15,248,0.1)", fg: colors.brand.friendlyBlue },
-    pink: { bg: "rgba(255,0,101,0.1)", fg: colors.brand.trendyPink },
-    lime: { bg: "rgba(169,244,83,0.2)", fg: "#4d7a1a" },
-    pool: { bg: "rgba(0,199,234,0.15)", fg: colors.brand.poolBlue },
-    red: { bg: "rgba(255,0,0,0.1)", fg: colors.brand.ultraRed },
-    amber: { bg: "rgba(245,184,0,0.15)", fg: "#8a5a00" },
-    muted: { bg: palette.cardAlt, fg: palette.muted },
+    blue: { bg: "rgba(43,15,248,0.12)", fg: colors.brand.friendlyBlue },
+    pink: { bg: "rgba(255,0,101,0.12)", fg: colors.brand.trendyPink },
+    lime: { bg: "rgba(169,244,83,0.22)", fg: "#4d7a1a" },
+    pool: { bg: "rgba(0,199,234,0.16)", fg: colors.brand.poolBlue },
+    red: { bg: "rgba(255,0,0,0.12)", fg: colors.brand.ultraRed },
+    amber: { bg: "rgba(245,184,0,0.16)", fg: "#8a5a00" },
+    muted: { bg: p.cardAlt, fg: p.muted },
   };
   const t = tones[tone];
   return (
@@ -250,7 +245,7 @@ export function TWBadge({
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// TWScreen — screen wrapper with brand bg + status bar padding.
+// TWScreen
 // ──────────────────────────────────────────────────────────────────────────
 
 export function TWScreen({
@@ -260,12 +255,12 @@ export function TWScreen({
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }): React.JSX.Element {
-  return <View style={[{ flex: 1, backgroundColor: palette.bg }, style]}>{children}</View>;
+  const { palette: p } = useTheme();
+  return <View style={[{ flex: 1, backgroundColor: p.bg }, style]}>{children}</View>;
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// TWGradientHero — blue→navy gradient block with optional pink radial accent.
-// Used on onboarding illustrations + home hero.
+// TWGradientHero
 // ──────────────────────────────────────────────────────────────────────────
 
 export function TWGradientHero({
@@ -304,14 +299,13 @@ export function TWGradientHero({
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// TWTextInput — minimal brand-aligned input.
+// TWTextInput
 // ──────────────────────────────────────────────────────────────────────────
-
-import { TextInput, type TextInputProps } from "react-native";
 
 export function TWTextInput(
   props: TextInputProps & { leftIcon?: React.ComponentProps<typeof Ionicons>["name"] },
 ): React.JSX.Element {
+  const { palette: p } = useTheme();
   const { style, leftIcon, ...rest } = props;
   return (
     <View
@@ -323,22 +317,22 @@ export function TWTextInput(
         paddingHorizontal: 14,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: palette.border,
-        backgroundColor: palette.card,
+        borderColor: p.border,
+        backgroundColor: p.card,
       }}
     >
-      {leftIcon ? <Ionicons name={leftIcon} size={18} color={palette.muted} /> : null}
+      {leftIcon ? <Ionicons name={leftIcon} size={18} color={p.muted} /> : null}
       <TextInput
         {...rest}
-        placeholderTextColor={palette.muted}
-        style={[{ flex: 1, color: palette.text, fontSize: 15 }, style as TextStyle]}
+        placeholderTextColor={p.muted}
+        style={[{ flex: 1, color: p.text, fontSize: 15 }, style as TextStyle]}
       />
     </View>
   );
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// TWPressable — any tappable with built-in scale-feedback animation.
+// TWPressable
 // ──────────────────────────────────────────────────────────────────────────
 
 export function TWPressable({

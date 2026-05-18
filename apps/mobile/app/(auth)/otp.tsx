@@ -1,16 +1,19 @@
-import { colors, spacing, typography, borderRadius } from "@trendywheels/ui-tokens";
+import { colors, spacing, typography, borderRadius, type Palette } from "@trendywheels/ui-tokens";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 
 import { useAuth } from "../../lib/auth-store";
 import { confirmFirebaseOtp } from "../../lib/firebase-phone-auth";
+import { useTheme } from "../../lib/use-theme";
 
 export default function OtpScreen(): JSX.Element {
   const router = useRouter();
   const { phone, mode } = useLocalSearchParams<{ phone: string; mode?: string }>();
   const verifyOtp = useAuth((s) => s.verifyOtp);
   const verifyFirebaseIdToken = useAuth((s) => s.verifyFirebaseIdToken);
+  const { palette: p } = useTheme();
+  const styles = useMemo(() => makeStyles(p), [p]);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +28,6 @@ export default function OtpScreen(): JSX.Element {
       }
       const u = useAuth.getState().user;
 
-      // Role-aware native routing: every staff role gets its own workspace.
       if (u?.accountType === "admin") {
         router.replace("/admin/dashboard");
         return;
@@ -38,7 +40,6 @@ export default function OtpScreen(): JSX.Element {
         router.replace("/support/tickets");
         return;
       }
-      // Customers without a name need to finish onboarding before tabs.
       if (u?.accountType === "customer" && !u.name) {
         router.replace("/(auth)/onboarding");
         return;
@@ -60,7 +61,7 @@ export default function OtpScreen(): JSX.Element {
         <TextInput
           style={styles.input}
           placeholder="000000"
-          placeholderTextColor={colors.text.placeholder}
+          placeholderTextColor={p.muted}
           keyboardType="number-pad"
           value={otp}
           onChangeText={setOtp}
@@ -81,54 +82,52 @@ export default function OtpScreen(): JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.dark.bg,
-    justifyContent: "center",
-    padding: spacing.lg,
-  },
-  content: {
-    alignItems: "center",
-  },
-  title: {
-    fontSize: typography.fontSize.h1,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.light,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    fontSize: typography.fontSize.body,
-    color: colors.text.secondary,
-    marginBottom: spacing["2xl"],
-  },
-  input: {
-    width: "100%",
-    height: 56,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    fontSize: typography.fontSize.h2,
-    color: colors.text.light,
-    backgroundColor: colors.dark.card,
-    marginBottom: spacing.lg,
-    letterSpacing: 8,
-  },
-  button: {
-    width: "100%",
-    height: 44,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.accent.DEFAULT,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    fontSize: typography.fontSize.bodyLarge,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.dark.bg,
-  },
-});
+function makeStyles(p: Palette) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: p.bg,
+      justifyContent: "center",
+      padding: spacing.lg,
+    },
+    content: { alignItems: "center" },
+    title: {
+      fontSize: typography.fontSize.h1,
+      fontWeight: typography.fontWeight.bold,
+      color: p.text,
+      marginBottom: spacing.sm,
+    },
+    subtitle: {
+      fontSize: typography.fontSize.body,
+      color: p.muted,
+      marginBottom: spacing["2xl"],
+    },
+    input: {
+      width: "100%",
+      height: 56,
+      borderWidth: 1,
+      borderColor: p.border,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.md,
+      fontSize: typography.fontSize.h2,
+      color: p.text,
+      backgroundColor: p.card,
+      marginBottom: spacing.lg,
+      letterSpacing: 8,
+    },
+    button: {
+      width: "100%",
+      height: 44,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.brand.trendyPink,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    buttonDisabled: { opacity: 0.5 },
+    buttonText: {
+      fontSize: typography.fontSize.bodyLarge,
+      fontWeight: typography.fontWeight.bold,
+      color: "#fff",
+    },
+  });
+}
