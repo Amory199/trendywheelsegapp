@@ -99,6 +99,13 @@ export async function verifyOtp(
   // Find or create user
   let user = await prisma.user.findUnique({ where: { phone } });
   let isNewSignup = false;
+  if (user && user.accountType !== "customer") {
+    // Phone-OTP is customer-only. Staff and admins must use email + password.
+    throw AppError.forbidden("Staff and admins must sign in with email and password.");
+  }
+  if (user && user.status !== "active") {
+    throw AppError.forbidden("Account is not active");
+  }
   if (!user) {
     user = await prisma.user.create({
       data: {
