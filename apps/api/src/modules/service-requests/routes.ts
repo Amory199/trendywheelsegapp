@@ -11,6 +11,31 @@ const router: RouterType = Router();
 
 const STAFF = new Set(["admin", "staff"]);
 
+const SERVICE_STATUS = z.enum(["submitted", "assigned", "in-progress", "completed", "cancelled"]);
+
+const updateMaintenanceSchema = z.object({
+  status: SERVICE_STATUS.optional(),
+  notes: z.string().max(2000).optional().nullable(),
+  estimatedCost: z.coerce.number().nonnegative().optional().nullable(),
+  assignedToId: z.string().uuid().optional().nullable(),
+  preferredDate: z.string().datetime().optional(),
+});
+
+const updateCustomizationSchema = z.object({
+  status: SERVICE_STATUS.optional(),
+  notes: z.string().max(2000).optional().nullable(),
+  budget: z.coerce.number().nonnegative().optional().nullable(),
+  assignedToId: z.string().uuid().optional().nullable(),
+});
+
+const updateTransportSchema = z.object({
+  status: SERVICE_STATUS.optional(),
+  cargoNotes: z.string().max(2000).optional().nullable(),
+  priceEgp: z.coerce.number().nonnegative().optional().nullable(),
+  driverId: z.string().uuid().optional().nullable(),
+  pickupAt: z.string().datetime().optional(),
+});
+
 // ─── Maintenance ────────────────────────────────────────────────────────
 
 const createMaintenanceSchema = z.object({
@@ -80,14 +105,21 @@ router.post(
   },
 );
 
-router.patch("/maintenance/:id", authenticate, async (req, res) => {
-  if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
-  const updated = await prisma.maintenanceRequest.update({
-    where: { id: req.params.id },
-    data: req.body,
-  });
-  res.json({ data: updated });
-});
+router.patch(
+  "/maintenance/:id",
+  authenticate,
+  validate({ body: updateMaintenanceSchema }),
+  async (req, res) => {
+    if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
+    const data: Record<string, unknown> = { ...req.body };
+    if (data.preferredDate) data.preferredDate = new Date(data.preferredDate as string);
+    const updated = await prisma.maintenanceRequest.update({
+      where: { id: req.params.id },
+      data,
+    });
+    res.json({ data: updated });
+  },
+);
 
 // ─── Customization ──────────────────────────────────────────────────────
 
@@ -154,14 +186,19 @@ router.post(
   },
 );
 
-router.patch("/customization/:id", authenticate, async (req, res) => {
-  if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
-  const updated = await prisma.customizationRequest.update({
-    where: { id: req.params.id },
-    data: req.body,
-  });
-  res.json({ data: updated });
-});
+router.patch(
+  "/customization/:id",
+  authenticate,
+  validate({ body: updateCustomizationSchema }),
+  async (req, res) => {
+    if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
+    const updated = await prisma.customizationRequest.update({
+      where: { id: req.params.id },
+      data: req.body,
+    });
+    res.json({ data: updated });
+  },
+);
 
 // ─── Transport (pickup-delivery) ────────────────────────────────────────
 
@@ -228,13 +265,20 @@ router.post(
   },
 );
 
-router.patch("/transport/:id", authenticate, async (req, res) => {
-  if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
-  const updated = await prisma.transportRequest.update({
-    where: { id: req.params.id },
-    data: req.body,
-  });
-  res.json({ data: updated });
-});
+router.patch(
+  "/transport/:id",
+  authenticate,
+  validate({ body: updateTransportSchema }),
+  async (req, res) => {
+    if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
+    const data: Record<string, unknown> = { ...req.body };
+    if (data.pickupAt) data.pickupAt = new Date(data.pickupAt as string);
+    const updated = await prisma.transportRequest.update({
+      where: { id: req.params.id },
+      data,
+    });
+    res.json({ data: updated });
+  },
+);
 
 export { router as serviceRequestsRoutes };

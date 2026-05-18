@@ -101,13 +101,13 @@ export async function update(req: Request, res: Response): Promise<void> {
   }
 
   const parsed = updateUserSchema.parse(req.body);
-  // Privilege fields (accountType, status) are admin-only — strip silently
-  // for any non-admin caller so customers cannot self-promote or unsuspend.
+  // Privilege fields are admin-only — strip silently for any non-admin caller
+  // so customers/staff cannot self-promote, unsuspend, or change role.
   const isAdmin = req.user!.accountType === "admin";
   const data = isAdmin
     ? parsed
     : (() => {
-        const { accountType: _at, status: _st, ...rest } = parsed;
+        const { accountType: _at, staffRole: _sr, status: _st, ...rest } = parsed;
         return rest;
       })();
 

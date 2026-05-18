@@ -132,6 +132,7 @@ export const updateUserSchema = z.object({
   phone: sendOtpSchema.shape.phone.optional(),
   avatarUrl: z.string().url().nullable().optional(),
   accountType: z.enum(["customer", "admin", "staff"]).optional(),
+  staffRole: z.enum(["admin", "sales", "support", "inventory", "mechanic"]).nullable().optional(),
   status: z.enum(["active", "inactive", "suspended"]).optional(),
   licenseNumber: z.string().min(3).max(40).nullable().optional(),
   licenseExpiry: z.string().datetime().nullable().optional(),
