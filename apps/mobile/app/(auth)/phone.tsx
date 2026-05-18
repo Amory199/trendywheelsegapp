@@ -1,16 +1,19 @@
-import { colors, spacing, typography, borderRadius } from "@trendywheels/ui-tokens";
+import { colors, spacing, typography, borderRadius, type Palette } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Linking } from "react-native";
 
 import { useAuth } from "../../lib/auth-store";
 import { isTrialPhone, sendFirebaseOtp } from "../../lib/firebase-phone-auth";
+import { useTheme } from "../../lib/use-theme";
 
 const EGYPT_DIAL_CODE = "+20";
 
 export default function PhoneScreen(): JSX.Element {
   const router = useRouter();
   const sendOtp = useAuth((s) => s.sendOtp);
+  const { palette: p } = useTheme();
+  const styles = useMemo(() => makeStyles(p), [p]);
   const [localPhone, setLocalPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [consented, setConsented] = useState(false);
@@ -100,112 +103,103 @@ export default function PhoneScreen(): JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.dark.bg,
-    justifyContent: "center",
-    padding: spacing.lg,
-  },
-  content: {
-    alignItems: "center",
-  },
-  title: {
-    fontSize: typography.fontSize.h1,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.light,
-    marginBottom: spacing.sm,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: typography.fontSize.bodyLarge,
-    color: colors.text.secondary,
-    marginBottom: spacing["2xl"],
-    textAlign: "center",
-  },
-  phoneRow: {
-    flexDirection: "row",
-    width: "100%",
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-  },
-  dialChip: {
-    height: 44,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    backgroundColor: colors.dark.card,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dialChipText: {
-    color: colors.text.light,
-    fontSize: typography.fontSize.bodyLarge,
-    fontWeight: typography.fontWeight.bold,
-  },
-  phoneInput: {
-    flex: 1,
-    height: 44,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    fontSize: typography.fontSize.bodyLarge,
-    color: colors.text.light,
-    backgroundColor: colors.dark.card,
-  },
-  consentRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    width: "100%",
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: colors.dark.border,
-    borderRadius: 4,
-    marginTop: 2,
-    justifyContent: "center",
-    alignItems: "center",
-    flexShrink: 0,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary[700],
-    borderColor: colors.primary[700],
-  },
-  checkmark: {
-    color: colors.text.light,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  consentText: {
-    flex: 1,
-    fontSize: typography.fontSize.caption,
-    color: colors.text.secondary,
-    lineHeight: 18,
-  },
-  consentLink: {
-    color: colors.primary[300],
-    textDecorationLine: "underline",
-  },
-  button: {
-    width: "100%",
-    height: 44,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.accent.DEFAULT,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    fontSize: typography.fontSize.bodyLarge,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.dark.bg,
-  },
-});
+function makeStyles(p: Palette) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: p.bg,
+      justifyContent: "center",
+      padding: spacing.lg,
+    },
+    content: { alignItems: "center" },
+    title: {
+      fontSize: typography.fontSize.h1,
+      fontWeight: typography.fontWeight.bold,
+      color: p.text,
+      marginBottom: spacing.sm,
+      textAlign: "center",
+    },
+    subtitle: {
+      fontSize: typography.fontSize.bodyLarge,
+      color: p.muted,
+      marginBottom: spacing["2xl"],
+      textAlign: "center",
+    },
+    phoneRow: {
+      flexDirection: "row",
+      width: "100%",
+      marginBottom: spacing.lg,
+      gap: spacing.sm,
+    },
+    dialChip: {
+      height: 44,
+      paddingHorizontal: spacing.md,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: p.border,
+      backgroundColor: p.card,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    dialChipText: {
+      color: p.text,
+      fontSize: typography.fontSize.bodyLarge,
+      fontWeight: typography.fontWeight.bold,
+    },
+    phoneInput: {
+      flex: 1,
+      height: 44,
+      borderWidth: 1,
+      borderColor: p.border,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.md,
+      fontSize: typography.fontSize.bodyLarge,
+      color: p.text,
+      backgroundColor: p.card,
+    },
+    consentRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      width: "100%",
+      marginBottom: spacing.lg,
+      gap: spacing.sm,
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderWidth: 2,
+      borderColor: p.border,
+      borderRadius: 4,
+      marginTop: 2,
+      justifyContent: "center",
+      alignItems: "center",
+      flexShrink: 0,
+    },
+    checkboxChecked: {
+      backgroundColor: colors.primary[700],
+      borderColor: colors.primary[700],
+    },
+    checkmark: { color: "#fff", fontSize: 12, fontWeight: "700" },
+    consentText: {
+      flex: 1,
+      fontSize: typography.fontSize.caption,
+      color: p.muted,
+      lineHeight: 18,
+    },
+    consentLink: { color: p.blue, textDecorationLine: "underline" },
+    button: {
+      width: "100%",
+      height: 44,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.brand.trendyPink,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    buttonDisabled: { opacity: 0.5 },
+    buttonText: {
+      fontSize: typography.fontSize.bodyLarge,
+      fontWeight: typography.fontWeight.bold,
+      color: "#fff",
+    },
+  });
+}

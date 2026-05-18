@@ -1,23 +1,27 @@
 import { Ionicons } from "@expo/vector-icons";
-import { colors, twPalette, layout } from "@trendywheels/ui-tokens";
+import { colors, layout } from "@trendywheels/ui-tokens";
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 
-// iOS 26-style glassy bottom tab bar. Translucent BlurView background +
-// hairline brand-tinted top border. Falls back to a solid card color on
-// android where BlurView intensity is uneven across OEMs.
-function GlassTabBar(): JSX.Element {
+import { useTheme } from "../../lib/use-theme";
+
+// Glassy bottom tab bar. Translucent BlurView background with theme-aware
+// scrim + hairline brand-tinted top border. Tint swaps based on light/dark.
+function GlassTabBar({ isDark }: { isDark: boolean }): JSX.Element {
   return (
     <View style={StyleSheet.absoluteFill}>
       <BlurView
         intensity={Platform.OS === "ios" ? 60 : 90}
-        tint="dark"
+        tint={isDark ? "dark" : "light"}
         style={StyleSheet.absoluteFill}
       />
       <View
         pointerEvents="none"
-        style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(2,1,31,0.45)" }]}
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: isDark ? "rgba(2,1,31,0.45)" : "rgba(255,255,255,0.55)" },
+        ]}
       />
       <View
         pointerEvents="none"
@@ -35,13 +39,13 @@ function GlassTabBar(): JSX.Element {
 }
 
 export default function TabLayout(): JSX.Element {
-  const palette = twPalette(false);
+  const { palette, isDark } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarBackground: () => <GlassTabBar />,
+        tabBarBackground: () => <GlassTabBar isDark={isDark} />,
         tabBarStyle: {
           height: layout.bottomTabHeight + 14,
           backgroundColor: "transparent",
