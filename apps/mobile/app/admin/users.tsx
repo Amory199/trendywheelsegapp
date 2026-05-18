@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -33,6 +34,7 @@ const FILTERS: Array<{ key: string; label: string }> = [
 ];
 
 export default function AdminUsers(): JSX.Element {
+  const router = useRouter();
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
 
@@ -111,7 +113,7 @@ export default function AdminUsers(): JSX.Element {
             </View>
           }
           renderItem={({ item }) => (
-            <View style={styles.row}>
+            <Pressable style={styles.row} onPress={() => router.push(`/admin/users/${item.id}`)}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
                   {(item.name || item.phone).slice(0, 1).toUpperCase()}
@@ -135,7 +137,8 @@ export default function AdminUsers(): JSX.Element {
               >
                 <Text style={styles.badgeText}>{item.staffRole ?? item.accountType}</Text>
               </View>
-            </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
+            </Pressable>
           )}
         />
       )}
