@@ -175,6 +175,12 @@ export async function issueTokensForPhone(
 ): Promise<{ token: string; refreshToken: string; user: object }> {
   let user = await prisma.user.findUnique({ where: { phone } });
   let isNewSignup = false;
+  if (user && user.accountType !== "customer") {
+    throw AppError.forbidden("Staff and admins must sign in with email and password.");
+  }
+  if (user && user.status !== "active") {
+    throw AppError.forbidden("Account is not active");
+  }
   if (!user) {
     user = await prisma.user.create({
       data: {
