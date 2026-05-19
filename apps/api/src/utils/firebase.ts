@@ -1,4 +1,4 @@
-import { initializeApp, getApps, applicationDefault, type App } from "firebase-admin/app";
+import { initializeApp, getApps, type App } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 
 import { env } from "../config/env.js";
@@ -23,13 +23,9 @@ export function initFirebase(): void {
     return;
   }
   if (getApps().length === 0) {
-    try {
-      app = initializeApp({ projectId: env.FIREBASE_PROJECT_ID, credential: applicationDefault() });
-    } catch {
-      // Fall back to project-id-only init when ADC isn't available. Token
-      // verification still works since it only needs the public certs.
-      app = initializeApp({ projectId: env.FIREBASE_PROJECT_ID });
-    }
+    // Project-id-only init. ID-token verification fetches Google's public certs
+    // from securetoken.google.com; no service account / ADC required.
+    app = initializeApp({ projectId: env.FIREBASE_PROJECT_ID });
   } else {
     app = getApps()[0];
   }
@@ -42,7 +38,10 @@ export async function verifyFirebaseIdToken(idToken: string): Promise<DecodedIdT
   if (!initialized) {
     throw new Error("Firebase Admin is not configured");
   }
-  return getAuth().verifyIdToken(idToken, true);
+  // checkRevoked=false: revocation check requires admin credentials (Auth Admin
+  // API); we run project-id-only. Tokens are short-lived (1h) so the risk
+  // window is small.
+  return getAuth().verifyIdToken(idToken);
 }
 
 export function isFirebaseEnabled(): boolean {
