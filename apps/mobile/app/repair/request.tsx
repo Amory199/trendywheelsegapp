@@ -20,7 +20,11 @@ import { api } from "../../lib/api";
 type Category = "mechanical" | "electrical" | "cosmetic" | "other";
 type Priority = "low" | "medium" | "high" | "urgent";
 
-const CATEGORIES: { key: Category; icon: React.ComponentProps<typeof Ionicons>["name"]; label: string }[] = [
+const CATEGORIES: {
+  key: Category;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  label: string;
+}[] = [
   { key: "mechanical", icon: "settings-outline", label: "Mechanical" },
   { key: "electrical", icon: "flash-outline", label: "Electrical" },
   { key: "cosmetic", icon: "color-palette-outline", label: "Cosmetic" },
@@ -68,7 +72,9 @@ export default function RepairRequestScreen(): JSX.Element {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: 120 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: 120 }}
+      >
         {/* Category */}
         <Animated.View entering={FadeInDown.delay(50).springify()}>
           <Text style={styles.label}>Issue Category</Text>
@@ -84,7 +90,10 @@ export default function RepairRequestScreen(): JSX.Element {
                   size={28}
                   color={category === c.key ? colors.accent.DEFAULT : colors.text.secondary}
                 />
-                <Text style={[styles.categoryLabel, category === c.key && styles.categoryLabelActive]}>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.categoryLabel, category === c.key && styles.categoryLabelActive]}
+                >
                   {c.label}
                 </Text>
               </Pressable>
@@ -176,9 +185,11 @@ const styles = StyleSheet.create({
   },
   title: { color: colors.text.light, fontSize: 16, fontWeight: "700" },
   label: { color: colors.text.secondary, fontSize: 13, marginBottom: spacing.sm },
-  categoryGrid: { flexDirection: "row", gap: spacing.sm },
+  // 2x2 grid instead of 4-up row so labels like "Mechanical" / "Electrical"
+  // fit on one line without mid-word wrap.
+  categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   categoryCard: {
-    flex: 1,
+    width: "47%",
     backgroundColor: colors.dark.card,
     borderRadius: 12,
     padding: spacing.md,
@@ -188,7 +199,7 @@ const styles = StyleSheet.create({
     borderColor: colors.dark.border,
   },
   categoryCardActive: { borderColor: colors.accent.DEFAULT },
-  categoryLabel: { color: colors.text.secondary, fontSize: 11, fontWeight: "600" },
+  categoryLabel: { color: colors.text.secondary, fontSize: 13, fontWeight: "600" },
   categoryLabelActive: { color: colors.accent.DEFAULT },
   textarea: {
     backgroundColor: colors.dark.card,

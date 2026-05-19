@@ -7,22 +7,26 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { CategoryStrip } from "../../components/CategoryStrip";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
+import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 
 export default function SellScreen(): JSX.Element {
   const router = useRouter();
-  const [category, setCategory] = useState<VehicleCategory | "all">("all");
+  // null = no category picked yet; show strip only.
+  const [category, setCategory] = useState<VehicleCategory | "all" | null>(null);
+  const scrollHandler = useTabBarScrollHandler();
 
   const q = useInfiniteQuery({
     queryKey: ["sales-listings", category],
+    enabled: category !== null,
     queryFn: ({ pageParam = 1 }) =>
       api.getSalesListings({
         page: pageParam,
         limit: 20,
-        ...(category !== "all" ? { category } : {}),
+        ...(category && category !== "all" ? { category } : {}),
       }),
     getNextPageParam: (last, all) => (last.data.length === 20 ? all.length + 1 : undefined),
     initialPageParam: 1,
@@ -35,6 +39,7 @@ export default function SellScreen(): JSX.Element {
       <Animated.View entering={FadeInDown.delay(index * 50).springify()} style={styles.gridItem}>
         <Pressable
           style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          android_ripple={{ color: "rgba(43,15,248,0.10)", borderless: false }}
           onPress={() => router.push(`/sell/${item.id}`)}
         >
           <Image
@@ -74,7 +79,11 @@ export default function SellScreen(): JSX.Element {
 
       <CategoryStrip value={category} onChange={setCategory} />
 
-      {q.isLoading ? (
+      {category === null ? (
+        <View style={styles.pickHint}>
+          <Text style={styles.pickHintText}>Pick a category to see listings</Text>
+        </View>
+      ) : q.isLoading ? (
         <ActivityIndicator color={colors.accent.DEFAULT} style={{ marginTop: 40 }} size="large" />
       ) : listings.length === 0 ? (
         <View style={styles.empty}>
@@ -85,13 +94,15 @@ export default function SellScreen(): JSX.Element {
           </Pressable>
         </View>
       ) : (
-        <FlatList<SalesListing>
+        <Animated.FlatList<SalesListing>
           data={listings}
           keyExtractor={(l) => l.id}
           numColumns={2}
           columnWrapperStyle={{ gap: spacing.sm }}
-          contentContainerStyle={{ padding: spacing.md, gap: spacing.sm, paddingBottom: 100 }}
+          contentContainerStyle={{ padding: spacing.md, gap: spacing.sm, paddingBottom: 110 }}
           renderItem={renderItem}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
           onEndReached={() => q.fetchNextPage()}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
@@ -153,4 +164,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   emptyBtnText: { color: "#000", fontWeight: "700" },
+  pickHint: { paddingTop: spacing.lg, alignItems: "center" },
+  pickHintText: { color: colors.text.secondary, fontSize: 13, fontWeight: "600" },
 });

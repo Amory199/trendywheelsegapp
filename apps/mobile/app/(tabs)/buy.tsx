@@ -8,6 +8,7 @@ import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
+import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 
 type Category = "cart_new" | "cart_used" | "parts" | "accessory";
 
@@ -36,6 +37,7 @@ const W = (Dimensions.get("window").width - PADDING * 2 - CARD_GAP) / 2;
 export default function BuyScreen(): React.JSX.Element {
   const router = useRouter();
   const [tab, setTab] = useState<Category | "all">("all");
+  const scrollHandler = useTabBarScrollHandler();
 
   const q = useQuery({
     queryKey: ["mobile-products", tab],
@@ -87,10 +89,12 @@ export default function BuyScreen(): React.JSX.Element {
         </ScrollView>
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         contentContainerStyle={{
           paddingHorizontal: PADDING,
-          paddingBottom: 40,
+          paddingBottom: 110,
           flexDirection: "row",
           flexWrap: "wrap",
           gap: CARD_GAP,
@@ -174,7 +178,7 @@ export default function BuyScreen(): React.JSX.Element {
             </Animated.View>
           ))
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }

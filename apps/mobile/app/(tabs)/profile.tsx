@@ -5,13 +5,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as React from "react";
 import { useEffect } from "react";
-import { Share, ScrollView, Text, View } from "react-native";
+import { Share, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { TWLoyaltyBadge } from "../../components/skia/loyalty-badge";
 import { TWBadge, TWButton, TWCard, TWPressable } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useTheme } from "../../lib/use-theme";
 
 type Tier = "bronze" | "silver" | "gold" | "platinum";
@@ -27,6 +28,7 @@ export default function ProfileScreen(): React.JSX.Element {
   const router = useRouter();
   const { palette } = useTheme();
   const { user, hydrate, logout, initialized } = useAuth();
+  const scrollHandler = useTabBarScrollHandler();
 
   useEffect(() => {
     if (!initialized) void hydrate();
@@ -70,9 +72,11 @@ export default function ProfileScreen(): React.JSX.Element {
     .toUpperCase();
 
   return (
-    <ScrollView
+    <Animated.ScrollView
       style={{ flex: 1, backgroundColor: palette.bg }}
       contentContainerStyle={{ paddingBottom: 120 }}
+      onScroll={scrollHandler}
+      scrollEventThrottle={16}
     >
       {/* Header with tier gradient */}
       <Animated.View entering={FadeInDown.duration(420)}>
@@ -278,7 +282,7 @@ export default function ProfileScreen(): React.JSX.Element {
           Sign out
         </TWButton>
       </Animated.View>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 

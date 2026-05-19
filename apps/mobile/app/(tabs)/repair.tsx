@@ -5,7 +5,7 @@ import { colors } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as React from "react";
-import { ActivityIndicator, Dimensions, FlatList, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Dimensions, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 const REPAIR_VIDEO = require("../../assets/category/repair.mp4");
@@ -44,6 +44,7 @@ function RepairHero(): React.JSX.Element {
 
 import { TWBadge, TWButton, TWCard, TWPressable, palette } from "../../components/ui";
 import { api } from "../../lib/api";
+import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 
 const STATUS_ORDER = ["submitted", "assigned", "in-progress", "completed"] as const;
 type RepairStatus = (typeof STATUS_ORDER)[number];
@@ -69,6 +70,7 @@ function statusIndex(s: string): number {
 
 export default function RepairScreen(): React.JSX.Element {
   const router = useRouter();
+  const scrollHandler = useTabBarScrollHandler();
 
   const q = useQuery({
     queryKey: ["repair-requests"],
@@ -194,6 +196,7 @@ export default function RepairScreen(): React.JSX.Element {
             justifyContent: "center",
             gap: 16,
             paddingHorizontal: 40,
+            paddingBottom: 100,
           }}
         >
           <View
@@ -228,9 +231,11 @@ export default function RepairScreen(): React.JSX.Element {
           </TWButton>
         </View>
       ) : (
-        <FlatList<RepairRequest>
+        <Animated.FlatList<RepairRequest>
           data={repairs}
           keyExtractor={(r) => r.id}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
           contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 120 }}
           renderItem={({ item, index }) => {
             const activeIdx = statusIndex(item.status);

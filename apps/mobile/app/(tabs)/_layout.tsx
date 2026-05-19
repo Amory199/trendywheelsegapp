@@ -1,9 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BottomTabBar, type BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { colors, layout } from "@trendywheels/ui-tokens";
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
+import { TabBarScrollProvider, useTabBarTranslate } from "../../lib/tab-bar-scroll";
 import { useTheme } from "../../lib/use-theme";
 
 // Glassy bottom tab bar. Translucent BlurView background with theme-aware
@@ -38,82 +41,104 @@ function GlassTabBar({ isDark }: { isDark: boolean }): JSX.Element {
   );
 }
 
+// Wraps the standard BottomTabBar in an Animated.View driven by the shared
+// translateY value from TabBarScrollProvider. Scroll-down hides; scroll-up
+// shows. Keeps the BlurView background + Tabs's icon/label rendering intact.
+function AutoHidingTabBar(props: BottomTabBarProps): JSX.Element {
+  const translateY = useTabBarTranslate();
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+  return (
+    <Animated.View style={[{ position: "absolute", left: 0, right: 0, bottom: 0 }, animatedStyle]}>
+      <BottomTabBar {...props} />
+    </Animated.View>
+  );
+}
+
 export default function TabLayout(): JSX.Element {
   const { palette, isDark } = useTheme();
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarBackground: () => <GlassTabBar isDark={isDark} />,
-        tabBarStyle: {
-          height: layout.bottomTabHeight + 14,
-          backgroundColor: "transparent",
-          borderTopWidth: 0,
-          paddingBottom: 12,
-          paddingTop: 8,
-          position: "absolute",
-          elevation: 0,
-        },
-        tabBarActiveTintColor: colors.brand.friendlyBlue,
-        tabBarInactiveTintColor: palette.tabInactive,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "700" },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
-          ),
+    <TabBarScrollProvider>
+      <Tabs
+        tabBar={(props) => <AutoHidingTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
+          tabBarBackground: () => <GlassTabBar isDark={isDark} />,
+          tabBarStyle: {
+            height: layout.bottomTabHeight + 14,
+            backgroundColor: "transparent",
+            borderTopWidth: 0,
+            paddingBottom: 12,
+            paddingTop: 8,
+            position: "absolute",
+            elevation: 0,
+          },
+          tabBarActiveTintColor: colors.brand.friendlyBlue,
+          tabBarInactiveTintColor: palette.tabInactive,
+          tabBarLabelStyle: { fontSize: 11, fontWeight: "700" },
         }}
-      />
-      <Tabs.Screen
-        name="buy"
-        options={{
-          title: "Buy",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "bag" : "bag-outline"} size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="rent"
-        options={{
-          title: "Rent",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "car" : "car-outline"} size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="sell"
-        options={{
-          title: "Sell",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "pricetag" : "pricetag-outline"} size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="repair"
-        options={{
-          title: "Service",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "construct" : "construct-outline"} size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Home",
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="buy"
+          options={{
+            title: "Buy",
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? "bag" : "bag-outline"} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="rent"
+          options={{
+            title: "Rent",
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? "car" : "car-outline"} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="sell"
+          options={{
+            title: "Sell",
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? "pricetag" : "pricetag-outline"} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="repair"
+          options={{
+            title: "Service",
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "construct" : "construct-outline"}
+                size={24}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: "Profile",
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+    </TabBarScrollProvider>
   );
 }

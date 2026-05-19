@@ -5,19 +5,12 @@ import { colors, spacing, twEGP, twPalette } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { CategoryStrip } from "../../components/CategoryStrip";
 import { api } from "../../lib/api";
+import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 
 const PAGE_SIZE = 20;
 const palette = twPalette(false);
@@ -25,15 +18,19 @@ const palette = twPalette(false);
 export default function RentScreen(): JSX.Element {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<VehicleCategory | "all">("all");
+  // null = no category picked yet: show the strip only, no listings. User picks
+  // "All categories" or a specific one to surface vehicles.
+  const [category, setCategory] = useState<VehicleCategory | "all" | null>(null);
+  const scrollHandler = useTabBarScrollHandler();
 
   const q = useInfiniteQuery({
     queryKey: ["vehicles", search, category],
+    enabled: category !== null,
     queryFn: ({ pageParam = 1 }) =>
       api.getVehicles({
         page: pageParam,
         limit: PAGE_SIZE,
-        ...(category !== "all" ? { category } : {}),
+        ...(category && category !== "all" ? { category } : {}),
       }),
     getNextPageParam: (last, all) => (last.data.length === PAGE_SIZE ? all.length + 1 : undefined),
     initialPageParam: 1,
@@ -46,6 +43,7 @@ export default function RentScreen(): JSX.Element {
       <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
         <Pressable
           style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          android_ripple={{ color: "rgba(43,15,248,0.10)", borderless: false }}
           onPress={() => router.push(`/rent/${item.id}`)}
         >
           <Image
@@ -103,7 +101,11 @@ export default function RentScreen(): JSX.Element {
 
       <CategoryStrip value={category} onChange={setCategory} />
 
-      {q.isLoading ? (
+      {category === null ? (
+        <View style={styles.pickHint}>
+          <Text style={styles.pickHintText}>Pick a category to see vehicles</Text>
+        </View>
+      ) : q.isLoading ? (
         <ActivityIndicator
           color={colors.brand.friendlyBlue}
           style={{ marginTop: 40 }}
@@ -115,11 +117,13 @@ export default function RentScreen(): JSX.Element {
           <Text style={styles.emptyText}>No vehicles found</Text>
         </View>
       ) : (
-        <FlatList<Vehicle>
+        <Animated.FlatList<Vehicle>
           data={vehicles}
           keyExtractor={(v) => v.id}
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 110 }}
           renderItem={renderItem}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
           onEndReached={() => q.fetchNextPage()}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
@@ -213,4 +217,6 @@ const styles = StyleSheet.create({
   cardLocation: { color: palette.muted, fontSize: 11.5 },
   empty: { flex: 1, justifyContent: "center", alignItems: "center", gap: spacing.md },
   emptyText: { color: palette.muted, fontSize: 16 },
+  pickHint: { paddingTop: spacing.lg, alignItems: "center" },
+  pickHintText: { color: palette.muted, fontSize: 13, fontWeight: "600" },
 });

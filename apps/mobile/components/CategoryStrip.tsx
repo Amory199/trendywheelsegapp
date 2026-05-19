@@ -1,13 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { VEHICLE_CATEGORIES, type VehicleCategory } from "@trendywheels/types";
 import { colors } from "@trendywheels/ui-tokens";
+import { useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { useCallback } from "react";
 import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const CATEGORY_VIDEOS: Partial<Record<VehicleCategory, number>> = {
   "golf-cart": require("../assets/category/golf-cart.mp4"),
   scooter: require("../assets/category/scooter.mp4"),
+  buggy: require("../assets/category/buggy.mp4"),
   "jet-ski": require("../assets/category/jet-ski.mp4"),
 };
 
@@ -18,7 +21,7 @@ const BLOCK_W = (SCREEN_W - H_PADDING * 2 - GAP) / 2;
 const BLOCK_H = Math.round(BLOCK_W * 1.25); // 4:5 portrait
 
 interface Props {
-  value: VehicleCategory | "all";
+  value: VehicleCategory | "all" | null;
   onChange: (next: VehicleCategory | "all") => void;
   showAll?: boolean;
 }
@@ -76,8 +79,16 @@ function CategoryBlock({
 }): JSX.Element {
   const source = CATEGORY_VIDEOS[categoryKey] ?? null;
   return (
-    <Pressable onPress={onPress} style={[styles.block, active && styles.blockActive]}>
-      {source ? <BlockVideo source={source} /> : <BlockFallback icon={icon} />}
+    <Pressable
+      onPress={onPress}
+      android_ripple={{ color: "rgba(43,15,248,0.18)", borderless: false }}
+      style={[styles.block, active && styles.blockActive]}
+    >
+      {/* Defensive double-clip: even if VideoView paints a few pixels past its
+          frame, this inner View masks it so neighboring tiles don't bleed. */}
+      <View style={styles.mediaClip}>
+        {source ? <BlockVideo source={source} /> : <BlockFallback icon={icon} />}
+      </View>
       <LinearGradient
         colors={["rgba(2,1,31,0)", "rgba(2,1,31,0.88)"]}
         style={[StyleSheet.absoluteFill, { top: BLOCK_H * 0.5 }]}
@@ -94,12 +105,23 @@ function BlockVideo({ source }: { source: number }): JSX.Element {
     p.muted = true;
     p.play();
   });
+  // Pause when the tab is blurred so multiple video decoders aren't held
+  // across screens (some Androids cap simultaneous H.264 surfaces at ~4–6).
+  useFocusEffect(
+    useCallback(() => {
+      player.play();
+      return () => {
+        player.pause();
+      };
+    }, [player]),
+  );
   return (
     <VideoView
       player={player}
-      style={StyleSheet.absoluteFill}
+      style={styles.media}
       contentFit="cover"
       nativeControls={false}
+      pointerEvents="none"
     />
   );
 }
@@ -147,6 +169,15 @@ const styles = StyleSheet.create({
   },
   blockActive: {
     borderColor: colors.brand.trendyPink,
+  },
+  mediaClip: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
+    borderRadius: 16,
+  },
+  media: {
+    width: "100%",
+    height: "100%",
   },
   fallback: {
     backgroundColor: colors.dark.card,

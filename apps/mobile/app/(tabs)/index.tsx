@@ -1,23 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useVideoPlayer, VideoView } from "expo-video";
 import * as React from "react";
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
-import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  priceEgp: string | number;
-  images: string[];
-}
+const HERO_VIDEO = require("../../assets/hero/home.mp4");
 
 const CHIPS = [
   { href: "/(tabs)/buy" as const, label: "Buy", sub: "Carts · Parts" },
@@ -29,26 +21,23 @@ const CHIPS = [
 export default function HomeScreen(): React.JSX.Element {
   const router = useRouter();
   const user = useAuth((s) => s.user);
-  const [heroIdx, setHeroIdx] = useState(0);
+  const scrollHandler = useTabBarScrollHandler();
 
-  const heroQ = useQuery({
-    queryKey: ["mobile-home-hero"],
-    queryFn: () =>
-      api.request<{ data: Product[] }>("GET", "/api/products?category=cart_new&limit=4"),
+  const player = useVideoPlayer(HERO_VIDEO, (p) => {
+    p.loop = true;
+    p.muted = true;
+    p.play();
   });
-  const heroes = heroQ.data?.data ?? [];
-
-  useEffect(() => {
-    if (heroes.length < 2) return;
-    const t = setInterval(() => setHeroIdx((i) => (i + 1) % heroes.length), 6000);
-    return () => clearInterval(t);
-  }, [heroes.length]);
 
   const firstName = user?.name?.split(" ")[0];
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F7F7FB" }}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+      >
         {/* HERO */}
         <View
           style={{
@@ -58,21 +47,15 @@ export default function HomeScreen(): React.JSX.Element {
             overflow: "hidden",
           }}
         >
-          {heroes.map((h, i) => (
-            <Animated.View
-              key={h.id}
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                opacity: i === heroIdx ? 1 : 0,
-              }}
-            >
-              <Image source={h.images[0]} style={{ flex: 1 }} contentFit="cover" transition={500} />
-            </Animated.View>
-          ))}
+          <View style={StyleSheet.absoluteFill}>
+            <VideoView
+              player={player}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              nativeControls={false}
+              pointerEvents="none"
+            />
+          </View>
           <LinearGradient
             colors={["rgba(2,1,31,0.15)", "rgba(2,1,31,0.55)", "rgba(2,1,31,0.92)"]}
             style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
@@ -112,6 +95,7 @@ export default function HomeScreen(): React.JSX.Element {
             <Animated.View key={c.href} entering={FadeInDown.duration(350).delay(150 + i * 80)}>
               <Pressable
                 onPress={() => router.push(c.href as never)}
+                android_ripple={{ color: "rgba(43,15,248,0.10)", borderless: false }}
                 style={({ pressed }) => ({
                   backgroundColor: "#fff",
                   borderRadius: 18,
@@ -142,8 +126,8 @@ export default function HomeScreen(): React.JSX.Element {
             </Animated.View>
           ))}
         </View>
-        <View style={{ height: 40 }} />
-      </ScrollView>
+        <View style={{ height: 110 }} />
+      </Animated.ScrollView>
     </View>
   );
 }
