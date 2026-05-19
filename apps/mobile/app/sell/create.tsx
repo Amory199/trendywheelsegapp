@@ -21,6 +21,7 @@ import {
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
+import { playSound } from "../../lib/sounds";
 
 type Transmission = "automatic" | "manual";
 type FuelType = "electric" | "gasoline" | "hybrid";
@@ -105,9 +106,14 @@ export default function SellCreateScreen(): JSX.Element {
     },
     onSuccess: () => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      playSound("celebrate");
       void qc.invalidateQueries({ queryKey: ["sales-listings"] });
       void qc.invalidateQueries({ queryKey: ["my-listings"] });
       router.replace("/sell/my-listings");
+    },
+    onError: () => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      playSound("error");
     },
   });
 

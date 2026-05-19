@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     height: 42,
   },
   searchInput: { flex: 1, color: colors.text.light, fontSize: 14, paddingVertical: 0 },
-  filterRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
+  filterRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 8, alignItems: "center" },
   filterChip: {
     paddingHorizontal: 12,
     paddingVertical: 7,

@@ -31,6 +31,7 @@ import Animated, {
 import { TWSkiaConfetti } from "../../components/skia/confetti";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { playSound } from "../../lib/sounds";
 
 const STEPS = ["Dates", "Your Info", "Payment"];
 
@@ -101,8 +102,13 @@ export default function BookScreen(): JSX.Element {
       }),
     onSuccess: (res) => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      playSound("celebrate");
       setBookingRef(res.data?.id ?? "");
       setBooked(true);
+    },
+    onError: () => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      playSound("error");
     },
   });
 

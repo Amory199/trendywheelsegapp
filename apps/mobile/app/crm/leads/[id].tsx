@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -16,14 +16,18 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-store";
+import { playSound } from "../../../lib/sounds";
 
 interface Activity {
   id: string;
   type: string;
+  body?: string | null;
   note?: string | null;
+  metadata?: { vehicleId?: string; intent?: string } | null;
   createdAt: string;
 }
 
@@ -59,12 +63,15 @@ type Tab = "activity" | "details" | "vehicles";
 
 export default function LeadDetail(): React.JSX.Element {
   const qc = useQueryClient();
+  const router = useRouter();
   const me = useAuth((s) => s.user);
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>("activity");
   const [note, setNote] = useState("");
   const [form, setForm] = useState<Partial<Lead>>({});
   const [vehicleModal, setVehicleModal] = useState(false);
+  const [vehicleSearch, setVehicleSearch] = useState("");
   const [reassignModal, setReassignModal] = useState(false);
 
   const leadQ = useQuery({
@@ -94,14 +101,29 @@ export default function LeadDetail(): React.JSX.Element {
     enabled: reassignModal,
   });
 
+  // Save a free-text note. Backend expects { type: "note", body: <text> }.
   const logActivity = useMutation({
-    mutationFn: async (input: { type: string; note?: string; nextStatus?: string }) =>
+    mutationFn: async (input: { type: "note" | "call" | "email"; body: string }) =>
       api.crmLogActivity(id!, input),
     onSuccess: async () => {
       setNote("");
       await qc.invalidateQueries({ queryKey: ["crm"] });
     },
     onError: (e) => Alert.alert("Couldn't update", e instanceof Error ? e.message : "Try again"),
+  });
+
+  // Stage change uses PATCH /leads/:id — activities endpoint only accepts
+  // note/call/email types, not status transitions.
+  const moveStage = useMutation({
+    mutationFn: async (nextStatus: string) => api.crmUpdateLead(id!, { status: nextStatus }),
+    onSuccess: async (_data, nextStatus) => {
+      playSound(nextStatus === "won" ? "celebrate" : "success");
+      await qc.invalidateQueries({ queryKey: ["crm"] });
+    },
+    onError: (e) => {
+      playSound("error");
+      Alert.alert("Couldn't move stage", e instanceof Error ? e.message : "Try again");
+    },
   });
 
   const updateLead = useMutation({
@@ -131,323 +153,383 @@ export default function LeadDetail(): React.JSX.Element {
   const attach = useMutation({
     mutationFn: async (vehicleId: string) => api.crmAttachVehicle(id!, vehicleId),
     onSuccess: async () => {
+      playSound("success");
       setVehicleModal(false);
+      setVehicleSearch("");
       await qc.invalidateQueries({ queryKey: ["crm"] });
+      Alert.alert("Attached", "Vehicle matched to this lead.");
     },
-    onError: (e) => Alert.alert("Attach failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) => {
+      playSound("error");
+      Alert.alert("Attach failed", e instanceof Error ? e.message : "Try again");
+    },
   });
 
   const lead = leadQ.data;
   const isAdmin = me?.accountType === "admin";
 
+  // Attached vehicles are recorded as activities of type "matched". Use the
+  // most recent activity per vehicleId so a re-attach replaces the prior
+  // entry visually.
+  const attachedFromActivities = (() => {
+    const map = new Map<
+      string,
+      { vehicleId: string; label: string; intent?: string; when: string }
+    >();
+    for (const a of lead?.activities ?? []) {
+      if (a.type !== "matched") continue;
+      const vid = a.metadata?.vehicleId;
+      if (!vid) continue;
+      if (map.has(vid)) continue;
+      map.set(vid, {
+        vehicleId: vid,
+        label: a.body ?? "Vehicle",
+        intent: a.metadata?.intent,
+        when: a.createdAt,
+      });
+    }
+    return Array.from(map.values());
+  })();
+
+  const filteredVehiclesForModal = (() => {
+    const q = vehicleSearch.trim().toLowerCase();
+    const list = vehiclesQ.data ?? [];
+    if (!q) return list;
+    return list.filter((v) => `${v.name} ${v.category ?? ""}`.toLowerCase().includes(q));
+  })();
+
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: lead?.contactName ?? "Lead",
-          headerStyle: { backgroundColor: colors.dark.bg },
-          headerTintColor: colors.text.light,
-        }}
-      />
-      <View style={styles.root}>
-        {leadQ.isLoading || !lead ? (
-          <ActivityIndicator color={colors.brand.trendyPink} style={{ marginTop: 24 }} />
-        ) : (
-          <>
-            <View style={styles.heroCard}>
-              <View style={styles.heroTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{lead.contactName}</Text>
-                  <Text style={styles.subline}>{lead.contactPhone ?? "No phone"}</Text>
-                  {lead.assignedAgent?.name ? (
-                    <Text style={styles.assigned}>Owned by {lead.assignedAgent.name}</Text>
-                  ) : (
-                    <Text style={styles.unassigned}>Unassigned</Text>
-                  )}
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.value}>
-                    EGP {Number(lead.estimatedValue).toLocaleString()}
-                  </Text>
-                  <View style={styles.stageChip}>
-                    <Text style={styles.stageChipText}>{lead.status}</Text>
-                  </View>
-                </View>
+    <View style={styles.root}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Ionicons name="chevron-back" size={24} color={colors.text.light} />
+        </Pressable>
+        <Text style={styles.topBarTitle} numberOfLines={1}>
+          {lead?.contactName ?? "Lead"}
+        </Text>
+        <View style={{ width: 24 }} />
+      </View>
+      {leadQ.isLoading || !lead ? (
+        <ActivityIndicator color={colors.brand.trendyPink} style={{ marginTop: 24 }} />
+      ) : (
+        <>
+          <View style={styles.heroCard}>
+            <View style={styles.heroTop}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{lead.contactName}</Text>
+                <Text style={styles.subline}>{lead.contactPhone ?? "No phone"}</Text>
+                {lead.assignedAgent?.name ? (
+                  <Text style={styles.assigned}>Owned by {lead.assignedAgent.name}</Text>
+                ) : (
+                  <Text style={styles.unassigned}>Unassigned</Text>
+                )}
               </View>
-
-              <View style={styles.actionsRow}>
-                {lead.contactPhone ? (
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: colors.brand.friendlyBlue }]}
-                    onPress={() => void Linking.openURL(`tel:${lead.contactPhone}`)}
-                  >
-                    <Ionicons name="call" size={14} color="#fff" />
-                    <Text style={styles.actionBtnText}>Call</Text>
-                  </Pressable>
-                ) : null}
-                {lead.contactPhone ? (
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: "#25D366" }]}
-                    onPress={() =>
-                      void Linking.openURL(
-                        `https://wa.me/${lead.contactPhone?.replace(/[^0-9]/g, "")}`,
-                      )
-                    }
-                  >
-                    <Ionicons name="logo-whatsapp" size={14} color="#fff" />
-                    <Text style={styles.actionBtnText}>WA</Text>
-                  </Pressable>
-                ) : null}
-                {!lead.assignedAgentId ? (
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: colors.brand.poolBlue }]}
-                    onPress={() => claim.mutate()}
-                  >
-                    <Ionicons name="hand-left" size={14} color="#fff" />
-                    <Text style={styles.actionBtnText}>Claim</Text>
-                  </Pressable>
-                ) : isAdmin ? (
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: colors.brand.trendyPink }]}
-                    onPress={() => setReassignModal(true)}
-                  >
-                    <Ionicons name="swap-horizontal" size={14} color="#fff" />
-                    <Text style={styles.actionBtnText}>Reassign</Text>
-                  </Pressable>
-                ) : null}
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={styles.value}>EGP {Number(lead.estimatedValue).toLocaleString()}</Text>
+                <View style={styles.stageChip}>
+                  <Text style={styles.stageChipText}>{lead.status}</Text>
+                </View>
               </View>
             </View>
 
-            <View style={styles.tabRow}>
-              {(["activity", "details", "vehicles"] as Tab[]).map((t) => (
+            <View style={styles.actionsRow}>
+              {lead.contactPhone ? (
                 <Pressable
-                  key={t}
-                  onPress={() => {
-                    setTab(t);
-                    if (t === "details" && lead) {
-                      setForm({
-                        contactName: lead.contactName,
-                        contactPhone: lead.contactPhone,
-                        contactEmail: lead.contactEmail,
-                        estimatedValue: lead.estimatedValue,
-                        notes: lead.notes,
-                      });
-                    }
-                  }}
-                  style={[styles.tab, tab === t && styles.tabActive]}
+                  style={[styles.actionBtn, { backgroundColor: colors.brand.friendlyBlue }]}
+                  onPress={() => void Linking.openURL(`tel:${lead.contactPhone}`)}
                 >
-                  <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>{t}</Text>
+                  <Ionicons name="call" size={14} color="#fff" />
+                  <Text style={styles.actionBtnText}>Call</Text>
                 </Pressable>
-              ))}
+              ) : null}
+              {lead.contactPhone ? (
+                <Pressable
+                  style={[styles.actionBtn, { backgroundColor: "#25D366" }]}
+                  onPress={() =>
+                    void Linking.openURL(
+                      `https://wa.me/${lead.contactPhone?.replace(/[^0-9]/g, "")}`,
+                    )
+                  }
+                >
+                  <Ionicons name="logo-whatsapp" size={14} color="#fff" />
+                  <Text style={styles.actionBtnText}>WA</Text>
+                </Pressable>
+              ) : null}
+              {!lead.assignedAgentId ? (
+                <Pressable
+                  style={[styles.actionBtn, { backgroundColor: colors.brand.poolBlue }]}
+                  onPress={() => claim.mutate()}
+                >
+                  <Ionicons name="hand-left" size={14} color="#fff" />
+                  <Text style={styles.actionBtnText}>Claim</Text>
+                </Pressable>
+              ) : isAdmin ? (
+                <Pressable
+                  style={[styles.actionBtn, { backgroundColor: colors.brand.trendyPink }]}
+                  onPress={() => setReassignModal(true)}
+                >
+                  <Ionicons name="swap-horizontal" size={14} color="#fff" />
+                  <Text style={styles.actionBtnText}>Reassign</Text>
+                </Pressable>
+              ) : null}
             </View>
+          </View>
 
-            <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
-              {tab === "activity" && (
-                <>
-                  <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Move stage</Text>
-                    <View style={styles.stageRow}>
-                      {STATUSES.map((s) => (
-                        <Pressable
-                          key={s}
-                          onPress={() =>
-                            logActivity.mutate({
-                              type: "status_change",
-                              note: `Moved to ${s}`,
-                              nextStatus: s,
-                            })
-                          }
-                          style={[
-                            styles.stage,
-                            lead.status === s && {
-                              backgroundColor: colors.brand.trendyPink,
-                              borderColor: colors.brand.trendyPink,
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.stageText, lead.status === s && { color: "#fff" }]}>
-                            {s}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
+          <View style={styles.tabRow}>
+            {(["activity", "details", "vehicles"] as Tab[]).map((t) => (
+              <Pressable
+                key={t}
+                onPress={() => {
+                  setTab(t);
+                  if (t === "details" && lead) {
+                    setForm({
+                      contactName: lead.contactName,
+                      contactPhone: lead.contactPhone,
+                      contactEmail: lead.contactEmail,
+                      estimatedValue: lead.estimatedValue,
+                      notes: lead.notes,
+                    });
+                  }
+                }}
+                style={[styles.tab, tab === t && styles.tabActive]}
+              >
+                <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>{t}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
+            {tab === "activity" && (
+              <>
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Move stage</Text>
+                  <View style={styles.stageRow}>
+                    {STATUSES.map((s) => (
+                      <Pressable
+                        key={s}
+                        onPress={() => moveStage.mutate(s)}
+                        disabled={moveStage.isPending}
+                        style={[
+                          styles.stage,
+                          lead.status === s && {
+                            backgroundColor: colors.brand.trendyPink,
+                            borderColor: colors.brand.trendyPink,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.stageText, lead.status === s && { color: "#fff" }]}>
+                          {s}
+                        </Text>
+                      </Pressable>
+                    ))}
                   </View>
+                </View>
 
-                  <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Log activity</Text>
-                    <TextInput
-                      value={note}
-                      onChangeText={setNote}
-                      multiline
-                      placeholder="What happened?"
-                      placeholderTextColor={colors.text.secondary}
-                      style={styles.noteInput}
-                    />
-                    <Pressable
-                      style={[styles.logBtn, !note.trim() && { opacity: 0.4 }]}
-                      disabled={!note.trim() || logActivity.isPending}
-                      onPress={() => logActivity.mutate({ type: "note", note: note.trim() })}
-                    >
-                      <Text style={styles.logBtnText}>
-                        {logActivity.isPending ? "Saving…" : "Save note"}
-                      </Text>
-                    </Pressable>
-                  </View>
-
-                  {(lead.activities ?? []).length > 0 && (
-                    <View style={styles.card}>
-                      <Text style={styles.sectionTitle}>Timeline</Text>
-                      {(lead.activities ?? []).slice(0, 20).map((a) => (
-                        <View key={a.id} style={styles.activityRow}>
-                          <View style={styles.activityDot} />
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.activityType}>{a.type.replace(/_/g, " ")}</Text>
-                            {a.note && <Text style={styles.activityNote}>{a.note}</Text>}
-                            <Text style={styles.activityDate}>
-                              {new Date(a.createdAt).toLocaleString()}
-                            </Text>
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </>
-              )}
-
-              {tab === "details" && (
-                <>
-                  <DetailField
-                    label="Contact name"
-                    value={form.contactName ?? ""}
-                    onChange={(v) => setForm((s) => ({ ...s, contactName: v }))}
-                  />
-                  <DetailField
-                    label="Phone"
-                    value={form.contactPhone ?? ""}
-                    onChange={(v) => setForm((s) => ({ ...s, contactPhone: v }))}
-                    keyboardType="phone-pad"
-                  />
-                  <DetailField
-                    label="Email"
-                    value={form.contactEmail ?? ""}
-                    onChange={(v) => setForm((s) => ({ ...s, contactEmail: v }))}
-                    keyboardType="email-address"
-                  />
-                  <DetailField
-                    label="Estimated value (EGP)"
-                    value={form.estimatedValue?.toString() ?? ""}
-                    onChange={(v) => setForm((s) => ({ ...s, estimatedValue: Number(v) as never }))}
-                    keyboardType="numeric"
-                  />
-                  <DetailField
-                    label="Notes"
-                    value={form.notes ?? ""}
-                    onChange={(v) => setForm((s) => ({ ...s, notes: v }))}
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Log activity</Text>
+                  <TextInput
+                    value={note}
+                    onChangeText={setNote}
                     multiline
+                    placeholder="What happened?"
+                    placeholderTextColor={colors.text.secondary}
+                    style={styles.noteInput}
                   />
                   <Pressable
-                    style={[styles.logBtn, updateLead.isPending && { opacity: 0.5 }]}
-                    disabled={updateLead.isPending}
-                    onPress={() => updateLead.mutate()}
+                    style={[styles.logBtn, !note.trim() && { opacity: 0.4 }]}
+                    disabled={!note.trim() || logActivity.isPending}
+                    onPress={() => logActivity.mutate({ type: "note", body: note.trim() })}
                   >
                     <Text style={styles.logBtnText}>
-                      {updateLead.isPending ? "Saving…" : "Save changes"}
+                      {logActivity.isPending ? "Saving…" : "Save note"}
                     </Text>
                   </Pressable>
-                </>
-              )}
+                </View>
 
-              {tab === "vehicles" && (
-                <>
-                  {(lead.vehicles ?? []).length === 0 ? (
-                    <View style={styles.empty}>
-                      <Ionicons name="car-outline" size={36} color={colors.text.secondary} />
-                      <Text style={styles.emptyText}>No vehicles attached yet</Text>
-                    </View>
-                  ) : (
-                    (lead.vehicles ?? []).map((v) => (
-                      <View key={v.id} style={styles.vehicleRow}>
-                        <Ionicons name="car-sport" size={20} color={colors.brand.poolBlue} />
-                        <Text style={styles.vehicleName}>{v.vehicle?.name ?? "Vehicle"}</Text>
+                {(lead.activities ?? []).length > 0 && (
+                  <View style={styles.card}>
+                    <Text style={styles.sectionTitle}>Timeline</Text>
+                    {(lead.activities ?? []).slice(0, 20).map((a) => (
+                      <View key={a.id} style={styles.activityRow}>
+                        <View style={styles.activityDot} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.activityType}>{a.type.replace(/_/g, " ")}</Text>
+                          {a.note && <Text style={styles.activityNote}>{a.note}</Text>}
+                          <Text style={styles.activityDate}>
+                            {new Date(a.createdAt).toLocaleString()}
+                          </Text>
+                        </View>
                       </View>
-                    ))
-                  )}
-                  <Pressable style={styles.attachBtn} onPress={() => setVehicleModal(true)}>
-                    <Ionicons name="add-circle" size={18} color="#fff" />
-                    <Text style={styles.attachBtnText}>Attach vehicle</Text>
-                  </Pressable>
-                </>
-              )}
-            </ScrollView>
-          </>
-        )}
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
 
-        <Modal
-          visible={vehicleModal}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setVehicleModal(false)}
-        >
-          <Pressable style={styles.modalBg} onPress={() => setVehicleModal(false)}>
-            <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
-              <Text style={styles.modalTitle}>Attach vehicle</Text>
-              {vehiclesQ.isLoading ? (
-                <ActivityIndicator color={colors.brand.trendyPink} />
-              ) : (
-                <FlatList
-                  data={vehiclesQ.data ?? []}
-                  keyExtractor={(v) => v.id}
-                  renderItem={({ item }) => (
-                    <Pressable
-                      style={styles.vehiclePickerRow}
-                      onPress={() => attach.mutate(item.id)}
-                    >
+            {tab === "details" && (
+              <>
+                <DetailField
+                  label="Contact name"
+                  value={form.contactName ?? ""}
+                  onChange={(v) => setForm((s) => ({ ...s, contactName: v }))}
+                />
+                <DetailField
+                  label="Phone"
+                  value={form.contactPhone ?? ""}
+                  onChange={(v) => setForm((s) => ({ ...s, contactPhone: v }))}
+                  keyboardType="phone-pad"
+                />
+                <DetailField
+                  label="Email"
+                  value={form.contactEmail ?? ""}
+                  onChange={(v) => setForm((s) => ({ ...s, contactEmail: v }))}
+                  keyboardType="email-address"
+                />
+                <DetailField
+                  label="Estimated value (EGP)"
+                  value={form.estimatedValue?.toString() ?? ""}
+                  onChange={(v) => setForm((s) => ({ ...s, estimatedValue: Number(v) as never }))}
+                  keyboardType="numeric"
+                />
+                <DetailField
+                  label="Notes"
+                  value={form.notes ?? ""}
+                  onChange={(v) => setForm((s) => ({ ...s, notes: v }))}
+                  multiline
+                />
+                <Pressable
+                  style={[styles.logBtn, updateLead.isPending && { opacity: 0.5 }]}
+                  disabled={updateLead.isPending}
+                  onPress={() => updateLead.mutate()}
+                >
+                  <Text style={styles.logBtnText}>
+                    {updateLead.isPending ? "Saving…" : "Save changes"}
+                  </Text>
+                </Pressable>
+              </>
+            )}
+
+            {tab === "vehicles" && (
+              <>
+                {attachedFromActivities.length === 0 ? (
+                  <View style={styles.empty}>
+                    <Ionicons name="car-outline" size={36} color={colors.text.secondary} />
+                    <Text style={styles.emptyText}>No vehicles attached yet</Text>
+                  </View>
+                ) : (
+                  attachedFromActivities.map((v) => (
+                    <View key={v.vehicleId} style={styles.vehicleRow}>
                       <Ionicons name="car-sport" size={20} color={colors.brand.poolBlue} />
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.vName}>{item.name}</Text>
-                        <Text style={styles.vMeta}>
-                          {item.category ?? "—"} · EGP {item.dailyRate ?? "—"}/day
-                        </Text>
+                        <Text style={styles.vehicleName}>{v.label}</Text>
+                        {v.intent ? (
+                          <Text style={{ color: colors.text.secondary, fontSize: 11 }}>
+                            {v.intent === "sell" ? "For sale" : "For rent"}
+                          </Text>
+                        ) : null}
                       </View>
-                    </Pressable>
-                  )}
-                />
-              )}
-            </Pressable>
-          </Pressable>
-        </Modal>
+                    </View>
+                  ))
+                )}
+                <Pressable style={styles.attachBtn} onPress={() => setVehicleModal(true)}>
+                  <Ionicons name="add-circle" size={18} color="#fff" />
+                  <Text style={styles.attachBtnText}>Attach vehicle</Text>
+                </Pressable>
+              </>
+            )}
+          </ScrollView>
+        </>
+      )}
 
-        <Modal
-          visible={reassignModal}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setReassignModal(false)}
-        >
-          <Pressable style={styles.modalBg} onPress={() => setReassignModal(false)}>
-            <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
-              <Text style={styles.modalTitle}>Reassign to</Text>
-              {agentsQ.isLoading ? (
-                <ActivityIndicator color={colors.brand.trendyPink} />
-              ) : (
-                <FlatList
-                  data={agentsQ.data ?? []}
-                  keyExtractor={(a) => a.id}
-                  renderItem={({ item }) => (
-                    <Pressable
-                      style={styles.vehiclePickerRow}
-                      onPress={() => reassign.mutate(item.id)}
-                    >
-                      <Ionicons name="person-circle" size={24} color={colors.brand.trendyPink} />
-                      <Text style={styles.vName}>{item.name ?? "Agent"}</Text>
-                    </Pressable>
-                  )}
-                />
-              )}
-            </Pressable>
+      <Modal
+        visible={vehicleModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setVehicleModal(false)}
+      >
+        <Pressable style={styles.modalBg} onPress={() => setVehicleModal(false)}>
+          <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Attach vehicle</Text>
+            <View style={styles.modalSearch}>
+              <Ionicons name="search" size={16} color={colors.text.secondary} />
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Search by name or category…"
+                placeholderTextColor={colors.text.secondary}
+                value={vehicleSearch}
+                onChangeText={setVehicleSearch}
+                autoCorrect={false}
+                autoCapitalize="none"
+              />
+              {vehicleSearch.length > 0 ? (
+                <Pressable onPress={() => setVehicleSearch("")} hitSlop={8}>
+                  <Ionicons name="close-circle" size={16} color={colors.text.secondary} />
+                </Pressable>
+              ) : null}
+            </View>
+            {vehiclesQ.isLoading ? (
+              <ActivityIndicator color={colors.brand.trendyPink} />
+            ) : (
+              <FlatList
+                data={filteredVehiclesForModal}
+                keyExtractor={(v) => v.id}
+                keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={
+                  <View style={{ padding: 24, alignItems: "center" }}>
+                    <Text style={{ color: colors.text.secondary }}>No matches</Text>
+                  </View>
+                }
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={styles.vehiclePickerRow}
+                    onPress={() => attach.mutate(item.id)}
+                    disabled={attach.isPending}
+                  >
+                    <Ionicons name="car-sport" size={20} color={colors.brand.poolBlue} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.vName}>{item.name}</Text>
+                      <Text style={styles.vMeta}>
+                        {item.category ?? "—"} · EGP {item.dailyRate ?? "—"}/day
+                      </Text>
+                    </View>
+                  </Pressable>
+                )}
+              />
+            )}
           </Pressable>
-        </Modal>
-      </View>
-    </>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={reassignModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReassignModal(false)}
+      >
+        <Pressable style={styles.modalBg} onPress={() => setReassignModal(false)}>
+          <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Reassign to</Text>
+            {agentsQ.isLoading ? (
+              <ActivityIndicator color={colors.brand.trendyPink} />
+            ) : (
+              <FlatList
+                data={agentsQ.data ?? []}
+                keyExtractor={(a) => a.id}
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={styles.vehiclePickerRow}
+                    onPress={() => reassign.mutate(item.id)}
+                  >
+                    <Ionicons name="person-circle" size={24} color={colors.brand.trendyPink} />
+                    <Text style={styles.vName}>{item.name ?? "Agent"}</Text>
+                  </Pressable>
+                )}
+              />
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
   );
 }
 
@@ -481,6 +563,24 @@ function DetailField({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dark.bg },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: colors.dark.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.dark.border,
+  },
+  topBarTitle: {
+    color: colors.text.light,
+    fontSize: 17,
+    fontWeight: "700",
+    flex: 1,
+    textAlign: "center",
+    marginHorizontal: 12,
+  },
   heroCard: {
     margin: 14,
     backgroundColor: colors.dark.card,
@@ -633,7 +733,20 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     maxHeight: "70%",
   },
-  modalTitle: { color: colors.text.light, fontSize: 18, fontWeight: "700", marginBottom: 14 },
+  modalTitle: { color: colors.text.light, fontSize: 18, fontWeight: "700", marginBottom: 12 },
+  modalSearch: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.dark.bg,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 40,
+    marginBottom: 10,
+  },
+  modalSearchInput: { flex: 1, color: colors.text.light, fontSize: 14, paddingVertical: 0 },
   vehiclePickerRow: {
     flexDirection: "row",
     alignItems: "center",

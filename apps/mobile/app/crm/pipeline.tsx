@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   wonText: { color: colors.brand.ecoLimelight ?? "#A9F453", fontWeight: "800", fontSize: 13 },
-  stageRow: { paddingHorizontal: 14, paddingVertical: 12, gap: 8 },
+  stageRow: { paddingHorizontal: 14, paddingVertical: 12, gap: 8, alignItems: "center" },
   stage: {
     flexDirection: "row",
     alignItems: "center",
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     height: 42,
   },
   searchInput: { flex: 1, color: colors.text.light, fontSize: 14, paddingVertical: 0 },
-  filterRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
+  filterRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 8, alignItems: "center" },
   filterChip: {
     flexDirection: "row",
     alignItems: "center",

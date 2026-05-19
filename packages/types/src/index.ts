@@ -25,7 +25,7 @@ export type Transmission = "automatic" | "manual";
 export type VehicleStatus = "available" | "rented" | "maintenance" | "inactive";
 export type ListingType = "rent" | "sale" | "both";
 
-export type BookingStatus = "confirmed" | "completed" | "cancelled";
+export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 export type PaymentStatus = "pending" | "paid" | "refunded";
 
 export type RepairCategory = "mechanical" | "electrical" | "cosmetic" | "other";

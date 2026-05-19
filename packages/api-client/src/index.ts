@@ -482,7 +482,7 @@ class ApiClient {
 
   async crmLogActivity(
     leadId: string,
-    activity: { type: string; note?: string; nextStatus?: string },
+    activity: { type: "note" | "call" | "email"; body: string },
   ): Promise<{ data: unknown }> {
     return this.request("POST", `/api/crm/leads/${encodeURIComponent(leadId)}/activities`, {
       body: activity,

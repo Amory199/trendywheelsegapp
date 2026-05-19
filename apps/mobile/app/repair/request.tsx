@@ -16,6 +16,7 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
+import { playSound } from "../../lib/sounds";
 
 type Category = "mechanical" | "electrical" | "cosmetic" | "other";
 type Priority = "low" | "medium" | "high" | "urgent";
@@ -55,8 +56,13 @@ export default function RepairRequestScreen(): JSX.Element {
       }),
     onSuccess: () => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      playSound("success");
       void qc.invalidateQueries({ queryKey: ["repair-requests"] });
       router.back();
+    },
+    onError: () => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      playSound("error");
     },
   });
 

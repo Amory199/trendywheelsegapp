@@ -1,17 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
+import { playSound } from "../../../lib/sounds";
 
 const SOURCES = ["walk-in", "phone", "whatsapp", "instagram", "facebook", "referral", "other"];
 
 export default function NewLead(): React.JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
+  const insets = useSafeAreaInsets();
   const [form, setForm] = useState({
     contactName: "",
     contactPhone: "",
@@ -32,84 +35,86 @@ export default function NewLead(): React.JSX.Element {
         notes: form.notes.trim() || undefined,
       }),
     onSuccess: async (res) => {
+      playSound("success");
       await qc.invalidateQueries({ queryKey: ["crm"] });
       const id = (res.data as { id?: string })?.id;
       if (id) router.replace(`/crm/leads/${id}`);
       else router.back();
     },
-    onError: (e) => Alert.alert("Create failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) => {
+      playSound("error");
+      Alert.alert("Create failed", e instanceof Error ? e.message : "Try again");
+    },
   });
 
   const canSubmit = form.contactName.trim().length > 0;
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: "New lead",
-          headerStyle: { backgroundColor: colors.dark.bg },
-          headerTintColor: colors.text.light,
-        }}
-      />
-      <View style={styles.root}>
-        <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
-          <Field
-            label="Contact name *"
-            value={form.contactName}
-            onChange={(v) => setForm((s) => ({ ...s, contactName: v }))}
-          />
-          <Field
-            label="Phone"
-            value={form.contactPhone}
-            onChange={(v) => setForm((s) => ({ ...s, contactPhone: v }))}
-            keyboardType="phone-pad"
-          />
-          <Field
-            label="Email"
-            value={form.contactEmail}
-            onChange={(v) => setForm((s) => ({ ...s, contactEmail: v }))}
-            keyboardType="email-address"
-          />
-          <View style={styles.card}>
-            <Text style={styles.label}>Source</Text>
-            <View style={styles.chipRow}>
-              {SOURCES.map((s) => (
-                <Pressable
-                  key={s}
-                  onPress={() => setForm((f) => ({ ...f, source: s }))}
-                  style={[styles.chip, form.source === s && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, form.source === s && styles.chipTextActive]}>
-                    {s}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-          <Field
-            label="Estimated value (EGP)"
-            value={form.estimatedValue}
-            onChange={(v) => setForm((s) => ({ ...s, estimatedValue: v }))}
-            keyboardType="numeric"
-          />
-          <Field
-            label="Notes"
-            value={form.notes}
-            onChange={(v) => setForm((s) => ({ ...s, notes: v }))}
-            multiline
-          />
-
-          <Pressable
-            style={[styles.saveBtn, (!canSubmit || create.isPending) && { opacity: 0.5 }]}
-            disabled={!canSubmit || create.isPending}
-            onPress={() => create.mutate()}
-          >
-            <Ionicons name="checkmark-circle" size={18} color="#fff" />
-            <Text style={styles.saveBtnText}>{create.isPending ? "Creating…" : "Create lead"}</Text>
-          </Pressable>
-        </ScrollView>
+    <View style={styles.root}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Ionicons name="chevron-back" size={24} color={colors.text.light} />
+        </Pressable>
+        <Text style={styles.topBarTitle}>New lead</Text>
+        <View style={{ width: 24 }} />
       </View>
-    </>
+      <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
+        <Field
+          label="Contact name *"
+          value={form.contactName}
+          onChange={(v) => setForm((s) => ({ ...s, contactName: v }))}
+        />
+        <Field
+          label="Phone"
+          value={form.contactPhone}
+          onChange={(v) => setForm((s) => ({ ...s, contactPhone: v }))}
+          keyboardType="phone-pad"
+        />
+        <Field
+          label="Email"
+          value={form.contactEmail}
+          onChange={(v) => setForm((s) => ({ ...s, contactEmail: v }))}
+          keyboardType="email-address"
+        />
+        <View style={styles.card}>
+          <Text style={styles.label}>Source</Text>
+          <View style={styles.chipRow}>
+            {SOURCES.map((s) => (
+              <Pressable
+                key={s}
+                onPress={() => setForm((f) => ({ ...f, source: s }))}
+                style={[styles.chip, form.source === s && styles.chipActive]}
+              >
+                <Text style={[styles.chipText, form.source === s && styles.chipTextActive]}>
+                  {s}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+        <Field
+          label="Estimated value (EGP)"
+          value={form.estimatedValue}
+          onChange={(v) => setForm((s) => ({ ...s, estimatedValue: v }))}
+          keyboardType="numeric"
+        />
+        <Field
+          label="Notes"
+          value={form.notes}
+          onChange={(v) => setForm((s) => ({ ...s, notes: v }))}
+          multiline
+        />
+
+        <Pressable
+          style={[styles.saveBtn, (!canSubmit || create.isPending) && { opacity: 0.5 }]}
+          disabled={!canSubmit || create.isPending}
+          onPress={() => create.mutate()}
+        >
+          <Ionicons name="checkmark-circle" size={18} color="#fff" />
+          <Text style={styles.saveBtnText}>{create.isPending ? "Creating…" : "Create lead"}</Text>
+        </Pressable>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -143,6 +148,17 @@ function Field({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dark.bg },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: colors.dark.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.dark.border,
+  },
+  topBarTitle: { color: colors.text.light, fontSize: 17, fontWeight: "700" },
   card: {
     backgroundColor: colors.dark.card,
     borderRadius: 12,

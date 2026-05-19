@@ -10,6 +10,7 @@ import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react
 const CATEGORY_VIDEOS: Partial<Record<VehicleCategory, number>> = {
   "golf-cart": require("../assets/category/golf-cart.mp4"),
   scooter: require("../assets/category/scooter.mp4"),
+  "hover-board": require("../assets/category/hover-board.mp4"),
   buggy: require("../assets/category/buggy.mp4"),
   "jet-ski": require("../assets/category/jet-ski.mp4"),
 };
@@ -105,14 +106,19 @@ function BlockVideo({ source }: { source: number }): JSX.Element {
     p.muted = true;
     p.play();
   });
-  // Pause when the tab is blurred so multiple video decoders aren't held
-  // across screens (some Androids cap simultaneous H.264 surfaces at ~4–6).
+  // On focus, force a play() in case the previous pause-on-unmount path left
+  // the player in a stopped state with a black texture. Skip the pause-on-blur
+  // entirely — pausing forces expo-video to release its hardware surface on
+  // some Androids and the surface fails to reattach, showing a black frame.
+  // Keeping ~5 short looping videos active is cheap on modern devices.
   useFocusEffect(
     useCallback(() => {
-      player.play();
-      return () => {
-        player.pause();
-      };
+      try {
+        player.play();
+      } catch {
+        // player may be released during fast unmounts; safe to ignore.
+      }
+      return undefined;
     }, [player]),
   );
   return (

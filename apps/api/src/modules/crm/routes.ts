@@ -33,12 +33,13 @@ router.get("/leads", async (req, res) => {
     // Admins can see everything; honor explicit owner filters.
     if (mineOnly) where.ownerId = userId;
     else if (ownerId) where.ownerId = ownerId === "unassigned" ? null : ownerId;
-  } else {
-    // Sales agents are scoped to their own leads + the unassigned pool
-    // (so they can claim from the pool). All other ?ownerId/?mine flags
-    // are ignored — agents cannot peek at peers' pipelines.
-    where.OR = [{ ownerId: userId }, { ownerId: null }];
+  } else if (mineOnly) {
+    // Sales agent opted into the "Mine" filter on the mobile pipeline.
+    where.ownerId = userId;
   }
+  // Otherwise sales see all leads (read-only on ones they don't own).
+  // PATCH and claim/reassign endpoints still enforce ownership for mutations,
+  // so visibility-only access is safe.
 
   const leads = await prisma.lead.findMany({
     where,
@@ -205,10 +206,7 @@ router.get("/leads/:id", async (req, res) => {
     },
   });
   if (!lead) throw AppError.notFound("Lead not found");
-  // Sales agents can only see their own leads or unassigned ones.
-  if (!isAdmin && lead.ownerId !== null && lead.ownerId !== userId) {
-    throw AppError.forbidden("Lead belongs to another agent");
-  }
+  // Sales can VIEW any lead; mutations stay gated by ownership in PATCH/claim.
   res.json({ data: lead });
 });
 

@@ -5,27 +5,22 @@ import { colors, spacing, typography } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 
-type TabKey = "confirmed" | "completed" | "cancelled";
+type TabKey = "pending" | "confirmed" | "completed" | "cancelled";
 
 const TABS: { key: TabKey; label: string }[] = [
+  { key: "pending", label: "Awaiting" },
   { key: "confirmed", label: "Active" },
   { key: "completed", label: "Completed" },
   { key: "cancelled", label: "Cancelled" },
 ];
 
 const STATUS_COLORS: Record<TabKey, string> = {
+  pending: colors.warning,
   confirmed: colors.primary[700],
   completed: colors.success,
   cancelled: colors.text.secondary,
@@ -34,7 +29,7 @@ const STATUS_COLORS: Record<TabKey, string> = {
 export default function MyBookingsScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
-  const [activeTab, setActiveTab] = useState<TabKey>("confirmed");
+  const [activeTab, setActiveTab] = useState<TabKey>("pending");
 
   const { data, isLoading } = useQuery({
     queryKey: ["my-bookings", activeTab],
@@ -81,7 +76,9 @@ export default function MyBookingsScreen(): JSX.Element {
       ) : bookings.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="calendar-outline" size={64} color={colors.text.secondary} />
-          <Text style={styles.emptyText}>No {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()} bookings</Text>
+          <Text style={styles.emptyText}>
+            No {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()} bookings
+          </Text>
         </View>
       ) : (
         <FlatList<Booking>
@@ -98,10 +95,17 @@ export default function MyBookingsScreen(): JSX.Element {
                   <View
                     style={[
                       styles.badge,
-                      { backgroundColor: `${STATUS_COLORS[item.status as TabKey] ?? colors.text.secondary}22` },
+                      {
+                        backgroundColor: `${STATUS_COLORS[item.status as TabKey] ?? colors.text.secondary}22`,
+                      },
                     ]}
                   >
-                    <Text style={[styles.badgeText, { color: STATUS_COLORS[item.status as TabKey] ?? colors.text.secondary }]}>
+                    <Text
+                      style={[
+                        styles.badgeText,
+                        { color: STATUS_COLORS[item.status as TabKey] ?? colors.text.secondary },
+                      ]}
+                    >
                       {item.status}
                     </Text>
                   </View>
@@ -123,7 +127,9 @@ export default function MyBookingsScreen(): JSX.Element {
                   </View>
                   <View style={styles.costItem}>
                     <Text style={styles.dateLabel}>Total</Text>
-                    <Text style={styles.costValue}>{Number(item.totalCost).toLocaleString()} EGP</Text>
+                    <Text style={styles.costValue}>
+                      {Number(item.totalCost).toLocaleString()} EGP
+                    </Text>
                   </View>
                 </View>
 

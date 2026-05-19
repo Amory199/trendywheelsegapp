@@ -36,6 +36,7 @@ module.exports = {
       "expo-secure-store",
       "expo-local-authentication",
       "expo-asset",
+      "expo-audio",
       "expo-font",
       "@react-native-firebase/app",
       "@react-native-firebase/auth",

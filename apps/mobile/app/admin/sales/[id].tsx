@@ -17,6 +17,7 @@ import {
 } from "react-native";
 
 import { api } from "../../../lib/api";
+import { playSound } from "../../../lib/sounds";
 
 interface Listing {
   id: string;
@@ -51,10 +52,14 @@ export default function AdminSaleEdit(): React.JSX.Element {
   const save = useMutation({
     mutationFn: async () => api.adminUpdateSale(id!, form),
     onSuccess: async () => {
+      playSound("success");
       await qc.invalidateQueries({ queryKey: ["admin"] });
       Alert.alert("Saved", "Listing updated.");
     },
-    onError: (e) => Alert.alert("Save failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) => {
+      playSound("error");
+      Alert.alert("Save failed", e instanceof Error ? e.message : "Try again");
+    },
   });
 
   const pickAndUpload = async (): Promise<void> => {

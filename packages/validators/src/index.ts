@@ -94,7 +94,7 @@ export const vehicleFiltersSchema = z.object({
 
 // ─── Bookings ────────────────────────────────────────────────
 
-const bookingStatusEnum = z.enum(["confirmed", "completed", "cancelled"]);
+const bookingStatusEnum = z.enum(["pending", "confirmed", "completed", "cancelled"]);
 
 export const createBookingSchema = z
   .object({
