@@ -67,6 +67,12 @@ registerSocketNamespaces(io);
 
 httpServer.listen(env.PORT, async () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV }, "TrendyWheels API server started");
+  if (env.STAFF_TEST_PHONES) {
+    logger.warn(
+      { phones: env.STAFF_TEST_PHONES },
+      "STAFF_TEST_PHONES is set — staff phones can authenticate via Firebase Phone Auth. Dev/test only.",
+    );
+  }
   try {
     await ensureBucket();
   } catch (err) {

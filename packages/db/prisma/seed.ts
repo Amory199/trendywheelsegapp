@@ -39,7 +39,10 @@ async function main() {
 
   const admin = await prisma.user.create({
     data: {
-      phone: "+201000000001",
+      // Phone is a Firebase test phone (Console fixed verification code 100001),
+      // listed in STAFF_TEST_PHONES so the firebase-token endpoint issues an
+      // admin JWT instead of rejecting on the customer-only check.
+      phone: "+201500001001",
       email: "admin@trendywheelseg.com",
       name: "Mostafa Admin",
       accountType: "admin",
@@ -57,7 +60,9 @@ async function main() {
   const salesAgents = await Promise.all(
     [
       {
-        phone: "+201000000010",
+        // Phone is a Firebase test phone (fixed code 100002), in
+        // STAFF_TEST_PHONES so phone auth issues a sales JWT.
+        phone: "+201500001002",
         email: "amira@trendywheelseg.com",
         name: "Amira Hassan",
         weight: 2,
@@ -810,9 +815,11 @@ async function main() {
 
   console.log("\n🎉 Seed complete!\n");
   console.log("Logins (3-role model):");
-  console.log("  admin@trendywheelseg.com      / Admin@123!     (superadmin)");
   console.log(
-    "  amira@trendywheelseg.com      / Sales@123!     (sales · also handles inventory + support)",
+    "  admin@trendywheelseg.com      / Admin@123!     (superadmin · phone +201500001001 / Firebase code 100001)",
+  );
+  console.log(
+    "  amira@trendywheelseg.com      / Sales@123!     (sales · phone +201500001002 / Firebase code 100002)",
   );
   console.log("  youssef@trendywheelseg.com    / Sales@123!     (sales)");
   console.log("  rana@trendywheelseg.com       / Sales@123!     (sales)");

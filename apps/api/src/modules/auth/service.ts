@@ -177,13 +177,26 @@ export async function verifyOtp(
  * already verified the phone (via OTP, Firebase ID token, etc.). Auto-creates
  * the user + signup lead on first call. Returns the same shape as verifyOtp().
  */
+function isStaffTestPhone(phone: string): boolean {
+  if (!env.STAFF_TEST_PHONES) return false;
+  return env.STAFF_TEST_PHONES.split(",")
+    .map((p) => p.trim())
+    .includes(phone);
+}
+
 export async function issueTokensForPhone(
   phone: string,
 ): Promise<{ token: string; refreshToken: string; user: object }> {
   let user = await prisma.user.findUnique({ where: { phone } });
   let isNewSignup = false;
+  // Customer-only by default (vuln 1 fix). Narrow exception: phones in the
+  // STAFF_TEST_PHONES allow-list AND already seeded with a staffRole can
+  // authenticate as staff for dev/test. Both conditions must hold.
   if (user && user.accountType !== "customer") {
-    throw AppError.forbidden("Staff and admins must sign in with email and password.");
+    const isAllowedStaffTest = isStaffTestPhone(phone) && user.staffRole !== null;
+    if (!isAllowedStaffTest) {
+      throw AppError.forbidden("Staff and admins must sign in with email and password.");
+    }
   }
   if (user && user.status !== "active") {
     throw AppError.forbidden("Account is not active");
