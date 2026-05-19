@@ -87,8 +87,15 @@ export async function create(req: Request, res: Response): Promise<void> {
   if (typeof body.category === "string" && body.category in CATEGORY_MAP) {
     body.category = CATEGORY_MAP[body.category];
   }
+  // Staff-created listings start "active" (no review queue); customer-created
+  // start "pending" until staff approve. Either way, images come from the body.
+  const isStaffCreator = req.user!.accountType !== "customer";
   const listing = await prisma.salesListing.create({
-    data: { ...body, userId: req.user!.userId, status: "pending", images: [] } as never,
+    data: {
+      ...body,
+      userId: req.user!.userId,
+      status: isStaffCreator ? "active" : "pending",
+    } as never,
   });
   await invalidateSalesCache();
   // Notify staff that a listing is awaiting approval.

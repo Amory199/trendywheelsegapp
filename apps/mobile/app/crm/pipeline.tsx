@@ -12,6 +12,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -27,7 +28,17 @@ interface Lead {
   estimatedValue: number | string;
   source?: string;
   lastActivityAt?: string;
+  ownerId?: string | null;
 }
+
+type FilterKey = "all" | "mine" | "unclaimed" | "stale";
+
+const FILTERS: { key: FilterKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: "all", label: "All", icon: "layers-outline" },
+  { key: "mine", label: "Mine", icon: "person-outline" },
+  { key: "unclaimed", label: "Open", icon: "flag-outline" },
+  { key: "stale", label: "Stale", icon: "alarm-outline" },
+];
 
 const STAGES = ["new", "contacted", "qualified", "proposal", "won", "lost"] as const;
 type Stage = (typeof STAGES)[number];
@@ -74,40 +85,65 @@ function initialsOf(name: string): string {
 export default function CrmPipeline(): React.JSX.Element {
   const router = useRouter();
   const user = useAuth((s) => s.user);
+  const userId = user?.id;
   const [stage, setStage] = useState<Stage>("new");
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [search, setSearch] = useState("");
 
-  const pipelineQ = useQuery({
-    queryKey: ["crm", "pipeline"],
+  const leadsQ = useQuery({
+    queryKey: ["crm", "leads"],
     queryFn: async () => {
-      const r = await api.crmPipeline();
-      return r.data as Record<Stage, Lead[]>;
+      const r = await api.crmLeads();
+      return (r.data as Lead[]) ?? [];
     },
   });
 
+  const allLeads = leadsQ.data ?? [];
+
+  // Apply Mine/Unclaimed/Stale filter + search across ALL stages (so the
+  // count badges reflect what's actually selectable).
+  const STALE_MS = 24 * 60 * 60 * 1000;
+  const filteredAll = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return allLeads.filter((l) => {
+      if (filter === "mine" && l.ownerId !== userId) return false;
+      if (filter === "unclaimed" && l.ownerId !== null) return false;
+      if (filter === "stale") {
+        const last = l.lastActivityAt ? new Date(l.lastActivityAt).getTime() : 0;
+        if (Date.now() - last < STALE_MS) return false;
+      }
+      if (q) {
+        const hay = `${l.contactName ?? ""} ${l.contactPhone ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [allLeads, filter, search, userId, STALE_MS]);
+
   const counts = useMemo<Record<Stage, number>>(() => {
-    const d = pipelineQ.data ?? ({} as Record<Stage, Lead[]>);
     return STAGES.reduce(
       (acc, s) => {
-        acc[s] = d[s]?.length ?? 0;
+        acc[s] = filteredAll.filter((l) => l.status === s).length;
         return acc;
       },
       {} as Record<Stage, number>,
     );
-  }, [pipelineQ.data]);
+  }, [filteredAll]);
 
   const stageValue = useMemo<Record<Stage, number>>(() => {
-    const d = pipelineQ.data ?? ({} as Record<Stage, Lead[]>);
     return STAGES.reduce(
       (acc, s) => {
-        acc[s] = (d[s] ?? []).reduce((sum, l) => sum + Number(l.estimatedValue ?? 0), 0);
+        acc[s] = filteredAll
+          .filter((l) => l.status === s)
+          .reduce((sum, l) => sum + Number(l.estimatedValue ?? 0), 0);
         return acc;
       },
       {} as Record<Stage, number>,
     );
-  }, [pipelineQ.data]);
+  }, [filteredAll]);
 
   const totalValue = Object.values(stageValue).reduce((a, b) => a + b, 0);
-  const currentLeads = (pipelineQ.data?.[stage] ?? []) as Lead[];
+  const currentLeads = filteredAll.filter((l) => l.status === stage);
 
   return (
     <View style={styles.root}>
@@ -135,6 +171,44 @@ export default function CrmPipeline(): React.JSX.Element {
           </View>
         </View>
       </View>
+
+      <View style={styles.searchBar}>
+        <Ionicons name="search" size={16} color={colors.text.secondary} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by name or phone…"
+          placeholderTextColor={colors.text.secondary}
+          value={search}
+          onChangeText={setSearch}
+          autoCorrect={false}
+          autoCapitalize="none"
+        />
+        {search.length > 0 ? (
+          <Pressable onPress={() => setSearch("")} hitSlop={8}>
+            <Ionicons name="close-circle" size={16} color={colors.text.secondary} />
+          </Pressable>
+        ) : null}
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+      >
+        {FILTERS.map((f) => {
+          const active = filter === f.key;
+          return (
+            <Pressable
+              key={f.key}
+              onPress={() => setFilter(f.key)}
+              style={[styles.filterChip, active && styles.filterChipActive]}
+            >
+              <Ionicons name={f.icon} size={12} color={active ? "#fff" : colors.text.secondary} />
+              <Text style={[styles.filterChipText, active && { color: "#fff" }]}>{f.label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
       <ScrollView
         horizontal
@@ -164,7 +238,7 @@ export default function CrmPipeline(): React.JSX.Element {
         ))}
       </ScrollView>
 
-      {pipelineQ.isLoading ? (
+      {leadsQ.isLoading ? (
         <ActivityIndicator color={colors.brand.trendyPink} style={{ marginTop: 24 }} size="large" />
       ) : (
         <FlatList
@@ -173,8 +247,8 @@ export default function CrmPipeline(): React.JSX.Element {
           contentContainerStyle={{ padding: 14, paddingBottom: 120, gap: 10 }}
           refreshControl={
             <RefreshControl
-              refreshing={pipelineQ.isFetching}
-              onRefresh={() => pipelineQ.refetch()}
+              refreshing={leadsQ.isFetching}
+              onRefresh={() => leadsQ.refetch()}
               tintColor={colors.text.light}
             />
           }
@@ -214,13 +288,26 @@ export default function CrmPipeline(): React.JSX.Element {
                     EGP {Number(item.estimatedValue).toLocaleString()}
                   </Text>
                   {item.contactPhone ? (
-                    <Pressable
-                      hitSlop={8}
-                      onPress={() => void Linking.openURL(`tel:${item.contactPhone}`)}
-                      style={styles.callBtn}
-                    >
-                      <Ionicons name="call" size={14} color="#fff" />
-                    </Pressable>
+                    <View style={{ flexDirection: "row", gap: 6 }}>
+                      <Pressable
+                        hitSlop={6}
+                        onPress={() =>
+                          void Linking.openURL(
+                            `https://wa.me/${item.contactPhone!.replace(/[^0-9]/g, "")}`,
+                          )
+                        }
+                        style={[styles.callBtn, { backgroundColor: "#25D366" }]}
+                      >
+                        <Ionicons name="logo-whatsapp" size={14} color="#fff" />
+                      </Pressable>
+                      <Pressable
+                        hitSlop={6}
+                        onPress={() => void Linking.openURL(`tel:${item.contactPhone}`)}
+                        style={styles.callBtn}
+                      >
+                        <Ionicons name="call" size={14} color="#fff" />
+                      </Pressable>
+                    </View>
                   ) : null}
                 </View>
               </Pressable>
@@ -237,7 +324,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingTop: 56,
+    paddingTop: 72,
     paddingHorizontal: 18,
     paddingBottom: 12,
     gap: 12,
@@ -358,4 +445,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  searchBar: {
+    marginHorizontal: 14,
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.dark.card,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 42,
+  },
+  searchInput: { flex: 1, color: colors.text.light, fontSize: 14, paddingVertical: 0 },
+  filterRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: colors.dark.card,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.brand.friendlyBlue,
+    borderColor: colors.brand.friendlyBlue,
+  },
+  filterChipText: { color: colors.text.secondary, fontWeight: "700", fontSize: 12 },
 });

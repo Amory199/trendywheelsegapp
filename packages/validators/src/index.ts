@@ -202,6 +202,7 @@ export const createSalesListingSchema = z.object({
   fuelType: fuelTypeEnum,
   color: z.string().min(1).max(30),
   description: z.string().min(10).max(2000),
+  images: z.array(z.string().url()).max(10).optional().default([]),
 });
 
 export const updateSalesListingSchema = createSalesListingSchema.partial().extend({

@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingTop: 56,
+    paddingTop: 72,
     paddingHorizontal: 18,
     paddingBottom: 14,
     gap: 12,

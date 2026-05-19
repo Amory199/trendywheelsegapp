@@ -213,31 +213,43 @@ router.get("/leads/:id", async (req, res) => {
 });
 
 // ─── Create lead manually ────────────────────────────────────
+// Wide source enum: legacy values from internal triggers (signup, rent-inquiry,
+// etc.) plus the mobile form's friendlier values (phone, whatsapp, walk-in…).
+// Mobile-only values map to "manual" in the DB enum but the original label is
+// recorded in the activity log so sales can see how the lead came in.
+const sourceMap: Record<
+  string,
+  "signup" | "rent_inquiry" | "sell_inquiry" | "repair_inquiry" | "manual" | "imported"
+> = {
+  signup: "signup",
+  "rent-inquiry": "rent_inquiry",
+  "sell-inquiry": "sell_inquiry",
+  "repair-inquiry": "repair_inquiry",
+  manual: "manual",
+  imported: "imported",
+  // Friendly mobile sources — all collapse to "manual".
+  "walk-in": "manual",
+  phone: "manual",
+  whatsapp: "manual",
+  instagram: "manual",
+  facebook: "manual",
+  referral: "manual",
+  other: "manual",
+};
+
 const createLeadSchema = z.object({
   contactName: z.string().min(1).max(120),
   contactPhone: z.string().max(40).optional(),
   contactEmail: z.string().email().optional(),
   estimatedValue: z.number().min(0).optional(),
   notes: z.string().max(2000).optional(),
-  source: z
-    .enum(["signup", "rent-inquiry", "sell-inquiry", "repair-inquiry", "manual", "imported"])
-    .optional(),
+  source: z.enum(Object.keys(sourceMap) as [string, ...string[]]).optional(),
 });
 
 router.post("/leads", async (req, res) => {
   const body = createLeadSchema.parse(req.body);
   const userId = req.user!.userId;
-  const sourceMap: Record<
-    string,
-    "signup" | "rent_inquiry" | "sell_inquiry" | "repair_inquiry" | "manual" | "imported"
-  > = {
-    signup: "signup",
-    "rent-inquiry": "rent_inquiry",
-    "sell-inquiry": "sell_inquiry",
-    "repair-inquiry": "repair_inquiry",
-    manual: "manual",
-    imported: "imported",
-  };
+  const friendlySource = body.source ?? "manual";
   const lead = await prisma.lead.create({
     data: {
       contactName: body.contactName,
@@ -245,10 +257,14 @@ router.post("/leads", async (req, res) => {
       contactEmail: body.contactEmail,
       estimatedValue: body.estimatedValue ?? 0,
       notes: body.notes,
-      source: sourceMap[body.source ?? "manual"],
+      source: sourceMap[friendlySource],
     },
   });
-  await recordActivity(lead.id, userId, "created", "Lead created manually");
+  const activityBody =
+    friendlySource === "manual"
+      ? "Lead created manually"
+      : `Lead created manually via ${friendlySource}`;
+  await recordActivity(lead.id, userId, "created", activityBody);
   // Try immediate assignment
   await assignLeadRoundRobin(lead.id);
   const fresh = await prisma.lead.findUnique({

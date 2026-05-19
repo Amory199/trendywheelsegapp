@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -22,6 +24,7 @@ interface Listing {
   price?: number;
   status?: string;
   description?: string;
+  images?: string[];
 }
 
 const STATUSES = ["active", "sold", "paused"];
@@ -30,6 +33,7 @@ export default function AdminSaleEdit(): React.JSX.Element {
   const qc = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [form, setForm] = useState<Partial<Listing>>({});
+  const [uploading, setUploading] = useState(false);
 
   const q = useQuery({
     queryKey: ["admin", "sale", id],
@@ -41,7 +45,7 @@ export default function AdminSaleEdit(): React.JSX.Element {
   });
 
   useEffect(() => {
-    if (q.data) setForm(q.data);
+    if (q.data) setForm({ ...q.data, images: q.data.images ?? [] });
   }, [q.data]);
 
   const save = useMutation({
@@ -52,6 +56,40 @@ export default function AdminSaleEdit(): React.JSX.Element {
     },
     onError: (e) => Alert.alert("Save failed", e instanceof Error ? e.message : "Try again"),
   });
+
+  const pickAndUpload = async (): Promise<void> => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      selectionLimit: 10 - (form.images?.length ?? 0),
+    });
+    if (result.canceled || result.assets.length === 0) return;
+    setUploading(true);
+    try {
+      const uploadedUrls: string[] = [];
+      for (const asset of result.assets) {
+        const mimeType = "image/jpeg";
+        const { uploadUrl, fileUrl } = await api.getUploadUrl(mimeType, "sales");
+        const blob = await fetch(asset.uri).then((r) => r.blob());
+        await fetch(uploadUrl, {
+          method: "PUT",
+          body: blob,
+          headers: { "Content-Type": mimeType },
+        });
+        uploadedUrls.push(fileUrl);
+      }
+      setForm((s) => ({ ...s, images: [...(s.images ?? []), ...uploadedUrls] }));
+    } catch (e) {
+      Alert.alert("Upload failed", e instanceof Error ? e.message : "Try again");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = (idx: number): void => {
+    setForm((s) => ({ ...s, images: (s.images ?? []).filter((_, i) => i !== idx) }));
+  };
 
   return (
     <>
@@ -92,6 +130,46 @@ export default function AdminSaleEdit(): React.JSX.Element {
                 multiline
                 style={[styles.input, { minHeight: 80, textAlignVertical: "top" }]}
               />
+            </View>
+            <View style={styles.card}>
+              <View style={styles.imagesHeader}>
+                <Text style={styles.label}>Images ({form.images?.length ?? 0}/10)</Text>
+                <Pressable
+                  onPress={() => void pickAndUpload()}
+                  disabled={uploading || (form.images?.length ?? 0) >= 10}
+                  style={[
+                    styles.addBtn,
+                    (uploading || (form.images?.length ?? 0) >= 10) && { opacity: 0.4 },
+                  ]}
+                >
+                  {uploading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="add" size={16} color="#fff" />
+                  )}
+                  <Text style={styles.addBtnText}>{uploading ? "Uploading…" : "Add"}</Text>
+                </Pressable>
+              </View>
+              {(form.images?.length ?? 0) === 0 ? (
+                <Text style={styles.imagesHint}>No images yet — tap Add to upload up to 10.</Text>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    {(form.images ?? []).map((url, idx) => (
+                      <View key={url + idx} style={styles.thumbWrap}>
+                        <Image source={{ uri: url }} style={styles.thumb} contentFit="cover" />
+                        <Pressable
+                          style={styles.thumbRemove}
+                          onPress={() => removeImage(idx)}
+                          hitSlop={8}
+                        >
+                          <Ionicons name="close" size={14} color="#fff" />
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
             </View>
             <View style={styles.card}>
               <Text style={styles.label}>Status</Text>
@@ -163,4 +241,34 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   saveBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },
+  imagesHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  imagesHint: { color: colors.text.secondary, fontSize: 12 },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.brand.friendlyBlue,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  addBtnText: { color: "#fff", fontSize: 11, fontWeight: "800" },
+  thumbWrap: { position: "relative" },
+  thumb: {
+    width: 96,
+    height: 72,
+    borderRadius: 8,
+    backgroundColor: colors.dark.bg,
+  },
+  thumbRemove: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    borderRadius: 999,
+    width: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

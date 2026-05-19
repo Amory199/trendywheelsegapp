@@ -154,7 +154,7 @@ export default function AdminBookings(): JSX.Element {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dark.bg },
-  header: { paddingTop: 56, paddingHorizontal: 18, paddingBottom: 10 },
+  header: { paddingTop: 72, paddingHorizontal: 18, paddingBottom: 10 },
   title: { color: colors.text.light, fontSize: 24, fontWeight: "700" },
   filterRow: {
     flexDirection: "row",

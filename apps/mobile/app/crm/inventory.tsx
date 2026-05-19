@@ -2,7 +2,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 import { api } from "../../lib/api";
 
@@ -17,7 +28,19 @@ interface InventoryVehicle {
   images?: Array<{ url: string }>;
 }
 
+type StatusFilter = "all" | "available" | "rented" | "maintenance";
+
+const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "available", label: "Available" },
+  { key: "rented", label: "Rented" },
+  { key: "maintenance", label: "Maintenance" },
+];
+
 export default function CrmInventory(): JSX.Element {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<StatusFilter>("all");
+
   const listQ = useQuery({
     queryKey: ["crm", "inventory"],
     queryFn: async (): Promise<InventoryVehicle[]> => {
@@ -26,18 +49,67 @@ export default function CrmInventory(): JSX.Element {
     },
   });
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (listQ.data ?? []).filter((v) => {
+      if (status !== "all" && v.status !== status) return false;
+      if (!q) return true;
+      const hay = `${v.name ?? ""} ${v.location ?? ""} ${v.type ?? ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [listQ.data, search, status]);
+
   return (
     <View style={styles.root}>
       <View style={styles.header}>
         <Text style={styles.title}>Inventory</Text>
-        <Text style={styles.subtitle}>Available carts you can attach to a lead</Text>
+        <Text style={styles.subtitle}>
+          {filtered.length} of {listQ.data?.length ?? 0} carts
+        </Text>
       </View>
+
+      <View style={styles.searchBar}>
+        <Ionicons name="search" size={16} color={colors.text.secondary} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by name, location, or type…"
+          placeholderTextColor={colors.text.secondary}
+          value={search}
+          onChangeText={setSearch}
+          autoCorrect={false}
+          autoCapitalize="none"
+        />
+        {search.length > 0 ? (
+          <Pressable onPress={() => setSearch("")} hitSlop={8}>
+            <Ionicons name="close-circle" size={16} color={colors.text.secondary} />
+          </Pressable>
+        ) : null}
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+      >
+        {STATUS_FILTERS.map((f) => {
+          const active = status === f.key;
+          return (
+            <Pressable
+              key={f.key}
+              onPress={() => setStatus(f.key)}
+              style={[styles.filterChip, active && styles.filterChipActive]}
+            >
+              <Text style={[styles.filterChipText, active && { color: "#fff" }]}>{f.label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
       {listQ.isLoading ? (
         <ActivityIndicator color={colors.brand.trendyPink} style={{ marginTop: 24 }} />
       ) : (
         <FlatList
-          data={listQ.data ?? []}
+          data={filtered}
           keyExtractor={(v) => v.id}
           numColumns={2}
           columnWrapperStyle={{ gap: 10 }}
@@ -52,7 +124,9 @@ export default function CrmInventory(): JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="car-sport-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No vehicles available</Text>
+              <Text style={styles.emptyText}>
+                {search || status !== "all" ? "No matches" : "No vehicles available"}
+              </Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -72,7 +146,22 @@ export default function CrmInventory(): JSX.Element {
               <Text style={styles.sub} numberOfLines={1}>
                 {item.seating}-seater · {item.location}
               </Text>
-              <Text style={styles.price}>EGP {Number(item.dailyRate).toLocaleString()}/day</Text>
+              <View style={styles.cardFooter}>
+                <Text style={styles.price}>EGP {Number(item.dailyRate).toLocaleString()}/day</Text>
+                <View
+                  style={[
+                    styles.statusDot,
+                    {
+                      backgroundColor:
+                        item.status === "available"
+                          ? "#A9F453"
+                          : item.status === "rented"
+                            ? "#F5B800"
+                            : colors.text.secondary,
+                    },
+                  ]}
+                />
+              </View>
             </View>
           )}
         />
@@ -83,9 +172,37 @@ export default function CrmInventory(): JSX.Element {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dark.bg },
-  header: { paddingTop: 56, paddingHorizontal: 18, paddingBottom: 8 },
+  header: { paddingTop: 72, paddingHorizontal: 18, paddingBottom: 8 },
   title: { color: colors.text.light, fontSize: 24, fontWeight: "700" },
   subtitle: { color: colors.text.secondary, fontSize: 12, marginTop: 4 },
+  searchBar: {
+    marginHorizontal: 14,
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.dark.card,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 42,
+  },
+  searchInput: { flex: 1, color: colors.text.light, fontSize: 14, paddingVertical: 0 },
+  filterRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: colors.dark.card,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.brand.friendlyBlue,
+    borderColor: colors.brand.friendlyBlue,
+  },
+  filterChipText: { color: colors.text.secondary, fontWeight: "700", fontSize: 12 },
   empty: { alignItems: "center", paddingVertical: 60, gap: 10 },
   emptyText: { color: colors.text.secondary, fontSize: 13 },
   card: {
@@ -100,5 +217,12 @@ const styles = StyleSheet.create({
   thumb: { width: "100%", aspectRatio: 4 / 3, borderRadius: 10, backgroundColor: "#111" },
   name: { color: colors.text.light, fontSize: 13, fontWeight: "700" },
   sub: { color: colors.text.secondary, fontSize: 11 },
-  price: { color: colors.brand.trendyPink, fontSize: 13, fontWeight: "700", marginTop: 2 },
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 2,
+  },
+  price: { color: colors.brand.trendyPink, fontSize: 13, fontWeight: "700" },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
 });

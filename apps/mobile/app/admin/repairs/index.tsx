@@ -121,7 +121,7 @@ export default function AdminRepairs(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dark.bg },
-  header: { paddingTop: 56, paddingHorizontal: 18, paddingBottom: 14 },
+  header: { paddingTop: 72, paddingHorizontal: 18, paddingBottom: 14 },
   kicker: { color: "#F5B800", fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
   title: {
     color: colors.text.light,
