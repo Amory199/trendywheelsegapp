@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { colors } from "@trendywheels/ui-tokens";
+import { colors, type Palette } from "@trendywheels/ui-tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +24,7 @@ import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-store";
 import { followUpAfterNoAnswer } from "../../../lib/lead-templates";
 import { playSound } from "../../../lib/sounds";
+import { useTheme } from "../../../lib/use-theme";
 
 type ActivityType =
   | "note"
@@ -92,6 +93,8 @@ const STATUSES = ["new", "contacted", "qualified", "proposal", "won", "lost"];
 type Tab = "activity" | "details" | "vehicles";
 
 export default function LeadDetail(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const qc = useQueryClient();
   const router = useRouter();
   const me = useAuth((s) => s.user);
@@ -416,7 +419,7 @@ export default function LeadDetail(): React.JSX.Element {
     <View style={styles.root}>
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Ionicons name="chevron-back" size={24} color={colors.text.light} />
+          <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
         <Text style={styles.topBarTitle} numberOfLines={1}>
           {lead?.contactName ?? "Lead"}
@@ -554,7 +557,7 @@ export default function LeadDetail(): React.JSX.Element {
                     onChangeText={setNote}
                     multiline
                     placeholder="What happened?"
-                    placeholderTextColor={colors.text.secondary}
+                    placeholderTextColor={palette.muted}
                     style={styles.noteInput}
                   />
                   <Pressable
@@ -635,7 +638,7 @@ export default function LeadDetail(): React.JSX.Element {
               <>
                 {attachedFromActivities.length === 0 ? (
                   <View style={styles.empty}>
-                    <Ionicons name="car-outline" size={36} color={colors.text.secondary} />
+                    <Ionicons name="car-outline" size={36} color={palette.muted} />
                     <Text style={styles.emptyText}>No vehicles attached yet</Text>
                   </View>
                 ) : (
@@ -645,7 +648,7 @@ export default function LeadDetail(): React.JSX.Element {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.vehicleName}>{v.label}</Text>
                         {v.intent ? (
-                          <Text style={{ color: colors.text.secondary, fontSize: 11 }}>
+                          <Text style={{ color: palette.muted, fontSize: 11 }}>
                             {v.intent === "sell" ? "For sale" : "For rent"}
                           </Text>
                         ) : null}
@@ -673,11 +676,11 @@ export default function LeadDetail(): React.JSX.Element {
           <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.modalTitle}>Attach vehicle</Text>
             <View style={styles.modalSearch}>
-              <Ionicons name="search" size={16} color={colors.text.secondary} />
+              <Ionicons name="search" size={16} color={palette.muted} />
               <TextInput
                 style={styles.modalSearchInput}
                 placeholder="Search by name or category…"
-                placeholderTextColor={colors.text.secondary}
+                placeholderTextColor={palette.muted}
                 value={vehicleSearch}
                 onChangeText={setVehicleSearch}
                 autoCorrect={false}
@@ -685,7 +688,7 @@ export default function LeadDetail(): React.JSX.Element {
               />
               {vehicleSearch.length > 0 ? (
                 <Pressable onPress={() => setVehicleSearch("")} hitSlop={8}>
-                  <Ionicons name="close-circle" size={16} color={colors.text.secondary} />
+                  <Ionicons name="close-circle" size={16} color={palette.muted} />
                 </Pressable>
               ) : null}
             </View>
@@ -698,7 +701,7 @@ export default function LeadDetail(): React.JSX.Element {
                 keyboardShouldPersistTaps="handled"
                 ListEmptyComponent={
                   <View style={{ padding: 24, alignItems: "center" }}>
-                    <Text style={{ color: colors.text.secondary }}>No matches</Text>
+                    <Text style={{ color: palette.muted }}>No matches</Text>
                   </View>
                 }
                 renderItem={({ item }) => (
@@ -766,6 +769,8 @@ function CadenceStrip({
   lastCallAt: string | null;
   rules: CrmRules;
 }): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const callsBad = calls >= rules.maxCallsBeforeReassign;
   const msgsBad = messages >= rules.maxCallsBeforeReassign;
   let nextLabel = "Ready";
@@ -810,6 +815,8 @@ function DetailField({
   keyboardType?: "default" | "numeric" | "email-address" | "phone-pad";
   multiline?: boolean;
 }): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   return (
     <View style={styles.card}>
       <Text style={styles.sectionTitle}>{label}</Text>
@@ -818,222 +825,224 @@ function DetailField({
         onChangeText={onChange}
         keyboardType={keyboardType ?? "default"}
         multiline={multiline}
-        placeholderTextColor={colors.text.secondary}
+        placeholderTextColor={palette.muted}
         style={[styles.noteInput, multiline ? { minHeight: 80 } : { minHeight: 0, paddingTop: 4 }]}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.dark.bg },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: colors.dark.bg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  topBarTitle: {
-    color: colors.text.light,
-    fontSize: 17,
-    fontWeight: "700",
-    flex: 1,
-    textAlign: "center",
-    marginHorizontal: 12,
-  },
-  heroCard: {
-    margin: 14,
-    backgroundColor: colors.dark.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    padding: 14,
-    gap: 12,
-  },
-  heroTop: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-  name: { color: colors.text.light, fontSize: 22, fontWeight: "800" },
-  subline: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },
-  assigned: { color: colors.brand.friendlyBlue, fontSize: 11, fontWeight: "700", marginTop: 4 },
-  unassigned: { color: "#F5B800", fontSize: 11, fontWeight: "700", marginTop: 4 },
-  value: { color: colors.brand.trendyPink, fontWeight: "800", fontSize: 16 },
-  stageChip: {
-    marginTop: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: colors.brand.trendyPink + "22",
-  },
-  stageChipText: {
-    color: colors.brand.trendyPink,
-    fontSize: 10,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  actionsRow: { flexDirection: "row", gap: 8 },
-  cadenceRow: { flexDirection: "row", gap: 6, marginTop: 6 },
-  cadenceChip: {
-    flex: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  cadenceChipLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  cadenceChipValue: { color: colors.text.light, fontSize: 12, fontWeight: "700", marginTop: 1 },
-  actionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  actionBtnText: { color: "#fff", fontWeight: "800", fontSize: 11 },
-  tabRow: {
-    flexDirection: "row",
-    paddingHorizontal: 14,
-    gap: 6,
-    marginBottom: 4,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: colors.dark.card,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    alignItems: "center",
-  },
-  tabActive: { backgroundColor: colors.brand.trendyPink, borderColor: colors.brand.trendyPink },
-  tabText: {
-    color: colors.text.secondary,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase",
-  },
-  tabTextActive: { color: "#fff" },
-  card: {
-    backgroundColor: colors.dark.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    padding: 12,
-    gap: 8,
-  },
-  sectionTitle: { color: colors.text.secondary, fontSize: 11, fontWeight: "700", letterSpacing: 1 },
-  stageRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  stage: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: colors.dark.bg,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-  },
-  stageText: {
-    color: colors.text.secondary,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "capitalize",
-  },
-  noteInput: {
-    backgroundColor: colors.dark.bg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    padding: 10,
-    color: colors.text.light,
-    fontSize: 14,
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
-  logBtn: {
-    backgroundColor: colors.brand.trendyPink,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  logBtnText: { color: "#fff", fontWeight: "800" },
-  activityRow: { flexDirection: "row", gap: 10, paddingVertical: 8 },
-  activityDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.brand.trendyPink,
-    marginTop: 6,
-  },
-  activityType: {
-    color: colors.text.light,
-    fontSize: 13,
-    fontWeight: "700",
-    textTransform: "capitalize",
-  },
-  activityNote: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },
-  activityDate: { color: colors.text.secondary, fontSize: 10, marginTop: 4 },
-  empty: { alignItems: "center", paddingVertical: 30, gap: 6 },
-  emptyText: { color: colors.text.secondary, fontSize: 12 },
-  vehicleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: colors.dark.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    padding: 10,
-  },
-  vehicleName: { color: colors.text.light, fontSize: 13, fontWeight: "700" },
-  attachBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: colors.brand.friendlyBlue,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  attachBtnText: { color: "#fff", fontWeight: "800", fontSize: 13 },
-  modalBg: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modal: {
-    backgroundColor: colors.dark.bg,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 40,
-    maxHeight: "70%",
-  },
-  modalTitle: { color: colors.text.light, fontSize: 18, fontWeight: "700", marginBottom: 12 },
-  modalSearch: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: colors.dark.bg,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    height: 40,
-    marginBottom: 10,
-  },
-  modalSearchInput: { flex: 1, color: colors.text.light, fontSize: 14, paddingVertical: 0 },
-  vehiclePickerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  vName: { color: colors.text.light, fontSize: 14, fontWeight: "700" },
-  vMeta: { color: colors.text.secondary, fontSize: 11 },
-});
+function makeStyles(palette: Palette) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: palette.bg },
+    topBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingBottom: 12,
+      backgroundColor: palette.bg,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.border,
+    },
+    topBarTitle: {
+      color: palette.text,
+      fontSize: 17,
+      fontWeight: "700",
+      flex: 1,
+      textAlign: "center",
+      marginHorizontal: 12,
+    },
+    heroCard: {
+      margin: 14,
+      backgroundColor: palette.card,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: palette.border,
+      padding: 14,
+      gap: 12,
+    },
+    heroTop: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+    name: { color: palette.text, fontSize: 22, fontWeight: "800" },
+    subline: { color: palette.muted, fontSize: 12, marginTop: 2 },
+    assigned: { color: colors.brand.friendlyBlue, fontSize: 11, fontWeight: "700", marginTop: 4 },
+    unassigned: { color: "#F5B800", fontSize: 11, fontWeight: "700", marginTop: 4 },
+    value: { color: colors.brand.trendyPink, fontWeight: "800", fontSize: 16 },
+    stageChip: {
+      marginTop: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 999,
+      backgroundColor: colors.brand.trendyPink + "22",
+    },
+    stageChipText: {
+      color: colors.brand.trendyPink,
+      fontSize: 10,
+      fontWeight: "800",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    actionsRow: { flexDirection: "row", gap: 8 },
+    cadenceRow: { flexDirection: "row", gap: 6, marginTop: 6 },
+    cadenceChip: {
+      flex: 1,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      borderRadius: 8,
+      alignItems: "center",
+    },
+    cadenceChipLabel: {
+      fontSize: 9,
+      fontWeight: "800",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    cadenceChipValue: { color: palette.text, fontSize: 12, fontWeight: "700", marginTop: 1 },
+    actionBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+    },
+    actionBtnText: { color: "#fff", fontWeight: "800", fontSize: 11 },
+    tabRow: {
+      flexDirection: "row",
+      paddingHorizontal: 14,
+      gap: 6,
+      marginBottom: 4,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 10,
+      backgroundColor: palette.card,
+      borderWidth: 1,
+      borderColor: palette.border,
+      alignItems: "center",
+    },
+    tabActive: { backgroundColor: colors.brand.trendyPink, borderColor: colors.brand.trendyPink },
+    tabText: {
+      color: palette.muted,
+      fontSize: 12,
+      fontWeight: "800",
+      textTransform: "uppercase",
+    },
+    tabTextActive: { color: "#fff" },
+    card: {
+      backgroundColor: palette.card,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.border,
+      padding: 12,
+      gap: 8,
+    },
+    sectionTitle: { color: palette.muted, fontSize: 11, fontWeight: "700", letterSpacing: 1 },
+    stageRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+    stage: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: palette.bg,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    stageText: {
+      color: palette.muted,
+      fontSize: 11,
+      fontWeight: "700",
+      textTransform: "capitalize",
+    },
+    noteInput: {
+      backgroundColor: palette.bg,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.border,
+      padding: 10,
+      color: palette.text,
+      fontSize: 14,
+      minHeight: 80,
+      textAlignVertical: "top",
+    },
+    logBtn: {
+      backgroundColor: colors.brand.trendyPink,
+      borderRadius: 10,
+      paddingVertical: 10,
+      alignItems: "center",
+    },
+    logBtnText: { color: "#fff", fontWeight: "800" },
+    activityRow: { flexDirection: "row", gap: 10, paddingVertical: 8 },
+    activityDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.brand.trendyPink,
+      marginTop: 6,
+    },
+    activityType: {
+      color: palette.text,
+      fontSize: 13,
+      fontWeight: "700",
+      textTransform: "capitalize",
+    },
+    activityNote: { color: palette.muted, fontSize: 12, marginTop: 2 },
+    activityDate: { color: palette.muted, fontSize: 10, marginTop: 4 },
+    empty: { alignItems: "center", paddingVertical: 30, gap: 6 },
+    emptyText: { color: palette.muted, fontSize: 12 },
+    vehicleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      backgroundColor: palette.card,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.border,
+      padding: 10,
+    },
+    vehicleName: { color: palette.text, fontSize: 13, fontWeight: "700" },
+    attachBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      backgroundColor: colors.brand.friendlyBlue,
+      paddingVertical: 12,
+      borderRadius: 10,
+    },
+    attachBtnText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+    modalBg: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+    modal: {
+      backgroundColor: palette.bg,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 20,
+      paddingBottom: 40,
+      maxHeight: "70%",
+    },
+    modalTitle: { color: palette.text, fontSize: 18, fontWeight: "700", marginBottom: 12 },
+    modalSearch: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: palette.bg,
+      borderWidth: 1,
+      borderColor: palette.border,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      height: 40,
+      marginBottom: 10,
+    },
+    modalSearchInput: { flex: 1, color: palette.text, fontSize: 14, paddingVertical: 0 },
+    vehiclePickerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.border,
+    },
+    vName: { color: palette.text, fontSize: 14, fontWeight: "700" },
+    vMeta: { color: palette.muted, fontSize: 11 },
+  });
+}

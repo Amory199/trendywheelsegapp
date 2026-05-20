@@ -2,12 +2,12 @@ import DateTimePicker, { type DateTimePickerEvent } from "@react-native-communit
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { VEHICLE_CATEGORIES, type VehicleCategory } from "@trendywheels/types";
-import { borderRadius, colors, spacing } from "@trendywheels/ui-tokens";
+import { borderRadius, colors, type Palette, spacing } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -23,6 +23,7 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 import { playSound } from "../../lib/sounds";
+import { useTheme } from "../../lib/use-theme";
 
 type Transmission = "automatic" | "manual";
 type FuelType = "electric" | "gasoline" | "hybrid";
@@ -48,6 +49,8 @@ const TRANSMISSIONS: Transmission[] = ["automatic", "manual"];
 const FUEL_TYPES: FuelType[] = ["gasoline", "electric", "hybrid"];
 
 export default function SellCreateScreen(): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const router = useRouter();
   const qc = useQueryClient();
   const [step, setStep] = useState(0);
@@ -164,7 +167,7 @@ export default function SellCreateScreen(): JSX.Element {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => (step > 0 ? setStep(step - 1) : router.back())}>
-          <Ionicons name="chevron-back" size={24} color={colors.text.light} />
+          <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
         <Text style={styles.headerTitle}>List a Car</Text>
         <View style={{ width: 24 }} />
@@ -226,18 +229,18 @@ export default function SellCreateScreen(): JSX.Element {
                       borderRadius: 999,
                       borderWidth: 1,
                       marginRight: 8,
-                      backgroundColor: active ? colors.brand.poolBlue : colors.dark.card,
-                      borderColor: active ? colors.brand.poolBlue : colors.dark.border,
+                      backgroundColor: active ? colors.brand.poolBlue : palette.card,
+                      borderColor: active ? colors.brand.poolBlue : palette.border,
                     }}
                   >
                     <Ionicons
                       name={c.icon as keyof typeof Ionicons.glyphMap}
                       size={14}
-                      color={active ? "#000" : colors.text.secondary}
+                      color={active ? "#000" : palette.muted}
                     />
                     <Text
                       style={{
-                        color: active ? "#000" : colors.text.secondary,
+                        color: active ? "#000" : palette.muted,
                         fontWeight: "700",
                         fontSize: 12,
                       }}
@@ -271,7 +274,7 @@ export default function SellCreateScreen(): JSX.Element {
               <Pressable style={styles.input} onPress={() => setShowYearPicker(true)}>
                 <Text
                   style={{
-                    color: form.year ? colors.text.light : colors.text.secondary,
+                    color: form.year ? palette.text : palette.muted,
                     fontSize: 15,
                   }}
                 >
@@ -280,7 +283,7 @@ export default function SellCreateScreen(): JSX.Element {
                 <Ionicons
                   name="calendar-outline"
                   size={18}
-                  color={colors.text.secondary}
+                  color={palette.muted}
                   style={{ position: "absolute", right: 12, top: 14 }}
                 />
               </Pressable>
@@ -350,7 +353,7 @@ export default function SellCreateScreen(): JSX.Element {
                 value={form.description}
                 onChangeText={(v) => set("description", v)}
                 placeholder="Describe your vehicle's condition, features, history…"
-                placeholderTextColor={colors.text.secondary}
+                placeholderTextColor={palette.muted}
                 multiline
                 numberOfLines={5}
                 maxLength={1000}
@@ -364,7 +367,7 @@ export default function SellCreateScreen(): JSX.Element {
         {step === 2 && (
           <Animated.View entering={FadeInRight.springify()} style={{ gap: spacing.md }}>
             <View style={styles.photosHint}>
-              <Ionicons name="images-outline" size={20} color={colors.text.secondary} />
+              <Ionicons name="images-outline" size={20} color={palette.muted} />
               <Text style={styles.photosHintText}>
                 Add up to 10 photos. First photo will be the cover image.
               </Text>
@@ -387,7 +390,7 @@ export default function SellCreateScreen(): JSX.Element {
 
               {form.images.length < 10 && (
                 <Pressable style={styles.addPhotoBtn} onPress={() => void pickImage()}>
-                  <Ionicons name="camera-outline" size={28} color={colors.text.secondary} />
+                  <Ionicons name="camera-outline" size={28} color={palette.muted} />
                   <Text style={styles.addPhotoText}>Add Photo</Text>
                 </Pressable>
               )}
@@ -460,10 +463,12 @@ function Field({
 }: {
   label: string;
 } & React.ComponentProps<typeof TextInput>): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   return (
     <View>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput style={styles.input} placeholderTextColor={colors.text.secondary} {...props} />
+      <TextInput style={styles.input} placeholderTextColor={palette.muted} {...props} />
     </View>
   );
 }
@@ -479,6 +484,8 @@ function SegmentField({
   value: string;
   onChange: (v: string) => void;
 }): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   return (
     <View>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -500,6 +507,8 @@ function SegmentField({
 }
 
 function ReviewRow({ label, value }: { label: string; value: string }): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   return (
     <View style={styles.reviewRow}>
       <Text style={styles.reviewLabel}>{label}</Text>
@@ -508,173 +517,175 @@ function ReviewRow({ label, value }: { label: string; value: string }): JSX.Elem
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.dark.bg },
+function makeStyles(palette: Palette) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: palette.bg },
 
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 56,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  headerTitle: { color: colors.text.light, fontSize: 16, fontWeight: "700" },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingTop: 56,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.border,
+    },
+    headerTitle: { color: palette.text, fontSize: 16, fontWeight: "700" },
 
-  stepBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  stepItem: { flex: 1, flexDirection: "row", alignItems: "center" },
-  stepCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.dark.card,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  stepDone: { backgroundColor: colors.accent.DEFAULT, borderColor: colors.accent.DEFAULT },
-  stepActive: { borderColor: colors.accent.DEFAULT },
-  stepNum: { color: colors.text.secondary, fontSize: 12, fontWeight: "700" },
-  stepNumActive: { color: colors.accent.DEFAULT },
-  stepLine: { flex: 1, height: 2, backgroundColor: colors.dark.border, marginHorizontal: 4 },
-  stepLineDone: { backgroundColor: colors.accent.DEFAULT },
-  stepLabel: {
-    color: colors.text.secondary,
-    fontSize: 12,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
-  },
+    stepBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    stepItem: { flex: 1, flexDirection: "row", alignItems: "center" },
+    stepCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: palette.card,
+      borderWidth: 1,
+      borderColor: palette.border,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    stepDone: { backgroundColor: colors.accent.DEFAULT, borderColor: colors.accent.DEFAULT },
+    stepActive: { borderColor: colors.accent.DEFAULT },
+    stepNum: { color: palette.muted, fontSize: 12, fontWeight: "700" },
+    stepNumActive: { color: colors.accent.DEFAULT },
+    stepLine: { flex: 1, height: 2, backgroundColor: palette.border, marginHorizontal: 4 },
+    stepLineDone: { backgroundColor: colors.accent.DEFAULT },
+    stepLabel: {
+      color: palette.muted,
+      fontSize: 12,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+    },
 
-  row: { flexDirection: "row", gap: spacing.sm },
-  fieldLabel: { color: colors.text.secondary, fontSize: 12, marginBottom: 6, fontWeight: "600" },
-  input: {
-    backgroundColor: colors.dark.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    color: colors.text.light,
-    fontSize: 15,
-  },
-  textarea: { height: 100, textAlignVertical: "top", paddingTop: spacing.sm },
-  charCount: { color: colors.text.secondary, fontSize: 11, textAlign: "right", marginTop: 4 },
+    row: { flexDirection: "row", gap: spacing.sm },
+    fieldLabel: { color: palette.muted, fontSize: 12, marginBottom: 6, fontWeight: "600" },
+    input: {
+      backgroundColor: palette.card,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.border,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 12,
+      color: palette.text,
+      fontSize: 15,
+    },
+    textarea: { height: 100, textAlignVertical: "top", paddingTop: spacing.sm },
+    charCount: { color: palette.muted, fontSize: 11, textAlign: "right", marginTop: 4 },
 
-  segment: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    flexWrap: "wrap",
-  },
-  segmentOption: {
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    backgroundColor: colors.dark.card,
-  },
-  segmentOptionActive: {
-    borderColor: colors.accent.DEFAULT,
-    backgroundColor: `${colors.accent.DEFAULT}22`,
-  },
-  segmentText: { color: colors.text.secondary, fontSize: 13, fontWeight: "600" },
-  segmentTextActive: { color: colors.accent.DEFAULT },
+    segment: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      flexWrap: "wrap",
+    },
+    segmentOption: {
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: palette.border,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 8,
+      backgroundColor: palette.card,
+    },
+    segmentOptionActive: {
+      borderColor: colors.accent.DEFAULT,
+      backgroundColor: `${colors.accent.DEFAULT}22`,
+    },
+    segmentText: { color: palette.muted, fontSize: 13, fontWeight: "600" },
+    segmentTextActive: { color: colors.accent.DEFAULT },
 
-  photosHint: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.dark.card,
-    borderRadius: 10,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-  },
-  photosHintText: { flex: 1, color: colors.text.secondary, fontSize: 13, lineHeight: 18 },
-  photosGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  photoThumb: {
-    width: "30%",
-    aspectRatio: 1,
-    borderRadius: 10,
-    overflow: "hidden",
-    position: "relative",
-  },
-  thumbImage: { width: "100%", height: "100%" },
-  coverBadge: {
-    position: "absolute",
-    bottom: 4,
-    left: 4,
-    backgroundColor: colors.accent.DEFAULT,
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  coverBadgeText: { color: "#000", fontSize: 9, fontWeight: "700" },
-  removeBtn: { position: "absolute", top: 4, right: 4 },
-  addPhotoBtn: {
-    width: "30%",
-    aspectRatio: 1,
-    borderRadius: 10,
-    backgroundColor: colors.dark.card,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    borderStyle: "dashed",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 4,
-  },
-  addPhotoText: { color: colors.text.secondary, fontSize: 11, fontWeight: "600" },
+    photosHint: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      backgroundColor: palette.card,
+      borderRadius: 10,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    photosHintText: { flex: 1, color: palette.muted, fontSize: 13, lineHeight: 18 },
+    photosGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+    photoThumb: {
+      width: "30%",
+      aspectRatio: 1,
+      borderRadius: 10,
+      overflow: "hidden",
+      position: "relative",
+    },
+    thumbImage: { width: "100%", height: "100%" },
+    coverBadge: {
+      position: "absolute",
+      bottom: 4,
+      left: 4,
+      backgroundColor: colors.accent.DEFAULT,
+      borderRadius: 4,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    coverBadgeText: { color: "#000", fontSize: 9, fontWeight: "700" },
+    removeBtn: { position: "absolute", top: 4, right: 4 },
+    addPhotoBtn: {
+      width: "30%",
+      aspectRatio: 1,
+      borderRadius: 10,
+      backgroundColor: palette.card,
+      borderWidth: 1,
+      borderColor: palette.border,
+      borderStyle: "dashed",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 4,
+    },
+    addPhotoText: { color: palette.muted, fontSize: 11, fontWeight: "600" },
 
-  reviewRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: colors.dark.card,
-    borderRadius: 10,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-  },
-  reviewLabel: { color: colors.text.secondary, fontSize: 13 },
-  reviewValue: { color: colors.text.light, fontSize: 14, fontWeight: "600" },
+    reviewRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      backgroundColor: palette.card,
+      borderRadius: 10,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    reviewLabel: { color: palette.muted, fontSize: 13 },
+    reviewValue: { color: palette.text, fontSize: 14, fontWeight: "600" },
 
-  errorBox: {
-    backgroundColor: `${colors.error}22`,
-    borderRadius: 10,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: `${colors.error}44`,
-  },
-  errorText: { color: colors.error, fontSize: 13 },
+    errorBox: {
+      backgroundColor: `${colors.error}22`,
+      borderRadius: 10,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: `${colors.error}44`,
+    },
+    errorText: { color: colors.error, fontSize: 13 },
 
-  bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: spacing.md,
-    paddingBottom: 28,
-    backgroundColor: colors.dark.bg,
-    borderTopWidth: 1,
-    borderTopColor: colors.dark.border,
-  },
-  nextBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.accent.DEFAULT,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-  },
-  nextBtnText: { color: "#000", fontWeight: "700", fontSize: 15 },
-  btnDisabled: { opacity: 0.45 },
-});
+    bottomBar: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: spacing.md,
+      paddingBottom: 28,
+      backgroundColor: palette.bg,
+      borderTopWidth: 1,
+      borderTopColor: palette.border,
+    },
+    nextBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.sm,
+      backgroundColor: colors.accent.DEFAULT,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+    },
+    nextBtnText: { color: "#000", fontWeight: "700", fontSize: 15 },
+    btnDisabled: { opacity: 0.45 },
+  });
+}

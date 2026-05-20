@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import type { UserPreferences } from "@trendywheels/types";
-import { borderRadius, colors, spacing } from "@trendywheels/ui-tokens";
+import { borderRadius, colors, type Palette, spacing } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -21,11 +21,14 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useTheme } from "../../lib/use-theme";
 
 type Theme = "dark" | "light" | "system";
 type Language = "en" | "ar";
 
 export default function SettingsScreen(): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const router = useRouter();
   const { user, hydrate } = useAuth();
   const prefs = user?.preferences;
@@ -99,7 +102,7 @@ export default function SettingsScreen(): JSX.Element {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color={colors.text.light} />
+          <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={{ width: 24 }} />
@@ -270,7 +273,7 @@ export default function SettingsScreen(): JSX.Element {
                 <Text style={styles.settingLabel}>Privacy Policy</Text>
                 <Text style={styles.settingHint}>How we handle your data</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
+              <Ionicons name="chevron-forward" size={16} color={palette.muted} />
             </Pressable>
             <View style={styles.rowDivider} />
             <Pressable
@@ -296,7 +299,7 @@ export default function SettingsScreen(): JSX.Element {
                 <Text style={styles.settingLabel}>Export My Data</Text>
                 <Text style={styles.settingHint}>Download all your personal data</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
+              <Ionicons name="chevron-forward" size={16} color={palette.muted} />
             </Pressable>
           </View>
         </Animated.View>
@@ -405,6 +408,8 @@ function ToggleRow({
   value: boolean;
   onChange: (v: boolean) => void;
 }): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   return (
     <View style={styles.settingRow}>
       <View style={styles.settingIcon}>
@@ -417,130 +422,132 @@ function ToggleRow({
       <Switch
         value={value}
         onValueChange={onChange}
-        trackColor={{ false: colors.dark.border, true: `${colors.accent.DEFAULT}88` }}
-        thumbColor={value ? colors.accent.DEFAULT : colors.text.secondary}
+        trackColor={{ false: palette.border, true: `${colors.accent.DEFAULT}88` }}
+        thumbColor={value ? colors.accent.DEFAULT : palette.muted}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.dark.bg },
+function makeStyles(palette: Palette) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: palette.bg },
 
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 56,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  headerTitle: { color: colors.text.light, fontSize: 16, fontWeight: "700" },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingTop: 56,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.border,
+    },
+    headerTitle: { color: palette.text, fontSize: 16, fontWeight: "700" },
 
-  sectionTitle: {
-    color: colors.text.secondary,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: spacing.sm,
-    paddingHorizontal: 2,
-  },
-  settingsCard: {
-    backgroundColor: colors.dark.card,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    overflow: "hidden",
-  },
-  settingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  settingIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: `${colors.primary[700]}22`,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  settingContent: { flex: 1 },
-  settingLabel: { color: colors.text.light, fontSize: 14, fontWeight: "600" },
-  settingHint: { color: colors.text.secondary, fontSize: 12, marginTop: 1 },
-  rowDivider: { height: 1, backgroundColor: colors.dark.border, marginLeft: 64 },
+    sectionTitle: {
+      color: palette.muted,
+      fontSize: 11,
+      fontWeight: "700",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      marginBottom: spacing.sm,
+      paddingHorizontal: 2,
+    },
+    settingsCard: {
+      backgroundColor: palette.card,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: palette.border,
+      overflow: "hidden",
+    },
+    settingRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: spacing.md,
+      gap: spacing.md,
+    },
+    settingIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: `${colors.primary[700]}22`,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    settingContent: { flex: 1 },
+    settingLabel: { color: palette.text, fontSize: 14, fontWeight: "600" },
+    settingHint: { color: palette.muted, fontSize: 12, marginTop: 1 },
+    rowDivider: { height: 1, backgroundColor: palette.border, marginLeft: 64 },
 
-  segmentSmall: {
-    flexDirection: "row",
-    backgroundColor: colors.dark.bg,
-    borderRadius: 8,
-    padding: 3,
-    gap: 3,
-  },
-  segmentBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  segmentBtnActive: { backgroundColor: colors.accent.DEFAULT },
+    segmentSmall: {
+      flexDirection: "row",
+      backgroundColor: palette.bg,
+      borderRadius: 8,
+      padding: 3,
+      gap: 3,
+    },
+    segmentBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 6,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    segmentBtnActive: { backgroundColor: colors.accent.DEFAULT },
 
-  langOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  langOptionActive: { backgroundColor: `${colors.accent.DEFAULT}11` },
-  langDivider: { height: 1, backgroundColor: colors.dark.border },
-  langFlag: { fontSize: 24 },
-  langInfo: { flex: 1 },
-  langLabel: { color: colors.text.secondary, fontSize: 15, fontWeight: "600" },
-  langLabelActive: { color: colors.text.light },
-  langHint: { color: colors.text.secondary, fontSize: 12, marginTop: 1 },
+    langOption: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: spacing.md,
+      gap: spacing.md,
+    },
+    langOptionActive: { backgroundColor: `${colors.accent.DEFAULT}11` },
+    langDivider: { height: 1, backgroundColor: palette.border },
+    langFlag: { fontSize: 24 },
+    langInfo: { flex: 1 },
+    langLabel: { color: palette.muted, fontSize: 15, fontWeight: "600" },
+    langLabelActive: { color: palette.text },
+    langHint: { color: palette.muted, fontSize: 12, marginTop: 1 },
 
-  appInfo: { alignItems: "center", gap: 4, paddingVertical: spacing.sm },
-  appVersion: { color: colors.text.secondary, fontSize: 12 },
-  appCopy: { color: colors.text.secondary, fontSize: 11 },
+    appInfo: { alignItems: "center", gap: 4, paddingVertical: spacing.sm },
+    appVersion: { color: palette.muted, fontSize: 12 },
+    appCopy: { color: palette.muted, fontSize: 11 },
 
-  errorBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: `${colors.error}22`,
-    borderRadius: 10,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: `${colors.error}44`,
-  },
-  errorText: { flex: 1, color: colors.error, fontSize: 13 },
+    errorBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      backgroundColor: `${colors.error}22`,
+      borderRadius: 10,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: `${colors.error}44`,
+    },
+    errorText: { flex: 1, color: colors.error, fontSize: 13 },
 
-  bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: spacing.md,
-    paddingBottom: 28,
-    backgroundColor: colors.dark.bg,
-    borderTopWidth: 1,
-    borderTopColor: colors.dark.border,
-  },
-  saveBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.accent.DEFAULT,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-  },
-  saveBtnDisabled: { opacity: 0.45 },
-  saveBtnSuccess: { backgroundColor: colors.success },
-  saveBtnText: { color: "#000", fontWeight: "700", fontSize: 15 },
-});
+    bottomBar: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: spacing.md,
+      paddingBottom: 28,
+      backgroundColor: palette.bg,
+      borderTopWidth: 1,
+      borderTopColor: palette.border,
+    },
+    saveBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.sm,
+      backgroundColor: colors.accent.DEFAULT,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+    },
+    saveBtnDisabled: { opacity: 0.45 },
+    saveBtnSuccess: { backgroundColor: colors.success },
+    saveBtnText: { color: "#000", fontWeight: "700", fontSize: 15 },
+  });
+}

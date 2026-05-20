@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { colors } from "@trendywheels/ui-tokens";
+import { colors, type Palette } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -19,6 +19,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useTheme } from "../../lib/use-theme";
 
 interface Lead {
   id: string;
@@ -83,6 +84,8 @@ function initialsOf(name: string): string {
 }
 
 export default function CrmPipeline(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const router = useRouter();
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
@@ -169,7 +172,7 @@ export default function CrmPipeline(): React.JSX.Element {
             router.replace("/(auth)/phone");
           }}
         >
-          <Ionicons name="log-out-outline" size={22} color={colors.text.light} />
+          <Ionicons name="log-out-outline" size={22} color={palette.text} />
         </Pressable>
       </View>
 
@@ -188,11 +191,11 @@ export default function CrmPipeline(): React.JSX.Element {
       </View>
 
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={16} color={colors.text.secondary} />
+        <Ionicons name="search" size={16} color={palette.muted} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by name or phone…"
-          placeholderTextColor={colors.text.secondary}
+          placeholderTextColor={palette.muted}
           value={search}
           onChangeText={setSearch}
           autoCorrect={false}
@@ -200,7 +203,7 @@ export default function CrmPipeline(): React.JSX.Element {
         />
         {search.length > 0 ? (
           <Pressable onPress={() => setSearch("")} hitSlop={8}>
-            <Ionicons name="close-circle" size={16} color={colors.text.secondary} />
+            <Ionicons name="close-circle" size={16} color={palette.muted} />
           </Pressable>
         ) : null}
       </View>
@@ -219,7 +222,7 @@ export default function CrmPipeline(): React.JSX.Element {
                 onPress={() => setFilter(f.key)}
                 style={[styles.filterChip, active && styles.filterChipActive]}
               >
-                <Ionicons name={f.icon} size={12} color={active ? "#fff" : colors.text.secondary} />
+                <Ionicons name={f.icon} size={12} color={active ? "#fff" : palette.muted} />
                 <Text style={[styles.filterChipText, active && { color: "#fff" }]}>{f.label}</Text>
               </Pressable>
             );
@@ -238,11 +241,7 @@ export default function CrmPipeline(): React.JSX.Element {
             onPress={() => setStage(s)}
             style={[styles.stage, stage === s && styles.stageActive]}
           >
-            <Ionicons
-              name={STAGE_ICON[s]}
-              size={14}
-              color={stage === s ? "#fff" : colors.text.secondary}
-            />
+            <Ionicons name={STAGE_ICON[s]} size={14} color={stage === s ? "#fff" : palette.muted} />
             <View>
               <Text style={[styles.stageLabel, stage === s && styles.stageLabelActive]}>
                 {STAGE_LABEL[s]}
@@ -266,12 +265,12 @@ export default function CrmPipeline(): React.JSX.Element {
             <RefreshControl
               refreshing={leadsQ.isFetching}
               onRefresh={() => leadsQ.refetch()}
-              tintColor={colors.text.light}
+              tintColor={palette.text}
             />
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Ionicons name="leaf-outline" size={48} color={colors.text.secondary} />
+              <Ionicons name="leaf-outline" size={48} color={palette.muted} />
               <Text style={styles.emptyText}>No leads in {STAGE_LABEL[stage]}</Text>
             </View>
           }
@@ -336,161 +335,163 @@ export default function CrmPipeline(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.dark.bg },
-  header: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingTop: 72,
-    paddingHorizontal: 18,
-    paddingBottom: 12,
-    gap: 12,
-  },
-  kicker: { color: colors.brand.trendyPink, fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
-  title: {
-    color: colors.text.light,
-    fontSize: 26,
-    fontFamily: "Anton",
-    textTransform: "uppercase",
-    letterSpacing: 0.3,
-    marginTop: 4,
-  },
-  fab: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: colors.brand.trendyPink,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 999,
-  },
-  fabText: { color: "#fff", fontWeight: "800", fontSize: 12 },
-  heroCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginHorizontal: 14,
-    backgroundColor: colors.dark.card,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-  },
-  heroLabel: { color: colors.text.secondary, fontSize: 11, fontWeight: "700" },
-  heroValue: {
-    color: colors.text.light,
-    fontSize: 20,
-    fontWeight: "800",
-    marginTop: 2,
-    fontFamily: "Anton",
-    letterSpacing: 0.4,
-  },
-  wonChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: (colors.brand.ecoLimelight ?? "#A9F453") + "22",
-    marginTop: 4,
-  },
-  wonText: { color: colors.brand.ecoLimelight ?? "#A9F453", fontWeight: "800", fontSize: 13 },
-  stageRow: { paddingHorizontal: 14, paddingVertical: 12, gap: 8, alignItems: "center" },
-  stage: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 14,
-    backgroundColor: colors.dark.card,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-  },
-  stageActive: {
-    backgroundColor: colors.brand.trendyPink,
-    borderColor: colors.brand.trendyPink,
-  },
-  stageLabel: { color: colors.text.secondary, fontSize: 12, fontWeight: "800" },
-  stageLabelActive: { color: "#fff" },
-  stageMeta: { color: colors.text.secondary, fontSize: 9, fontWeight: "700", marginTop: 1 },
-  empty: { alignItems: "center", paddingVertical: 60, gap: 10 },
-  emptyText: { color: colors.text.secondary, fontSize: 13 },
-  leadCard: {
-    flexDirection: "row",
-    gap: 12,
-    backgroundColor: colors.dark.card,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    padding: 14,
-    alignItems: "center",
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.brand.trendyPink + "33",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { color: colors.brand.trendyPink, fontWeight: "800", fontSize: 14 },
-  leadName: { color: colors.text.light, fontSize: 15, fontWeight: "700" },
-  leadPhone: { color: colors.text.secondary, fontSize: 12 },
-  leadFooter: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
-  sourcePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-    backgroundColor: colors.brand.poolBlue + "22",
-  },
-  sourceText: {
-    color: colors.brand.poolBlue,
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  leadAge: { color: colors.text.secondary, fontSize: 10 },
-  leadValue: { color: colors.brand.trendyPink, fontWeight: "800", fontSize: 13 },
-  callBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.brand.friendlyBlue,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchBar: {
-    marginHorizontal: 14,
-    marginTop: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: colors.dark.card,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 42,
-  },
-  searchInput: { flex: 1, color: colors.text.light, fontSize: 14, paddingVertical: 0 },
-  filterRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 8, alignItems: "center" },
-  filterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: colors.dark.card,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-  },
-  filterChipActive: {
-    backgroundColor: colors.brand.friendlyBlue,
-    borderColor: colors.brand.friendlyBlue,
-  },
-  filterChipText: { color: colors.text.secondary, fontWeight: "700", fontSize: 12 },
-});
+function makeStyles(palette: Palette) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: palette.bg },
+    header: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      paddingTop: 72,
+      paddingHorizontal: 18,
+      paddingBottom: 12,
+      gap: 12,
+    },
+    kicker: { color: colors.brand.trendyPink, fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
+    title: {
+      color: palette.text,
+      fontSize: 26,
+      fontFamily: "Anton",
+      textTransform: "uppercase",
+      letterSpacing: 0.3,
+      marginTop: 4,
+    },
+    fab: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: colors.brand.trendyPink,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: 999,
+    },
+    fabText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+    heroCard: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginHorizontal: 14,
+      backgroundColor: palette.card,
+      borderRadius: 14,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    heroLabel: { color: palette.muted, fontSize: 11, fontWeight: "700" },
+    heroValue: {
+      color: palette.text,
+      fontSize: 20,
+      fontWeight: "800",
+      marginTop: 2,
+      fontFamily: "Anton",
+      letterSpacing: 0.4,
+    },
+    wonChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 999,
+      backgroundColor: (colors.brand.ecoLimelight ?? "#A9F453") + "22",
+      marginTop: 4,
+    },
+    wonText: { color: colors.brand.ecoLimelight ?? "#A9F453", fontWeight: "800", fontSize: 13 },
+    stageRow: { paddingHorizontal: 14, paddingVertical: 12, gap: 8, alignItems: "center" },
+    stage: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 14,
+      backgroundColor: palette.card,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    stageActive: {
+      backgroundColor: colors.brand.trendyPink,
+      borderColor: colors.brand.trendyPink,
+    },
+    stageLabel: { color: palette.muted, fontSize: 12, fontWeight: "800" },
+    stageLabelActive: { color: "#fff" },
+    stageMeta: { color: palette.muted, fontSize: 9, fontWeight: "700", marginTop: 1 },
+    empty: { alignItems: "center", paddingVertical: 60, gap: 10 },
+    emptyText: { color: palette.muted, fontSize: 13 },
+    leadCard: {
+      flexDirection: "row",
+      gap: 12,
+      backgroundColor: palette.card,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: palette.border,
+      padding: 14,
+      alignItems: "center",
+    },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.brand.trendyPink + "33",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    avatarText: { color: colors.brand.trendyPink, fontWeight: "800", fontSize: 14 },
+    leadName: { color: palette.text, fontSize: 15, fontWeight: "700" },
+    leadPhone: { color: palette.muted, fontSize: 12 },
+    leadFooter: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
+    sourcePill: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 999,
+      backgroundColor: colors.brand.poolBlue + "22",
+    },
+    sourceText: {
+      color: colors.brand.poolBlue,
+      fontSize: 10,
+      fontWeight: "700",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+    },
+    leadAge: { color: palette.muted, fontSize: 10 },
+    leadValue: { color: colors.brand.trendyPink, fontWeight: "800", fontSize: 13 },
+    callBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.brand.friendlyBlue,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    searchBar: {
+      marginHorizontal: 14,
+      marginTop: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: palette.card,
+      borderWidth: 1,
+      borderColor: palette.border,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      height: 42,
+    },
+    searchInput: { flex: 1, color: palette.text, fontSize: 14, paddingVertical: 0 },
+    filterRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 8, alignItems: "center" },
+    filterChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 999,
+      backgroundColor: palette.card,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    filterChipActive: {
+      backgroundColor: colors.brand.friendlyBlue,
+      borderColor: colors.brand.friendlyBlue,
+    },
+    filterChipText: { color: palette.muted, fontWeight: "700", fontSize: 12 },
+  });
+}

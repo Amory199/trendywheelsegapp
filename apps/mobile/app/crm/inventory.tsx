@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { colors } from "@trendywheels/ui-tokens";
+import { colors, type Palette } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { useMemo, useState } from "react";
 import {
@@ -16,6 +16,7 @@ import {
 } from "react-native";
 
 import { api } from "../../lib/api";
+import { useTheme } from "../../lib/use-theme";
 
 interface InventoryVehicle {
   id: string;
@@ -38,6 +39,8 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
 ];
 
 export default function CrmInventory(): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
 
@@ -69,11 +72,11 @@ export default function CrmInventory(): JSX.Element {
       </View>
 
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={16} color={colors.text.secondary} />
+        <Ionicons name="search" size={16} color={palette.muted} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by name, location, or type…"
-          placeholderTextColor={colors.text.secondary}
+          placeholderTextColor={palette.muted}
           value={search}
           onChangeText={setSearch}
           autoCorrect={false}
@@ -81,7 +84,7 @@ export default function CrmInventory(): JSX.Element {
         />
         {search.length > 0 ? (
           <Pressable onPress={() => setSearch("")} hitSlop={8}>
-            <Ionicons name="close-circle" size={16} color={colors.text.secondary} />
+            <Ionicons name="close-circle" size={16} color={palette.muted} />
           </Pressable>
         ) : null}
       </View>
@@ -118,12 +121,12 @@ export default function CrmInventory(): JSX.Element {
             <RefreshControl
               refreshing={listQ.isFetching}
               onRefresh={() => listQ.refetch()}
-              tintColor={colors.text.light}
+              tintColor={palette.text}
             />
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Ionicons name="car-sport-outline" size={48} color={colors.text.secondary} />
+              <Ionicons name="car-sport-outline" size={48} color={palette.muted} />
               <Text style={styles.emptyText}>
                 {search || status !== "all" ? "No matches" : "No vehicles available"}
               </Text>
@@ -138,7 +141,7 @@ export default function CrmInventory(): JSX.Element {
                   contentFit="cover"
                 />
               ) : (
-                <View style={[styles.thumb, { backgroundColor: colors.dark.bg }]} />
+                <View style={[styles.thumb, { backgroundColor: palette.bg }]} />
               )}
               <Text style={styles.name} numberOfLines={1}>
                 {item.name}
@@ -157,7 +160,7 @@ export default function CrmInventory(): JSX.Element {
                           ? "#A9F453"
                           : item.status === "rented"
                             ? "#F5B800"
-                            : colors.text.secondary,
+                            : palette.muted,
                     },
                   ]}
                 />
@@ -170,62 +173,64 @@ export default function CrmInventory(): JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.dark.bg },
-  header: { paddingTop: 72, paddingHorizontal: 18, paddingBottom: 8 },
-  title: { color: colors.text.light, fontSize: 24, fontWeight: "700" },
-  subtitle: { color: colors.text.secondary, fontSize: 12, marginTop: 4 },
-  searchBar: {
-    marginHorizontal: 14,
-    marginTop: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: colors.dark.card,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 42,
-  },
-  searchInput: { flex: 1, color: colors.text.light, fontSize: 14, paddingVertical: 0 },
-  filterRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 8, alignItems: "center" },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: colors.dark.card,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-  },
-  filterChipActive: {
-    backgroundColor: colors.brand.friendlyBlue,
-    borderColor: colors.brand.friendlyBlue,
-  },
-  // Inactive label uses high-contrast white-on-dark; active still gets the
-  // explicit `{ color: "#fff" }` override. The previous text.secondary was so
-  // low-contrast on dark.card that the labels disappeared until tapped.
-  filterChipText: { color: colors.text.light, fontWeight: "700", fontSize: 12 },
-  empty: { alignItems: "center", paddingVertical: 60, gap: 10 },
-  emptyText: { color: colors.text.secondary, fontSize: 13 },
-  card: {
-    flex: 1,
-    backgroundColor: colors.dark.card,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    padding: 10,
-    gap: 6,
-  },
-  thumb: { width: "100%", aspectRatio: 4 / 3, borderRadius: 10, backgroundColor: "#111" },
-  name: { color: colors.text.light, fontSize: 13, fontWeight: "700" },
-  sub: { color: colors.text.secondary, fontSize: 11 },
-  cardFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 2,
-  },
-  price: { color: colors.brand.trendyPink, fontSize: 13, fontWeight: "700" },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-});
+function makeStyles(palette: Palette) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: palette.bg },
+    header: { paddingTop: 72, paddingHorizontal: 18, paddingBottom: 8 },
+    title: { color: palette.text, fontSize: 24, fontWeight: "700" },
+    subtitle: { color: palette.muted, fontSize: 12, marginTop: 4 },
+    searchBar: {
+      marginHorizontal: 14,
+      marginTop: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: palette.card,
+      borderWidth: 1,
+      borderColor: palette.border,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      height: 42,
+    },
+    searchInput: { flex: 1, color: palette.text, fontSize: 14, paddingVertical: 0 },
+    filterRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 8, alignItems: "center" },
+    filterChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 999,
+      backgroundColor: palette.card,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    filterChipActive: {
+      backgroundColor: colors.brand.friendlyBlue,
+      borderColor: colors.brand.friendlyBlue,
+    },
+    // Inactive label uses high-contrast white-on-dark; active still gets the
+    // explicit `{ color: "#fff" }` override. The previous text.secondary was so
+    // low-contrast on dark.card that the labels disappeared until tapped.
+    filterChipText: { color: palette.text, fontWeight: "700", fontSize: 12 },
+    empty: { alignItems: "center", paddingVertical: 60, gap: 10 },
+    emptyText: { color: palette.muted, fontSize: 13 },
+    card: {
+      flex: 1,
+      backgroundColor: palette.card,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: palette.border,
+      padding: 10,
+      gap: 6,
+    },
+    thumb: { width: "100%", aspectRatio: 4 / 3, borderRadius: 10, backgroundColor: "#111" },
+    name: { color: palette.text, fontSize: 13, fontWeight: "700" },
+    sub: { color: palette.muted, fontSize: 11 },
+    cardFooter: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 2,
+    },
+    price: { color: colors.brand.trendyPink, fontSize: 13, fontWeight: "700" },
+    statusDot: { width: 8, height: 8, borderRadius: 4 },
+  });
+}

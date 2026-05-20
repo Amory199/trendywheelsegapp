@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { colors, spacing, typography } from "@trendywheels/ui-tokens";
+import { colors, type Palette, spacing, typography } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -32,10 +32,13 @@ import { TWSkiaConfetti } from "../../components/skia/confetti";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { playSound } from "../../lib/sounds";
+import { useTheme } from "../../lib/use-theme";
 
 const STEPS = ["Dates", "Your Info", "Payment"];
 
 function StepIndicator({ current }: { current: number }): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   return (
     <View style={styles.steps}>
       {STEPS.map((label, i) => (
@@ -58,6 +61,8 @@ function StepIndicator({ current }: { current: number }): JSX.Element {
 }
 
 export default function BookScreen(): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const { vehicleId } = useLocalSearchParams<{ vehicleId: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -124,7 +129,7 @@ export default function BookScreen(): JSX.Element {
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable onPress={() => (step > 0 ? setStep((s) => s - 1) : router.back())}>
-          <Ionicons name="chevron-back" size={24} color={colors.text.light} />
+          <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
         <Text style={styles.headerTitle}>{vehicle?.name ?? "Book Vehicle"}</Text>
         <View style={{ width: 24 }} />
@@ -283,6 +288,8 @@ function DateField({
   onChange: (next: string) => void;
   minimumDate?: Date;
 }): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const [show, setShow] = useState(false);
   const dateValue = value ? new Date(value) : new Date();
   const formatted = value
@@ -298,7 +305,7 @@ function DateField({
     <View style={styles.inputGroup}>
       <Text style={styles.inputLabel}>{label}</Text>
       <Pressable style={[styles.input, { justifyContent: "center" }]} onPress={() => setShow(true)}>
-        <Text style={{ color: value ? colors.text.light : colors.text.secondary, fontSize: 15 }}>
+        <Text style={{ color: value ? palette.text : palette.muted, fontSize: 15 }}>
           {formatted}
         </Text>
       </Pressable>
@@ -339,6 +346,8 @@ function LabeledInput({
   placeholder?: string;
   keyboardType?: "default" | "email-address" | "phone-pad";
 }): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   return (
     <View style={styles.inputGroup}>
       <Text style={styles.inputLabel}>{label}</Text>
@@ -347,7 +356,7 @@ function LabeledInput({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.text.secondary}
+        placeholderTextColor={palette.muted}
         keyboardType={keyboardType ?? "default"}
         autoCapitalize="none"
       />
@@ -366,190 +375,193 @@ function PaymentOption({
   selected: boolean;
   onPress: () => void;
 }): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   return (
     <Pressable
       style={[styles.paymentOption, selected && styles.paymentOptionSelected]}
       onPress={onPress}
     >
-      <Ionicons
-        name={icon}
-        size={24}
-        color={selected ? colors.accent.DEFAULT : colors.text.secondary}
-      />
+      <Ionicons name={icon} size={24} color={selected ? colors.accent.DEFAULT : palette.muted} />
       <Text style={[styles.paymentLabel, selected && styles.paymentLabelSelected]}>{label}</Text>
       {selected && <Ionicons name="checkmark-circle" size={20} color={colors.accent.DEFAULT} />}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.dark.bg },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 56,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  headerTitle: { color: colors.text.light, fontSize: 16, fontWeight: "700" },
-  steps: {
-    flexDirection: "row",
-    justifyContent: "center",
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    gap: 0,
-  },
-  stepItem: { flexDirection: "row", alignItems: "center", flex: 1 },
-  stepCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.dark.card,
-    borderWidth: 2,
-    borderColor: colors.dark.border,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  stepCircleActive: { backgroundColor: colors.accent.DEFAULT, borderColor: colors.accent.DEFAULT },
-  stepNum: { color: colors.text.secondary, fontSize: 12, fontWeight: "700" },
-  stepNumActive: { color: "#000" },
-  stepLabel: { color: colors.text.secondary, fontSize: 11, marginLeft: 4 },
-  stepLabelActive: { color: colors.text.light },
-  stepLine: { flex: 1, height: 2, backgroundColor: colors.dark.border, marginHorizontal: 4 },
-  stepLineActive: { backgroundColor: colors.accent.DEFAULT },
-  body: { padding: spacing.lg, paddingBottom: 120 },
-  stepContent: { gap: spacing.md },
-  stepHeading: {
-    color: colors.text.light,
-    fontSize: typography.fontSize.h2,
-    fontWeight: typography.fontWeight.bold,
-    marginBottom: spacing.sm,
-  },
-  summaryCard: {
-    backgroundColor: `${colors.primary[700]}22`,
-    borderRadius: 10,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: `${colors.primary[700]}44`,
-  },
-  summaryText: { color: colors.text.light, fontSize: 14 },
-  summaryPrice: { color: colors.accent.DEFAULT, fontWeight: "700" },
-  inputGroup: { gap: 6 },
-  inputLabel: { color: colors.text.secondary, fontSize: 13 },
-  pickerDoneBtn: {
-    alignSelf: "flex-end",
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    backgroundColor: colors.accent.DEFAULT,
-    borderRadius: 8,
-  },
-  pickerDoneBtnText: { color: "#000", fontSize: 13, fontWeight: "700" },
-  input: {
-    backgroundColor: colors.dark.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    height: 48,
-    paddingHorizontal: spacing.md,
-    color: colors.text.light,
-    fontSize: 15,
-  },
-  paymentOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    backgroundColor: colors.dark.card,
-    borderRadius: 12,
-    padding: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.dark.border,
-  },
-  paymentOptionSelected: { borderColor: colors.accent.DEFAULT },
-  paymentLabel: { flex: 1, color: colors.text.secondary, fontSize: 15 },
-  paymentLabelSelected: { color: colors.text.light, fontWeight: "600" },
-  totalCard: {
-    backgroundColor: colors.dark.card,
-    borderRadius: 12,
-    padding: spacing.lg,
-    marginTop: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    gap: 4,
-  },
-  totalLabel: { color: colors.text.secondary, fontSize: 13 },
-  totalValue: { color: colors.text.light, fontSize: 28, fontWeight: "700" },
-  totalDays: { color: colors.text.secondary, fontSize: 13 },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: spacing.lg,
-    backgroundColor: colors.dark.bg,
-    borderTopWidth: 1,
-    borderTopColor: colors.dark.border,
-  },
-  nextBtn: {
-    flexDirection: "row",
-    backgroundColor: colors.accent.DEFAULT,
-    borderRadius: 12,
-    height: 52,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  nextBtnText: { color: "#000", fontWeight: "700", fontSize: 16 },
-  confirmBtn: {
-    backgroundColor: colors.accent.DEFAULT,
-    borderRadius: 12,
-    height: 52,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  confirmBtnText: { color: "#000", fontWeight: "700", fontSize: 16 },
-  btnDisabled: { opacity: 0.4 },
-  errorText: { color: colors.error, textAlign: "center", marginTop: spacing.sm, fontSize: 13 },
-  successContainer: {
-    flex: 1,
-    backgroundColor: colors.dark.bg,
-    justifyContent: "center",
-    padding: spacing.xl,
-  },
-  successCard: {
-    backgroundColor: colors.dark.card,
-    borderRadius: 20,
-    padding: spacing.xl,
-    alignItems: "center",
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-  },
-  successIcon: { marginBottom: spacing.sm },
-  successTitle: { color: colors.text.light, fontSize: 24, fontWeight: "700" },
-  successRef: { color: colors.accent.DEFAULT, fontSize: 16, fontWeight: "600" },
-  successMsg: { color: colors.text.secondary, textAlign: "center", lineHeight: 22 },
-  doneBtn: {
-    backgroundColor: colors.accent.DEFAULT,
-    borderRadius: 12,
-    height: 50,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: spacing.sm,
-  },
-  doneBtnText: { color: "#000", fontWeight: "700" },
-  myBookingsBtn: {
-    borderRadius: 12,
-    height: 50,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-  },
-  myBookingsBtnText: { color: colors.text.light, fontWeight: "600" },
-});
+function makeStyles(palette: Palette) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: palette.bg },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingTop: 56,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.md,
+    },
+    headerTitle: { color: palette.text, fontSize: 16, fontWeight: "700" },
+    steps: {
+      flexDirection: "row",
+      justifyContent: "center",
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg,
+      gap: 0,
+    },
+    stepItem: { flexDirection: "row", alignItems: "center", flex: 1 },
+    stepCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: palette.card,
+      borderWidth: 2,
+      borderColor: palette.border,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    stepCircleActive: {
+      backgroundColor: colors.accent.DEFAULT,
+      borderColor: colors.accent.DEFAULT,
+    },
+    stepNum: { color: palette.muted, fontSize: 12, fontWeight: "700" },
+    stepNumActive: { color: "#000" },
+    stepLabel: { color: palette.muted, fontSize: 11, marginLeft: 4 },
+    stepLabelActive: { color: palette.text },
+    stepLine: { flex: 1, height: 2, backgroundColor: palette.border, marginHorizontal: 4 },
+    stepLineActive: { backgroundColor: colors.accent.DEFAULT },
+    body: { padding: spacing.lg, paddingBottom: 120 },
+    stepContent: { gap: spacing.md },
+    stepHeading: {
+      color: palette.text,
+      fontSize: typography.fontSize.h2,
+      fontWeight: typography.fontWeight.bold,
+      marginBottom: spacing.sm,
+    },
+    summaryCard: {
+      backgroundColor: `${colors.primary[700]}22`,
+      borderRadius: 10,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: `${colors.primary[700]}44`,
+    },
+    summaryText: { color: palette.text, fontSize: 14 },
+    summaryPrice: { color: colors.accent.DEFAULT, fontWeight: "700" },
+    inputGroup: { gap: 6 },
+    inputLabel: { color: palette.muted, fontSize: 13 },
+    pickerDoneBtn: {
+      alignSelf: "flex-end",
+      paddingHorizontal: spacing.md,
+      paddingVertical: 8,
+      backgroundColor: colors.accent.DEFAULT,
+      borderRadius: 8,
+    },
+    pickerDoneBtnText: { color: "#000", fontSize: 13, fontWeight: "700" },
+    input: {
+      backgroundColor: palette.card,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.border,
+      height: 48,
+      paddingHorizontal: spacing.md,
+      color: palette.text,
+      fontSize: 15,
+    },
+    paymentOption: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      backgroundColor: palette.card,
+      borderRadius: 12,
+      padding: spacing.md,
+      borderWidth: 2,
+      borderColor: palette.border,
+    },
+    paymentOptionSelected: { borderColor: colors.accent.DEFAULT },
+    paymentLabel: { flex: 1, color: palette.muted, fontSize: 15 },
+    paymentLabelSelected: { color: palette.text, fontWeight: "600" },
+    totalCard: {
+      backgroundColor: palette.card,
+      borderRadius: 12,
+      padding: spacing.lg,
+      marginTop: spacing.md,
+      borderWidth: 1,
+      borderColor: palette.border,
+      gap: 4,
+    },
+    totalLabel: { color: palette.muted, fontSize: 13 },
+    totalValue: { color: palette.text, fontSize: 28, fontWeight: "700" },
+    totalDays: { color: palette.muted, fontSize: 13 },
+    footer: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: spacing.lg,
+      backgroundColor: palette.bg,
+      borderTopWidth: 1,
+      borderTopColor: palette.border,
+    },
+    nextBtn: {
+      flexDirection: "row",
+      backgroundColor: colors.accent.DEFAULT,
+      borderRadius: 12,
+      height: 52,
+      justifyContent: "center",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    nextBtnText: { color: "#000", fontWeight: "700", fontSize: 16 },
+    confirmBtn: {
+      backgroundColor: colors.accent.DEFAULT,
+      borderRadius: 12,
+      height: 52,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    confirmBtnText: { color: "#000", fontWeight: "700", fontSize: 16 },
+    btnDisabled: { opacity: 0.4 },
+    errorText: { color: colors.error, textAlign: "center", marginTop: spacing.sm, fontSize: 13 },
+    successContainer: {
+      flex: 1,
+      backgroundColor: palette.bg,
+      justifyContent: "center",
+      padding: spacing.xl,
+    },
+    successCard: {
+      backgroundColor: palette.card,
+      borderRadius: 20,
+      padding: spacing.xl,
+      alignItems: "center",
+      gap: spacing.md,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    successIcon: { marginBottom: spacing.sm },
+    successTitle: { color: palette.text, fontSize: 24, fontWeight: "700" },
+    successRef: { color: colors.accent.DEFAULT, fontSize: 16, fontWeight: "600" },
+    successMsg: { color: palette.muted, textAlign: "center", lineHeight: 22 },
+    doneBtn: {
+      backgroundColor: colors.accent.DEFAULT,
+      borderRadius: 12,
+      height: 50,
+      width: "100%",
+      justifyContent: "center",
+      alignItems: "center",
+      marginTop: spacing.sm,
+    },
+    doneBtnText: { color: "#000", fontWeight: "700" },
+    myBookingsBtn: {
+      borderRadius: 12,
+      height: 50,
+      width: "100%",
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    myBookingsBtnText: { color: palette.text, fontWeight: "600" },
+  });
+}
 
 // ─── Success screen with confetti + animated checkmark ────────────
 
@@ -562,6 +574,8 @@ function SuccessScreen({
   email: string;
   router: ReturnType<typeof useRouter>;
 }): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const checkScale = useSharedValue(0);
   const refPulse = useSharedValue(1);
 
