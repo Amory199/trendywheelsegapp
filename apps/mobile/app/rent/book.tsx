@@ -94,21 +94,25 @@ export default function BookScreen(): JSX.Element {
   const totalCost = days * Number(vehicle?.dailyRate ?? 0);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      api.createBooking({
+    mutationFn: () => {
+      const payload = {
         vehicleId: vehicleId!,
         startDate: new Date(startDate).toISOString(),
         endDate: new Date(endDate).toISOString(),
-      }),
+      };
+      if (__DEV__) console.log("[book] POST /bookings", payload);
+      return api.createBooking(payload);
+    },
     onSuccess: (res) => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       playSound("celebrate");
       setBookingRef(res.data?.id ?? "");
       setBooked(true);
     },
-    onError: () => {
+    onError: (err) => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       playSound("error");
+      if (__DEV__) console.log("[book] POST /bookings failed:", err);
     },
   });
 
@@ -590,11 +594,15 @@ function SuccessScreen({
         <Text style={styles.successMsg}>
           Present this reference at pickup. We sent a confirmation to {email || "your inbox"}.
         </Text>
-        <Pressable style={styles.doneBtn} onPress={() => router.replace("/(tabs)/rent")}>
-          <Text style={styles.doneBtnText}>Back to Browse</Text>
+        {/* Both buttons route explicitly — fall-through to /(tabs)/ would land
+            an admin/sales user on their dashboard since they don't have a Rent
+            tab in their nav. /rent/my-bookings works for every authenticated
+            account. */}
+        <Pressable style={styles.doneBtn} onPress={() => router.replace("/rent/my-bookings")}>
+          <Text style={styles.doneBtnText}>View My Bookings</Text>
         </Pressable>
-        <Pressable style={styles.myBookingsBtn} onPress={() => router.push("/rent/my-bookings")}>
-          <Text style={styles.myBookingsBtnText}>View My Bookings</Text>
+        <Pressable style={styles.myBookingsBtn} onPress={() => router.replace("/(tabs)/rent")}>
+          <Text style={styles.myBookingsBtnText}>Back to Browse</Text>
         </Pressable>
       </Animated.View>
     </View>

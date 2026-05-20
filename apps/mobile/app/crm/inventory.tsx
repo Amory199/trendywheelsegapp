@@ -202,7 +202,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand.friendlyBlue,
     borderColor: colors.brand.friendlyBlue,
   },
-  filterChipText: { color: colors.text.secondary, fontWeight: "700", fontSize: 12 },
+  // Inactive label uses high-contrast white-on-dark; active still gets the
+  // explicit `{ color: "#fff" }` override. The previous text.secondary was so
+  // low-contrast on dark.card that the labels disappeared until tapped.
+  filterChipText: { color: colors.text.light, fontWeight: "700", fontSize: 12 },
   empty: { alignItems: "center", paddingVertical: 60, gap: 10 },
   emptyText: { color: colors.text.secondary, fontSize: 13 },
   card: {

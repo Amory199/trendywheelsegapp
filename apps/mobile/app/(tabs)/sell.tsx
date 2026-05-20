@@ -4,16 +4,22 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { CategoryStrip } from "../../components/CategoryStrip";
+import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
+import { useTheme } from "../../lib/use-theme";
 
 export default function SellScreen(): JSX.Element {
   const router = useRouter();
+  const { palette } = useTheme();
+  const scrollHandler = useTabBarScrollHandler();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.bg }]}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Buy & Sell</Text>
-          <Text style={styles.subtitle}>Pick a category to see listings</Text>
+          <Text style={[styles.title, { color: palette.text }]}>Buy & Sell</Text>
+          <Text style={[styles.subtitle, { color: palette.muted }]}>
+            Pick a category to see listings
+          </Text>
         </View>
         <Pressable style={styles.addBtn} onPress={() => router.push("/sell/create")}>
           <Ionicons name="add" size={22} color="#000" />
@@ -24,13 +30,14 @@ export default function SellScreen(): JSX.Element {
       <CategoryStrip
         value={null}
         onChange={(next) => router.push(`/sell/category/${next}` as never)}
+        onScroll={scrollHandler}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.dark.bg },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -41,9 +48,8 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.h1,
     fontWeight: typography.fontWeight.bold,
-    color: colors.text.light,
   },
-  subtitle: { color: colors.text.secondary, fontSize: 13, marginTop: 4 },
+  subtitle: { fontSize: 13, marginTop: 4 },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",

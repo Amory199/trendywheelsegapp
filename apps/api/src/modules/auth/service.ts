@@ -119,25 +119,33 @@ export async function verifyOtp(
     isNewSignup = true;
   }
 
-  // Auto-create + assign lead for new signups (customer-only).
+  // Auto-create + assign lead for new signups (customer-only). FIRED OFF AFTER
+  // the response — keeps OTP verification snappy. Acceptable durability for a
+  // signup lead: the row can be reconstructed from user.createdAt if the box
+  // dies mid-flight.
   if (isNewSignup && user.accountType === "customer") {
-    try {
-      const lead = await prisma.lead.create({
-        data: {
-          customerId: user.id,
-          contactName: user.name || `Customer ${user.phone.slice(-4)}`,
-          contactPhone: user.phone,
-          contactEmail: user.email,
-          source: "signup",
-          status: "new",
-          estimatedValue: 0,
-        },
-      });
-      await recordActivity(lead.id, null, "created", "Lead auto-created from signup");
-      await assignLeadRoundRobin(lead.id);
-    } catch (err) {
-      logger.warn({ err, userId: user.id }, "Failed to create signup lead");
-    }
+    const customer = user;
+    setImmediate(() => {
+      void (async () => {
+        try {
+          const lead = await prisma.lead.create({
+            data: {
+              customerId: customer.id,
+              contactName: customer.name || `Customer ${customer.phone.slice(-4)}`,
+              contactPhone: customer.phone,
+              contactEmail: customer.email,
+              source: "signup",
+              status: "new",
+              estimatedValue: 0,
+            },
+          });
+          await recordActivity(lead.id, null, "created", "Lead auto-created from signup");
+          await assignLeadRoundRobin(lead.id);
+        } catch (err) {
+          logger.warn({ err, userId: customer.id }, "Failed to create signup lead (async)");
+        }
+      })();
+    });
   }
 
   // Generate tokens
@@ -215,23 +223,28 @@ export async function issueTokensForPhone(
   }
 
   if (isNewSignup && user.accountType === "customer") {
-    try {
-      const lead = await prisma.lead.create({
-        data: {
-          customerId: user.id,
-          contactName: user.name || `Customer ${user.phone.slice(-4)}`,
-          contactPhone: user.phone,
-          contactEmail: user.email,
-          source: "signup",
-          status: "new",
-          estimatedValue: 0,
-        },
-      });
-      await recordActivity(lead.id, null, "created", "Lead auto-created from signup");
-      await assignLeadRoundRobin(lead.id);
-    } catch (err) {
-      logger.warn({ err, userId: user.id }, "Failed to create signup lead");
-    }
+    const customer = user;
+    setImmediate(() => {
+      void (async () => {
+        try {
+          const lead = await prisma.lead.create({
+            data: {
+              customerId: customer.id,
+              contactName: customer.name || `Customer ${customer.phone.slice(-4)}`,
+              contactPhone: customer.phone,
+              contactEmail: customer.email,
+              source: "signup",
+              status: "new",
+              estimatedValue: 0,
+            },
+          });
+          await recordActivity(lead.id, null, "created", "Lead auto-created from signup");
+          await assignLeadRoundRobin(lead.id);
+        } catch (err) {
+          logger.warn({ err, userId: customer.id }, "Failed to create signup lead (async)");
+        }
+      })();
+    });
   }
 
   const payload: AuthPayload = { userId: user.id, accountType: user.accountType };

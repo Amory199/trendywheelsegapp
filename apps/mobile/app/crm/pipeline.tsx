@@ -86,6 +86,10 @@ export default function CrmPipeline(): React.JSX.Element {
   const router = useRouter();
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
+  // Sales agents are locked to their own assigned leads (backend enforces),
+  // so the All / Mine / Open / Stale chips no longer make sense for them.
+  // Admins keep the full filter row.
+  const isAdmin = user?.accountType === "admin" || user?.staffRole === "admin";
   const userId = user?.id;
   const [stage, setStage] = useState<Stage>("new");
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -201,25 +205,27 @@ export default function CrmPipeline(): React.JSX.Element {
         ) : null}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
-        {FILTERS.map((f) => {
-          const active = filter === f.key;
-          return (
-            <Pressable
-              key={f.key}
-              onPress={() => setFilter(f.key)}
-              style={[styles.filterChip, active && styles.filterChipActive]}
-            >
-              <Ionicons name={f.icon} size={12} color={active ? "#fff" : colors.text.secondary} />
-              <Text style={[styles.filterChipText, active && { color: "#fff" }]}>{f.label}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      {isAdmin ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          {FILTERS.map((f) => {
+            const active = filter === f.key;
+            return (
+              <Pressable
+                key={f.key}
+                onPress={() => setFilter(f.key)}
+                style={[styles.filterChip, active && styles.filterChipActive]}
+              >
+                <Ionicons name={f.icon} size={12} color={active ? "#fff" : colors.text.secondary} />
+                <Text style={[styles.filterChipText, active && { color: "#fff" }]}>{f.label}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : null}
 
       <ScrollView
         horizontal

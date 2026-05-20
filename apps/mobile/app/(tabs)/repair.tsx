@@ -24,7 +24,7 @@ function RepairHero(): React.JSX.Element {
   return (
     <View
       style={{
-        height: 240,
+        height: 360,
         marginHorizontal: 20,
         marginBottom: 14,
         borderRadius: 18,
@@ -37,6 +37,10 @@ function RepairHero(): React.JSX.Element {
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         nativeControls={false}
+        // TextureView clips inside RN tree — matches CategoryStrip fix; also
+        // avoids the hero video showing "RENT" or other neighboring video text
+        // bleeding through SurfaceView's out-of-tree compositing on Android.
+        surfaceType="textureView"
       />
     </View>
   );
@@ -189,12 +193,16 @@ export default function RepairScreen(): React.JSX.Element {
           size="large"
         />
       ) : repairs.length === 0 ? (
+        // Empty state: ditched the flex:1 + justify:center math because the
+        // header + hero + tile grid already eat ~600px on most phones, so the
+        // remaining "flex" was smaller than the empty-state content height,
+        // pushing the bottom of the empty state behind the tab bar. Stack it
+        // naturally and give it real bottom padding instead.
         <View
           style={{
-            flex: 1,
             alignItems: "center",
-            justifyContent: "center",
             gap: 16,
+            paddingTop: 40,
             paddingHorizontal: 40,
             paddingBottom: TAB_BAR_SAFE_BOTTOM,
           }}

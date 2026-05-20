@@ -17,7 +17,8 @@ import Animated, {
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
-import { TWBadge, TWButton, TWCard, TWChip, TWPressable, palette } from "../../components/ui";
+import { TWBadge, TWButton, TWCard, TWChip, TWPressable } from "../../components/ui";
+import { useTheme } from "../../lib/use-theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HERO_HEIGHT = 320;
@@ -28,6 +29,7 @@ export default function RentDetailScreen(): React.JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const scrollY = useSharedValue(0);
+  const { palette } = useTheme();
 
   const q = useQuery({
     queryKey: ["vehicle", id],
@@ -361,19 +363,20 @@ function SpecCell({
   value: string;
   last?: boolean;
 }): React.JSX.Element {
+  const { palette: p } = useTheme();
   return (
     <View
       style={{
         flex: 1,
         alignItems: "center",
         borderRightWidth: last ? 0 : 1,
-        borderRightColor: palette.hairline,
+        borderRightColor: p.hairline,
         gap: 4,
       }}
     >
       <Ionicons name={icon} size={18} color={colors.brand.friendlyBlue} />
-      <Text style={{ fontSize: 13, fontWeight: "700", color: palette.text }}>{value}</Text>
-      <Text style={{ fontSize: 10, color: palette.muted, fontWeight: "600", letterSpacing: 0.4 }}>
+      <Text style={{ fontSize: 13, fontWeight: "700", color: p.text }}>{value}</Text>
+      <Text style={{ fontSize: 10, color: p.muted, fontWeight: "600", letterSpacing: 0.4 }}>
         {label.toUpperCase()}
       </Text>
     </View>

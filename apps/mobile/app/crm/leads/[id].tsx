@@ -351,16 +351,32 @@ export default function LeadDetail(): React.JSX.Element {
     void Linking.openURL(`tel:${lead.contactPhone}`);
   }
 
-  // AppState listener: when the app returns to "active" 3s+ after a call was
-  // placed, prompt for the outcome (or the WhatsApp confirm if we're mid-
-  // chain). Single subscription for the lifetime of the screen.
+  // ── AppState listener (stale-closure-proof) ─────────────────────────────
+  // The useEffect that subscribes runs ONCE (empty deps). If we called
+  // `askCallOutcome` directly from inside the change handler, that closure
+  // captures the FIRST render's `lead` / `rules` — which are typically
+  // undefined on mount because leadQ is still loading. By the time the agent
+  // returns from the dialer, the captured `lead` is still undefined and the
+  // alert never fires.
+  //
+  // Fix: route both handlers through refs so the listener always reads the
+  // CURRENT versions. We also log every transition under __DEV__ so future
+  // debugging is one log line away.
+  const askCallOutcomeRef = useRef(askCallOutcome);
+  const confirmWhatsAppSentRef = useRef(confirmWhatsAppSent);
+  useEffect(() => {
+    askCallOutcomeRef.current = askCallOutcome;
+    confirmWhatsAppSentRef.current = confirmWhatsAppSent;
+  });
+
   useEffect(() => {
     const sub = AppState.addEventListener("change", (s: AppStateStatus) => {
       const pc = pendingCallRef.current;
+      if (__DEV__) console.log("[lead] AppState change:", s, "pendingCall:", pc?.awaiting);
       if (s !== "active" || !pc) return;
       if (Date.now() - pc.startedAt < 3000) return;
-      if (pc.awaiting === "outcome") askCallOutcome();
-      else if (pc.awaiting === "whatsapp") confirmWhatsAppSent();
+      if (pc.awaiting === "outcome") askCallOutcomeRef.current();
+      else if (pc.awaiting === "whatsapp") confirmWhatsAppSentRef.current();
     });
     return () => sub.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,3 +1,4 @@
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
@@ -27,6 +28,7 @@ export default function LicenseCaptureScreen(): JSX.Element {
   const { user, setUser } = useAuth();
   const [number, setNumber] = useState(user?.licenseNumber ?? "");
   const [expiry, setExpiry] = useState(user?.licenseExpiry ?? "");
+  const [showExpiryPicker, setShowExpiryPicker] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(user?.licensePhotoUrl ?? null);
   const [photoMimeType, setPhotoMimeType] = useState("image/jpeg");
 
@@ -114,13 +116,35 @@ export default function LicenseCaptureScreen(): JSX.Element {
           />
 
           <Text style={styles.label}>Expiry date</Text>
-          <TextInput
-            value={expiry}
-            onChangeText={setExpiry}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.text.secondary}
-            style={styles.input}
-          />
+          <Pressable style={styles.input} onPress={() => setShowExpiryPicker(true)}>
+            <Text
+              style={{
+                color: expiry ? colors.text.light : colors.text.secondary,
+                fontSize: 15,
+                lineHeight: 48,
+              }}
+            >
+              {expiry ? new Date(expiry).toLocaleDateString() : "Tap to pick a date"}
+            </Text>
+            <Ionicons
+              name="calendar-outline"
+              size={18}
+              color={colors.text.secondary}
+              style={{ position: "absolute", right: 12, top: 15 }}
+            />
+          </Pressable>
+          {showExpiryPicker ? (
+            <DateTimePicker
+              value={expiry ? new Date(expiry) : new Date()}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              minimumDate={new Date()}
+              onChange={(event: DateTimePickerEvent, selected?: Date) => {
+                if (Platform.OS !== "ios") setShowExpiryPicker(false);
+                if (event.type === "set" && selected) setExpiry(selected.toISOString());
+              }}
+            />
+          ) : null}
 
           <Text style={styles.label}>Photo of your license</Text>
           <Pressable onPress={pickPhoto} style={styles.photoBtn}>

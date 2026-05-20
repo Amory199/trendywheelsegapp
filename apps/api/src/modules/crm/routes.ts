@@ -33,13 +33,13 @@ router.get("/leads", async (req, res) => {
     // Admins can see everything; honor explicit owner filters.
     if (mineOnly) where.ownerId = userId;
     else if (ownerId) where.ownerId = ownerId === "unassigned" ? null : ownerId;
-  } else if (mineOnly) {
-    // Sales agent opted into the "Mine" filter on the mobile pipeline.
+  } else {
+    // Sales agents (and any other non-admin staff): locked to their own
+    // assigned leads only. No "all-pool" visibility, no unclaimed view —
+    // the admin assigns, the agent works the list. Drop the mineOnly branch
+    // here because the chip is gone from the mobile UI.
     where.ownerId = userId;
   }
-  // Otherwise sales see all leads (read-only on ones they don't own).
-  // PATCH and claim/reassign endpoints still enforce ownership for mutations,
-  // so visibility-only access is safe.
 
   const leads = await prisma.lead.findMany({
     where,
@@ -206,7 +206,11 @@ router.get("/leads/:id", async (req, res) => {
     },
   });
   if (!lead) throw AppError.notFound("Lead not found");
-  // Sales can VIEW any lead; mutations stay gated by ownership in PATCH/claim.
+  // Sales agents are locked to their own assigned leads — view and mutate.
+  // Admins can still inspect anything.
+  if (!isAdmin && lead.ownerId !== userId) {
+    throw AppError.forbidden("Lead is assigned to another agent");
+  }
   res.json({ data: lead });
 });
 
@@ -316,9 +320,16 @@ router.patch("/leads/:id", async (req, res) => {
   res.json({ data: updated });
 });
 
-// ─── Claim a lead (unassigned → me) ──────────────────────────
+// ─── Claim a lead (admin only — sales no longer self-claims) ─
+// New workflow (2026-05-20): the admin assigns leads to sales; the sales agent
+// works what they're given. We keep this endpoint for the admin "claim for
+// myself" path, but reject anyone who isn't admin.
 router.post("/leads/:id/claim", async (req, res) => {
   const userId = req.user!.userId;
+  const me = await prisma.user.findUnique({ where: { id: userId } });
+  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+  if (!isAdmin) throw AppError.forbidden("Sales cannot self-claim leads — admin assigns");
+
   const lead = await prisma.lead.findUnique({ where: { id: req.params.id } });
   if (!lead) throw AppError.notFound("Lead not found");
   if (lead.ownerId && lead.ownerId !== userId) {

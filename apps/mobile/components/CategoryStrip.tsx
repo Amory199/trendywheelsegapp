@@ -1,11 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { VEHICLE_CATEGORIES, type VehicleCategory } from "@trendywheels/types";
-import { colors } from "@trendywheels/ui-tokens";
+import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useCallback } from "react";
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { memo, useCallback } from "react";
+import Animated from "react-native-reanimated";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+
+import { useTheme } from "../lib/use-theme";
 
 const CATEGORY_VIDEOS: Partial<Record<VehicleCategory, number>> = {
   "golf-cart": require("../assets/category/golf-cart.mp4"),
@@ -25,19 +28,31 @@ interface Props {
   value: VehicleCategory | "all" | null;
   onChange: (next: VehicleCategory | "all") => void;
   showAll?: boolean;
+  // Optional Reanimated scroll handler from useTabBarScrollHandler — wires the
+  // strip's scroll position into the tab-bar auto-hide on rent/sell where no
+  // outer FlatList exists.
+  onScroll?: ReturnType<typeof import("react-native-reanimated").useAnimatedScrollHandler>;
 }
 
-export function CategoryStrip({ value, onChange, showAll = true }: Props): JSX.Element {
+function CategoryStripImpl({ value, onChange, showAll = true, onScroll }: Props): JSX.Element {
+  const { palette } = useTheme();
   return (
-    <ScrollView
-      contentContainerStyle={styles.grid}
+    <Animated.ScrollView
+      contentContainerStyle={[styles.grid, { paddingBottom: TAB_BAR_SAFE_BOTTOM }]}
       showsVerticalScrollIndicator={false}
       horizontal={false}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
     >
       {showAll ? (
         <Pressable
           onPress={() => onChange("all")}
-          style={[styles.block, value === "all" && styles.blockActive]}
+          android_ripple={{ color: "rgba(43,15,248,0.18)", borderless: false }}
+          style={[
+            styles.block,
+            { backgroundColor: palette.card, borderColor: "transparent" },
+            value === "all" && styles.blockActive,
+          ]}
         >
           <LinearGradient
             colors={[colors.brand.poolBlue, colors.brand.friendlyBlue]}
@@ -61,9 +76,11 @@ export function CategoryStrip({ value, onChange, showAll = true }: Props): JSX.E
           onPress={() => onChange(c.key)}
         />
       ))}
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
+
+export const CategoryStrip = memo(CategoryStripImpl);
 
 function CategoryBlock({
   categoryKey,
@@ -128,6 +145,13 @@ function BlockVideo({ source }: { source: number }): JSX.Element {
       contentFit="cover"
       nativeControls={false}
       pointerEvents="none"
+      // Android: SurfaceView is the default but it renders OUTSIDE the React
+      // Native view tree's clip boundaries, so neighboring tiles see baked-in
+      // text from this tile's video ("UTV & BUGGIES" bleeding into UTV).
+      // TextureView is GPU-composited inside the RN view tree and respects
+      // overflow:hidden. Slightly more GPU cost, fully clipped — exactly the
+      // trade-off the user wants.
+      surfaceType="textureView"
     />
   );
 }

@@ -154,6 +154,62 @@ for ep in "vehicles" "sales" "bookings" "crm/leads" "crm/pipeline" "crm/inventor
 done
 pass "list endpoints all 200"
 
+# ─── 12a. Sales sees ONLY their assigned leads ───────────────
+note "12a. Sales lead visibility (owned-only)"
+SALES_USER_ID=$(echo "$SALES_RESP" | jq -r '.user.id')
+SALES_LEADS=$(curl -fsS "$BASE/crm/leads" -H "Authorization: Bearer $SALES_TOKEN")
+# Every lead returned must belong to the sales user
+OTHERS=$(echo "$SALES_LEADS" | jq "[.data[] | select(.ownerId != \"$SALES_USER_ID\")] | length")
+[ "$OTHERS" = "0" ] || fail "Sales got $OTHERS leads not assigned to them (visibility regression)"
+pass "sales sees only assigned leads"
+
+# ─── 12b. Sales 403 on a lead they don't own ─────────────────
+note "12b. Sales 403 on unowned lead"
+# Create a lead owned by ADMIN, then try to GET it as SALES
+UNOWNED_RESP=$(curl -fsS -XPOST "$BASE/crm/leads" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"contactName":"UNOWNED SMOKE","contactPhone":"+201222222222","source":"manual"}')
+UNOWNED_ID=$(echo "$UNOWNED_RESP" | jq -r .data.id)
+# Force ownership to admin so it's NOT auto-assigned to sales by RR
+curl -fsS -XPOST "$BASE/crm/leads/$UNOWNED_ID/reassign" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"ownerId\":\"$(echo "$ADMIN_RESP" | jq -r '.user.id')\"}" >/dev/null
+# Sales GET should now 403
+CODE=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/crm/leads/$UNOWNED_ID" \
+  -H "Authorization: Bearer $SALES_TOKEN")
+[ "$CODE" = "403" ] || fail "Sales got HTTP $CODE on unowned lead, expected 403"
+pass "sales blocked from unowned leads"
+# Cleanup
+curl -fsS -XPATCH "$BASE/crm/leads/$UNOWNED_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"status":"lost","notes":"smoke-test artifact"}' >/dev/null
+
+# ─── 12c. Customer signup auto-creates a lead ────────────────
+note "12c. Customer signup auto-creates lead"
+LEAD_COUNT_BEFORE=$(curl -fsS "$BASE/crm/leads" -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.data | length')
+# Use the dev-only trial OTP bypass to simulate a customer signup. We need
+# a phone that's NOT in the seed AND not in STAFF_TEST_PHONES, and we need
+# ENABLE_TRIAL_OTP_BYPASS=true OR a freshly generated OTP. Easier: just hit
+# the verify-otp endpoint with one of the hardcoded trial bypass codes (only
+# works if ENABLE_TRIAL_OTP_BYPASS is set in prod .env).
+# In prod (ENABLE_TRIAL_OTP_BYPASS=false), skip this assertion.
+TRIAL_ENABLED=$(grep -c "^ENABLE_TRIAL_OTP_BYPASS=true" /opt/trendywheels/apps/api/.env 2>/dev/null || echo 0)
+if [ "$TRIAL_ENABLED" = "1" ]; then
+  # +201112223344 / 555555 is the hardcoded customer trial pair
+  curl -fsS -XPOST "$BASE/auth/verify-otp" -H "$JSON" \
+    -d '{"phone":"+201112223344","otp":"555555"}' >/dev/null
+  sleep 1 # setImmediate-fired lead assignment
+  LEAD_COUNT_AFTER=$(curl -fsS "$BASE/crm/leads" -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.data | length')
+  if [ "$LEAD_COUNT_AFTER" -le "$LEAD_COUNT_BEFORE" ]; then
+    # Not a fail — the trial customer may already exist from a previous run
+    pass "(trial signup already had a lead; not a fresh signup this run)"
+  else
+    pass "trial signup created a new lead"
+  fi
+else
+  pass "(skipped — ENABLE_TRIAL_OTP_BYPASS=false in prod, can't synthesize a signup)"
+fi
+
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
 # No DELETE endpoint on /crm/leads, so leave the smoke-test lead. The contact

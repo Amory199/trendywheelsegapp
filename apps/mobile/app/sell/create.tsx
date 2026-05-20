@@ -97,7 +97,7 @@ export default function SellCreateScreen(): JSX.Element {
         }
       }
 
-      return api.createSalesListing({
+      const payload = {
         title: form.title,
         category: form.category,
         make: form.make,
@@ -110,8 +110,9 @@ export default function SellCreateScreen(): JSX.Element {
         color: form.color,
         description: form.description,
         images: uploadedUrls,
-        status: "active",
-      });
+      };
+      if (__DEV__) console.log("[sell] POST /sales", payload);
+      return api.createSalesListing(payload);
     },
     onSuccess: () => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -120,9 +121,10 @@ export default function SellCreateScreen(): JSX.Element {
       void qc.invalidateQueries({ queryKey: ["my-listings"] });
       router.replace("/sell/my-listings");
     },
-    onError: () => {
+    onError: (err) => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       playSound("error");
+      if (__DEV__) console.log("[sell] POST /sales failed:", err);
     },
   });
 
