@@ -95,17 +95,18 @@ function CategoryBlock({
   active: boolean;
   onPress: () => void;
 }): JSX.Element {
+  const { palette } = useTheme();
   const source = CATEGORY_VIDEOS[categoryKey] ?? null;
   return (
     <Pressable
       onPress={onPress}
       android_ripple={{ color: "rgba(43,15,248,0.18)", borderless: false }}
-      style={[styles.block, active && styles.blockActive]}
+      style={[styles.block, { backgroundColor: palette.card }, active && styles.blockActive]}
     >
       {/* Defensive double-clip: even if VideoView paints a few pixels past its
           frame, this inner View masks it so neighboring tiles don't bleed. */}
       <View style={styles.mediaClip}>
-        {source ? <BlockVideo source={source} /> : <BlockFallback icon={icon} />}
+        {source ? <BlockVideo source={source} /> : <BlockFallback icon={icon} palette={palette} />}
       </View>
       <LinearGradient
         colors={["rgba(2,1,31,0)", "rgba(2,1,31,0.88)"]}
@@ -156,13 +157,19 @@ function BlockVideo({ source }: { source: number }): JSX.Element {
   );
 }
 
-function BlockFallback({ icon }: { icon: string }): JSX.Element {
+function BlockFallback({
+  icon,
+  palette,
+}: {
+  icon: string;
+  palette: import("@trendywheels/ui-tokens").Palette;
+}): JSX.Element {
   return (
-    <View style={[StyleSheet.absoluteFill, styles.fallback]}>
+    <View style={[StyleSheet.absoluteFill, styles.fallback, { backgroundColor: palette.card }]}>
       <Ionicons
         name={icon as keyof typeof import("@expo/vector-icons").Ionicons.glyphMap}
         size={44}
-        color="rgba(255,255,255,0.55)"
+        color={palette.muted}
       />
     </View>
   );
@@ -193,7 +200,6 @@ const styles = StyleSheet.create({
     height: BLOCK_H,
     borderRadius: 18,
     overflow: "hidden",
-    backgroundColor: colors.dark.card,
     borderWidth: 2,
     borderColor: "transparent",
   },
@@ -214,7 +220,6 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   fallback: {
-    backgroundColor: colors.dark.card,
     alignItems: "center",
     justifyContent: "center",
   },

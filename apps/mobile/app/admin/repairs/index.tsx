@@ -78,6 +78,8 @@ export default function AdminRepairs(): React.JSX.Element {
         <FlatList<Repair>
           data={q.data ?? []}
           keyExtractor={(r) => r.id}
+          removeClippedSubviews
+          windowSize={7}
           contentContainerStyle={{ padding: 14, paddingBottom: 120, gap: 10 }}
           refreshControl={
             <RefreshControl

@@ -88,6 +88,8 @@ export default function MessagesScreen(): JSX.Element {
         <FlatList<Conversation>
           data={conversations}
           keyExtractor={(c) => c.id}
+          removeClippedSubviews
+          windowSize={7}
           contentContainerStyle={{ paddingBottom: 100 }}
           renderItem={({ item, index }) => {
             const lastMsg = item.messages[0];

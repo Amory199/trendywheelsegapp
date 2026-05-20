@@ -49,6 +49,8 @@ export default function AdminSales(): React.JSX.Element {
         <FlatList<Listing>
           data={q.data ?? []}
           keyExtractor={(l) => l.id}
+          removeClippedSubviews
+          windowSize={7}
           contentContainerStyle={{ padding: 14, paddingBottom: 120, gap: 10 }}
           refreshControl={
             <RefreshControl

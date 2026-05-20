@@ -84,6 +84,8 @@ export default function MyBookingsScreen(): JSX.Element {
         <FlatList<Booking>
           data={bookings}
           keyExtractor={(b) => b.id}
+          removeClippedSubviews
+          windowSize={7}
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 100 }}
           renderItem={({ item, index }) => (
             <Animated.View entering={FadeInDown.delay(index * 60).springify()}>

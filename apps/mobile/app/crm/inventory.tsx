@@ -115,6 +115,8 @@ export default function CrmInventory(): JSX.Element {
           data={filtered}
           keyExtractor={(v) => v.id}
           numColumns={2}
+          removeClippedSubviews
+          windowSize={7}
           columnWrapperStyle={{ gap: 10 }}
           contentContainerStyle={{ padding: 14, paddingBottom: 120, gap: 10 }}
           refreshControl={

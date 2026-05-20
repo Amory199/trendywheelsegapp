@@ -61,18 +61,14 @@ export default function MyListingsScreen(): JSX.Element {
   });
 
   const confirmDelete = (id: string): void => {
-    Alert.alert(
-      "Delete Listing",
-      "This listing will be permanently removed. Are you sure?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteMutation.mutate(id),
-        },
-      ],
-    );
+    Alert.alert("Delete Listing", "This listing will be permanently removed. Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deleteMutation.mutate(id),
+      },
+    ]);
   };
 
   return (
@@ -82,31 +78,19 @@ export default function MyListingsScreen(): JSX.Element {
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
         <Text style={styles.title}>My Listings</Text>
-        <Pressable
-          style={styles.addBtn}
-          onPress={() => router.push("/sell/create")}
-        >
+        <Pressable style={styles.addBtn} onPress={() => router.push("/sell/create")}>
           <Ionicons name="add" size={20} color="#000" />
         </Pressable>
       </View>
 
       {isLoading ? (
-        <ActivityIndicator
-          color={colors.accent.DEFAULT}
-          size="large"
-          style={{ marginTop: 60 }}
-        />
+        <ActivityIndicator color={colors.accent.DEFAULT} size="large" style={{ marginTop: 60 }} />
       ) : listings.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="pricetag-outline" size={64} color={colors.text.secondary} />
           <Text style={styles.emptyTitle}>No listings yet</Text>
-          <Text style={styles.emptySubtitle}>
-            List your car and reach thousands of buyers
-          </Text>
-          <Pressable
-            style={styles.emptyBtn}
-            onPress={() => router.push("/sell/create")}
-          >
+          <Text style={styles.emptySubtitle}>List your car and reach thousands of buyers</Text>
+          <Pressable style={styles.emptyBtn} onPress={() => router.push("/sell/create")}>
             <Text style={styles.emptyBtnText}>List a Car</Text>
           </Pressable>
         </View>
@@ -114,14 +98,13 @@ export default function MyListingsScreen(): JSX.Element {
         <FlatList<SalesListing>
           data={listings}
           keyExtractor={(l) => l.id}
+          removeClippedSubviews
+          windowSize={7}
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 40 }}
           renderItem={({ item, index }) => (
             <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
               <Pressable
-                style={({ pressed }) => [
-                  styles.card,
-                  pressed && { opacity: 0.9 },
-                ]}
+                style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
                 onPress={() => router.push(`/sell/${item.id}`)}
                 onLongPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -165,9 +148,7 @@ export default function MyListingsScreen(): JSX.Element {
                     </View>
                   </View>
 
-                  <Text style={styles.cardPrice}>
-                    {Number(item.price).toLocaleString()} EGP
-                  </Text>
+                  <Text style={styles.cardPrice}>{Number(item.price).toLocaleString()} EGP</Text>
 
                   <View style={styles.cardMeta}>
                     <Text style={styles.metaText}>
@@ -176,11 +157,7 @@ export default function MyListingsScreen(): JSX.Element {
                     <View style={styles.statsRow}>
                       <Ionicons name="eye-outline" size={12} color={colors.text.secondary} />
                       <Text style={styles.metaText}>{item.viewsCount ?? 0}</Text>
-                      <Ionicons
-                        name="chatbubble-outline"
-                        size={12}
-                        color={colors.text.secondary}
-                      />
+                      <Ionicons name="chatbubble-outline" size={12} color={colors.text.secondary} />
                       <Text style={styles.metaText}>{item.inquiriesCount ?? 0}</Text>
                     </View>
                   </View>
@@ -194,11 +171,7 @@ export default function MyListingsScreen(): JSX.Element {
                     setMenuId(item.id);
                   }}
                 >
-                  <Ionicons
-                    name="ellipsis-vertical"
-                    size={20}
-                    color={colors.text.secondary}
-                  />
+                  <Ionicons name="ellipsis-vertical" size={20} color={colors.text.secondary} />
                 </Pressable>
               </Pressable>
             </Animated.View>
@@ -214,10 +187,7 @@ export default function MyListingsScreen(): JSX.Element {
         onRequestClose={() => setMenuId(null)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setMenuId(null)}>
-          <Animated.View
-            entering={FadeInDown.springify()}
-            style={styles.actionSheet}
-          >
+          <Animated.View entering={FadeInDown.springify()} style={styles.actionSheet}>
             <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>Listing Actions</Text>
 
@@ -239,9 +209,7 @@ export default function MyListingsScreen(): JSX.Element {
               }}
             >
               <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
-              <Text style={[styles.sheetOptionText, { color: colors.success }]}>
-                Mark as Sold
-              </Text>
+              <Text style={[styles.sheetOptionText, { color: colors.success }]}>Mark as Sold</Text>
             </Pressable>
 
             <Pressable
@@ -255,9 +223,7 @@ export default function MyListingsScreen(): JSX.Element {
               ) : (
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
               )}
-              <Text style={[styles.sheetOptionText, { color: colors.error }]}>
-                Delete Listing
-              </Text>
+              <Text style={[styles.sheetOptionText, { color: colors.error }]}>Delete Listing</Text>
             </Pressable>
 
             <Pressable style={styles.sheetCancel} onPress={() => setMenuId(null)}>
