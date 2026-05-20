@@ -10,7 +10,7 @@ import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react
 const CATEGORY_VIDEOS: Partial<Record<VehicleCategory, number>> = {
   "golf-cart": require("../assets/category/golf-cart.mp4"),
   scooter: require("../assets/category/scooter.mp4"),
-  "hover-board": require("../assets/category/hover-board.mp4"),
+  "scooter-sidecar": require("../assets/category/scooter-sidecar.mp4"),
   buggy: require("../assets/category/buggy.mp4"),
   "jet-ski": require("../assets/category/jet-ski.mp4"),
 };
@@ -176,10 +176,14 @@ const styles = StyleSheet.create({
   blockActive: {
     borderColor: colors.brand.trendyPink,
   },
+  // Inner clip must match the outer block's borderRadius exactly. A 2px mismatch
+  // (the previous 16 vs 18) leaves a hairline ring where the native video
+  // surface can paint outside the rounded corner, which on Android shows up as
+  // the previous tile's frame bleeding into the next one.
   mediaClip: {
     ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
-    borderRadius: 16,
+    borderRadius: 18,
   },
   media: {
     width: "100%",

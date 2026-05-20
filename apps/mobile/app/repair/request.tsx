@@ -1,3 +1,4 @@
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { borderRadius, colors, spacing, typography } from "@trendywheels/ui-tokens";
@@ -6,6 +7,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -45,7 +47,15 @@ export default function RepairRequestScreen(): JSX.Element {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("mechanical");
   const [priority, setPriority] = useState<Priority>("medium");
-  const [preferredDate, setPreferredDate] = useState("");
+  // Preferred date now comes from a calendar picker, not free-text — eliminates
+  // the "YYYY-MM-DD" typing that was both painful and a silent validation
+  // hazard. ISO string goes into the payload only if set.
+  const [preferredDate, setPreferredDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const onPreferredDateChange = (event: DateTimePickerEvent, selected?: Date): void => {
+    if (Platform.OS !== "ios") setShowDatePicker(false);
+    if (event.type === "set" && selected) setPreferredDate(selected);
+  };
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -53,6 +63,7 @@ export default function RepairRequestScreen(): JSX.Element {
         description,
         category,
         priority,
+        ...(preferredDate ? { preferredDate: preferredDate.toISOString() } : {}),
       }),
     onSuccess: () => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -143,16 +154,35 @@ export default function RepairRequestScreen(): JSX.Element {
           </View>
         </Animated.View>
 
-        {/* Preferred Date (optional) */}
+        {/* Preferred Date (optional) — calendar picker, never free text */}
         <Animated.View entering={FadeInDown.delay(200).springify()}>
           <Text style={styles.label}>Preferred Date (optional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.text.secondary}
-            value={preferredDate}
-            onChangeText={setPreferredDate}
-          />
+          <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+            <Text
+              style={{
+                color: preferredDate ? colors.text.light : colors.text.secondary,
+                fontSize: 15,
+                lineHeight: 48,
+              }}
+            >
+              {preferredDate ? preferredDate.toLocaleDateString() : "Tap to pick a date"}
+            </Text>
+            <Ionicons
+              name="calendar-outline"
+              size={18}
+              color={colors.text.secondary}
+              style={{ position: "absolute", right: spacing.md, top: 15 }}
+            />
+          </Pressable>
+          {showDatePicker ? (
+            <DateTimePicker
+              value={preferredDate ?? new Date()}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              minimumDate={new Date()}
+              onChange={onPreferredDateChange}
+            />
+          ) : null}
         </Animated.View>
       </ScrollView>
 

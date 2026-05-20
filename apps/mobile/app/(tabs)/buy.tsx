@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { colors } from "@trendywheels/ui-tokens";
+import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import * as React from "react";
@@ -94,7 +94,7 @@ export default function BuyScreen(): React.JSX.Element {
         scrollEventThrottle={16}
         contentContainerStyle={{
           paddingHorizontal: PADDING,
-          paddingBottom: 110,
+          paddingBottom: TAB_BAR_SAFE_BOTTOM,
           flexDirection: "row",
           flexWrap: "wrap",
           gap: CARD_GAP,

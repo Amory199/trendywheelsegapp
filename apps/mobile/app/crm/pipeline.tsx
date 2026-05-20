@@ -85,6 +85,7 @@ function initialsOf(name: string): string {
 export default function CrmPipeline(): React.JSX.Element {
   const router = useRouter();
   const user = useAuth((s) => s.user);
+  const logout = useAuth((s) => s.logout);
   const userId = user?.id;
   const [stage, setStage] = useState<Stage>("new");
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -155,6 +156,16 @@ export default function CrmPipeline(): React.JSX.Element {
         <Pressable style={styles.fab} onPress={() => router.push("/crm/leads/new")}>
           <Ionicons name="add" size={18} color="#fff" />
           <Text style={styles.fabText}>New lead</Text>
+        </Pressable>
+        <Pressable
+          hitSlop={12}
+          style={{ marginLeft: 10 }}
+          onPress={async () => {
+            await logout();
+            router.replace("/(auth)/phone");
+          }}
+        >
+          <Ionicons name="log-out-outline" size={22} color={colors.text.light} />
         </Pressable>
       </View>
 

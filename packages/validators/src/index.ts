@@ -35,6 +35,7 @@ const vehicleCategoryEnum = z.enum([
   "golf-cart",
   "hover-board",
   "scooter",
+  "scooter-sidecar",
   "buggy",
   "utv",
   "jet-ski",
@@ -169,7 +170,7 @@ const repairPriorityEnum = z.enum(["low", "medium", "high", "urgent"]);
 const repairStatusEnum = z.enum(["submitted", "assigned", "in-progress", "completed", "cancelled"]);
 
 export const createRepairRequestSchema = z.object({
-  vehicleId: z.string().uuid(),
+  vehicleId: z.string().uuid().optional(),
   description: z.string().min(10).max(500),
   category: repairCategoryEnum,
   priority: repairPriorityEnum,
@@ -206,7 +207,7 @@ export const createSalesListingSchema = z.object({
 });
 
 export const updateSalesListingSchema = createSalesListingSchema.partial().extend({
-  status: z.enum(["active", "sold", "pending"]).optional(),
+  status: z.enum(["active", "sold", "pending", "paused"]).optional(),
 });
 
 // ─── Support Tickets ─────────────────────────────────────────
@@ -234,4 +235,58 @@ export const paginationSchema = z.object({
 
 export const idParamSchema = z.object({
   id: z.string().uuid("Invalid ID format"),
+});
+
+// ─── CRM Leads ───────────────────────────────────────────────
+
+export const leadSourceEnum = z.enum([
+  "walk-in",
+  "phone",
+  "whatsapp",
+  "instagram",
+  "facebook",
+  "referral",
+  "other",
+  "signup",
+  "rent_inquiry",
+  "sell_inquiry",
+  "repair_inquiry",
+  "manual",
+  "imported",
+]);
+
+export const leadStatusEnum = z.enum(["new", "contacted", "qualified", "proposal", "won", "lost"]);
+
+export const createLeadSchema = z.object({
+  contactName: z.string().min(1).max(120),
+  contactPhone: z.string().min(5).max(20).optional(),
+  contactEmail: z.string().email().optional(),
+  source: leadSourceEnum.default("manual"),
+  estimatedValue: z.coerce.number().min(0).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const updateLeadSchema = z.object({
+  status: leadStatusEnum.optional(),
+  estimatedValue: z.coerce.number().min(0).optional(),
+  notes: z.string().max(2000).optional(),
+  contactName: z.string().min(1).max(120).optional(),
+  contactPhone: z.string().min(5).max(20).optional(),
+  contactEmail: z.string().email().optional(),
+});
+
+export const leadActivityTypeEnum = z.enum([
+  "note",
+  "call",
+  "email",
+  "call_attempted",
+  "call_answered",
+  "call_no_answer",
+  "whatsapp_sent",
+]);
+
+export const createLeadActivitySchema = z.object({
+  type: leadActivityTypeEnum,
+  body: z.string().min(1).max(2000),
+  metadata: z.record(z.unknown()).optional(),
 });

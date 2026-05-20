@@ -58,7 +58,14 @@ export default function NewLead(): React.JSX.Element {
         <Text style={styles.topBarTitle}>New lead</Text>
         <View style={{ width: 24 }} />
       </View>
-      <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 14,
+          paddingTop: 24,
+          paddingBottom: 200,
+          gap: 12,
+        }}
+      >
         <Field
           label="Contact name *"
           value={form.contactName}

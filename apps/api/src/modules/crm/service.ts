@@ -7,6 +7,8 @@ export interface CrmRules {
   followUpCallWithinHours: number;
   reassignAfterHours: number;
   maxReassignmentsBeforeEscalation: number;
+  maxCallsBeforeReassign: number;
+  requireMessageAfterCall: boolean;
   notifyOnAssignment: boolean;
   notifyOnEscalation: boolean;
   enforceRules: boolean;
@@ -21,6 +23,8 @@ export async function getCrmRules(): Promise<CrmRules> {
     followUpCallWithinHours: row.followUpCallWithinHours,
     reassignAfterHours: row.reassignAfterHours,
     maxReassignmentsBeforeEscalation: row.maxReassignmentsBeforeEscalation,
+    maxCallsBeforeReassign: row.maxCallsBeforeReassign,
+    requireMessageAfterCall: row.requireMessageAfterCall,
     notifyOnAssignment: row.notifyOnAssignment,
     notifyOnEscalation: row.notifyOnEscalation,
     enforceRules: row.enforceRules,
@@ -44,13 +48,27 @@ export async function recordActivity(
     },
   });
 
-  if (type === "call") {
+  // Call placed (any variant) bumps callCount + lastCallAt. We treat both the
+  // legacy "call" type and the new "call_attempted" as call records — the mobile
+  // app emits the attempt event the moment the dial intent fires, before the
+  // outcome (answered/no-answer) is known, so the counter is incremented once
+  // per dial regardless of outcome.
+  if (type === "call" || type === "call_attempted") {
     await prisma.lead.update({
       where: { id: leadId },
       data: {
         lastCallAt: new Date(),
         lastActivityAt: new Date(),
         callCount: { increment: 1 },
+      },
+    });
+  } else if (type === "whatsapp_sent") {
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        lastMessageAt: new Date(),
+        lastActivityAt: new Date(),
+        messageCount: { increment: 1 },
       },
     });
   } else {
@@ -170,6 +188,12 @@ export async function sweepStaleLeads(): Promise<{ reassigned: number; escalated
       ownerId: { not: null },
       status: { notIn: ["won", "lost"] },
       OR: [
+        // Rule 0: call cap reached — 4 calls + 4 messages with no movement out of an open
+        // pipeline stage means the customer isn't engaging this agent; rotate to a fresh one.
+        {
+          callCount: { gte: rules.maxCallsBeforeReassign },
+          messageCount: { gte: rules.maxCallsBeforeReassign },
+        },
         // Rule 1: assigned recently, never called, claim deadline expired
         { callCount: 0, assignedAt: { lt: firstTouchCutoff } },
         // Rule 2: previously called, but stale
@@ -183,6 +207,7 @@ export async function sweepStaleLeads(): Promise<{ reassigned: number; escalated
       ownerId: true,
       contactName: true,
       callCount: true,
+      messageCount: true,
       lastCallAt: true,
       assignedAt: true,
       reassignmentCount: true,
@@ -207,14 +232,21 @@ export async function sweepStaleLeads(): Promise<{ reassigned: number; escalated
         claimDeadline: null,
         reassignmentCount: newReassignmentCount,
         escalationLevel: shouldEscalate ? lead.escalationLevel + 1 : lead.escalationLevel,
+        // Fresh agent gets a fresh quota of the 4-call / 4-message cadence.
+        callCount: 0,
+        messageCount: 0,
+        lastCallAt: null,
+        lastMessageAt: null,
         lastActivityAt: new Date(),
       },
     });
 
     const reason =
-      lead.callCount === 0
-        ? `No call within ${rules.firstCallWithinMinutes}m of assignment`
-        : `Last call > ${rules.followUpCallWithinHours}h ago`;
+      lead.callCount >= rules.maxCallsBeforeReassign
+        ? `${lead.callCount} calls + ${lead.messageCount} messages, no engagement`
+        : lead.callCount === 0
+          ? `No call within ${rules.firstCallWithinMinutes}m of assignment`
+          : `Last call > ${rules.followUpCallWithinHours}h ago`;
     await recordActivity(lead.id, null, "reassigned", `Auto-released: ${reason}`, {
       previousOwnerId,
       reassignmentCount: newReassignmentCount,

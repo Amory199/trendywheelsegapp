@@ -370,9 +370,17 @@ router.post("/leads/:id/reassign", async (req, res) => {
   res.json({ data: updated });
 });
 
-// ─── Add activity (note/call/email log) ──────────────────────
+// ─── Add activity (note/call/email/WhatsApp/cadence log) ─────
 const activitySchema = z.object({
-  type: z.enum(["note", "call", "email"]),
+  type: z.enum([
+    "note",
+    "call",
+    "email",
+    "call_attempted",
+    "call_answered",
+    "call_no_answer",
+    "whatsapp_sent",
+  ]),
   body: z.string().min(1).max(2000),
 });
 
@@ -401,6 +409,8 @@ const rulesSchema = z.object({
   followUpCallWithinHours: z.number().int().min(1).max(168).optional(),
   reassignAfterHours: z.number().int().min(1).max(720).optional(),
   maxReassignmentsBeforeEscalation: z.number().int().min(1).max(10).optional(),
+  maxCallsBeforeReassign: z.number().int().min(1).max(20).optional(),
+  requireMessageAfterCall: z.boolean().optional(),
   notifyOnAssignment: z.boolean().optional(),
   notifyOnEscalation: z.boolean().optional(),
   enforceRules: z.boolean().optional(),

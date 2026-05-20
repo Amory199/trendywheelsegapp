@@ -1,3 +1,4 @@
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { VEHICLE_CATEGORIES, type VehicleCategory } from "@trendywheels/types";
@@ -67,6 +68,14 @@ export default function SellCreateScreen(): JSX.Element {
 
   const set = (key: keyof FormData, value: string | string[] | VehicleCategory): void =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // Year picker — Android shows a modal, iOS renders inline. Hide after each
+  // pick so the spinner doesn't stick around in scroll view.
+  const [showYearPicker, setShowYearPicker] = useState(false);
+  const onYearChange = (event: DateTimePickerEvent, selected?: Date): void => {
+    if (Platform.OS !== "ios") setShowYearPicker(false);
+    if (event.type === "set" && selected) set("year", String(selected.getFullYear()));
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -255,14 +264,35 @@ export default function SellCreateScreen(): JSX.Element {
                 />
               </View>
             </View>
-            <Field
-              label="Year *"
-              placeholder="2021"
-              value={form.year}
-              onChangeText={(v) => set("year", v)}
-              keyboardType="numeric"
-              maxLength={4}
-            />
+            <View>
+              <Text style={styles.fieldLabel}>Year *</Text>
+              <Pressable style={styles.input} onPress={() => setShowYearPicker(true)}>
+                <Text
+                  style={{
+                    color: form.year ? colors.text.light : colors.text.secondary,
+                    fontSize: 15,
+                  }}
+                >
+                  {form.year || "Tap to pick"}
+                </Text>
+                <Ionicons
+                  name="calendar-outline"
+                  size={18}
+                  color={colors.text.secondary}
+                  style={{ position: "absolute", right: 12, top: 14 }}
+                />
+              </Pressable>
+              {showYearPicker ? (
+                <DateTimePicker
+                  value={form.year ? new Date(parseInt(form.year, 10), 0, 1) : new Date()}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  minimumDate={new Date(1970, 0, 1)}
+                  maximumDate={new Date()}
+                  onChange={onYearChange}
+                />
+              ) : null}
+            </View>
           </Animated.View>
         )}
 

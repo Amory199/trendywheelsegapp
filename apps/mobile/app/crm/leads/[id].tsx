@@ -2,10 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
+  type AppStateStatus,
   FlatList,
   Linking,
   Modal,
@@ -20,7 +22,31 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-store";
+import { followUpAfterNoAnswer } from "../../../lib/lead-templates";
 import { playSound } from "../../../lib/sounds";
+
+type ActivityType =
+  | "note"
+  | "call"
+  | "email"
+  | "call_attempted"
+  | "call_answered"
+  | "call_no_answer"
+  | "whatsapp_sent";
+
+interface CrmRules {
+  firstCallWithinMinutes: number;
+  followUpCallWithinHours: number;
+  maxCallsBeforeReassign: number;
+  requireMessageAfterCall: boolean;
+}
+
+const DEFAULT_RULES: CrmRules = {
+  firstCallWithinMinutes: 120,
+  followUpCallWithinHours: 4,
+  maxCallsBeforeReassign: 4,
+  requireMessageAfterCall: true,
+};
 
 interface Activity {
   id: string;
@@ -44,6 +70,10 @@ interface Lead {
   assignedAgent?: { name?: string } | null;
   activities?: Activity[];
   vehicles?: Array<{ id: string; vehicleId: string; vehicle?: { name?: string } }>;
+  callCount?: number;
+  messageCount?: number;
+  lastCallAt?: string | null;
+  lastMessageAt?: string | null;
 }
 
 interface Vehicle {
@@ -73,6 +103,21 @@ export default function LeadDetail(): React.JSX.Element {
   const [vehicleModal, setVehicleModal] = useState(false);
   const [vehicleSearch, setVehicleSearch] = useState("");
   const [reassignModal, setReassignModal] = useState(false);
+  // Tracks an in-flight call so we can prompt the agent for the outcome when
+  // they return to the app. The `awaiting` field walks the prompt chain:
+  //   "outcome" → "Did they answer?"
+  //   "whatsapp" → "Did you send the WhatsApp follow-up?"
+  const [pendingCall, setPendingCall] = useState<{
+    phone: string;
+    startedAt: number;
+    awaiting: "outcome" | "whatsapp";
+  } | null>(null);
+  // useRef gives the AppState listener access to the current pendingCall
+  // without forcing a re-subscribe on every state mutation.
+  const pendingCallRef = useRef(pendingCall);
+  useEffect(() => {
+    pendingCallRef.current = pendingCall;
+  }, [pendingCall]);
 
   const leadQ = useQuery({
     queryKey: ["crm", "lead", id],
@@ -101,9 +146,11 @@ export default function LeadDetail(): React.JSX.Element {
     enabled: reassignModal,
   });
 
-  // Save a free-text note. Backend expects { type: "note", body: <text> }.
+  // Persist an activity (free-text note OR strict-cadence call/WhatsApp event).
+  // The mutation parameter is typed wide; backend Zod schema gates accepted
+  // values (mirrors validators/createLeadActivitySchema).
   const logActivity = useMutation({
-    mutationFn: async (input: { type: "note" | "call" | "email"; body: string }) =>
+    mutationFn: async (input: { type: ActivityType; body: string }) =>
       api.crmLogActivity(id!, input),
     onSuccess: async () => {
       setNote("");
@@ -111,6 +158,24 @@ export default function LeadDetail(): React.JSX.Element {
     },
     onError: (e) => Alert.alert("Couldn't update", e instanceof Error ? e.message : "Try again"),
   });
+
+  // CRM cadence rules — admin can tune live via /crm/rules. Fall back to the
+  // bundled defaults (matched to the schema defaults) if the fetch fails so
+  // the call button never breaks because of a network hiccup.
+  const rulesQ = useQuery({
+    queryKey: ["crm", "rules"],
+    queryFn: async (): Promise<CrmRules> => {
+      const r = (await api.crmRules?.()) as { data: Partial<CrmRules> } | undefined;
+      const d = r?.data ?? {};
+      return {
+        firstCallWithinMinutes: d.firstCallWithinMinutes ?? DEFAULT_RULES.firstCallWithinMinutes,
+        followUpCallWithinHours: d.followUpCallWithinHours ?? DEFAULT_RULES.followUpCallWithinHours,
+        maxCallsBeforeReassign: d.maxCallsBeforeReassign ?? DEFAULT_RULES.maxCallsBeforeReassign,
+        requireMessageAfterCall: d.requireMessageAfterCall ?? DEFAULT_RULES.requireMessageAfterCall,
+      };
+    },
+  });
+  const rules: CrmRules = rulesQ.data ?? DEFAULT_RULES;
 
   // Stage change uses PATCH /leads/:id — activities endpoint only accepts
   // note/call/email types, not status transitions.
@@ -167,6 +232,139 @@ export default function LeadDetail(): React.JSX.Element {
 
   const lead = leadQ.data;
   const isAdmin = me?.accountType === "admin";
+
+  // ── Strict cadence helpers ─────────────────────────────────────────────
+  // Inspect lead.callCount + lead.lastCallAt + lead.messageCount against the
+  // CrmRules and decide whether the next call is allowed. Returns a reason
+  // string when blocked so the alert can explain WHY the agent has to wait.
+  function callBlockedReason(): string | null {
+    if (!lead) return "Lead not loaded yet";
+    if ((lead.callCount ?? 0) >= rules.maxCallsBeforeReassign) {
+      return `You've hit ${rules.maxCallsBeforeReassign} call attempts on this lead. It will rotate to another agent automatically.`;
+    }
+    if (lead.lastCallAt) {
+      const elapsedMs = Date.now() - new Date(lead.lastCallAt).getTime();
+      const gapMs = rules.followUpCallWithinHours * 3600_000;
+      if (elapsedMs < gapMs) {
+        const next = new Date(new Date(lead.lastCallAt).getTime() + gapMs);
+        return `Wait until ${next.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — calls must be ${rules.followUpCallWithinHours}h apart.`;
+      }
+    }
+    return null;
+  }
+
+  // Prompt chain after the call: outcome → optional WhatsApp follow-up.
+  function askWhatsAppFollowUp(phone: string, name: string): void {
+    const wa = phone.replace(/[^0-9]/g, "");
+    const msg = encodeURIComponent(followUpAfterNoAnswer(name));
+    Alert.alert(
+      "Send WhatsApp follow-up?",
+      "After a no-answer the rule is to send a quick WhatsApp.",
+      [
+        {
+          text: "Skip",
+          style: "cancel",
+          onPress: () => setPendingCall(null),
+        },
+        {
+          text: "Open WhatsApp",
+          onPress: () => {
+            setPendingCall((prev) =>
+              prev ? { ...prev, awaiting: "whatsapp", startedAt: Date.now() } : prev,
+            );
+            void Linking.openURL(`whatsapp://send?phone=${wa}&text=${msg}`);
+          },
+        },
+      ],
+    );
+  }
+
+  function confirmWhatsAppSent(): void {
+    Alert.alert("Message sent?", "Confirm you sent the WhatsApp follow-up.", [
+      {
+        text: "Not yet",
+        style: "cancel",
+        onPress: () => setPendingCall(null),
+      },
+      {
+        text: "Yes, sent",
+        onPress: () => {
+          logActivity.mutate({ type: "whatsapp_sent", body: "WhatsApp follow-up sent" });
+          playSound("success");
+          setPendingCall(null);
+        },
+      },
+    ]);
+  }
+
+  function askCallOutcome(): void {
+    if (!lead) return;
+    Alert.alert("Did they answer?", `${lead.contactName} — log the outcome.`, [
+      {
+        text: "No answer",
+        onPress: () => {
+          logActivity.mutate({ type: "call_no_answer", body: "No answer on call" });
+          if (rules.requireMessageAfterCall && lead.contactPhone) {
+            askWhatsAppFollowUp(lead.contactPhone, lead.contactName);
+          } else {
+            setPendingCall(null);
+          }
+        },
+      },
+      {
+        text: "Yes, answered",
+        onPress: () => {
+          logActivity.mutate({ type: "call_answered", body: "Customer answered" });
+          playSound("success");
+          setPendingCall(null);
+          // Soft nudge to advance the pipeline — sales typically moves to
+          // Contacted or Qualified right after a successful first call.
+          setTimeout(() => {
+            Alert.alert("Move stage?", "Where does the lead sit now?", [
+              { text: "Leave as is", style: "cancel" },
+              { text: "Contacted", onPress: () => moveStage.mutate("contacted") },
+              { text: "Qualified", onPress: () => moveStage.mutate("qualified") },
+            ]);
+          }, 400);
+        },
+      },
+    ]);
+  }
+
+  async function onCallPressed(): Promise<void> {
+    if (!lead?.contactPhone) return;
+    const blocked = callBlockedReason();
+    if (blocked) {
+      Alert.alert("Hold on", blocked);
+      return;
+    }
+    try {
+      await logActivity.mutateAsync({
+        type: "call_attempted",
+        body: `Dialing ${lead.contactPhone}`,
+      });
+    } catch {
+      // Swallow — if the activity write fails we still let the agent place
+      // the call. The sweep will re-detect them as stale and reassign anyway.
+    }
+    setPendingCall({ phone: lead.contactPhone, startedAt: Date.now(), awaiting: "outcome" });
+    void Linking.openURL(`tel:${lead.contactPhone}`);
+  }
+
+  // AppState listener: when the app returns to "active" 3s+ after a call was
+  // placed, prompt for the outcome (or the WhatsApp confirm if we're mid-
+  // chain). Single subscription for the lifetime of the screen.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s: AppStateStatus) => {
+      const pc = pendingCallRef.current;
+      if (s !== "active" || !pc) return;
+      if (Date.now() - pc.startedAt < 3000) return;
+      if (pc.awaiting === "outcome") askCallOutcome();
+      else if (pc.awaiting === "whatsapp") confirmWhatsAppSent();
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Attached vehicles are recorded as activities of type "matched". Use the
   // most recent activity per vehicleId so a re-attach replaces the prior
@@ -236,7 +434,7 @@ export default function LeadDetail(): React.JSX.Element {
               {lead.contactPhone ? (
                 <Pressable
                   style={[styles.actionBtn, { backgroundColor: colors.brand.friendlyBlue }]}
-                  onPress={() => void Linking.openURL(`tel:${lead.contactPhone}`)}
+                  onPress={() => void onCallPressed()}
                 >
                   <Ionicons name="call" size={14} color="#fff" />
                   <Text style={styles.actionBtnText}>Call</Text>
@@ -273,6 +471,14 @@ export default function LeadDetail(): React.JSX.Element {
                 </Pressable>
               ) : null}
             </View>
+
+            {/* Cadence chips — 4 calls / 4 messages per 2 days, ≥4h between */}
+            <CadenceStrip
+              calls={lead.callCount ?? 0}
+              messages={lead.messageCount ?? 0}
+              lastCallAt={lead.lastCallAt ?? null}
+              rules={rules}
+            />
           </View>
 
           <View style={styles.tabRow}>
@@ -533,6 +739,48 @@ export default function LeadDetail(): React.JSX.Element {
   );
 }
 
+function CadenceStrip({
+  calls,
+  messages,
+  lastCallAt,
+  rules,
+}: {
+  calls: number;
+  messages: number;
+  lastCallAt: string | null;
+  rules: CrmRules;
+}): React.JSX.Element {
+  const callsBad = calls >= rules.maxCallsBeforeReassign;
+  const msgsBad = messages >= rules.maxCallsBeforeReassign;
+  let nextLabel = "Ready";
+  let nextBad = false;
+  if (lastCallAt) {
+    const next = new Date(lastCallAt).getTime() + rules.followUpCallWithinHours * 3600_000;
+    if (next > Date.now()) {
+      nextLabel = `Next ${new Date(next).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+      nextBad = true;
+    }
+  }
+  const cadenceChip = (label: string, value: string, bad: boolean): React.JSX.Element => (
+    <View
+      style={[
+        styles.cadenceChip,
+        { backgroundColor: bad ? "rgba(255,72,72,0.15)" : "rgba(0,200,120,0.15)" },
+      ]}
+    >
+      <Text style={[styles.cadenceChipLabel, { color: bad ? "#FF8888" : "#3DD68C" }]}>{label}</Text>
+      <Text style={styles.cadenceChipValue}>{value}</Text>
+    </View>
+  );
+  return (
+    <View style={styles.cadenceRow}>
+      {cadenceChip("Calls", `${calls}/${rules.maxCallsBeforeReassign}`, callsBad)}
+      {cadenceChip("Msgs", `${messages}/${rules.maxCallsBeforeReassign}`, msgsBad)}
+      {cadenceChip("Cadence", nextLabel, nextBad)}
+    </View>
+  );
+}
+
 function DetailField({
   label,
   value,
@@ -611,6 +859,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   actionsRow: { flexDirection: "row", gap: 8 },
+  cadenceRow: { flexDirection: "row", gap: 6, marginTop: 6 },
+  cadenceChip: {
+    flex: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  cadenceChipLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  cadenceChipValue: { color: colors.text.light, fontSize: 12, fontWeight: "700", marginTop: 1 },
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",

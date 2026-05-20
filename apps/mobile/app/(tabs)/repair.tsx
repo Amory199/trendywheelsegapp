@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import type { RepairRequest } from "@trendywheels/types";
-import { colors } from "@trendywheels/ui-tokens";
+import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as React from "react";
@@ -196,7 +196,7 @@ export default function RepairScreen(): React.JSX.Element {
             justifyContent: "center",
             gap: 16,
             paddingHorizontal: 40,
-            paddingBottom: 100,
+            paddingBottom: TAB_BAR_SAFE_BOTTOM,
           }}
         >
           <View
@@ -236,7 +236,7 @@ export default function RepairScreen(): React.JSX.Element {
           keyExtractor={(r) => r.id}
           onScroll={scrollHandler}
           scrollEventThrottle={16}
-          contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 120 }}
+          contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: TAB_BAR_SAFE_BOTTOM }}
           renderItem={({ item, index }) => {
             const activeIdx = statusIndex(item.status);
             return (

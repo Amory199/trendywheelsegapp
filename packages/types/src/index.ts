@@ -5,7 +5,14 @@ export type UserStatus = "active" | "inactive" | "suspended";
 export type LoyaltyTier = "bronze" | "silver" | "gold" | "platinum";
 
 export type VehicleType = "4-seater" | "6-seater" | "LED";
-export type VehicleCategory = "golf-cart" | "hover-board" | "scooter" | "buggy" | "utv" | "jet-ski";
+export type VehicleCategory =
+  | "golf-cart"
+  | "hover-board"
+  | "scooter"
+  | "scooter-sidecar"
+  | "buggy"
+  | "utv"
+  | "jet-ski";
 
 export const VEHICLE_CATEGORIES: ReadonlyArray<{
   key: VehicleCategory;
@@ -13,11 +20,12 @@ export const VEHICLE_CATEGORIES: ReadonlyArray<{
   icon: string;
 }> = [
   { key: "golf-cart", label: "Golf Carts", icon: "car-sport" },
-  { key: "hover-board", label: "Hover Boards", icon: "rocket" },
   { key: "scooter", label: "Scooters", icon: "bicycle" },
+  { key: "scooter-sidecar", label: "Side-Car Scooters", icon: "people" },
   { key: "buggy", label: "Buggies", icon: "speedometer" },
   { key: "utv", label: "UTVs", icon: "car" },
   { key: "jet-ski", label: "Jet Skis", icon: "boat" },
+  { key: "hover-board", label: "Hover Boards", icon: "rocket" },
 ];
 
 export type FuelType = "electric" | "gasoline" | "hybrid";

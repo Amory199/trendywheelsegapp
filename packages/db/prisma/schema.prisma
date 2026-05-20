@@ -210,12 +210,13 @@ model PushToken {
 }
 
 enum VehicleCategory {
-  golf_cart   @map("golf-cart")
-  hover_board @map("hover-board")
+  golf_cart       @map("golf-cart")
+  hover_board     @map("hover-board")
   scooter
+  scooter_sidecar @map("scooter-sidecar")
   buggy
   utv
-  jet_ski     @map("jet-ski")
+  jet_ski         @map("jet-ski")
 }
 
 enum FuelType {
@@ -410,7 +411,7 @@ enum RepairStatus {
 model RepairRequest {
   id                 String         @id @default(uuid()) @db.Uuid
   userId             String         @map("user_id") @db.Uuid
-  vehicleId          String         @map("vehicle_id") @db.Uuid
+  vehicleId          String?        @map("vehicle_id") @db.Uuid
   description        String
   category           RepairCategory
   priority           RepairPriority
@@ -423,7 +424,7 @@ model RepairRequest {
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
   user     User    @relation("UserRepairs", fields: [userId], references: [id])
-  vehicle  Vehicle @relation(fields: [vehicleId], references: [id])
+  vehicle  Vehicle? @relation(fields: [vehicleId], references: [id])
   mechanic User?   @relation("MechanicRepairs", fields: [assignedMechanicId], references: [id])
 
   @@index([userId])
@@ -438,6 +439,7 @@ enum ListingStatus {
   active
   sold
   pending
+  paused
 }
 
 model SalesListing {
@@ -618,10 +620,12 @@ model SystemConfig {
 
 model CrmRules {
   id                       String   @id @default(uuid()) @db.Uuid
-  firstCallWithinMinutes   Int      @default(30)  @map("first_call_within_minutes")
-  followUpCallWithinHours  Int      @default(24)  @map("follow_up_call_within_hours")
+  firstCallWithinMinutes   Int      @default(120) @map("first_call_within_minutes")
+  followUpCallWithinHours  Int      @default(4)   @map("follow_up_call_within_hours")
   reassignAfterHours       Int      @default(48)  @map("reassign_after_hours")
   maxReassignmentsBeforeEscalation Int @default(2) @map("max_reassignments_before_escalation")
+  maxCallsBeforeReassign   Int      @default(4)   @map("max_calls_before_reassign")
+  requireMessageAfterCall  Boolean  @default(true) @map("require_message_after_call")
   notifyOnAssignment       Boolean  @default(true) @map("notify_on_assignment")
   notifyOnEscalation       Boolean  @default(true) @map("notify_on_escalation")
   enforceRules             Boolean  @default(true) @map("enforce_rules")
@@ -690,6 +694,8 @@ model Lead {
   lastActivityAt    DateTime    @default(now()) @map("last_activity_at")
   lastCallAt        DateTime?   @map("last_call_at")
   callCount         Int         @default(0) @map("call_count")
+  lastMessageAt     DateTime?   @map("last_message_at")
+  messageCount      Int         @default(0) @map("message_count")
   escalationLevel   Int         @default(0) @map("escalation_level")
   reassignmentCount Int         @default(0) @map("reassignment_count")
   closedAt          DateTime?   @map("closed_at")

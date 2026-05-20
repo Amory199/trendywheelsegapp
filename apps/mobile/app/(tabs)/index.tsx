@@ -1,4 +1,4 @@
-import { colors } from "@trendywheels/ui-tokens";
+import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -126,7 +126,7 @@ export default function HomeScreen(): React.JSX.Element {
             </Animated.View>
           ))}
         </View>
-        <View style={{ height: 110 }} />
+        <View style={{ height: TAB_BAR_SAFE_BOTTOM }} />
       </Animated.ScrollView>
     </View>
   );

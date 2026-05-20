@@ -222,6 +222,11 @@ export const layout = {
   buttonPaddingHorizontal: 24,
 } as const;
 
+// Use this for `paddingBottom` on every scrollable tab screen so the auto-hide
+// tab bar never crops the last row of content. = bottomTabHeight + 80 (extra
+// breathing room for the safe-area indicator on gestural-nav Androids).
+export const TAB_BAR_SAFE_BOTTOM = layout.bottomTabHeight + 80;
+
 // Minimum touch-target size — Apple HIG & Material both require 44px square
 // hit targets. Use this anywhere a finger lands: buttons, chips, icon-only
 // taps, drawer close buttons.

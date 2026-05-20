@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { colors } from "@trendywheels/ui-tokens";
+import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as React from "react";
@@ -74,7 +74,7 @@ export default function ProfileScreen(): React.JSX.Element {
   return (
     <Animated.ScrollView
       style={{ flex: 1, backgroundColor: palette.bg }}
-      contentContainerStyle={{ paddingBottom: 120 }}
+      contentContainerStyle={{ paddingBottom: TAB_BAR_SAFE_BOTTOM }}
       onScroll={scrollHandler}
       scrollEventThrottle={16}
     >
