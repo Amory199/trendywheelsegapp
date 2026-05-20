@@ -2,6 +2,13 @@ import { prisma } from "../../config/database.js";
 import { notificationsQueue } from "../../queues/index.js";
 import { logger } from "../../utils/logger.js";
 
+import {
+  emitLeadActivity,
+  emitLeadAssigned,
+  emitLeadInactive,
+  emitLeadRotated,
+} from "./realtime.js";
+
 export interface CrmRules {
   firstCallWithinMinutes: number;
   followUpCallWithinHours: number;
@@ -77,6 +84,10 @@ export async function recordActivity(
       data: { lastActivityAt: new Date() },
     });
   }
+
+  // Real-time push to admin so its pipeline / activity feeds refresh without
+  // a manual pull. Fire-and-forget; failure here mustn't block the activity.
+  emitLeadActivity(leadId, actorId, type);
 }
 
 /**
@@ -159,8 +170,110 @@ export async function assignLeadRoundRobin(
     );
   }
 
+  emitLeadAssigned(leadId, null, chosen.id);
   logger.info({ leadId, agentId: chosen.id }, "Lead assigned via round-robin");
   return chosen.id;
+}
+
+// Up to this many distinct agents may try the same lead before it is parked
+// in the admin-only "inactive" pool. Matches the user's "about 5 different
+// sales agents" direction (round-3).
+export const ROTATION_LIMIT = 5;
+
+/**
+ * Rotate a lead to the next agent the round-robin would pick, excluding every
+ * agent that has already tried it (derived from the activity log). When
+ * ROTATION_LIMIT distinct agents have been tried, the lead is parked with
+ * `status = inactive` and `ownerId = null` — visible only to admins.
+ *
+ * triggeredBy is the actorId logged on the activity row (null for the sweep).
+ */
+export async function rotateLeadToNextAgent(
+  leadId: string,
+  triggeredBy: string | null,
+): Promise<{ status: "rotated" | "inactive"; nextOwnerId?: string; triedCount: number }> {
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (!lead) throw new Error("lead missing");
+
+  // Build the exclude set from history: every agent ever recorded as `assigned`
+  // or `rotated`. Falls back to `ownerId` as a safety net.
+  const history = await prisma.leadActivity.findMany({
+    where: { leadId, type: { in: ["assigned", "rotated", "reassigned"] } },
+    select: { metadata: true, actorId: true },
+  });
+  const tried = new Set<string>();
+  if (lead.ownerId) tried.add(lead.ownerId);
+  for (const h of history) {
+    const m = (h.metadata as { ownerId?: string; previousOwnerId?: string } | null) ?? null;
+    if (m?.ownerId) tried.add(m.ownerId);
+    if (m?.previousOwnerId) tried.add(m.previousOwnerId);
+  }
+
+  if (tried.size >= ROTATION_LIMIT) {
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        status: "inactive",
+        ownerId: null,
+        assignedAt: null,
+        claimDeadline: null,
+        lastActivityAt: new Date(),
+      },
+    });
+    await recordActivity(
+      leadId,
+      triggeredBy,
+      "marked_inactive",
+      `Lead exhausted rotation after ${tried.size} agents`,
+      { triedCount: tried.size },
+    );
+    emitLeadInactive(leadId, triggeredBy);
+    logger.info({ leadId, triedCount: tried.size }, "Lead moved to inactive pool");
+    return { status: "inactive", triedCount: tried.size };
+  }
+
+  const next = await assignLeadRoundRobin(leadId, Array.from(tried));
+  if (!next) {
+    // No untried agent available — park inactive so the lead doesn't loop.
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        status: "inactive",
+        ownerId: null,
+        assignedAt: null,
+        claimDeadline: null,
+        lastActivityAt: new Date(),
+      },
+    });
+    await recordActivity(
+      leadId,
+      triggeredBy,
+      "marked_inactive",
+      `No fresh agent available after ${tried.size} tried`,
+      { triedCount: tried.size },
+    );
+    emitLeadInactive(leadId, triggeredBy);
+    return { status: "inactive", triedCount: tried.size };
+  }
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: {
+      reassignmentCount: { increment: 1 },
+      // Reset cadence quota for the new owner so they get a clean shot.
+      callCount: 0,
+      messageCount: 0,
+      lastCallAt: null,
+      lastMessageAt: null,
+      escalationLevel: 0,
+    },
+  });
+  await recordActivity(leadId, triggeredBy, "rotated", "Rotated to next agent", {
+    ownerId: next,
+    previousOwnerId: lead.ownerId ?? undefined,
+  });
+  emitLeadRotated(leadId, triggeredBy, next, lead.ownerId);
+  return { status: "rotated", nextOwnerId: next, triedCount: tried.size + 1 };
 }
 
 /**
@@ -220,37 +333,16 @@ export async function sweepStaleLeads(): Promise<{ reassigned: number; escalated
 
   for (const lead of candidates) {
     const previousOwnerId = lead.ownerId!;
-    const newReassignmentCount = lead.reassignmentCount + 1;
-    const shouldEscalate =
-      newReassignmentCount >= rules.maxReassignmentsBeforeEscalation && lead.callCount === 0;
-
-    await prisma.lead.update({
-      where: { id: lead.id },
-      data: {
-        ownerId: null,
-        assignedAt: null,
-        claimDeadline: null,
-        reassignmentCount: newReassignmentCount,
-        escalationLevel: shouldEscalate ? lead.escalationLevel + 1 : lead.escalationLevel,
-        // Fresh agent gets a fresh quota of the 4-call / 4-message cadence.
-        callCount: 0,
-        messageCount: 0,
-        lastCallAt: null,
-        lastMessageAt: null,
-        lastActivityAt: new Date(),
-      },
-    });
-
     const reason =
       lead.callCount >= rules.maxCallsBeforeReassign
         ? `${lead.callCount} calls + ${lead.messageCount} messages, no engagement`
         : lead.callCount === 0
           ? `No call within ${rules.firstCallWithinMinutes}m of assignment`
           : `Last call > ${rules.followUpCallWithinHours}h ago`;
-    await recordActivity(lead.id, null, "reassigned", `Auto-released: ${reason}`, {
-      previousOwnerId,
-      reassignmentCount: newReassignmentCount,
-    });
+
+    // Rotate via the shared helper so the "5 distinct agents → inactive pool"
+    // rule applies to sweep-driven reassignments too, not just manual ones.
+    const result = await rotateLeadToNextAgent(lead.id, null);
 
     // Notify the agent who lost the lead
     await notificationsQueue.add(
@@ -265,32 +357,33 @@ export async function sweepStaleLeads(): Promise<{ reassigned: number; escalated
       { removeOnComplete: true },
     );
 
-    // Reassign — exclude the agent who just lost it so it goes to a fresh person
-    await assignLeadRoundRobin(lead.id, [previousOwnerId]);
-    reassigned++;
-
-    if (shouldEscalate && rules.notifyOnEscalation) {
-      const admins = await prisma.user.findMany({
-        where: {
-          status: "active",
-          OR: [{ accountType: "admin" }, { staffRole: "admin" }],
-        },
-        select: { id: true },
-      });
-      for (const admin of admins) {
-        await notificationsQueue.add(
-          `lead-escalation-${lead.id}-${admin.id}-${newReassignmentCount}`,
-          {
-            userId: admin.id,
-            type: "lead_escalation",
-            title: "Lead needs attention",
-            body: `${lead.contactName} reassigned ${newReassignmentCount}× without a single call`,
-            data: { leadId: lead.id, reassignmentCount: newReassignmentCount },
-          },
-          { removeOnComplete: true },
-        );
-      }
+    if (result.status === "rotated") {
+      reassigned++;
+    } else {
+      // Parked inactive — surface to admin queue.
       escalated++;
+      if (rules.notifyOnEscalation) {
+        const admins = await prisma.user.findMany({
+          where: {
+            status: "active",
+            OR: [{ accountType: "admin" }, { staffRole: "admin" }],
+          },
+          select: { id: true },
+        });
+        for (const admin of admins) {
+          await notificationsQueue.add(
+            `lead-inactive-${lead.id}-${admin.id}`,
+            {
+              userId: admin.id,
+              type: "lead_inactive",
+              title: "Lead parked inactive",
+              body: `${lead.contactName} exhausted rotation after ${result.triedCount} agents`,
+              data: { leadId: lead.id, triedCount: result.triedCount },
+            },
+            { removeOnComplete: true },
+          );
+        }
+      }
     }
   }
 

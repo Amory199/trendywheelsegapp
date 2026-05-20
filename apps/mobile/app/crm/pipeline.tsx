@@ -41,7 +41,12 @@ const FILTERS: { key: FilterKey; label: string; icon: keyof typeof Ionicons.glyp
   { key: "stale", label: "Stale", icon: "alarm-outline" },
 ];
 
-const STAGES = ["new", "contacted", "qualified", "proposal", "won", "lost"] as const;
+// "lost" was removed (2026-05-20 round-3). The terminal state for an
+// unprogressable lead is now driven by the rotation flow: sales presses "Pass
+// to next agent", and after 5 agents have tried, the backend parks the lead
+// in the admin-only "inactive" pool. The status value still exists in the DB
+// enum for historical rows, but no UI surfaces it.
+const STAGES = ["new", "contacted", "qualified", "proposal", "won"] as const;
 type Stage = (typeof STAGES)[number];
 
 const STAGE_LABEL: Record<Stage, string> = {
@@ -50,7 +55,6 @@ const STAGE_LABEL: Record<Stage, string> = {
   qualified: "Qualified",
   proposal: "Proposal",
   won: "Won",
-  lost: "Lost",
 };
 
 const STAGE_ICON: Record<Stage, keyof typeof Ionicons.glyphMap> = {
@@ -59,7 +63,6 @@ const STAGE_ICON: Record<Stage, keyof typeof Ionicons.glyphMap> = {
   qualified: "checkmark-circle-outline",
   proposal: "document-text-outline",
   won: "trophy-outline",
-  lost: "close-circle-outline",
 };
 
 function relativeTime(iso: string | undefined): string {

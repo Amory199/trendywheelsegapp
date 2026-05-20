@@ -14,10 +14,12 @@ import {
 
 // Snap distance (px) the bar travels off-screen. Slightly larger than the bar
 // height itself so the bottom hairline disappears too.
-const BAR_TRAVEL = 96;
+const BAR_TRAVEL = 88;
 // Commit threshold (px). Direction has to be consistent for this much before
-// the bar snaps. Prevents jitter on flicks that briefly reverse.
-const COMMIT_PX = 12;
+// the bar snaps. Lowered from 12 -> 6 because Rent/Sell's CategoryStrip has
+// little scroll runway (7 tiles flow in 4 rows) and the old threshold meant
+// the auto-hide never fired on those tabs.
+const COMMIT_PX = 6;
 
 interface TabBarScrollContextValue {
   translateY: SharedValue<number>;

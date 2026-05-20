@@ -223,7 +223,12 @@ function makeStyles(palette: Palette) {
       padding: 10,
       gap: 6,
     },
-    thumb: { width: "100%", aspectRatio: 4 / 3, borderRadius: 10, backgroundColor: "#111" },
+    thumb: {
+      width: "100%",
+      aspectRatio: 4 / 3,
+      borderRadius: 10,
+      backgroundColor: palette.cardAlt,
+    },
     name: { color: palette.text, fontSize: 13, fontWeight: "700" },
     sub: { color: palette.muted, fontSize: 11 },
     cardFooter: {

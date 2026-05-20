@@ -1,8 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
+
+import { useAdminLeadRealtime } from "../../lib/realtime";
 
 // Admin workspace — bottom tabs for the role's daily-driver flows.
 // Sales/support get their own layout under app/crm and app/support.
@@ -35,6 +38,11 @@ function GlassTabBar(): JSX.Element {
 }
 
 export default function AdminLayout(): JSX.Element {
+  // Live-invalidate admin caches when sales agents fire CRM mutations. Drives
+  // the "admin sees sales activity right away" requirement via Socket.IO.
+  const qc = useQueryClient();
+  useAdminLeadRealtime(qc);
+
   return (
     <Tabs
       screenOptions={{

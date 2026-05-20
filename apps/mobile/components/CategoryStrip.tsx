@@ -4,9 +4,9 @@ import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import Animated from "react-native-reanimated";
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, InteractionManager, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useTheme } from "../lib/use-theme";
 
@@ -45,6 +45,7 @@ function CategoryStripImpl({ value, onChange, showAll = true, onScroll }: Props)
       horizontal={false}
       onScroll={onScroll}
       scrollEventThrottle={16}
+      removeClippedSubviews
     >
       {showAll ? (
         <Pressable
@@ -99,6 +100,15 @@ function CategoryBlock({
 }): JSX.Element {
   const { palette } = useTheme();
   const source = CATEGORY_VIDEOS[categoryKey] ?? null;
+  // Defer the video player allocation past the tab-switch animation. 7
+  // simultaneous useVideoPlayer mounts blocked the bridge for ~3s on Android.
+  // With this gate we render the fallback icon first, let the navigation
+  // settle, then swap to the live video.
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => setReady(true));
+    return () => task.cancel();
+  }, []);
   return (
     <Pressable
       onPress={onPress}
@@ -108,7 +118,11 @@ function CategoryBlock({
       {/* Defensive double-clip: even if VideoView paints a few pixels past its
           frame, this inner View masks it so neighboring tiles don't bleed. */}
       <View style={styles.mediaClip}>
-        {source ? <BlockVideo source={source} /> : <BlockFallback icon={icon} palette={palette} />}
+        {source && ready ? (
+          <BlockVideo source={source} />
+        ) : (
+          <BlockFallback icon={icon} palette={palette} />
+        )}
       </View>
       <LinearGradient
         colors={["rgba(2,1,31,0)", "rgba(2,1,31,0.88)"]}

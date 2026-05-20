@@ -46,6 +46,7 @@ enum LeadStatus {
   proposal
   won
   lost
+  inactive
 }
 
 enum LeadSource {
@@ -424,7 +425,7 @@ model RepairRequest {
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
   user     User    @relation("UserRepairs", fields: [userId], references: [id])
-  vehicle  Vehicle? @relation(fields: [vehicleId], references: [id])
+  vehicle  Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: NoAction)
   mechanic User?   @relation("MechanicRepairs", fields: [assignedMechanicId], references: [id])
 
   @@index([userId])

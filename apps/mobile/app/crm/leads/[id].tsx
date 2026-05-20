@@ -67,6 +67,7 @@ interface Lead {
   estimatedValue: number | string;
   source?: string;
   notes?: string;
+  ownerId?: string | null;
   assignedAgentId?: string | null;
   assignedAgent?: { name?: string } | null;
   activities?: Activity[];
@@ -89,7 +90,9 @@ interface Agent {
   name?: string;
 }
 
-const STATUSES = ["new", "contacted", "qualified", "proposal", "won", "lost"];
+// "lost" removed (2026-05-20 round-3) — see app/crm/pipeline.tsx for rationale.
+// Sales rotates leads they can't progress; admin sees inactive pool separately.
+const STATUSES = ["new", "contacted", "qualified", "proposal", "won"];
 type Tab = "activity" | "details" | "vehicles";
 
 export default function LeadDetail(): React.JSX.Element {
@@ -203,10 +206,23 @@ export default function LeadDetail(): React.JSX.Element {
     onError: (e) => Alert.alert("Save failed", e instanceof Error ? e.message : "Try again"),
   });
 
-  const claim = useMutation({
-    mutationFn: async () => api.crmClaimLead(id!),
-    onSuccess: async () => qc.invalidateQueries({ queryKey: ["crm"] }),
-    onError: (e) => Alert.alert("Claim failed", e instanceof Error ? e.message : "Try again"),
+  // Replaces the old "Mark Lost" / Claim affordances. Sales presses "Pass to
+  // next agent" when they can't progress a lead; the backend rotates it to a
+  // fresh round-robin pick (excluding everyone who has already tried), or
+  // parks it inactive after 5 distinct agents.
+  const rotate = useMutation({
+    mutationFn: async () => api.crmRotateLead(id!),
+    onSuccess: async (resp) => {
+      await qc.invalidateQueries({ queryKey: ["crm"] });
+      if (resp.data.status === "inactive") {
+        Alert.alert("Moved to inactive", "All agents have tried this lead — admin can review it.");
+        router.back();
+      } else {
+        Alert.alert("Passed on", "Lead has been reassigned to another agent.");
+        router.back();
+      }
+    },
+    onError: (e) => Alert.alert("Rotate failed", e instanceof Error ? e.message : "Try again"),
   });
 
   const reassign = useMutation({
@@ -462,25 +478,50 @@ export default function LeadDetail(): React.JSX.Element {
               {lead.contactPhone ? (
                 <Pressable
                   style={[styles.actionBtn, { backgroundColor: "#25D366" }]}
-                  onPress={() =>
-                    void Linking.openURL(
-                      `https://wa.me/${lead.contactPhone?.replace(/[^0-9]/g, "")}`,
-                    )
-                  }
+                  onPress={() => {
+                    // Seed the AppState listener so the return-to-app prompt
+                    // ("Did they reply?") fires the same way the call flow
+                    // does. Then log the open and finally launch WhatsApp.
+                    const digits = lead.contactPhone?.replace(/[^0-9]/g, "") ?? "";
+                    setPendingCall({
+                      phone: digits,
+                      startedAt: Date.now(),
+                      awaiting: "whatsapp",
+                    });
+                    logActivity.mutate({
+                      type: "whatsapp_sent",
+                      body: "Opened WhatsApp",
+                    });
+                    void Linking.openURL(`https://wa.me/${digits}`);
+                  }}
                 >
                   <Ionicons name="logo-whatsapp" size={14} color="#fff" />
                   <Text style={styles.actionBtnText}>WA</Text>
                 </Pressable>
               ) : null}
-              {!lead.assignedAgentId ? (
+              {/* "Pass to next agent" replaces the old Claim affordance. Sales
+                  presses this when they can't progress the lead; the backend
+                  rotates to another round-robin pick (excluding everyone who
+                  has tried) or parks the lead inactive after 5 rotations. */}
+              {!isAdmin && lead.ownerId ? (
                 <Pressable
                   style={[styles.actionBtn, { backgroundColor: colors.brand.poolBlue }]}
-                  onPress={() => claim.mutate()}
+                  onPress={() =>
+                    Alert.alert(
+                      "Pass to next agent?",
+                      "This lead will be reassigned to another sales agent and removed from your pipeline.",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        { text: "Pass on", style: "destructive", onPress: () => rotate.mutate() },
+                      ],
+                    )
+                  }
                 >
-                  <Ionicons name="hand-left" size={14} color="#fff" />
-                  <Text style={styles.actionBtnText}>Claim</Text>
+                  <Ionicons name="swap-horizontal" size={14} color="#fff" />
+                  <Text style={styles.actionBtnText}>Pass</Text>
                 </Pressable>
-              ) : isAdmin ? (
+              ) : null}
+              {isAdmin ? (
                 <Pressable
                   style={[styles.actionBtn, { backgroundColor: colors.brand.trendyPink }]}
                   onPress={() => setReassignModal(true)}

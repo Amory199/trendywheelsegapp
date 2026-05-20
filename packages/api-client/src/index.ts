@@ -448,8 +448,13 @@ class ApiClient {
     return this.request("PATCH", `/api/crm/leads/${encodeURIComponent(id)}`, { body: patch });
   }
 
-  async crmClaimLead(id: string): Promise<{ data: Record<string, unknown> }> {
-    return this.request("POST", `/api/crm/leads/${encodeURIComponent(id)}/claim`);
+  // Rotates a lead to the next round-robin agent, excluding everyone who has
+  // already tried it. Returns { status: "rotated" | "inactive", nextOwnerId?,
+  // triedCount } so the UI can show "passed to Ahmed" or "moved to inactive".
+  async crmRotateLead(id: string): Promise<{
+    data: { status: "rotated" | "inactive"; nextOwnerId?: string; triedCount: number };
+  }> {
+    return this.request("POST", `/api/crm/leads/${encodeURIComponent(id)}/rotate`);
   }
 
   async crmReassignLead(id: string, agentId: string): Promise<{ data: Record<string, unknown> }> {

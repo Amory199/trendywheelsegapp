@@ -5,11 +5,13 @@ import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { AppError } from "../../utils/errors.js";
 
+import { emitLeadUpdated } from "./realtime.js";
 import {
   assignLeadRoundRobin,
   computeAgentTargets,
   getCrmRules,
   recordActivity,
+  rotateLeadToNextAgent,
 } from "./service.js";
 
 const router: RouterType = Router();
@@ -27,18 +29,23 @@ router.get("/leads", async (req, res) => {
   const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
 
   const where: Record<string, unknown> = {};
-  if (status) where.status = status;
 
   if (isAdmin) {
-    // Admins can see everything; honor explicit owner filters.
+    // Admins can see everything; honor explicit owner + status filters.
+    if (status) where.status = status;
     if (mineOnly) where.ownerId = userId;
     else if (ownerId) where.ownerId = ownerId === "unassigned" ? null : ownerId;
   } else {
-    // Sales agents (and any other non-admin staff): locked to their own
-    // assigned leads only. No "all-pool" visibility, no unclaimed view —
-    // the admin assigns, the agent works the list. Drop the mineOnly branch
-    // here because the chip is gone from the mobile UI.
+    // Sales agents: locked to their own assigned leads, and never see leads
+    // parked inactive by the rotation system (those are admin-only). If sales
+    // explicitly asks for ?status=inactive, return zero rows.
+    if (status === "inactive") {
+      res.json({ data: [] });
+      return;
+    }
     where.ownerId = userId;
+    if (status) where.status = status;
+    else where.status = { not: "inactive" };
   }
 
   const leads = await prisma.lead.findMany({
@@ -60,7 +67,11 @@ router.get("/pipeline", async (req, res) => {
   const me = await prisma.user.findUnique({ where: { id: userId } });
   const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
 
-  const where = isAdmin ? {} : { ownerId: userId };
+  // Pipeline KPIs exclude inactive leads from sales' view so the buckets only
+  // reflect actionable work. Admin keeps the full picture.
+  const where: Record<string, unknown> = isAdmin
+    ? {}
+    : { ownerId: userId, status: { not: "inactive" } };
 
   const [byStatus, totals, recent, mine] = await Promise.all([
     prisma.lead.groupBy({
@@ -277,6 +288,8 @@ router.post("/leads", async (req, res) => {
 });
 
 // ─── Update lead status / value / notes ──────────────────────
+// "lost" is kept in the enum for historical leads but new UIs route the user
+// to /rotate instead. Admin can still toggle to lost via this endpoint.
 const updateLeadSchema = z.object({
   status: z.enum(["new", "contacted", "qualified", "proposal", "won", "lost"]).optional(),
   estimatedValue: z.number().min(0).optional(),
@@ -317,36 +330,29 @@ router.patch("/leads/:id", async (req, res) => {
     await recordActivity(lead.id, userId, "note", "Notes updated");
   }
 
+  emitLeadUpdated(lead.id, userId, body.status ?? undefined);
   res.json({ data: updated });
 });
 
-// ─── Claim a lead (admin only — sales no longer self-claims) ─
-// New workflow (2026-05-20): the admin assigns leads to sales; the sales agent
-// works what they're given. We keep this endpoint for the admin "claim for
-// myself" path, but reject anyone who isn't admin.
-router.post("/leads/:id/claim", async (req, res) => {
+// "Claim" was removed (2026-05-20 round-3). Admin assigns, sales works. If a
+// sales agent can't progress a lead, they rotate it via POST /leads/:id/rotate.
+
+// ─── Rotate a lead to the next agent ─────────────────────────
+// Replaces the old "mark lost" affordance: the lead is reassigned to a
+// round-robin pick that excludes every agent already tried (derived from the
+// activity log). After ROTATION_LIMIT distinct agents have been tried, the
+// lead is parked with status=inactive and is visible only to admins.
+router.post("/leads/:id/rotate", async (req, res) => {
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
   const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
-  if (!isAdmin) throw AppError.forbidden("Sales cannot self-claim leads — admin assigns");
-
   const lead = await prisma.lead.findUnique({ where: { id: req.params.id } });
   if (!lead) throw AppError.notFound("Lead not found");
-  if (lead.ownerId && lead.ownerId !== userId) {
-    throw AppError.forbidden("Lead already owned by another agent");
+  if (!isAdmin && lead.ownerId !== userId) {
+    throw AppError.forbidden("You can only rotate leads you own");
   }
-  const ttlMs = 24 * 60 * 60 * 1000;
-  const updated = await prisma.lead.update({
-    where: { id: lead.id },
-    data: {
-      ownerId: userId,
-      assignedAt: new Date(),
-      claimDeadline: new Date(Date.now() + ttlMs),
-      lastActivityAt: new Date(),
-    },
-  });
-  await recordActivity(lead.id, userId, "assigned", "Lead claimed");
-  res.json({ data: updated });
+  const result = await rotateLeadToNextAgent(lead.id, userId);
+  res.json({ data: result });
 });
 
 // ─── Reassign (admin) ────────────────────────────────────────

@@ -210,6 +210,40 @@ else
   pass "(skipped — ENABLE_TRIAL_OTP_BYPASS=false in prod, can't synthesize a signup)"
 fi
 
+# ─── 12d. Rotation endpoint — sales rotates own lead ─────────
+note "12d. Rotate own lead"
+# Reuse $LEAD_ID owned by admin; reassign to sales first so they can rotate.
+curl -fsS -XPOST "$BASE/crm/leads/$LEAD_ID/reassign" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"ownerId\":\"$SALES_USER_ID\"}" >/dev/null
+# Now sales rotates it
+ROTATE_RESP=$(curl -fsS -XPOST "$BASE/crm/leads/$LEAD_ID/rotate" \
+  -H "Authorization: Bearer $SALES_TOKEN") \
+  || fail "POST /crm/leads/:id/rotate failed for owning sales agent"
+ROTATE_STATUS=$(echo "$ROTATE_RESP" | jq -r .data.status)
+[ "$ROTATE_STATUS" = "rotated" ] || [ "$ROTATE_STATUS" = "inactive" ] \
+  || fail "rotate returned unexpected status: $ROTATE_RESP"
+pass "rotate endpoint works ($ROTATE_STATUS)"
+
+# ─── 12e. /claim endpoint removed ────────────────────────────
+note "12e. /claim is 404"
+CLAIM_CODE=$(curl -sS -o /dev/null -w "%{http_code}" -XPOST "$BASE/crm/leads/$LEAD_ID/claim" \
+  -H "Authorization: Bearer $ADMIN_TOKEN")
+# Express returns 404 for unmatched routes via the global handler.
+[ "$CLAIM_CODE" = "404" ] || fail "POST /crm/leads/:id/claim returned $CLAIM_CODE, expected 404"
+pass "claim endpoint removed"
+
+# ─── 12f. Sales can't see inactive leads ─────────────────────
+note "12f. Sales never sees status=inactive"
+# Force the test lead inactive (admin PATCH won't accept "inactive" because of
+# the Zod schema — that's intentional; use a direct rotate-to-exhaustion would
+# take 5 rotations. So check that *if* there's any inactive lead, sales doesn't
+# see it. With ROTATION_LIMIT=5 in fresh DBs this is mostly a structure check.)
+SALES_INACTIVE=$(curl -fsS "$BASE/crm/leads?status=inactive" -H "Authorization: Bearer $SALES_TOKEN" \
+  | jq '.data | length')
+[ "$SALES_INACTIVE" = "0" ] || fail "Sales saw $SALES_INACTIVE inactive leads — filter regressed"
+pass "sales blocked from inactive pool"
+
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
 # No DELETE endpoint on /crm/leads, so leave the smoke-test lead. The contact
