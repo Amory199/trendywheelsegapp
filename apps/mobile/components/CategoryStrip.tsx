@@ -16,6 +16,7 @@ const CATEGORY_VIDEOS: Partial<Record<VehicleCategory, number>> = {
   "scooter-sidecar": require("../assets/category/scooter-sidecar.mp4"),
   buggy: require("../assets/category/buggy.mp4"),
   "jet-ski": require("../assets/category/jet-ski.mp4"),
+  "hover-board": require("../assets/category/hover-board.mp4"),
 };
 
 const SCREEN_W = Dimensions.get("window").width;

@@ -43,6 +43,7 @@ export default function Intro(): JSX.Element {
         style={StyleSheet.absoluteFill}
         contentFit="contain"
         nativeControls={false}
+        surfaceType="textureView"
       />
       <Pressable onPress={dismiss} style={styles.skip} hitSlop={12}>
         <Text style={styles.skipText}>Skip ▸</Text>

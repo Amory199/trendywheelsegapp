@@ -54,6 +54,7 @@ export default function HomeScreen(): React.JSX.Element {
               contentFit="cover"
               nativeControls={false}
               pointerEvents="none"
+              surfaceType="textureView"
             />
           </View>
           <LinearGradient

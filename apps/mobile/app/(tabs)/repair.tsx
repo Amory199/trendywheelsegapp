@@ -46,9 +46,10 @@ function RepairHero(): React.JSX.Element {
   );
 }
 
-import { TWBadge, TWButton, TWCard, TWPressable, palette } from "../../components/ui";
+import { TWBadge, TWButton, TWCard, TWPressable } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
+import { useTheme } from "../../lib/use-theme";
 
 const STATUS_ORDER = ["submitted", "assigned", "in-progress", "completed"] as const;
 type RepairStatus = (typeof STATUS_ORDER)[number];
@@ -75,6 +76,7 @@ function statusIndex(s: string): number {
 export default function RepairScreen(): React.JSX.Element {
   const router = useRouter();
   const scrollHandler = useTabBarScrollHandler();
+  const { palette } = useTheme();
 
   const q = useQuery({
     queryKey: ["repair-requests"],
