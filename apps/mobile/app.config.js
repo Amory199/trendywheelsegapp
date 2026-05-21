@@ -63,9 +63,13 @@ module.exports = {
     // EAS warns about a missing channel on every build even though we
     // never fetch from it. Re-add both (plus channel in eas.json) when
     // OTA goes live.
+    owner: "amrco_19",
     extra: {
       eas: {
-        projectId: "5ec5cee4-e343-4990-be07-71f550d4d86d",
+        // Re-init'd against amrco_19 on 2026-05-20 after asasasasas hit its
+        // monthly free build cap. New keystore — old APK can't be upgraded;
+        // must be uninstalled before installing this build.
+        projectId: "641975a5-54c8-49e4-aa3b-2519c084d0e1",
       },
     },
   },
