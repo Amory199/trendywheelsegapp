@@ -152,6 +152,9 @@ export const updateUserSchema = z.object({
         .optional(),
       marketingOptIn: z.boolean().optional(),
     })
+    // Customers default to preferences=null on signup; PUT must accept null
+    // so the profile editor can submit without populating prefs first.
+    .nullable()
     .optional(),
 });
 

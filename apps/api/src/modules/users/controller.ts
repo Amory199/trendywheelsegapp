@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 
+import { Prisma } from "@prisma/client";
 import { updateUserSchema } from "@trendywheels/validators";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -104,12 +105,22 @@ export async function update(req: Request, res: Response): Promise<void> {
   // Privilege fields are admin-only — strip silently for any non-admin caller
   // so customers/staff cannot self-promote, unsuspend, or change role.
   const isAdmin = req.user!.accountType === "admin";
-  const data = isAdmin
+  const baseData = isAdmin
     ? parsed
     : (() => {
         const { accountType: _at, staffRole: _sr, status: _st, ...rest } = parsed;
         return rest;
       })();
+
+  // Prisma's nullable JSON columns reject raw `null` — they need the explicit
+  // `Prisma.DbNull` sentinel. Mobile sends preferences:null when the user
+  // hasn't touched the prefs editor yet; translate it here so the PUT doesn't
+  // crash with a Zod-passes-Prisma-rejects error.
+  const { preferences, ...rest } = baseData;
+  const data: Record<string, unknown> = { ...rest };
+  if (preferences !== undefined) {
+    data.preferences = preferences === null ? Prisma.DbNull : preferences;
+  }
 
   const user = await prisma.user.update({
     where: { id: req.params.id },
