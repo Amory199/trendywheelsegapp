@@ -8,8 +8,41 @@ import { env } from "../../config/env.js";
 import type { AuthPayload } from "../../middleware/auth.js";
 import { AppError } from "../../utils/errors.js";
 import { logger } from "../../utils/logger.js";
+import { notificationsQueue } from "../../queues/index.js";
 import { assignLeadRoundRobin, recordActivity } from "../crm/service.js";
 import { emitCustomerEvent } from "../realtime/customer-events.js";
+
+// Push every admin so they know a new customer just joined. Fire-and-forget
+// from inside the signup setImmediate block — failure here must not break the
+// signup path itself.
+async function notifyAdminsOfSignup(customer: {
+  id: string;
+  name: string | null;
+  phone: string;
+}): Promise<void> {
+  const admins = await prisma.user.findMany({
+    where: {
+      OR: [{ accountType: "admin" }, { staffRole: "admin" }],
+      status: "active",
+    },
+    select: { id: true },
+  });
+  await Promise.all(
+    admins.map((a) =>
+      notificationsQueue.add(
+        `customer-signup-${customer.id}-${a.id}`,
+        {
+          userId: a.id,
+          type: "customer_signup",
+          title: "New customer signup",
+          body: `${customer.name ?? `Customer ${customer.phone.slice(-4)}`} just joined`,
+          data: { userId: customer.id, phone: customer.phone },
+        },
+        { removeOnComplete: true },
+      ),
+    ),
+  );
+}
 
 function generateOtp(): string {
   return crypto.randomInt(100000, 999999).toString();
@@ -148,6 +181,11 @@ export async function verifyOtp(
             at: new Date().toISOString(),
             meta: { phone: customer.phone, leadId: lead.id },
           });
+          await notifyAdminsOfSignup({
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone,
+          });
         } catch (err) {
           logger.warn({ err, userId: customer.id }, "Failed to create signup lead (async)");
         }
@@ -252,6 +290,11 @@ export async function issueTokensForPhone(
             userId: customer.id,
             at: new Date().toISOString(),
             meta: { phone: customer.phone, leadId: lead.id },
+          });
+          await notifyAdminsOfSignup({
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone,
           });
         } catch (err) {
           logger.warn({ err, userId: customer.id }, "Failed to create signup lead (async)");

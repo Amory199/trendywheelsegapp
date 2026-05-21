@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useAuth } from "../lib/auth-store";
 import { installMobileErrorReporter } from "../lib/error-reporter";
+import { routeNotification } from "../lib/notification-router";
 import { registerPushToken } from "../lib/push";
 
 // Wrap in try/catch — nothing at module-load should ever block first paint.
@@ -32,26 +33,38 @@ export default function RootLayout(): JSX.Element {
     if (user?.id) void registerPushToken();
   }, [user?.id]);
 
-  // Tap on a CRM push (lead_assigned / lead_reassigned) jumps the user to the
-  // affected lead detail. Notifications without a leadId in their data payload
-  // are silently dropped — the foreground banner already shows the title/body.
+  // Tap dispatch for ALL push types. Routing is centralised in
+  // lib/notification-router.ts so adding a new type means one map entry there
+  // — not extra branching here. We also drain the cold-start response (the
+  // tap that opened the app from a killed state) so deep-links work even when
+  // the listener was registered after the OS delivered the notification.
   useEffect(() => {
+    const navigate = (data: Record<string, unknown> | null | undefined): void => {
+      const route = routeNotification(data, user);
+      if (route) router.push(route as never);
+    };
+
+    Notifications.getLastNotificationResponseAsync()
+      .then((resp) => {
+        const data = resp?.notification.request.content.data as
+          | Record<string, unknown>
+          | null
+          | undefined;
+        navigate(data);
+      })
+      .catch(() => {
+        /* no-op — cold-start drain must never crash boot */
+      });
+
     const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
-      const data = resp.notification.request.content.data as {
-        type?: string;
-        leadId?: string;
-      } | null;
-      if (!data?.leadId) return;
-      if (
-        data.type === "lead_assigned" ||
-        data.type === "lead_reassigned" ||
-        data.type === "lead_escalation"
-      ) {
-        router.push(`/crm/leads/${data.leadId}`);
-      }
+      const data = resp.notification.request.content.data as
+        | Record<string, unknown>
+        | null
+        | undefined;
+      navigate(data);
     });
     return () => sub.remove();
-  }, [router]);
+  }, [router, user]);
 
   return (
     <SafeAreaProvider>

@@ -246,6 +246,40 @@ SALES_INACTIVE=$(curl -fsS "$BASE/crm/leads?status=inactive" -H "Authorization: 
 [ "$SALES_INACTIVE" = "0" ] || fail "Sales saw $SALES_INACTIVE inactive leads — filter regressed"
 pass "sales blocked from inactive pool"
 
+# ─── 12g. Push-token registration round-trip ─────────────────
+note "12g. Push token register/list/delete"
+# Use a non-Expo token string — registration just stores it; only the worker
+# filters via Expo.isExpoPushToken when actually dispatching. Smoke verifies
+# storage/cleanup endpoints; real device delivery is verified manually.
+SMOKE_TOKEN="smoke-test-token-$(date +%s)"
+TOKEN_REG=$(curl -sS -o /dev/null -w "%{http_code}" -XPOST "$BASE/notifications/push-tokens" \
+  -H "Authorization: Bearer $SALES_TOKEN" -H "$JSON" \
+  -d "{\"token\":\"$SMOKE_TOKEN\",\"platform\":\"android\"}")
+[ "$TOKEN_REG" = "200" ] || [ "$TOKEN_REG" = "201" ] || fail "push-tokens register returned $TOKEN_REG"
+TOKEN_DEL=$(curl -sS -o /dev/null -w "%{http_code}" -XDELETE \
+  "$BASE/notifications/push-tokens/$SMOKE_TOKEN" -H "Authorization: Bearer $SALES_TOKEN")
+[ "$TOKEN_DEL" = "200" ] || [ "$TOKEN_DEL" = "204" ] || fail "push-tokens delete returned $TOKEN_DEL"
+pass "push-tokens register/delete round-trip"
+
+# ─── 12h. Lead reassign enqueues a notification row ──────────
+note "12h. Reassign produces a Notification row for the new owner"
+# Reassign $LEAD_ID back to sales (it was rotated/owned by admin after 12d).
+# The notificationsWorker writes a Notification row inside ~1s; poll for up to
+# 5s. Critical types bypass dedupe; lead_reassigned is non-critical but a
+# single reassign survives the 60s dedupe window.
+curl -fsS -XPOST "$BASE/crm/leads/$LEAD_ID/reassign" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"ownerId\":\"$SALES_USER_ID\"}" >/dev/null
+NOTIF_COUNT=0
+for i in 1 2 3 4 5; do
+  NOTIF_COUNT=$(curl -fsS "$BASE/notifications" -H "Authorization: Bearer $SALES_TOKEN" \
+    | jq '[.data[] | select(.type | startswith("lead_"))] | length')
+  [ "$NOTIF_COUNT" -gt 0 ] && break
+  sleep 1
+done
+[ "$NOTIF_COUNT" -gt 0 ] || fail "no lead_* Notification row for sales after reassign (worker not draining?)"
+pass "reassign enqueues notification row ($NOTIF_COUNT rows visible)"
+
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
 # No DELETE endpoint on /crm/leads, so leave the smoke-test lead. The contact
