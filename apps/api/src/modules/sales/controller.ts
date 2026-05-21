@@ -4,6 +4,7 @@ import { redis } from "../../config/redis.js";
 import { prisma } from "../../config/database.js";
 import { notificationsQueue } from "../../queues/index.js";
 import { AppError } from "../../utils/errors.js";
+import { emitCustomerEvent } from "../realtime/customer-events.js";
 
 const SALES_CACHE_TTL = 60;
 const SALES_CACHE_PREFIX = "sales:list:";
@@ -118,6 +119,12 @@ export async function create(req: Request, res: Response): Promise<void> {
       ),
     ),
   );
+  emitCustomerEvent("sales-listing.created", {
+    id: listing.id,
+    userId: req.user!.userId,
+    at: new Date().toISOString(),
+    meta: { title: listing.title ?? null, status: listing.status },
+  });
   res.status(201).json({ data: listing, id: listing.id });
 }
 
@@ -133,6 +140,12 @@ export async function update(req: Request, res: Response): Promise<void> {
     data: req.body,
   });
   await invalidateSalesCache();
+  emitCustomerEvent("sales-listing.updated", {
+    id: updated.id,
+    userId: updated.userId,
+    at: new Date().toISOString(),
+    meta: { status: updated.status },
+  });
   res.json({ data: updated });
 }
 

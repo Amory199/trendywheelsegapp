@@ -5,6 +5,7 @@ import { prisma } from "../../config/database.js";
 import { notificationsQueue } from "../../queues/index.js";
 import { AppError } from "../../utils/errors.js";
 import { recordActivity } from "../crm/service.js";
+import { emitCustomerEvent } from "../realtime/customer-events.js";
 
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
@@ -202,6 +203,12 @@ export async function create(req: Request, res: Response): Promise<void> {
     ),
   );
 
+  emitCustomerEvent("booking.created", {
+    id: booking.id,
+    userId,
+    at: new Date().toISOString(),
+    meta: { vehicleId, totalCost, status: booking.status },
+  });
   res.status(201).json({ data: booking, id: booking.id });
 }
 
@@ -215,6 +222,12 @@ export async function approve(req: Request, res: Response): Promise<void> {
   const updated = await prisma.booking.update({
     where: { id: booking.id },
     data: { status: "confirmed" },
+  });
+  emitCustomerEvent("booking.updated", {
+    id: booking.id,
+    userId: booking.userId,
+    at: new Date().toISOString(),
+    meta: { status: "confirmed" },
   });
   await notificationsQueue.add(
     `booking-approved-${booking.id}`,
@@ -241,6 +254,12 @@ export async function reject(req: Request, res: Response): Promise<void> {
   const updated = await prisma.booking.update({
     where: { id: booking.id },
     data: { status: "cancelled", notes: reason },
+  });
+  emitCustomerEvent("booking.updated", {
+    id: booking.id,
+    userId: booking.userId,
+    at: new Date().toISOString(),
+    meta: { status: "cancelled", reason },
   });
   await notificationsQueue.add(
     `booking-rejected-${booking.id}`,
@@ -307,6 +326,14 @@ export async function update(req: Request, res: Response): Promise<void> {
     await onBookingCompleted(updated.id, updated.userId, Number(updated.totalCost));
   }
 
+  if (body.status && body.status !== booking.status) {
+    emitCustomerEvent("booking.updated", {
+      id: booking.id,
+      userId: booking.userId,
+      at: new Date().toISOString(),
+      meta: { status: body.status },
+    });
+  }
   res.json({ data: updated });
 }
 

@@ -46,7 +46,13 @@ async function ensureSocket(): Promise<Socket | null> {
   }
   socket = io(`${baseUrl}/admin`, {
     auth: { token },
-    transports: ["websocket"],
+    // Allow polling fallback. Production Nginx in front of api.trendywheelseg.com
+    // doesn't upgrade WebSocket frames yet (we'd need `proxy_set_header Upgrade
+    // $http_upgrade` + `proxy_set_header Connection upgrade` on the /socket.io/
+    // location). Without that, the WS-only handshake errors out with
+    // TRANSPORT_HANDSHAKE_ERROR. Polling uses plain HTTP so it survives the
+    // current proxy config; once Nginx is updated, both work.
+    transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionDelay: 1500,
   });
@@ -54,25 +60,56 @@ async function ensureSocket(): Promise<Socket | null> {
   return socket;
 }
 
-// Subscribe an admin screen to lead-event invalidations. Connect lazily on
-// mount, disconnect when the consumer unmounts. The QueryClient is invalidated
-// for any cache key starting with "crm" or "admin".
+// Subscribe an admin screen to ALL realtime invalidations — leads (CRM) and
+// customer events (booking/sales/repair/maintenance/pickup/customization/
+// signup). Connect lazily on mount, disconnect when the consumer unmounts.
+// Each event invalidates the relevant React Query cache keys so admin sees
+// changes within ~1s without manual pull-to-refresh.
 export function useAdminLeadRealtime(qc: QueryClient): void {
   useEffect(() => {
     let cancelled = false;
     let s: Socket | null = null;
 
-    const invalidate = (): void => {
+    const invalidateCrm = (): void => {
       void qc.invalidateQueries({ queryKey: ["crm"] });
       void qc.invalidateQueries({ queryKey: ["admin"] });
     };
+    const invalidateBookings = (): void => {
+      void qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: ["bookings"] });
+    };
+    const invalidateRepairs = (): void => {
+      void qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: ["repair-requests"] });
+      void qc.invalidateQueries({ queryKey: ["service-requests"] });
+    };
+    const invalidateSales = (): void => {
+      void qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: ["sales-listings"] });
+    };
+    const invalidateUsers = (): void => {
+      void qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: ["crm"] });
+    };
 
-    const handlers: Array<[string, (p: LeadEventPayload) => void]> = [
-      ["lead.activity", invalidate],
-      ["lead.assigned", invalidate],
-      ["lead.rotated", invalidate],
-      ["lead.inactive", invalidate],
-      ["lead.updated", invalidate],
+    const handlers: Array<[string, (p: unknown) => void]> = [
+      // CRM lead lifecycle
+      ["lead.activity", invalidateCrm],
+      ["lead.assigned", invalidateCrm],
+      ["lead.rotated", invalidateCrm],
+      ["lead.inactive", invalidateCrm],
+      ["lead.updated", invalidateCrm],
+      // Customer write events
+      ["customer.booking.created", invalidateBookings],
+      ["customer.booking.updated", invalidateBookings],
+      ["customer.repair.created", invalidateRepairs],
+      ["customer.repair.updated", invalidateRepairs],
+      ["customer.maintenance.created", invalidateRepairs],
+      ["customer.pickup.created", invalidateRepairs],
+      ["customer.customization.created", invalidateRepairs],
+      ["customer.sales-listing.created", invalidateSales],
+      ["customer.sales-listing.updated", invalidateSales],
+      ["customer.customer.signup", invalidateUsers],
     ];
 
     void (async () => {

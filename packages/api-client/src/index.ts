@@ -457,9 +457,15 @@ class ApiClient {
     return this.request("POST", `/api/crm/leads/${encodeURIComponent(id)}/rotate`);
   }
 
-  async crmReassignLead(id: string, agentId: string): Promise<{ data: Record<string, unknown> }> {
+  // Admin-only reassign. The route expects `ownerId` (matches Lead.ownerId);
+  // the old client incorrectly sent `agentId` which made every admin reassign
+  // 400 with "ownerId required" since the schema was tightened.
+  async crmReassignLead(
+    id: string,
+    ownerId: string | null,
+  ): Promise<{ data: Record<string, unknown> }> {
     return this.request("POST", `/api/crm/leads/${encodeURIComponent(id)}/reassign`, {
-      body: { agentId },
+      body: { ownerId },
     });
   }
 

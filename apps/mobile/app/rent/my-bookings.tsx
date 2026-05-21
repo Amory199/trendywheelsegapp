@@ -5,9 +5,10 @@ import { colors, spacing, typography } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { TWSkeletonCard } from "../../components/ui";
 import { api } from "../../lib/api";
 
 type TabKey = "pending" | "confirmed" | "completed" | "cancelled";
@@ -72,7 +73,11 @@ export default function MyBookingsScreen(): JSX.Element {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator color={colors.accent.DEFAULT} style={{ marginTop: 40 }} size="large" />
+        <View style={{ padding: spacing.md, gap: spacing.md }}>
+          <TWSkeletonCard height={130} />
+          <TWSkeletonCard height={130} />
+          <TWSkeletonCard height={130} />
+        </View>
       ) : bookings.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="calendar-outline" size={64} color={colors.text.secondary} />

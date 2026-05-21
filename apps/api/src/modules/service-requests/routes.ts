@@ -6,6 +6,7 @@ import { authenticate } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { AppError } from "../../utils/errors.js";
 import { notificationsQueue } from "../../queues/index.js";
+import { emitCustomerEvent } from "../realtime/customer-events.js";
 
 const router: RouterType = Router();
 
@@ -81,6 +82,12 @@ router.post(
         userId: req.user!.userId,
         preferredDate: new Date(req.body.preferredDate),
       },
+    });
+    emitCustomerEvent("maintenance.created", {
+      id: created.id,
+      userId: req.user!.userId,
+      at: new Date().toISOString(),
+      meta: { serviceType: created.serviceType, preferredDate: created.preferredDate },
     });
     const staff = await prisma.user.findMany({
       where: { accountType: { in: ["admin", "staff"] }, status: "active" },
@@ -163,6 +170,12 @@ router.post(
     const created = await prisma.customizationRequest.create({
       data: { ...req.body, userId: req.user!.userId },
     });
+    emitCustomerEvent("customization.created", {
+      id: created.id,
+      userId: req.user!.userId,
+      at: new Date().toISOString(),
+      meta: { kind: created.kind, budget: created.budget ?? null },
+    });
     const staff = await prisma.user.findMany({
       where: { accountType: { in: ["admin", "staff"] }, status: "active" },
       select: { id: true },
@@ -241,6 +254,12 @@ router.post(
   async (req, res) => {
     const created = await prisma.transportRequest.create({
       data: { ...req.body, userId: req.user!.userId, pickupAt: new Date(req.body.pickupAt) },
+    });
+    emitCustomerEvent("pickup.created", {
+      id: created.id,
+      userId: req.user!.userId,
+      at: new Date().toISOString(),
+      meta: { fromAddress: created.fromAddress, toAddress: created.toAddress },
     });
     const staff = await prisma.user.findMany({
       where: { accountType: { in: ["admin", "staff"] }, status: "active" },

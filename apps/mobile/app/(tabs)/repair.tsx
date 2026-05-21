@@ -5,7 +5,7 @@ import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as React from "react";
-import { ActivityIndicator, Dimensions, StyleSheet, Text, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 const REPAIR_VIDEO = require("../../assets/category/repair.mp4");
@@ -24,8 +24,7 @@ function RepairHero(): React.JSX.Element {
   return (
     <View
       style={{
-        height: 360,
-        marginHorizontal: 20,
+        height: 220,
         marginBottom: 14,
         borderRadius: 18,
         overflow: "hidden",
@@ -46,7 +45,7 @@ function RepairHero(): React.JSX.Element {
   );
 }
 
-import { TWBadge, TWButton, TWCard, TWPressable } from "../../components/ui";
+import { TWBadge, TWButton, TWCard, TWPressable, TWSkeletonCard } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useTheme } from "../../lib/use-theme";
@@ -94,7 +93,6 @@ export default function RepairScreen(): React.JSX.Element {
       <View
         style={{
           paddingTop: 56,
-          paddingHorizontal: 20,
           paddingBottom: 16,
           flexDirection: "row",
           alignItems: "flex-end",
@@ -127,7 +125,10 @@ export default function RepairScreen(): React.JSX.Element {
 
       <RepairHero />
 
-      <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+      {/* No horizontal padding here — the FlatList's contentContainerStyle
+          (paddingHorizontal: 20) already supplies it. Doubling caused the
+          2-up SERVICE_TILE_W grid to overflow and wrap to single-column. */}
+      <View style={{ marginBottom: 16 }}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
           {[
             { key: "repair", label: "Repair", icon: "construct", route: "/repair/request" },
@@ -197,7 +198,13 @@ export default function RepairScreen(): React.JSX.Element {
   );
 
   const ListEmpty = q.isLoading ? (
-    <ActivityIndicator color={colors.brand.friendlyBlue} style={{ marginTop: 40 }} size="large" />
+    // Skeleton row stack — telegraphs the upcoming list shape so the user
+    // feels "almost there" instead of "stuck on spinner".
+    <View style={{ gap: 14 }}>
+      <TWSkeletonCard height={120} />
+      <TWSkeletonCard height={120} />
+      <TWSkeletonCard height={120} />
+    </View>
   ) : (
     <View
       style={{

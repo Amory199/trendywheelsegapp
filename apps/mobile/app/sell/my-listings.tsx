@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { TWSkeletonCard } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 
@@ -84,7 +85,11 @@ export default function MyListingsScreen(): JSX.Element {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator color={colors.accent.DEFAULT} size="large" style={{ marginTop: 60 }} />
+        <View style={{ padding: spacing.md, gap: spacing.md }}>
+          <TWSkeletonCard height={120} />
+          <TWSkeletonCard height={120} />
+          <TWSkeletonCard height={120} />
+        </View>
       ) : listings.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="pricetag-outline" size={64} color={colors.text.secondary} />

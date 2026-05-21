@@ -83,6 +83,12 @@ export default function AdminDashboard(): JSX.Element {
             value={m?.monthlyRevenue ? Math.round(Number(m.monthlyRevenue)) : 0}
             tone="blue"
           />
+          <Kpi
+            label="Inactive leads pool"
+            value={0}
+            tone="pool"
+            onPress={() => router.push("/admin/leads/inactive")}
+          />
         </View>
 
         {metricsQ.isLoading && (

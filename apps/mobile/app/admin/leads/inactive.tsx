@@ -85,7 +85,13 @@ export default function AdminInactiveLeads(): React.JSX.Element {
             </View>
           }
           renderItem={({ item }) => (
-            <Pressable style={styles.card} onPress={() => router.push(`/crm/leads/${item.id}`)}>
+            <Pressable
+              style={styles.card}
+              // Stay inside the admin Tabs scope — the /crm/leads/:id path
+              // belongs to the sales CRM layout, which drops the admin tab bar
+              // and traps admin in a screen they can only leave by logging out.
+              onPress={() => router.push(`/admin/leads/${item.id}`)}
+            >
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={styles.name} numberOfLines={1}>
                   {item.contactName}

@@ -1,23 +1,31 @@
 import { Ionicons } from "@expo/vector-icons";
 import { VEHICLE_CATEGORIES, type VehicleCategory } from "@trendywheels/types";
 import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
-import { useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { useVideoPlayer, VideoView } from "expo-video";
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo } from "react";
 import Animated from "react-native-reanimated";
-import { Dimensions, InteractionManager, Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useTheme } from "../lib/use-theme";
 
-const CATEGORY_VIDEOS: Partial<Record<VehicleCategory, number>> = {
-  "golf-cart": require("../assets/category/golf-cart.mp4"),
-  scooter: require("../assets/category/scooter.mp4"),
-  "scooter-sidecar": require("../assets/category/scooter-sidecar.mp4"),
-  buggy: require("../assets/category/buggy.mp4"),
-  "jet-ski": require("../assets/category/jet-ski.mp4"),
-  "hover-board": require("../assets/category/hover-board.mp4"),
-  utv: require("../assets/category/utv.mp4"),
+// 2026-05-21 — dropped per-tile videos. 7 simultaneous useVideoPlayer mounts
+// were causing a 3s freeze on Rent/Sell tab entry on Android, plus the UTV
+// asset decoded as garbled pink noise on real devices and the jet-ski clip
+// had "Buy"/"Sell" baked into the source frames. Replaced with brand-gradient
+// + Ionicon tiles — instant render, no decoder load, no bleed possible.
+// Videos remain on Home (`(tabs)/index.tsx`) and Service (`(tabs)/repair.tsx`)
+// heroes where they're a single instance, not a grid of 7.
+
+// Per-category gradient — picks two brand-palette stops so the tile reads as
+// a deliberate hero card, not a flat fallback.
+const CATEGORY_GRADIENTS: Record<VehicleCategory, [string, string]> = {
+  "golf-cart": [colors.brand.friendlyBlue, "#1a0b9e"],
+  scooter: [colors.brand.trendyPink, "#7a0a4f"],
+  "scooter-sidecar": [colors.brand.poolBlue, colors.brand.friendlyBlue],
+  buggy: ["#f5b800", "#a55a00"],
+  utv: ["#9c27b0", "#4a0a6b"],
+  "jet-ski": [colors.brand.poolBlue, "#0a3a8a"],
+  "hover-board": [colors.brand.trendyPink, colors.brand.friendlyBlue],
 };
 
 const SCREEN_W = Dimensions.get("window").width;
@@ -63,8 +71,8 @@ function CategoryStripImpl({ value, onChange, showAll = true, onScroll }: Props)
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
-          <View style={styles.allBadge}>
-            <Ionicons name="grid" size={28} color="#fff" />
+          <View style={styles.iconWrap}>
+            <Ionicons name="grid" size={40} color="rgba(255,255,255,0.95)" />
           </View>
           <BlockLabel label="All categories" active={value === "all"} />
         </Pressable>
@@ -98,96 +106,38 @@ function CategoryBlock({
   active: boolean;
   onPress: () => void;
 }): JSX.Element {
-  const { palette } = useTheme();
-  const source = CATEGORY_VIDEOS[categoryKey] ?? null;
-  // Defer the video player allocation past the tab-switch animation. 7
-  // simultaneous useVideoPlayer mounts blocked the bridge for ~3s on Android.
-  // With this gate we render the fallback icon first, let the navigation
-  // settle, then swap to the live video.
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => setReady(true));
-    return () => task.cancel();
-  }, []);
+  const gradient = CATEGORY_GRADIENTS[categoryKey] ?? [
+    colors.brand.poolBlue,
+    colors.brand.friendlyBlue,
+  ];
   return (
     <Pressable
       onPress={onPress}
       android_ripple={{ color: "rgba(43,15,248,0.18)", borderless: false }}
-      style={[styles.block, { backgroundColor: palette.card }, active && styles.blockActive]}
+      style={[styles.block, active && styles.blockActive]}
     >
-      {/* Defensive double-clip: even if VideoView paints a few pixels past its
-          frame, this inner View masks it so neighboring tiles don't bleed. */}
-      <View style={styles.mediaClip}>
-        {source && ready ? (
-          <BlockVideo source={source} />
-        ) : (
-          <BlockFallback icon={icon} palette={palette} />
-        )}
-      </View>
       <LinearGradient
-        colors={["rgba(2,1,31,0)", "rgba(2,1,31,0.88)"]}
+        colors={gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* Subtle dark veil at the bottom so the label text stays readable on
+          any gradient combination. */}
+      <LinearGradient
+        colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.55)"]}
         style={[StyleSheet.absoluteFill, { top: BLOCK_H * 0.5 }]}
         pointerEvents="none"
       />
+      <View style={styles.iconWrap}>
+        <Ionicons
+          name={icon as keyof typeof import("@expo/vector-icons").Ionicons.glyphMap}
+          size={56}
+          color="rgba(255,255,255,0.95)"
+        />
+      </View>
       <BlockLabel label={label} active={active} />
     </Pressable>
-  );
-}
-
-function BlockVideo({ source }: { source: number }): JSX.Element {
-  const player = useVideoPlayer(source, (p) => {
-    p.loop = true;
-    p.muted = true;
-    p.play();
-  });
-  // On focus, force a play() in case the previous pause-on-unmount path left
-  // the player in a stopped state with a black texture. Skip the pause-on-blur
-  // entirely — pausing forces expo-video to release its hardware surface on
-  // some Androids and the surface fails to reattach, showing a black frame.
-  // Keeping ~5 short looping videos active is cheap on modern devices.
-  useFocusEffect(
-    useCallback(() => {
-      try {
-        player.play();
-      } catch {
-        // player may be released during fast unmounts; safe to ignore.
-      }
-      return undefined;
-    }, [player]),
-  );
-  return (
-    <VideoView
-      player={player}
-      style={styles.media}
-      contentFit="cover"
-      nativeControls={false}
-      pointerEvents="none"
-      // Android: SurfaceView is the default but it renders OUTSIDE the React
-      // Native view tree's clip boundaries, so neighboring tiles see baked-in
-      // text from this tile's video ("UTV & BUGGIES" bleeding into UTV).
-      // TextureView is GPU-composited inside the RN view tree and respects
-      // overflow:hidden. Slightly more GPU cost, fully clipped — exactly the
-      // trade-off the user wants.
-      surfaceType="textureView"
-    />
-  );
-}
-
-function BlockFallback({
-  icon,
-  palette,
-}: {
-  icon: string;
-  palette: import("@trendywheels/ui-tokens").Palette;
-}): JSX.Element {
-  return (
-    <View style={[StyleSheet.absoluteFill, styles.fallback, { backgroundColor: palette.card }]}>
-      <Ionicons
-        name={icon as keyof typeof import("@expo/vector-icons").Ionicons.glyphMap}
-        size={44}
-        color={palette.muted}
-      />
-    </View>
   );
 }
 
@@ -222,24 +172,7 @@ const styles = StyleSheet.create({
   blockActive: {
     borderColor: colors.brand.trendyPink,
   },
-  // Inner clip must match the outer block's borderRadius exactly. A 2px mismatch
-  // (the previous 16 vs 18) leaves a hairline ring where the native video
-  // surface can paint outside the rounded corner, which on Android shows up as
-  // the previous tile's frame bleeding into the next one.
-  mediaClip: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
-    borderRadius: 18,
-  },
-  media: {
-    width: "100%",
-    height: "100%",
-  },
-  fallback: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  allBadge: {
+  iconWrap: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",

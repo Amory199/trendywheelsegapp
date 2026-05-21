@@ -29,6 +29,13 @@ router.get(
   userController.getInteractions,
 );
 router.get(
+  "/:id/timeline",
+  authenticate,
+  authorize("admin", "staff"),
+  validate({ params: idParamSchema }),
+  userController.getTimeline,
+);
+router.get(
   "/:id/export",
   authenticate,
   validate({ params: idParamSchema }),

@@ -77,6 +77,82 @@ export function TWCard({
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+// TWSkeleton — pulsing placeholder for loading states.
+// ──────────────────────────────────────────────────────────────────────────
+// Replace ActivityIndicator/spinner wherever we have a known content shape:
+// it telegraphs what the user is about to see, which feels faster than a
+// generic spinner even when the underlying request takes the same time.
+
+export function TWSkeleton({
+  width,
+  height,
+  radius = 8,
+  style,
+}: {
+  width?: number | `${number}%`;
+  height?: number;
+  radius?: number;
+  style?: StyleProp<ViewStyle>;
+}): React.JSX.Element {
+  const { palette: p } = useTheme();
+  const opacity = useSharedValue(0.4);
+  React.useEffect(() => {
+    // Drives a slow pulse 0.4 → 0.85 → 0.4 on a loop. Reanimated handles the
+    // animation on the UI thread so it never stutters while JS is busy.
+    opacity.value = withTiming(0.85, { duration: 900 });
+    const id = setInterval(() => {
+      opacity.value = withTiming(opacity.value > 0.6 ? 0.4 : 0.85, { duration: 900 });
+    }, 900);
+    return () => clearInterval(id);
+  }, [opacity]);
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return (
+    <Animated.View
+      style={[
+        {
+          width: (width ?? "100%") as ViewStyle["width"],
+          height: height ?? 16,
+          borderRadius: radius,
+          backgroundColor: p.cardAlt,
+        },
+        animatedStyle,
+        style,
+      ]}
+    />
+  );
+}
+
+// Card-shaped skeleton block used when we're loading a list item placeholder.
+export function TWSkeletonCard({
+  height = 96,
+  style,
+}: {
+  height?: number;
+  style?: StyleProp<ViewStyle>;
+}): React.JSX.Element {
+  const { palette: p } = useTheme();
+  return (
+    <View
+      style={[
+        {
+          backgroundColor: p.card,
+          borderColor: p.border,
+          borderWidth: 1,
+          borderRadius: 14,
+          padding: 14,
+          gap: 8,
+        },
+        style,
+      ]}
+    >
+      <TWSkeleton width="60%" height={14} />
+      <TWSkeleton width="40%" height={10} />
+      <TWSkeleton width="100%" height={Math.max(0, height - 60)} radius={10} />
+    </View>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 // TWButton — primary (pink/blue) / outline / ghost.
 // ──────────────────────────────────────────────────────────────────────────
 

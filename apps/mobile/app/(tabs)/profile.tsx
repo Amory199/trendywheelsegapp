@@ -317,6 +317,10 @@ function ActivityTile({
     pool: colors.brand.poolBlue,
   };
   const color = toneMap[tone];
+  // Tile lays out horizontally — icon on the left, label takes the remaining
+  // width, chevron on the right. Previously the icon + label stacked top-left
+  // leaving the right ~60% of each tile empty (user's "empty space next to
+  // the buttons" complaint). Horizontal layout uses the whole tile.
   return (
     <TWPressable
       onPress={onPress}
@@ -328,29 +332,33 @@ function ActivityTile({
         borderRadius: 14,
         borderWidth: 1,
         borderColor: palette.border,
-        padding: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 12,
+        flexDirection: "row",
+        alignItems: "center",
         gap: 10,
       }}
     >
       <View
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
+          width: 40,
+          height: 40,
+          borderRadius: 12,
           backgroundColor: `${color}22`,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Ionicons name={icon} size={18} color={color} />
+        <Ionicons name={icon} size={20} color={color} />
       </View>
       <Text
         numberOfLines={1}
         adjustsFontSizeToFit
-        style={{ fontSize: 14, fontWeight: "700", color: palette.text }}
+        style={{ flex: 1, fontSize: 13, fontWeight: "700", color: palette.text }}
       >
         {label}
       </Text>
+      <Ionicons name="chevron-forward" size={14} color={palette.muted} />
     </TWPressable>
   );
 }

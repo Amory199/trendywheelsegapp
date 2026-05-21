@@ -9,6 +9,7 @@ import type { AuthPayload } from "../../middleware/auth.js";
 import { AppError } from "../../utils/errors.js";
 import { logger } from "../../utils/logger.js";
 import { assignLeadRoundRobin, recordActivity } from "../crm/service.js";
+import { emitCustomerEvent } from "../realtime/customer-events.js";
 
 function generateOtp(): string {
   return crypto.randomInt(100000, 999999).toString();
@@ -141,6 +142,12 @@ export async function verifyOtp(
           });
           await recordActivity(lead.id, null, "created", "Lead auto-created from signup");
           await assignLeadRoundRobin(lead.id);
+          emitCustomerEvent("customer.signup", {
+            id: customer.id,
+            userId: customer.id,
+            at: new Date().toISOString(),
+            meta: { phone: customer.phone, leadId: lead.id },
+          });
         } catch (err) {
           logger.warn({ err, userId: customer.id }, "Failed to create signup lead (async)");
         }
@@ -240,6 +247,12 @@ export async function issueTokensForPhone(
           });
           await recordActivity(lead.id, null, "created", "Lead auto-created from signup");
           await assignLeadRoundRobin(lead.id);
+          emitCustomerEvent("customer.signup", {
+            id: customer.id,
+            userId: customer.id,
+            at: new Date().toISOString(),
+            meta: { phone: customer.phone, leadId: lead.id },
+          });
         } catch (err) {
           logger.warn({ err, userId: customer.id }, "Failed to create signup lead (async)");
         }

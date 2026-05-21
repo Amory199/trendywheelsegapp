@@ -217,10 +217,12 @@ router.get("/leads/:id", async (req, res) => {
     },
   });
   if (!lead) throw AppError.notFound("Lead not found");
-  // Sales agents are locked to their own assigned leads — view and mutate.
-  // Admins can still inspect anything.
+  // Sales agents are locked to their own assigned leads. If the lead has
+  // moved on (rotation, manual reassign), surface as 404 rather than 403 —
+  // the lead no longer exists "in their pipeline". 403 was flooding Sentry
+  // because rotations happen frequently and clients still cache the old row.
   if (!isAdmin && lead.ownerId !== userId) {
-    throw AppError.forbidden("Lead is assigned to another agent");
+    throw AppError.notFound("Lead no longer in your pipeline");
   }
   res.json({ data: lead });
 });
@@ -408,8 +410,10 @@ router.post("/leads/:id/activities", async (req, res) => {
   const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
   const lead = await prisma.lead.findUnique({ where: { id: req.params.id } });
   if (!lead) throw AppError.notFound("Lead not found");
+  // Same 404 semantics as GET /leads/:id — if the lead rotated away from this
+  // agent, treat it as gone instead of forbidden. Cuts Sentry noise.
   if (!isAdmin && lead.ownerId !== userId) {
-    throw AppError.forbidden("You don't own this lead");
+    throw AppError.notFound("Lead no longer in your pipeline");
   }
   await recordActivity(lead.id, userId, body.type, body.body);
   res.status(201).json({ success: true });

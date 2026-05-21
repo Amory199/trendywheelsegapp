@@ -163,8 +163,10 @@ OTHERS=$(echo "$SALES_LEADS" | jq "[.data[] | select(.ownerId != \"$SALES_USER_I
 [ "$OTHERS" = "0" ] || fail "Sales got $OTHERS leads not assigned to them (visibility regression)"
 pass "sales sees only assigned leads"
 
-# ─── 12b. Sales 403 on a lead they don't own ─────────────────
-note "12b. Sales 403 on unowned lead"
+# ─── 12b. Sales 404 on a lead they don't own ─────────────────
+# Was 403 in earlier rounds; flipped to 404 (round-4) to cut Sentry noise.
+# Semantically the lead is "gone from your pipeline" — not forbidden, not visible.
+note "12b. Sales 404 on unowned lead"
 # Create a lead owned by ADMIN, then try to GET it as SALES
 UNOWNED_RESP=$(curl -fsS -XPOST "$BASE/crm/leads" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
@@ -174,11 +176,11 @@ UNOWNED_ID=$(echo "$UNOWNED_RESP" | jq -r .data.id)
 curl -fsS -XPOST "$BASE/crm/leads/$UNOWNED_ID/reassign" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
   -d "{\"ownerId\":\"$(echo "$ADMIN_RESP" | jq -r '.user.id')\"}" >/dev/null
-# Sales GET should now 403
+# Sales GET should now 404 (not 403) — see route comment in crm/routes.ts.
 CODE=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/crm/leads/$UNOWNED_ID" \
   -H "Authorization: Bearer $SALES_TOKEN")
-[ "$CODE" = "403" ] || fail "Sales got HTTP $CODE on unowned lead, expected 403"
-pass "sales blocked from unowned leads"
+[ "$CODE" = "404" ] || fail "Sales got HTTP $CODE on unowned lead, expected 404"
+pass "sales blocked from unowned leads (404)"
 # Cleanup
 curl -fsS -XPATCH "$BASE/crm/leads/$UNOWNED_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \

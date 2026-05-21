@@ -53,6 +53,18 @@ const io = new SocketServer(httpServer, {
 io.engine.on(
   "connection_error",
   (err: { req?: { url?: string }; code?: number; message?: string; context?: unknown }) => {
+    // Engine.IO codes 1 (Session ID unknown) and 3 (TRANSPORT_HANDSHAKE_ERROR)
+    // are routine client-side noise — stale sessions retrying after a server
+    // restart, Nginx not forwarding WS upgrade headers, etc. They are NOT
+    // actionable bugs and were spamming Sentry to "escalated/high" priority.
+    // Log them locally but don't ship to the error sink.
+    if (err.code === 1 || err.code === 3) {
+      logger.debug(
+        { code: err.code, ctx: err.context, url: err.req?.url },
+        "engine.io connection_error (noise; not reported)",
+      );
+      return;
+    }
     void writeError({
       level: "warn",
       source: "socket",
