@@ -60,3 +60,4 @@ minio-data/
 # and `eas secret:create --type file --name GOOGLE_SERVICES_INFO_PLIST ...`.
 apps/mobile/GoogleService-Info.plist
 apps/mobile/google-services.json
+.claude/
