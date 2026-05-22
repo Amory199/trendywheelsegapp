@@ -29,12 +29,17 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
-  // Known application errors → persist 5xx at error, 4xx at warn. Skip
-  // unauth probe noise — anonymous 401/404 hits are scanner traffic, but
-  // 403 from an authenticated user is real signal we want to keep.
+  // Known application errors → persist 5xx at error, 4xx at warn. Skip:
+  //  - anonymous 401/404 hits → scanner / probe traffic
+  //  - any 404 → routine "record not found / scope changed" (e.g. sales
+  //    GETting a rotated lead returns 404 "no longer in your pipeline",
+  //    which is the new owner's expected behaviour — not an error worth
+  //    surfacing in the admin log every time the smoke test runs).
+  // Keep 403 (real access-violation signal) and 400 (validation bugs).
   if (err instanceof AppError) {
-    const isNoise = !req.user && (err.statusCode === 401 || err.statusCode === 404);
-    if (!isNoise) {
+    const isAnonProbe = !req.user && (err.statusCode === 401 || err.statusCode === 404);
+    const isRoutine404 = err.statusCode === 404;
+    if (!isAnonProbe && !isRoutine404) {
       void writeError({
         level: err.statusCode >= 500 ? "error" : "warn",
         source: "api",
