@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
 import { notificationsQueue } from "../../queues/index.js";
+import { requireOwner, scopeListToOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 import { recordActivity } from "../crm/service.js";
 import { emitCustomerEvent } from "../realtime/customer-events.js";
@@ -21,10 +22,8 @@ export async function list(req: Request, res: Response): Promise<void> {
   if (userId) where.userId = userId;
   if (vehicleId) where.vehicleId = vehicleId;
 
-  // Customers can only see their own bookings
-  if (req.user!.accountType === "customer") {
-    where.userId = req.user!.userId;
-  }
+  // Customers can only see their own bookings.
+  scopeListToOwner(req, where);
 
   const [data, total] = await Promise.all([
     prisma.booking.findMany({
@@ -442,9 +441,7 @@ export async function remove(req: Request, res: Response): Promise<void> {
   const booking = await prisma.booking.findUnique({ where: { id: req.params.id } });
   if (!booking) throw AppError.notFound("Booking not found");
 
-  if (req.user!.accountType === "customer" && booking.userId !== req.user!.userId) {
-    throw AppError.forbidden();
-  }
+  requireOwner(req, booking.userId);
 
   await prisma.booking.delete({ where: { id: req.params.id } });
   res.json({ success: true });

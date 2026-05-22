@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
 import { notificationsQueue } from "../../queues/index.js";
+import { requireOwner, scopeListToOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 import { emitCustomerEvent } from "../realtime/customer-events.js";
 
@@ -30,7 +31,7 @@ export async function list(req: Request, res: Response): Promise<void> {
 
   const where: Record<string, unknown> = {};
   if (status) where.status = toDbStatus(status as ApiStatus);
-  if (req.user!.accountType === "customer") where.userId = req.user!.userId;
+  scopeListToOwner(req, where);
 
   const [data, total] = await Promise.all([
     prisma.repairRequest.findMany({
@@ -56,9 +57,7 @@ export async function getById(req: Request, res: Response): Promise<void> {
     },
   });
   if (!repair) throw AppError.notFound("Repair request not found");
-  if (req.user!.accountType === "customer" && repair.userId !== req.user!.userId) {
-    throw AppError.forbidden();
-  }
+  requireOwner(req, repair.userId);
   res.json({ data: fromDbStatus(repair) });
 }
 

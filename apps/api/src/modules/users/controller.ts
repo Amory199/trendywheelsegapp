@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { prisma } from "../../config/database.js";
+import { requireOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 
 const createStaffSchema = z.object({
@@ -69,9 +70,7 @@ export async function getMe(req: Request, res: Response): Promise<void> {
 
 export async function getById(req: Request, res: Response): Promise<void> {
   // Customers can only view their own profile
-  if (req.user!.accountType === "customer" && req.params.id !== req.user!.userId) {
-    throw AppError.forbidden();
-  }
+  requireOwner(req, req.params.id);
 
   const user = await prisma.user.findUnique({
     where: { id: req.params.id },
@@ -97,9 +96,7 @@ export async function getById(req: Request, res: Response): Promise<void> {
 
 export async function update(req: Request, res: Response): Promise<void> {
   // Customers can only update their own profile
-  if (req.user!.accountType === "customer" && req.params.id !== req.user!.userId) {
-    throw AppError.forbidden();
-  }
+  requireOwner(req, req.params.id);
 
   const parsed = updateUserSchema.parse(req.body);
   // Privilege fields are admin-only — strip silently for any non-admin caller
@@ -142,9 +139,7 @@ export async function update(req: Request, res: Response): Promise<void> {
 
 export async function exportData(req: Request, res: Response): Promise<void> {
   // Users can only export their own data; admins can export any
-  if (req.user!.accountType === "customer" && req.params.id !== req.user!.userId) {
-    throw AppError.forbidden();
-  }
+  requireOwner(req, req.params.id);
 
   const userId = req.params.id;
   const [user, bookings, repairs, tickets, listings, messages] = await Promise.all([
@@ -210,9 +205,7 @@ export async function requestDeletion(req: Request, res: Response): Promise<void
 
 export async function deleteAccount(req: Request, res: Response): Promise<void> {
   // Only admins can delete any account; customers can delete their own
-  if (req.user!.accountType === "customer" && req.params.id !== req.user!.userId) {
-    throw AppError.forbidden();
-  }
+  requireOwner(req, req.params.id);
 
   const userId = req.params.id;
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -294,9 +287,7 @@ export async function createStaff(req: Request, res: Response): Promise<void> {
 }
 
 export async function getInteractions(req: Request, res: Response): Promise<void> {
-  if (req.user!.accountType === "customer" && req.params.id !== req.user!.userId) {
-    throw AppError.forbidden();
-  }
+  requireOwner(req, req.params.id);
 
   const userId = req.params.id;
   const { page = "1", limit = "20" } = req.query as Record<string, string>;

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
+import { isAdmin } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 
 import { emitLeadUpdated } from "./realtime.js";
@@ -26,11 +27,11 @@ router.get("/leads", async (req, res) => {
   const userId = req.user!.userId;
 
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+  const admin = isAdmin(me);
 
   const where: Record<string, unknown> = {};
 
-  if (isAdmin) {
+  if (admin) {
     // Admins can see everything; honor explicit owner + status filters.
     if (status) where.status = status;
     if (mineOnly) where.ownerId = userId;
@@ -65,11 +66,11 @@ router.get("/leads", async (req, res) => {
 router.get("/pipeline", async (req, res) => {
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+  const admin = isAdmin(me);
 
   // Pipeline KPIs exclude inactive leads from sales' view so the buckets only
   // reflect actionable work. Admin keeps the full picture.
-  const where: Record<string, unknown> = isAdmin
+  const where: Record<string, unknown> = admin
     ? {}
     : { ownerId: userId, status: { not: "inactive" } };
 
@@ -94,7 +95,7 @@ router.get("/pipeline", async (req, res) => {
         customer: { select: { id: true, name: true } },
       },
     }),
-    isAdmin ? Promise.resolve(null) : computeAgentTargets(userId),
+    admin ? Promise.resolve(null) : computeAgentTargets(userId),
   ]);
 
   type StatusBucket = {
@@ -122,8 +123,8 @@ router.get("/pipeline", async (req, res) => {
 // ─── Team list (admin-only) ──────────────────────────────────
 router.get("/team", async (req, res) => {
   const me = await prisma.user.findUnique({ where: { id: req.user!.userId } });
-  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
-  if (!isAdmin) {
+  const admin = isAdmin(me);
+  if (!admin) {
     res.status(403).json({ error: "Team view is admin-only" });
     return;
   }
@@ -193,7 +194,7 @@ router.get("/team", async (req, res) => {
 router.get("/leads/:id", async (req, res) => {
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+  const admin = isAdmin(me);
 
   const lead = await prisma.lead.findUnique({
     where: { id: req.params.id },
@@ -221,7 +222,7 @@ router.get("/leads/:id", async (req, res) => {
   // moved on (rotation, manual reassign), surface as 404 rather than 403 —
   // the lead no longer exists "in their pipeline". 403 was flooding Sentry
   // because rotations happen frequently and clients still cache the old row.
-  if (!isAdmin && lead.ownerId !== userId) {
+  if (!admin && lead.ownerId !== userId) {
     throw AppError.notFound("Lead no longer in your pipeline");
   }
   res.json({ data: lead });
@@ -305,8 +306,8 @@ router.patch("/leads/:id", async (req, res) => {
   if (!lead) throw AppError.notFound("Lead not found");
 
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
-  if (!isAdmin && lead.ownerId !== userId) {
+  const admin = isAdmin(me);
+  if (!admin && lead.ownerId !== userId) {
     throw AppError.forbidden("You don't own this lead");
   }
 
@@ -347,10 +348,10 @@ router.patch("/leads/:id", async (req, res) => {
 router.post("/leads/:id/rotate", async (req, res) => {
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+  const admin = isAdmin(me);
   const lead = await prisma.lead.findUnique({ where: { id: req.params.id } });
   if (!lead) throw AppError.notFound("Lead not found");
-  if (!isAdmin && lead.ownerId !== userId) {
+  if (!admin && lead.ownerId !== userId) {
     throw AppError.forbidden("You can only rotate leads you own");
   }
   const result = await rotateLeadToNextAgent(lead.id, userId);
@@ -363,8 +364,8 @@ router.post("/leads/:id/reassign", async (req, res) => {
   const body = reassignSchema.parse(req.body);
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
-  if (!isAdmin) throw AppError.forbidden("Admins only");
+  const admin = isAdmin(me);
+  if (!admin) throw AppError.forbidden("Admins only");
 
   const lead = await prisma.lead.findUnique({ where: { id: req.params.id } });
   if (!lead) throw AppError.notFound("Lead not found");
@@ -407,12 +408,12 @@ router.post("/leads/:id/activities", async (req, res) => {
   const body = activitySchema.parse(req.body);
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+  const admin = isAdmin(me);
   const lead = await prisma.lead.findUnique({ where: { id: req.params.id } });
   if (!lead) throw AppError.notFound("Lead not found");
   // Same 404 semantics as GET /leads/:id — if the lead rotated away from this
   // agent, treat it as gone instead of forbidden. Cuts Sentry noise.
-  if (!isAdmin && lead.ownerId !== userId) {
+  if (!admin && lead.ownerId !== userId) {
     throw AppError.notFound("Lead no longer in your pipeline");
   }
   await recordActivity(lead.id, userId, body.type, body.body);
@@ -440,8 +441,8 @@ const rulesSchema = z.object({
 router.patch("/rules", async (req, res) => {
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
-  if (!isAdmin) throw AppError.forbidden("Admins only");
+  const admin = isAdmin(me);
+  if (!admin) throw AppError.forbidden("Admins only");
 
   const body = rulesSchema.parse(req.body);
   const existing = await prisma.crmRules.findFirst({ orderBy: { updatedAt: "desc" } });
@@ -483,11 +484,11 @@ router.post("/inventory/attach", async (req, res) => {
   const body = matchSchema.parse(req.body);
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+  const admin = isAdmin(me);
 
   const lead = await prisma.lead.findUnique({ where: { id: body.leadId } });
   if (!lead) throw AppError.notFound("Lead not found");
-  if (!isAdmin && lead.ownerId !== userId) {
+  if (!admin && lead.ownerId !== userId) {
     throw AppError.forbidden("You don't own this lead");
   }
 

@@ -9,6 +9,7 @@ import {
   notificationsQueue,
   remindersQueue,
 } from "../../queues/index.js";
+import { isAdmin } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 import { signAccessToken } from "../auth/service.js";
 import { logger } from "../../utils/logger.js";
@@ -19,7 +20,7 @@ router.use(authenticate, authorize("admin"));
 
 const requireAdmin = async (userId: string): Promise<void> => {
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  if (!(me?.accountType === "admin" || me?.staffRole === "admin")) {
+  if (!isAdmin(me)) {
     throw AppError.forbidden("Admins only");
   }
 };

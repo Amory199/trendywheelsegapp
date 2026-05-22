@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { redis } from "../../config/redis.js";
 import { prisma } from "../../config/database.js";
 import { notificationsQueue } from "../../queues/index.js";
+import { requireOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 import { emitCustomerEvent } from "../realtime/customer-events.js";
 
@@ -131,9 +132,7 @@ export async function create(req: Request, res: Response): Promise<void> {
 export async function update(req: Request, res: Response): Promise<void> {
   const listing = await prisma.salesListing.findUnique({ where: { id: req.params.id } });
   if (!listing) throw AppError.notFound("Listing not found");
-  if (req.user!.accountType === "customer" && listing.userId !== req.user!.userId) {
-    throw AppError.forbidden();
-  }
+  requireOwner(req, listing.userId);
 
   const updated = await prisma.salesListing.update({
     where: { id: req.params.id },
@@ -180,9 +179,7 @@ export async function restore(req: Request, res: Response): Promise<void> {
 export async function remove(req: Request, res: Response): Promise<void> {
   const listing = await prisma.salesListing.findUnique({ where: { id: req.params.id } });
   if (!listing) throw AppError.notFound("Listing not found");
-  if (req.user!.accountType === "customer" && listing.userId !== req.user!.userId) {
-    throw AppError.forbidden();
-  }
+  requireOwner(req, listing.userId);
   await prisma.salesListing.delete({ where: { id: req.params.id } });
   await invalidateSalesCache();
   res.json({ success: true });

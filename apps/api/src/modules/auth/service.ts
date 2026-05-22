@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../../config/database.js";
 import { env } from "../../config/env.js";
 import type { AuthPayload } from "../../middleware/auth.js";
+import { ADMIN_FILTER } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 import { logger } from "../../utils/logger.js";
 import { notificationsQueue } from "../../queues/index.js";
@@ -21,10 +22,7 @@ async function notifyAdminsOfSignup(customer: {
   phone: string;
 }): Promise<void> {
   const admins = await prisma.user.findMany({
-    where: {
-      OR: [{ accountType: "admin" }, { staffRole: "admin" }],
-      status: "active",
-    },
+    where: { ...ADMIN_FILTER, status: "active" },
     select: { id: true },
   });
   await Promise.all(

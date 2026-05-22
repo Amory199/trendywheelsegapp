@@ -1,5 +1,6 @@
 import { prisma } from "../../config/database.js";
 import { notificationsQueue } from "../../queues/index.js";
+import { ADMIN_FILTER } from "../../utils/auth-roles.js";
 import { logger } from "../../utils/logger.js";
 
 import {
@@ -364,10 +365,7 @@ export async function sweepStaleLeads(): Promise<{ reassigned: number; escalated
       escalated++;
       if (rules.notifyOnEscalation) {
         const admins = await prisma.user.findMany({
-          where: {
-            status: "active",
-            OR: [{ accountType: "admin" }, { staffRole: "admin" }],
-          },
+          where: { status: "active", ...ADMIN_FILTER },
           select: { id: true },
         });
         for (const admin of admins) {

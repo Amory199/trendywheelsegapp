@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { prisma } from "../../config/database.js";
 import { authenticate } from "../../middleware/auth.js";
+import { isAdmin } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 
 const router: RouterType = Router();
@@ -109,11 +110,11 @@ router.patch("/reviews/:id", async (req, res) => {
 router.delete("/reviews/:id", async (req, res) => {
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const isAdmin = me?.accountType === "admin" || me?.staffRole === "admin";
+  const admin = isAdmin(me);
   const review = await prisma.review.findUnique({ where: { id: req.params.id } });
   if (!review) throw AppError.notFound("Review not found");
-  if (!isAdmin && review.userId !== userId) throw AppError.forbidden("Not your review");
-  if (!isAdmin && review.editableUntil < new Date()) throw AppError.badRequest("Review locked");
+  if (!admin && review.userId !== userId) throw AppError.forbidden("Not your review");
+  if (!admin && review.editableUntil < new Date()) throw AppError.badRequest("Review locked");
   await prisma.review.delete({ where: { id: review.id } });
   res.json({ success: true });
 });
