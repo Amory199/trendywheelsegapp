@@ -17,6 +17,7 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CategoryVideoHero } from "../../../components/CategoryVideoHero";
 import { api } from "../../../lib/api";
 
 const PAGE_SIZE = 20;
@@ -29,10 +30,11 @@ export default function RentCategoryScreen(): JSX.Element {
   const [search, setSearch] = useState("");
 
   const isAll = key === "all";
+  const categoryMeta = useMemo(() => VEHICLE_CATEGORIES.find((c) => c.key === key) ?? null, [key]);
   const categoryLabel = useMemo(() => {
     if (isAll) return "All categories";
-    return VEHICLE_CATEGORIES.find((c) => c.key === key)?.label ?? "Vehicles";
-  }, [key, isAll]);
+    return categoryMeta?.label ?? "Vehicles";
+  }, [categoryMeta, isAll]);
 
   const q = useInfiniteQuery({
     queryKey: ["vehicles", "by-category", key],
@@ -99,15 +101,43 @@ export default function RentCategoryScreen(): JSX.Element {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Ionicons name="chevron-back" size={24} color={palette.text} />
-        </Pressable>
-        <Text style={styles.topBarTitle} numberOfLines={1}>
-          {categoryLabel}
-        </Text>
-        <View style={{ width: 24 }} />
-      </View>
+      {!isAll && categoryMeta ? (
+        <View>
+          <CategoryVideoHero
+            categoryKey={categoryMeta.key}
+            label={categoryMeta.label}
+            icon={categoryMeta.icon as never}
+            height={220}
+          />
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={12}
+            style={{
+              position: "absolute",
+              top: insets.top + 8,
+              left: 16,
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: "rgba(0,0,0,0.45)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="chevron-back" size={22} color="#fff" />
+          </Pressable>
+        </View>
+      ) : (
+        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+          <Pressable onPress={() => router.back()} hitSlop={10}>
+            <Ionicons name="chevron-back" size={24} color={palette.text} />
+          </Pressable>
+          <Text style={styles.topBarTitle} numberOfLines={1}>
+            {categoryLabel}
+          </Text>
+          <View style={{ width: 24 }} />
+        </View>
+      )}
       <View style={styles.searchBar}>
         <Ionicons name="search-outline" size={18} color={palette.muted} />
         <TextInput
