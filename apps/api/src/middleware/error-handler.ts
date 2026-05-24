@@ -5,18 +5,31 @@ import { contextFromRequest, writeError } from "../utils/error-sink.js";
 import { AppError } from "../utils/errors.js";
 import { Sentry } from "../utils/sentry.js";
 
+// Smoke-test runs deliberately exercise 4xx paths (e.g. forbidden-on-non-
+// deletable-status). Those flow through this handler and would otherwise
+// pollute Sentry / writeError every run. Skip persistence when the request
+// is from the checked-in smoke script.
+function isSmokeTest(req: { headers?: Record<string, unknown> }): boolean {
+  const ua = req.headers?.["user-agent"];
+  return typeof ua === "string" && ua.startsWith("tw-smoke-test");
+}
+
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  const smoke = isSmokeTest(req);
+
   // Zod validation errors → 400, persisted at warn level (client-side bug).
   if (err instanceof ZodError) {
-    void writeError({
-      level: "warn",
-      source: "api",
-      message: `Validation error: ${err.errors.map((e) => `${e.path.join(".")} — ${e.message}`).join("; ")}`,
-      stack: err.stack ?? null,
-      statusCode: 400,
-      ...contextFromRequest(req),
-      metadata: { issues: err.errors },
-    });
+    if (!smoke) {
+      void writeError({
+        level: "warn",
+        source: "api",
+        message: `Validation error: ${err.errors.map((e) => `${e.path.join(".")} — ${e.message}`).join("; ")}`,
+        stack: err.stack ?? null,
+        statusCode: 400,
+        ...contextFromRequest(req),
+        metadata: { issues: err.errors },
+      });
+    }
     res.status(400).json({
       message: "Validation error",
       code: "VALIDATION_ERROR",
@@ -39,7 +52,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof AppError) {
     const isAnonProbe = !req.user && (err.statusCode === 401 || err.statusCode === 404);
     const isRoutine404 = err.statusCode === 404;
-    if (!isAnonProbe && !isRoutine404) {
+    if (!isAnonProbe && !isRoutine404 && !smoke) {
       void writeError({
         level: err.statusCode >= 500 ? "error" : "warn",
         source: "api",

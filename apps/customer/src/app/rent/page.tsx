@@ -22,20 +22,32 @@ interface VehicleRow {
   images?: Array<{ url: string }>;
 }
 
-const TYPES = ["all", "sedan", "suv", "hatchback", "luxury", "van"];
+// Vehicle category filters. These map 1:1 to the Prisma VehicleCategory
+// enum (kebab-case in the API). Label is what the chip shows; id is what we
+// send as `?category=...`.
+const CATEGORIES: { id: string; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "golf-cart", label: "Golf carts" },
+  { id: "buggy", label: "Buggies" },
+  { id: "utv", label: "UTVs" },
+  { id: "scooter", label: "Scooters" },
+  { id: "scooter-sidecar", label: "Sidecars" },
+  { id: "jet-ski", label: "Jet skis" },
+  { id: "hover-board", label: "Hover boards" },
+];
 
 export default function RentPage(): JSX.Element {
-  const [type, setType] = useState("all");
+  const [category, setCategory] = useState("all");
 
   const q = useQuery({
-    queryKey: ["customer-rent-list", type],
+    queryKey: ["customer-rent-list", category],
     queryFn: () => {
       const params = new URLSearchParams({
         available: "true",
         limit: "60",
         listingType: "rent",
       });
-      if (type !== "all") params.set("type", type);
+      if (category !== "all") params.set("category", category);
       return authedFetch<{ data: VehicleRow[] }>(`/api/vehicles?${params}`);
     },
   });
@@ -63,25 +75,25 @@ export default function RentPage(): JSX.Element {
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {TYPES.map((t) => (
+        {CATEGORIES.map((c) => (
           <button
-            key={t}
-            onClick={() => setType(t)}
+            key={c.id}
+            onClick={() => setCategory(c.id)}
             style={{
               padding: "8px 16px",
               borderRadius: 999,
               border: "none",
               cursor: "pointer",
-              background: type === t ? colors.brand.friendlyBlue : "#fff",
-              color: type === t ? "#fff" : colors.brand.trustWorth,
+              background: category === c.id ? colors.brand.friendlyBlue : "#fff",
+              color: category === c.id ? "#fff" : colors.brand.trustWorth,
               fontWeight: 700,
               fontSize: 12,
               textTransform: "uppercase",
               letterSpacing: 0.6,
-              boxShadow: type === t ? `0 4px 12px ${colors.brand.friendlyBlue}33` : "none",
+              boxShadow: category === c.id ? `0 4px 12px ${colors.brand.friendlyBlue}33` : "none",
             }}
           >
-            {t}
+            {c.label}
           </button>
         ))}
       </div>
