@@ -19,6 +19,7 @@ const ICON_MAP: Record<string, string> = {
   listings: "🏷️",
   repairs: "🔧",
   messages: "💬",
+  rentals: "🚗",
 };
 
 interface Props {

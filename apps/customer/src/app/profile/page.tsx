@@ -36,6 +36,12 @@ interface Repair {
   id: string;
   status?: string;
 }
+interface RentalListing {
+  id: string;
+  status?: string;
+  brand?: string;
+  model?: string;
+}
 
 export default function ProfilePage(): JSX.Element {
   const router = useRouter();
@@ -56,6 +62,11 @@ export default function ProfilePage(): JSX.Element {
     queryFn: () => authedFetch("/api/repairs?limit=1"),
     enabled: !!user,
   });
+  const rentalsQ = useQuery<ListResponse<RentalListing>>({
+    queryKey: ["profile-rental-listings"],
+    queryFn: () => authedFetch("/api/rental-listings"),
+    enabled: !!user,
+  });
 
   if (!user) return <div style={{ padding: 24 }}>Loading…</div>;
 
@@ -64,9 +75,11 @@ export default function ProfilePage(): JSX.Element {
   const bookingsCount = bookingsQ.data?.total ?? bookingsQ.data?.data?.length ?? 0;
   const listingsCount = listingsQ.data?.total ?? listingsQ.data?.data?.length ?? 0;
   const repairsCount = repairsQ.data?.total ?? repairsQ.data?.data?.length ?? 0;
+  const rentalsCount = rentalsQ.data?.total ?? rentalsQ.data?.data?.length ?? 0;
   const latestBooking = bookingsQ.data?.data?.[0];
   const latestListing = listingsQ.data?.data?.[0];
   const latestRepair = repairsQ.data?.data?.[0];
+  const latestRental = rentalsQ.data?.data?.[0];
 
   const onSignOut = (): void => {
     logout();
@@ -146,6 +159,19 @@ export default function ProfilePage(): JSX.Element {
               : `${repairsCount} total`
         }
         tone="amber"
+      />
+      <ActivityCard
+        href="/sell/list-for-rent"
+        iconKey="rentals"
+        title="Rental listings"
+        subtitle={
+          rentalsCount === 0
+            ? "List your cart for managed rental"
+            : latestRental?.status
+              ? `${rentalsCount} total · latest: ${latestRental.status}`
+              : `${rentalsCount} total`
+        }
+        tone="purple"
       />
       <ActivityCard
         href="/messages"
