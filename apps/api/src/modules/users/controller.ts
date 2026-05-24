@@ -8,6 +8,7 @@ import {
 } from "@trendywheels/validators";
 import bcrypt from "bcryptjs";
 
+import { PAGINATION } from "../../config/limits.js";
 import { prisma } from "../../config/database.js";
 import { requireOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
@@ -15,7 +16,7 @@ import { AppError } from "../../utils/errors.js";
 export async function list(req: Request, res: Response): Promise<void> {
   const { page = "1", limit = "20" } = req.query as Record<string, string>;
   const pageNum = Math.max(1, Number(page));
-  const limitNum = Math.min(100, Math.max(1, Number(limit)));
+  const limitNum = Math.min(PAGINATION.max, Math.max(1, Number(limit)));
 
   const [users, total] = await Promise.all([
     prisma.user.findMany({

@@ -6,6 +6,7 @@ import {
   updateVehicleMaintenanceSchema,
 } from "@trendywheels/validators";
 
+import { PAGINATION } from "../../config/limits.js";
 import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { AppError } from "../../utils/errors.js";
@@ -31,7 +32,7 @@ router.get("/", async (req, res) => {
     where,
     orderBy: { scheduledAt: "asc" },
     include: { vehicle: { select: { id: true, name: true, type: true } } },
-    take: 500,
+    take: PAGINATION.large,
   });
   res.json({ data: items });
 });

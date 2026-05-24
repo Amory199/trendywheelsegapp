@@ -2,6 +2,7 @@ import { Router, type Router as RouterType } from "express";
 
 import { createCustomerNoteSchema, updateSystemConfigSchema } from "@trendywheels/validators";
 
+import { PAGINATION } from "../../config/limits.js";
 import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
 
@@ -164,7 +165,7 @@ router.get("/revenue-breakdown", async (_req, res) => {
 router.get("/customers", async (req, res) => {
   const { q, page = "1", limit = "25" } = req.query as Record<string, string>;
   const pageNum = Math.max(1, Number(page));
-  const limitNum = Math.min(100, Math.max(1, Number(limit)));
+  const limitNum = Math.min(PAGINATION.max, Math.max(1, Number(limit)));
 
   const where: Record<string, unknown> = { accountType: "customer" };
   if (q) {
@@ -292,7 +293,7 @@ router.get("/customers/:id", async (req, res) => {
 router.get("/conversations", async (req, res) => {
   const { page = "1", limit = "30" } = req.query as Record<string, string>;
   const pageNum = Math.max(1, Number(page));
-  const limitNum = Math.min(100, Math.max(1, Number(limit)));
+  const limitNum = Math.min(PAGINATION.max, Math.max(1, Number(limit)));
 
   const [conversations, total] = await Promise.all([
     prisma.conversation.findMany({
