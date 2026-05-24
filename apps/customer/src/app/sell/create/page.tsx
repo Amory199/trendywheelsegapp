@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../../lib/fetcher";
 
@@ -79,11 +80,35 @@ export default function SellCreatePage(): JSX.Element {
         Tell us about your car — we&apos;ll show it to thousands of buyers.
       </p>
 
-      <div style={{ display: "grid", gap: 16, background: "#fff", padding: 28, borderRadius: 16, border: "1px solid #ECECF1" }}>
-        <Field label="Listing title" value={f.title} onChange={(v) => update("title", v)} placeholder="e.g. 2021 Toyota Camry — Low Mileage" />
+      <div
+        style={{
+          display: "grid",
+          gap: 16,
+          background: "#fff",
+          padding: 28,
+          borderRadius: 16,
+          border: "1px solid #ECECF1",
+        }}
+      >
+        <Field
+          label="Listing title"
+          value={f.title}
+          onChange={(v) => update("title", v)}
+          placeholder="e.g. 2021 Toyota Camry — Low Mileage"
+        />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Make" value={f.make} onChange={(v) => update("make", v)} placeholder="Toyota" />
-          <Field label="Model" value={f.model} onChange={(v) => update("model", v)} placeholder="Camry" />
+          <Field
+            label="Make"
+            value={f.make}
+            onChange={(v) => update("make", v)}
+            placeholder="Toyota"
+          />
+          <Field
+            label="Model"
+            value={f.model}
+            onChange={(v) => update("model", v)}
+            placeholder="Camry"
+          />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
           <NumField label="Year" value={f.year} onChange={(v) => update("year", v)} />
@@ -103,10 +128,23 @@ export default function SellCreatePage(): JSX.Element {
             onChange={(v) => update("fuelType", v as FormState["fuelType"])}
             options={["gasoline", "diesel", "electric", "hybrid"]}
           />
-          <Field label="Color" value={f.color} onChange={(v) => update("color", v)} placeholder="White" />
+          <Field
+            label="Color"
+            value={f.color}
+            onChange={(v) => update("color", v)}
+            placeholder="White"
+          />
         </div>
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#4B4A6B", letterSpacing: 0.4, textTransform: "uppercase" }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#4B4A6B",
+              letterSpacing: 0.4,
+              textTransform: "uppercase",
+            }}
+          >
             Description
           </span>
           <textarea
@@ -155,42 +193,119 @@ export default function SellCreatePage(): JSX.Element {
   );
 }
 
-function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }): JSX.Element {
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}): JSX.Element {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "#4B4A6B", letterSpacing: 0.4, textTransform: "uppercase" }}>{label}</span>
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "#4B4A6B",
+          letterSpacing: 0.4,
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </span>
       <input
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid #ECECF1", fontSize: 14, fontFamily: "inherit" }}
+        style={{
+          padding: "12px 14px",
+          borderRadius: 10,
+          border: "1px solid #ECECF1",
+          fontSize: 14,
+          fontFamily: "inherit",
+        }}
       />
     </label>
   );
 }
 
-function NumField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }): JSX.Element {
+function NumField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}): JSX.Element {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "#4B4A6B", letterSpacing: 0.4, textTransform: "uppercase" }}>{label}</span>
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "#4B4A6B",
+          letterSpacing: 0.4,
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </span>
       <input
         type="number"
         value={value || ""}
         onChange={(e) => onChange(Number(e.target.value))}
-        style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid #ECECF1", fontSize: 14, fontFamily: "inherit" }}
+        style={{
+          padding: "12px 14px",
+          borderRadius: 10,
+          border: "1px solid #ECECF1",
+          fontSize: 14,
+          fontFamily: "inherit",
+        }}
       />
     </label>
   );
 }
 
-function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }): JSX.Element {
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+}): JSX.Element {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "#4B4A6B", letterSpacing: 0.4, textTransform: "uppercase" }}>{label}</span>
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "#4B4A6B",
+          letterSpacing: 0.4,
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid #ECECF1", fontSize: 14, fontFamily: "inherit", background: "#fff" }}
+        style={{
+          padding: "12px 14px",
+          borderRadius: 10,
+          border: "1px solid #ECECF1",
+          fontSize: 14,
+          fontFamily: "inherit",
+          background: "#fff",
+        }}
       >
         {options.map((o) => (
           <option key={o} value={o}>

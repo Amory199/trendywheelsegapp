@@ -5,6 +5,7 @@ import { TWParticleHero } from "@trendywheels/ui-brand/web-canvas";
 import { colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { JSX } from "react";
 
 import { useAuth } from "../lib/auth-store";
 import { authedFetch } from "../lib/fetcher";

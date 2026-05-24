@@ -11,6 +11,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import { useEffect, useState } from "react";
+import type { JSX } from "react";
 
 import { useAuth } from "./auth-store";
 

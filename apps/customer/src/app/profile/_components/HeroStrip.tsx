@@ -3,6 +3,7 @@
 import type { LoyaltyTier } from "@trendywheels/types";
 import { initialsOf, TIER_GRADIENTS } from "@trendywheels/ui-tokens";
 import Link from "next/link";
+import type { JSX } from "react";
 
 interface Props {
   name: string;

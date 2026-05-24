@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 

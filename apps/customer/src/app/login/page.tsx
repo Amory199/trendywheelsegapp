@@ -4,6 +4,7 @@ import { TWLogoLockup } from "@trendywheels/ui-brand/web";
 import { colors } from "@trendywheels/ui-tokens";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { useAuth } from "../../lib/auth-store";
 

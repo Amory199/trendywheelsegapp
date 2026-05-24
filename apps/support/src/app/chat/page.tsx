@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Message } from "@trendywheels/types";
 import { useEffect, useRef, useState } from "react";
+import type { JSX } from "react";
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
@@ -11,7 +12,13 @@ interface Conversation {
   id: string;
   lastMessageAt: string;
   participants: Array<{ userId: string; user?: { name?: string; phone?: string } }>;
-  messages: Array<{ id: string; message: string; senderId: string; createdAt: string; readAt?: string | null }>;
+  messages: Array<{
+    id: string;
+    message: string;
+    senderId: string;
+    createdAt: string;
+    readAt?: string | null;
+  }>;
 }
 
 const CANNED = [
@@ -50,8 +57,7 @@ export default function ChatPage(): JSX.Element {
 
   const activeConv = conversations.find((c) => c.id === activeId);
   const otherParticipant = activeConv?.participants.find((p) => p.userId !== user?.id);
-  const contactName =
-    otherParticipant?.user?.name ?? otherParticipant?.user?.phone ?? "Customer";
+  const contactName = otherParticipant?.user?.name ?? otherParticipant?.user?.phone ?? "Customer";
 
   useEffect(() => {
     if (conversations.length > 0 && !activeId) {
@@ -124,9 +130,7 @@ export default function ChatPage(): JSX.Element {
                         <span className={`text-sm ${unread ? "font-bold" : "font-medium"}`}>
                           {name}
                         </span>
-                        {unread && (
-                          <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
-                        )}
+                        {unread && <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />}
                       </div>
                       <p className="text-xs text-gray-400 truncate mt-0.5">
                         {lastMsg?.message ?? "No messages"}
@@ -166,10 +170,7 @@ export default function ChatPage(): JSX.Element {
               messages.map((msg) => {
                 const isMe = msg.senderId === user?.id;
                 return (
-                  <div
-                    key={msg.id}
-                    className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-                  >
+                  <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                     <div
                       className={`max-w-xs rounded-2xl px-4 py-2 text-sm ${
                         isMe
@@ -219,7 +220,9 @@ export default function ChatPage(): JSX.Element {
                 onClick={() => setShowCanned((v) => !v)}
                 title="Canned responses"
                 className={`px-3 py-2 rounded-md border text-sm font-medium transition ${
-                  showCanned ? "bg-blue-50 border-blue-300 text-blue-600" : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                  showCanned
+                    ? "bg-blue-50 border-blue-300 text-blue-600"
+                    : "border-gray-300 text-gray-600 hover:bg-gray-50"
                 }`}
               >
                 /

@@ -2,6 +2,7 @@
 
 import { colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
+import type { JSX } from "react";
 
 const PATHS = [
   {

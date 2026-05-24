@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -73,7 +74,9 @@ export default function AdminKBPage(): JSX.Element {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Knowledge Base</h1>
-          <p className="text-sm text-gray-500">{articles.length} articles · published platform-wide.</p>
+          <p className="text-sm text-gray-500">
+            {articles.length} articles · published platform-wide.
+          </p>
         </div>
         <div className="flex gap-3">
           <input
@@ -124,7 +127,9 @@ export default function AdminKBPage(): JSX.Element {
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">Content (markdown)</label>
+            <label className="text-xs font-medium text-gray-500 block mb-1">
+              Content (markdown)
+            </label>
             <textarea
               value={form.content}
               onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupportTicket, TicketPriority, TicketStatus } from "@trendywheels/types";
 import Link from "next/link";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 import { TWSelect } from "../../lib/tw-select";
@@ -102,21 +103,32 @@ export default function AdminTicketsPage(): JSX.Element {
     <div className="p-8 space-y-6">
       <header>
         <h1 className="text-2xl font-bold">Support Tickets</h1>
-        <p className="text-sm text-gray-500">{filtered.length} tickets — full platform oversight.</p>
+        <p className="text-sm text-gray-500">
+          {filtered.length} tickets — full platform oversight.
+        </p>
       </header>
 
       <div className="grid grid-cols-3 gap-4 tw-stagger">
         <div className="bg-white border rounded-lg p-4 tw-lift">
           <div className="text-xs text-gray-500 uppercase tracking-wider">Open</div>
-          <div className="text-2xl font-bold mt-1 tw-ticker" key={`open-${stats.open}`}>{stats.open}</div>
+          <div className="text-2xl font-bold mt-1 tw-ticker" key={`open-${stats.open}`}>
+            {stats.open}
+          </div>
         </div>
         <div className="bg-white border rounded-lg p-4 tw-lift">
           <div className="text-xs text-gray-500 uppercase tracking-wider">In Progress</div>
-          <div className="text-2xl font-bold mt-1 tw-ticker" key={`prog-${stats.inProgress}`}>{stats.inProgress}</div>
+          <div className="text-2xl font-bold mt-1 tw-ticker" key={`prog-${stats.inProgress}`}>
+            {stats.inProgress}
+          </div>
         </div>
         <div className="bg-white border rounded-lg p-4 tw-lift">
           <div className="text-xs text-gray-500 uppercase tracking-wider">Urgent</div>
-          <div className="text-2xl font-bold mt-1 text-red-600 tw-ticker" key={`urg-${stats.urgent}`}>{stats.urgent}</div>
+          <div
+            className="text-2xl font-bold mt-1 text-red-600 tw-ticker"
+            key={`urg-${stats.urgent}`}
+          >
+            {stats.urgent}
+          </div>
         </div>
       </div>
 

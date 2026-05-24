@@ -1,5 +1,6 @@
 import { IntroOverlay } from "@trendywheels/ui-brand/intro-overlay-web";
 import type { Metadata, Viewport } from "next";
+import type { JSX } from "react";
 
 import { ErrorReporter } from "../lib/error-reporter";
 import { Providers } from "../lib/providers";

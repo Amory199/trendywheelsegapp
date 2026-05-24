@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ListingType, Vehicle, VehicleStatus } from "@trendywheels/types";
 import Link from "next/link";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { api } from "../../lib/api";
 import { useList } from "../../lib/fetcher";

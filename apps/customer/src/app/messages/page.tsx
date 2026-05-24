@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -38,11 +39,26 @@ export default function MessagesPage(): JSX.Element {
       {q.isLoading ? (
         <div style={{ color: "#6B6A85" }}>Loading…</div>
       ) : list.length === 0 ? (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 40, textAlign: "center", color: "#6B6A85" }}>
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 16,
+            padding: 40,
+            textAlign: "center",
+            color: "#6B6A85",
+          }}
+        >
           No conversations yet. Reach out to support if you need help with a booking.
         </div>
       ) : (
-        <div style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, overflow: "hidden" }}>
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid #ECECF1",
+            borderRadius: 16,
+            overflow: "hidden",
+          }}
+        >
           {list.map((c) => {
             const last = c.messages[0];
             const others = c.participants.filter((p) => p.user).map((p) => p.user?.name ?? "User");

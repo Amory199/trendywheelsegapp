@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../../lib/fetcher";
 
@@ -75,10 +76,24 @@ export default function CrmInventoryPage(): JSX.Element {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
       <div>
-        <span style={{ fontSize: 11, fontWeight: 700, color: colors.brand.trendyPink, letterSpacing: "0.12em" }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: colors.brand.trendyPink,
+            letterSpacing: "0.12em",
+          }}
+        >
           INVENTORY
         </span>
-        <h1 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 36, margin: "4px 0 0", textTransform: "uppercase" }}>
+        <h1
+          style={{
+            fontFamily: "Anton, Impact, sans-serif",
+            fontSize: 36,
+            margin: "4px 0 0",
+            textTransform: "uppercase",
+          }}
+        >
           Golf carts in stock<span style={{ color: colors.brand.trendyPink }}>.</span>
         </h1>
         <p style={{ color: "#6B6A85", marginTop: 4, fontSize: 14 }}>
@@ -87,7 +102,16 @@ export default function CrmInventoryPage(): JSX.Element {
       </div>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 6, padding: 4, background: "#fff", border: "1px solid #ECECF1", borderRadius: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            padding: 4,
+            background: "#fff",
+            border: "1px solid #ECECF1",
+            borderRadius: 12,
+          }}
+        >
           {TYPES.map((t) => (
             <button
               key={t.value || "all"}
@@ -110,7 +134,16 @@ export default function CrmInventoryPage(): JSX.Element {
             </button>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 6, padding: 4, background: "#fff", border: "1px solid #ECECF1", borderRadius: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            padding: 4,
+            background: "#fff",
+            border: "1px solid #ECECF1",
+            borderRadius: 12,
+          }}
+        >
           {(["", "available", "rented"] as const).map((s) => (
             <button
               key={s || "all-status"}
@@ -135,7 +168,14 @@ export default function CrmInventoryPage(): JSX.Element {
         </div>
       </div>
 
-      <div className="tw-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+      <div
+        className="tw-stagger"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: 16,
+        }}
+      >
         {vehicles.map((v) => (
           <VehicleCard
             key={v.id}
@@ -146,7 +186,18 @@ export default function CrmInventoryPage(): JSX.Element {
           />
         ))}
         {!vehicles.length && !inv.isLoading ? (
-          <div style={{ gridColumn: "1 / -1", padding: 32, textAlign: "center", color: "#6B6A85", fontSize: 13, background: "#fff", borderRadius: 12, border: "1px solid #ECECF1" }}>
+          <div
+            style={{
+              gridColumn: "1 / -1",
+              padding: 32,
+              textAlign: "center",
+              color: "#6B6A85",
+              fontSize: 13,
+              background: "#fff",
+              borderRadius: 12,
+              border: "1px solid #ECECF1",
+            }}
+          >
             No golf carts match those filters.
           </div>
         ) : null}
@@ -167,19 +218,62 @@ function VehicleCard({
   attaching: boolean;
 }): JSX.Element {
   const [open, setOpen] = useState(false);
-  const cover = vehicle.images?.[0]?.url ?? `https://picsum.photos/seed/golf-cart-${vehicle.id.slice(0, 8)}/600/400`;
+  const cover =
+    vehicle.images?.[0]?.url ??
+    `https://picsum.photos/seed/golf-cart-${vehicle.id.slice(0, 8)}/600/400`;
   const statusStyle = STATUS_STYLES[vehicle.status] ?? STATUS_STYLES.available;
 
   return (
-    <div className="tw-card-lift" style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 14, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+    <div
+      className="tw-card-lift"
+      style={{
+        background: "#fff",
+        border: "1px solid #ECECF1",
+        borderRadius: 14,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <div style={{ position: "relative", aspectRatio: "16/10", background: "#F4F4F7" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={cover} alt={vehicle.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        <span style={{ position: "absolute", top: 10, left: 10, padding: "4px 10px", borderRadius: 999, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", background: statusStyle.bg, color: statusStyle.fg }}>
+        <img
+          src={cover}
+          alt={vehicle.name}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+        <span
+          style={{
+            position: "absolute",
+            top: 10,
+            left: 10,
+            padding: "4px 10px",
+            borderRadius: 999,
+            fontSize: 10,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            background: statusStyle.bg,
+            color: statusStyle.fg,
+          }}
+        >
           {vehicle.status}
         </span>
         {vehicle.type === "LED" ? (
-          <span style={{ position: "absolute", top: 10, right: 10, padding: "4px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, background: colors.brand.trendyPink, color: "#fff", letterSpacing: "0.06em" }}>
+          <span
+            style={{
+              position: "absolute",
+              top: 10,
+              right: 10,
+              padding: "4px 8px",
+              borderRadius: 999,
+              fontSize: 10,
+              fontWeight: 700,
+              background: colors.brand.trendyPink,
+              color: "#fff",
+              letterSpacing: "0.06em",
+            }}
+          >
             LED
           </span>
         ) : null}
@@ -191,14 +285,36 @@ function VehicleCard({
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
           {(vehicle.features ?? []).slice(0, 3).map((f) => (
-            <span key={f} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 999, background: "#F4F4F7", color: "#4B4A6B" }}>
+            <span
+              key={f}
+              style={{
+                fontSize: 10,
+                padding: "3px 8px",
+                borderRadius: 999,
+                background: "#F4F4F7",
+                color: "#4B4A6B",
+              }}
+            >
               {f}
             </span>
           ))}
         </div>
-        <div style={{ marginTop: "auto", display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <div
+          style={{
+            marginTop: "auto",
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+          }}
+        >
           <div>
-            <span style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 22, color: colors.brand.trendyPink }}>
+            <span
+              style={{
+                fontFamily: "Anton, Impact, sans-serif",
+                fontSize: 22,
+                color: colors.brand.trendyPink,
+              }}
+            >
               EGP {Number(vehicle.dailyRate).toLocaleString()}
             </span>
             <span style={{ fontSize: 11, color: "#6B6A85" }}> / day</span>
@@ -208,23 +324,51 @@ function VehicleCard({
         {open ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {leads.length === 0 ? (
-              <div style={{ fontSize: 11, color: "#6B6A85", padding: "8px 0" }}>You have no active leads to attach this to.</div>
+              <div style={{ fontSize: 11, color: "#6B6A85", padding: "8px 0" }}>
+                You have no active leads to attach this to.
+              </div>
             ) : (
               leads.map((l) => (
                 <div key={l.id} style={{ display: "flex", gap: 4 }}>
                   <button
-                    onClick={() => { onAttach(l.id, "rent"); setOpen(false); }}
+                    onClick={() => {
+                      onAttach(l.id, "rent");
+                      setOpen(false);
+                    }}
                     disabled={attaching}
                     className="tw-press"
-                    style={{ flex: 1, padding: "6px 10px", border: `1px solid ${colors.brand.friendlyBlue}`, borderRadius: 8, background: "#fff", color: colors.brand.friendlyBlue, fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left" }}
+                    style={{
+                      flex: 1,
+                      padding: "6px 10px",
+                      border: `1px solid ${colors.brand.friendlyBlue}`,
+                      borderRadius: 8,
+                      background: "#fff",
+                      color: colors.brand.friendlyBlue,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
                   >
                     Rent → {l.contactName}
                   </button>
                   <button
-                    onClick={() => { onAttach(l.id, "sell"); setOpen(false); }}
+                    onClick={() => {
+                      onAttach(l.id, "sell");
+                      setOpen(false);
+                    }}
                     disabled={attaching}
                     className="tw-press"
-                    style={{ padding: "6px 10px", border: `1px solid ${colors.brand.trendyPink}`, borderRadius: 8, background: "#fff", color: colors.brand.trendyPink, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                    style={{
+                      padding: "6px 10px",
+                      border: `1px solid ${colors.brand.trendyPink}`,
+                      borderRadius: 8,
+                      background: "#fff",
+                      color: colors.brand.trendyPink,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
                   >
                     Sell
                   </button>
@@ -233,7 +377,15 @@ function VehicleCard({
             )}
             <button
               onClick={() => setOpen(false)}
-              style={{ marginTop: 4, padding: "4px 10px", border: "none", background: "transparent", color: "#9E9DAE", fontSize: 11, cursor: "pointer" }}
+              style={{
+                marginTop: 4,
+                padding: "4px 10px",
+                border: "none",
+                background: "transparent",
+                color: "#9E9DAE",
+                fontSize: 11,
+                cursor: "pointer",
+              }}
             >
               Cancel
             </button>

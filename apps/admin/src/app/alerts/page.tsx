@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -167,12 +168,8 @@ export default function AdminAlertsPage(): JSX.Element {
             >
               {saveMutation.isPending ? "Saving…" : "Save thresholds"}
             </button>
-            {saveMutation.isSuccess && (
-              <span className="text-xs text-green-600">Saved.</span>
-            )}
-            {saveMutation.isError && (
-              <span className="text-xs text-red-600">Failed to save.</span>
-            )}
+            {saveMutation.isSuccess && <span className="text-xs text-green-600">Saved.</span>}
+            {saveMutation.isError && <span className="text-xs text-red-600">Failed to save.</span>}
             {data?.data && (
               <span className="text-xs text-gray-400 ml-auto">
                 Last updated {new Date(data.data.updatedAt).toLocaleString()}

@@ -5,6 +5,7 @@ import type { Vehicle } from "@trendywheels/types";
 import { LISTING_STATUS_CLASS } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 import { TWSelect } from "../../lib/tw-select";

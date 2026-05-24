@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX } from "react";
 interface Stat {
   value: number | string;
   label: string;

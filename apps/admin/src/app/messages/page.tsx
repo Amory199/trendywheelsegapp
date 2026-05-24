@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -22,9 +23,7 @@ export default function AdminMessagesPage(): JSX.Element {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-conversations"],
     queryFn: () =>
-      authedFetch<{ data: ConversationRow[]; total: number }>(
-        "/api/admin/conversations?limit=50",
-      ),
+      authedFetch<{ data: ConversationRow[]; total: number }>("/api/admin/conversations?limit=50"),
   });
 
   const conversations = data?.data ?? [];
@@ -83,9 +82,7 @@ export default function AdminMessagesPage(): JSX.Element {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                      {c.lastMessageAt
-                        ? new Date(c.lastMessageAt).toLocaleString()
-                        : "—"}
+                      {c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleString() : "—"}
                     </td>
                   </tr>
                 );

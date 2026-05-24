@@ -5,6 +5,7 @@ import type { RepairStatus } from "@trendywheels/types";
 import { REPAIR_STATUS_CLASS } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 import { TWSelect } from "../../lib/tw-select";

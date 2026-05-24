@@ -2,6 +2,7 @@
 
 import type { LoyaltyTier } from "@trendywheels/types";
 import { colors, nextTier, pointsToNext, tierProgress } from "@trendywheels/ui-tokens";
+import type { JSX } from "react";
 
 // Web-only sweep palette for the conic ring around the loyalty star. Richer
 // than the flat TIER_COLORS pair from ui-tokens (which is meant for linear

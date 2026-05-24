@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { colors, twEGP, twPalette, typography } from "@trendywheels/ui-tokens";
 import * as React from "react";
+import type { JSX } from "react";
 import {
   Area,
   AreaChart,

@@ -5,6 +5,7 @@ import type { Booking, RepairRequest, SupportTicket, User } from "@trendywheels/
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { api } from "../../../lib/api";
 import { authedFetch } from "../../../lib/fetcher";
@@ -34,8 +35,7 @@ export default function CustomerDetailPage(): JSX.Element {
 
   const { data: notesData } = useQuery({
     queryKey: ["customer-notes", id],
-    queryFn: () =>
-      authedFetch<{ data: CustomerNote[] }>(`/api/admin/customers/${id}/notes`),
+    queryFn: () => authedFetch<{ data: CustomerNote[] }>(`/api/admin/customers/${id}/notes`),
     enabled: !!id,
   });
   const notes = notesData?.data ?? [];
@@ -108,7 +108,10 @@ export default function CustomerDetailPage(): JSX.Element {
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 mb-4 block">
+      <button
+        onClick={() => router.back()}
+        className="text-gray-400 hover:text-gray-600 mb-4 block"
+      >
         ← Back
       </button>
 
@@ -122,7 +125,11 @@ export default function CustomerDetailPage(): JSX.Element {
             <h1 className="text-2xl font-bold">{user.name ?? "Unnamed"}</h1>
             <span
               className="px-2 py-0.5 rounded-full text-xs font-bold border"
-              style={{ color: tierColor, borderColor: tierColor + "66", backgroundColor: tierColor + "22" }}
+              style={{
+                color: tierColor,
+                borderColor: tierColor + "66",
+                backgroundColor: tierColor + "22",
+              }}
             >
               {(user.loyaltyTier ?? "bronze").toUpperCase()}
             </span>

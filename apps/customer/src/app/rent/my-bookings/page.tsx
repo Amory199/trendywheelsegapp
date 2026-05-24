@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { BookingStatus } from "@trendywheels/types";
 import { BOOKING_STATUS_TONE, colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
+import type { JSX } from "react";
 
 import { useAuth } from "../../../lib/auth-store";
 import { authedFetch } from "../../../lib/fetcher";

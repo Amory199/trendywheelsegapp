@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -116,11 +117,10 @@ export default function SettingsPage(): JSX.Element {
   const savePayment = (): void =>
     saveMutation.mutate({ currency: draft.currency, taxRatePct: draft.taxRatePct });
 
-  const saveTemplate = (): void =>
-    saveMutation.mutate({ emailTemplates: draft.emailTemplates });
+  const saveTemplate = (): void => saveMutation.mutate({ emailTemplates: draft.emailTemplates });
 
   const selected = selectedTemplateId
-    ? draft.emailTemplates[selectedTemplateId] ?? TEMPLATE_DEFAULTS[selectedTemplateId]
+    ? (draft.emailTemplates[selectedTemplateId] ?? TEMPLATE_DEFAULTS[selectedTemplateId])
     : null;
 
   if (isLoading) {
@@ -149,7 +149,13 @@ export default function SettingsPage(): JSX.Element {
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
-            {t === "api" ? "API Keys" : t === "templates" ? "Email Templates" : t === "payment" ? "Payment" : "Company Info"}
+            {t === "api"
+              ? "API Keys"
+              : t === "templates"
+                ? "Email Templates"
+                : t === "payment"
+                  ? "Payment"
+                  : "Company Info"}
           </button>
         ))}
       </div>
@@ -212,7 +218,8 @@ export default function SettingsPage(): JSX.Element {
             />
           </label>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-700">
-            <strong>Payment Gateway:</strong> Cash-on-pickup is active for v1. Paymob integration is planned for v1.1 post-launch.
+            <strong>Payment Gateway:</strong> Cash-on-pickup is active for v1. Paymob integration is
+            planned for v1.1 post-launch.
           </div>
           <SaveButton
             onClick={savePayment}
@@ -263,7 +270,8 @@ export default function SettingsPage(): JSX.Element {
                 />
               </label>
               <p className="text-xs text-gray-400">
-                Available variables: {"{{name}}"} {"{{bookingId}}"} {"{{vehicleName}}"} {"{{startDate}}"} {"{{endDate}}"} {"{{totalCost}}"} {"{{otp}}"}
+                Available variables: {"{{name}}"} {"{{bookingId}}"} {"{{vehicleName}}"}{" "}
+                {"{{startDate}}"} {"{{endDate}}"} {"{{totalCost}}"} {"{{otp}}"}
               </p>
               <SaveButton
                 onClick={saveTemplate}
@@ -284,8 +292,8 @@ export default function SettingsPage(): JSX.Element {
         <div className="max-w-xl bg-white rounded-xl border p-6 space-y-4">
           <h2 className="font-semibold">API Keys</h2>
           <p className="text-xs text-gray-500">
-            Actual keys are stored in the server&apos;s <code>.env</code> on the VPS, not in the database.
-            Rotation requires SSH access for security. Surface here is informational only.
+            Actual keys are stored in the server&apos;s <code>.env</code> on the VPS, not in the
+            database. Rotation requires SSH access for security. Surface here is informational only.
           </p>
           {[
             { label: "Twilio (SMS OTP)", env: "TWILIO_AUTH_TOKEN" },
@@ -293,7 +301,10 @@ export default function SettingsPage(): JSX.Element {
             { label: "Sentry DSN (Mobile)", env: "SENTRY_DSN_MOBILE" },
             { label: "Sentry DSN (Admin)", env: "SENTRY_DSN_ADMIN" },
           ].map((item) => (
-            <div key={item.env} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div
+              key={item.env}
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+            >
               <div>
                 <div className="text-sm font-medium text-gray-700">{item.label}</div>
                 <div className="text-xs font-mono text-gray-400 mt-0.5">{item.env}</div>

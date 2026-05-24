@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RepairStatus } from "@trendywheels/types";
 import { colors, REPAIR_STATUS_TONE } from "@trendywheels/ui-tokens";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 

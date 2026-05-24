@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { JSX } from "react";
 
 // Install-to-home-screen banner.
 //

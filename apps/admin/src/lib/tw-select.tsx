@@ -2,6 +2,7 @@
 
 import { colors } from "@trendywheels/ui-tokens";
 import { useEffect, useRef, useState } from "react";
+import type { JSX } from "react";
 
 interface Option {
   value: string;
@@ -165,12 +166,14 @@ export function TWSelect({
                       height: 10,
                       borderRadius: 5,
                       background: o.color ?? o.bg,
-                      boxShadow: `0 0 0 3px ${(o.color ?? o.bg ?? "#000")}22`,
+                      boxShadow: `0 0 0 3px ${o.color ?? o.bg ?? "#000"}22`,
                     }}
                   />
                 ) : null}
                 <span style={{ flex: 1 }}>{o.label}</span>
-                {active ? <span style={{ color: colors.brand.trendyPink, fontSize: 12 }}>✓</span> : null}
+                {active ? (
+                  <span style={{ color: colors.brand.trendyPink, fontSize: 12 }}>✓</span>
+                ) : null}
               </button>
             );
           })}

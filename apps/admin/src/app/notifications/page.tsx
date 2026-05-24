@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -26,9 +27,7 @@ export default function AdminNotificationsPage(): JSX.Element {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-notifications"],
     queryFn: () =>
-      authedFetch<{ data: NotificationRow[]; total: number }>(
-        "/api/admin/notifications?limit=100",
-      ),
+      authedFetch<{ data: NotificationRow[]; total: number }>("/api/admin/notifications?limit=100"),
   });
 
   const rows = data?.data ?? [];

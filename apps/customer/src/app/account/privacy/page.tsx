@@ -3,6 +3,7 @@
 import { colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { ACCESS_KEY, baseUrl, readToken } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-store";

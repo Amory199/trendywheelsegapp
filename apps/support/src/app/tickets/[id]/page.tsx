@@ -5,6 +5,7 @@ import type { SupportTicket, TicketPriority, TicketStatus } from "@trendywheels/
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-store";

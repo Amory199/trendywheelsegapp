@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { colors, LISTING_STATUS_TONE, type SalesListingStatus } from "@trendywheels/ui-tokens";
 import Link from "next/link";
+import type { JSX } from "react";
 
 import { useAuth } from "../../../lib/auth-store";
 import { authedFetch } from "../../../lib/fetcher";

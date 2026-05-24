@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -24,8 +25,18 @@ interface MaintenanceItem {
 }
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 const MAINTENANCE_TYPES = [
@@ -127,13 +138,17 @@ export default function MaintenancePage(): JSX.Element {
   };
 
   const prevMonth = (): void => {
-    if (calMonth === 0) { setCalMonth(11); setCalYear((y) => y - 1); }
-    else setCalMonth((m) => m - 1);
+    if (calMonth === 0) {
+      setCalMonth(11);
+      setCalYear((y) => y - 1);
+    } else setCalMonth((m) => m - 1);
   };
 
   const nextMonth = (): void => {
-    if (calMonth === 11) { setCalMonth(0); setCalYear((y) => y + 1); }
-    else setCalMonth((m) => m + 1);
+    if (calMonth === 11) {
+      setCalMonth(0);
+      setCalYear((y) => y + 1);
+    } else setCalMonth((m) => m + 1);
   };
 
   const upcoming = items.filter((m) => !m.completedAt);
@@ -182,7 +197,9 @@ export default function MaintenancePage(): JSX.Element {
               >
                 <option value="">Select vehicle…</option>
                 {vehicles.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -194,7 +211,9 @@ export default function MaintenancePage(): JSX.Element {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {MAINTENANCE_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
               </select>
             </div>
@@ -208,7 +227,9 @@ export default function MaintenancePage(): JSX.Element {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">Estimated cost (EGP)</label>
+              <label className="text-xs font-medium text-gray-500 block mb-1">
+                Estimated cost (EGP)
+              </label>
               <input
                 type="number"
                 min={0}
@@ -250,13 +271,21 @@ export default function MaintenancePage(): JSX.Element {
       {view === "calendar" ? (
         <div className="bg-white rounded-xl border overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b">
-            <button onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded">←</button>
-            <h2 className="font-semibold">{MONTHS[calMonth]} {calYear}</h2>
-            <button onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded">→</button>
+            <button onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded">
+              ←
+            </button>
+            <h2 className="font-semibold">
+              {MONTHS[calMonth]} {calYear}
+            </h2>
+            <button onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded">
+              →
+            </button>
           </div>
           <div className="grid grid-cols-7 text-center text-xs font-medium text-gray-500 border-b">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-              <div key={d} className="py-2">{d}</div>
+              <div key={d} className="py-2">
+                {d}
+              </div>
             ))}
           </div>
           <div className="grid grid-cols-7">
@@ -317,20 +346,30 @@ export default function MaintenancePage(): JSX.Element {
                         <span className="text-xs text-gray-300">·</span>
                         <span className="text-sm text-gray-700">{m.vehicle?.name ?? "—"}</span>
                         {isDone ? (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Completed</span>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            Completed
+                          </span>
                         ) : isOverdue ? (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Overdue</span>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            Overdue
+                          </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Scheduled</span>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            Scheduled
+                          </span>
                         )}
                       </div>
-                      {m.description ? <p className="text-sm text-gray-600">{m.description}</p> : null}
+                      {m.description ? (
+                        <p className="text-sm text-gray-600">{m.description}</p>
+                      ) : null}
                       <p className="text-xs text-gray-400 mt-1">
                         📅 {new Date(m.scheduledAt).toLocaleString()}
                         {m.cost ? ` · EGP ${Number(m.cost).toLocaleString()}` : ""}
                         {isDone ? ` · done ${new Date(m.completedAt!).toLocaleDateString()}` : ""}
                       </p>
-                      {m.notes ? <p className="text-xs text-gray-500 mt-1 italic">{m.notes}</p> : null}
+                      {m.notes ? (
+                        <p className="text-xs text-gray-500 mt-1 italic">{m.notes}</p>
+                      ) : null}
                     </div>
                     <div className="flex items-center gap-2 ml-4 shrink-0">
                       {!isDone ? (
@@ -344,7 +383,8 @@ export default function MaintenancePage(): JSX.Element {
                       ) : null}
                       <button
                         onClick={() => {
-                          if (confirm("Delete this maintenance record?")) deleteMutation.mutate(m.id);
+                          if (confirm("Delete this maintenance record?"))
+                            deleteMutation.mutate(m.id);
                         }}
                         className="px-2 py-1 text-xs text-gray-400 hover:text-red-600 transition"
                       >
