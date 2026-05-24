@@ -1,13 +1,13 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { RepairStatus } from "@trendywheels/types";
+import { REPAIR_STATUS_CLASS } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useState } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 import { TWSelect } from "../../lib/tw-select";
-
-type RepairStatus = "submitted" | "assigned" | "in-progress" | "completed" | "cancelled";
 
 interface RepairRow {
   id: string;
@@ -25,14 +25,6 @@ interface RepairRow {
   vehicle?: { id: string; name: string };
   mechanic?: { id: string; name: string } | null;
 }
-
-const STATUS_STYLES: Record<RepairStatus, string> = {
-  submitted: "bg-blue-100 text-blue-700",
-  assigned: "bg-purple-100 text-purple-700",
-  "in-progress": "bg-yellow-100 text-yellow-700",
-  completed: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
-};
 
 const PRIORITY_STYLES: Record<string, string> = {
   low: "bg-gray-100 text-gray-600",
@@ -56,7 +48,7 @@ export default function RepairsPage(): JSX.Element {
   });
 
   const repairs = data?.data ?? [];
-  const selected = selectedId ? repairs.find((r) => r.id === selectedId) ?? null : null;
+  const selected = selectedId ? (repairs.find((r) => r.id === selectedId) ?? null) : null;
 
   return (
     <div className="p-8 space-y-6">
@@ -94,9 +86,17 @@ export default function RepairsPage(): JSX.Element {
           </thead>
           <tbody className="divide-y tw-stagger">
             {isLoading ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                  Loading…
+                </td>
+              </tr>
             ) : repairs.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No repairs.</td></tr>
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                  No repairs.
+                </td>
+              </tr>
             ) : (
               repairs.map((r) => (
                 <tr
@@ -111,17 +111,25 @@ export default function RepairsPage(): JSX.Element {
                   <td className="px-4 py-3">{r.vehicle?.name ?? "—"}</td>
                   <td className="px-4 py-3 capitalize">{r.category}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PRIORITY_STYLES[r.priority] ?? "bg-gray-100"}`}>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PRIORITY_STYLES[r.priority] ?? "bg-gray-100"}`}
+                    >
                       {r.priority}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[r.status]}`}>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${REPAIR_STATUS_CLASS[r.status]}`}
+                    >
                       {r.status.replace("-", " ")}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs">{r.mechanic?.name ?? <span className="text-gray-400">unassigned</span>}</td>
-                  <td className="px-4 py-3 text-xs">{new Date(r.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-xs">
+                    {r.mechanic?.name ?? <span className="text-gray-400">unassigned</span>}
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    {new Date(r.createdAt).toLocaleDateString()}
+                  </td>
                 </tr>
               ))
             )}
@@ -190,7 +198,12 @@ function RepairDrawer({
             <h2 className="text-xl font-bold capitalize">{repair.category} repair</h2>
             <p className="text-xs text-gray-500 mt-1">#{repair.id.slice(0, 8)}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          >
+            ×
+          </button>
         </div>
 
         <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
@@ -199,23 +212,37 @@ function RepairDrawer({
               <Link href={`/customers/${repair.userId}`} className="text-blue-600 hover:underline">
                 {repair.user.name}
               </Link>
-            ) : "—"}
+            ) : (
+              "—"
+            )}
           </Row>
           <Row label="Vehicle">{repair.vehicle?.name ?? "—"}</Row>
           <Row label="Priority">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PRIORITY_STYLES[repair.priority] ?? "bg-gray-100"}`}>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PRIORITY_STYLES[repair.priority] ?? "bg-gray-100"}`}
+            >
               {repair.priority}
             </span>
           </Row>
           <Row label="Status">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[repair.status]}`}>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${REPAIR_STATUS_CLASS[repair.status]}`}
+            >
               {repair.status.replace("-", " ")}
             </span>
           </Row>
-          <Row label="Mechanic">{repair.mechanic?.name ?? <span className="text-gray-400">unassigned</span>}</Row>
-          {repair.preferredDate ? <Row label="Preferred">{new Date(repair.preferredDate).toLocaleDateString()}</Row> : null}
-          {repair.estimatedCost ? <Row label="Est. cost">EGP {Number(repair.estimatedCost).toLocaleString()}</Row> : null}
-          {repair.actualCost ? <Row label="Final cost">EGP {Number(repair.actualCost).toLocaleString()}</Row> : null}
+          <Row label="Mechanic">
+            {repair.mechanic?.name ?? <span className="text-gray-400">unassigned</span>}
+          </Row>
+          {repair.preferredDate ? (
+            <Row label="Preferred">{new Date(repair.preferredDate).toLocaleDateString()}</Row>
+          ) : null}
+          {repair.estimatedCost ? (
+            <Row label="Est. cost">EGP {Number(repair.estimatedCost).toLocaleString()}</Row>
+          ) : null}
+          {repair.actualCost ? (
+            <Row label="Final cost">EGP {Number(repair.actualCost).toLocaleString()}</Row>
+          ) : null}
         </div>
 
         <div>
@@ -269,7 +296,8 @@ function RepairDrawer({
         <div className="border-t pt-4">
           <button
             onClick={() => {
-              if (confirm("Permanently delete this repair record? This cannot be undone.")) deleteMut.mutate();
+              if (confirm("Permanently delete this repair record? This cannot be undone."))
+                deleteMut.mutate();
             }}
             disabled={deleteMut.isPending}
             className="w-full px-4 py-2 text-xs text-gray-400 hover:text-red-600 transition"

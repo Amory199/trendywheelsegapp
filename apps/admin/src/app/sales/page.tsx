@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Vehicle } from "@trendywheels/types";
+import { LISTING_STATUS_CLASS } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -35,12 +36,6 @@ interface FleetSaleRow {
   location: string;
   images: { url: string }[];
 }
-
-const STATUS_STYLES: Record<SaleRow["status"], string> = {
-  active: "bg-green-100 text-green-700",
-  sold: "bg-blue-100 text-blue-700",
-  pending: "bg-gray-100 text-gray-600",
-};
 
 export default function SalesPage(): JSX.Element {
   const qc = useQueryClient();
@@ -194,7 +189,7 @@ export default function SalesPage(): JSX.Element {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[l.status]}`}
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${LISTING_STATUS_CLASS[l.status]}`}
                     >
                       {l.status === "pending" ? "taken down" : l.status}
                     </span>
@@ -470,7 +465,7 @@ function SaleDrawer({
           <Row label="Price">EGP {Number(listing.price).toLocaleString()}</Row>
           <Row label="Status">
             <span
-              className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[listing.status]}`}
+              className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${LISTING_STATUS_CLASS[listing.status]}`}
             >
               {listing.status === "pending" ? "taken down" : listing.status}
             </span>
