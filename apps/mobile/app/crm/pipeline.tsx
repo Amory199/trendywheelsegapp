@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { colors, type Palette } from "@trendywheels/ui-tokens";
+import { colors, initialsOf, type Palette } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -75,15 +75,6 @@ function relativeTime(iso: string | undefined): string {
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d ago`;
   return new Date(iso).toLocaleDateString();
-}
-
-function initialsOf(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
 }
 
 export default function CrmPipeline(): React.JSX.Element {

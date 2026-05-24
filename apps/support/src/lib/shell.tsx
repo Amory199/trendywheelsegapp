@@ -6,7 +6,7 @@ import {
   TWHamburgerIcon,
   TWLogoLockup,
 } from "@trendywheels/ui-brand/web";
-import { colors, twPalette } from "@trendywheels/ui-tokens";
+import { colors, initialsOf, twPalette } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
@@ -163,14 +163,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
     "Support",
     ...(path === "/" ? ["Home"] : path.split("/").filter(Boolean).map(humanCrumb)),
   ];
-  const initials =
-    user.name
-      ?.split(" ")
-      .map((n) => n[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() ?? "AG";
+  const initials = initialsOf(user.name) || "AG";
 
   return (
     <div

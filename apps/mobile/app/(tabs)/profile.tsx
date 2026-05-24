@@ -16,8 +16,10 @@ import { useEffect } from "react";
 import { Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import type { LoyaltyTier } from "@trendywheels/types";
+
 import { ActivityCard } from "../../components/profile/ActivityCard";
-import { HeroStrip, type Tier } from "../../components/profile/HeroStrip";
+import { HeroStrip } from "../../components/profile/HeroStrip";
 import { KpiRow } from "../../components/profile/KpiRow";
 import { LoyaltyCard } from "../../components/profile/LoyaltyCard";
 import { ReferralCard } from "../../components/profile/ReferralCard";
@@ -97,7 +99,7 @@ export default function ProfileScreen(): React.JSX.Element {
     );
   }
 
-  const tier = (user.loyaltyTier ?? "bronze") as Tier;
+  const tier = (user.loyaltyTier ?? "bronze") as LoyaltyTier;
   const points = user.loyaltyPoints ?? 0;
   const bookingsCount =
     (bookingsQ.data as { total?: number; data?: unknown[] } | undefined)?.total ??

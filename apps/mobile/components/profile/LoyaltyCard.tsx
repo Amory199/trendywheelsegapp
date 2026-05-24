@@ -2,6 +2,8 @@
 // "{n} more to {tier}" hint on the right. Same threshold table as the legacy
 // inline implementation (bronze→1000, silver→5000, gold→15000).
 
+import type { LoyaltyTier } from "@trendywheels/types";
+import { nextTier, pointsToNext, tierProgress } from "@trendywheels/ui-tokens";
 import * as React from "react";
 import { useEffect } from "react";
 import { Text, View } from "react-native";
@@ -15,25 +17,16 @@ import Animated, {
 import { useTheme } from "../../lib/use-theme";
 import { TWLoyaltyBadge } from "../skia/loyalty-badge";
 
-import type { Tier } from "./HeroStrip";
-
-const TIER_NEXT: Record<Tier, { next: Tier | null; at: number }> = {
-  bronze: { next: "silver", at: 1000 },
-  silver: { next: "gold", at: 5000 },
-  gold: { next: "platinum", at: 15000 },
-  platinum: { next: null, at: 0 },
-};
-
 interface Props {
-  tier: Tier;
+  tier: LoyaltyTier;
   points: number;
 }
 
 export function LoyaltyCard({ tier, points }: Props): React.JSX.Element {
   const { palette } = useTheme();
-  const { next, at } = TIER_NEXT[tier];
-  const progress = next ? Math.min(1, points / at) : 1;
-  const remaining = next ? Math.max(0, at - points) : 0;
+  const next = nextTier(tier);
+  const progress = tierProgress(tier, points);
+  const remaining = pointsToNext(tier, points);
 
   const width = useSharedValue(0);
   useEffect(() => {
