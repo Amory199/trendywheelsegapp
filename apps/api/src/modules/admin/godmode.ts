@@ -3,16 +3,12 @@ import { z } from "zod";
 
 import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
-import {
-  alertEvaluatorQueue,
-  leadSweeperQueue,
-  notificationsQueue,
-  remindersQueue,
-} from "../../queues/index.js";
+import { alertEvaluatorQueue, leadSweeperQueue, remindersQueue } from "../../queues/index.js";
 import { isAdmin } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
-import { signAccessToken } from "../auth/service.js";
 import { logger } from "../../utils/logger.js";
+import { notifyUser } from "../../utils/notify.js";
+import { signAccessToken } from "../auth/service.js";
 
 const router: RouterType = Router();
 
@@ -350,19 +346,16 @@ router.post("/broadcasts/:id/send-now", async (req, res) => {
   // "all" = no filter
 
   const users = await prisma.user.findMany({ where, select: { id: true } });
-  for (const u of users) {
-    await notificationsQueue.add(
-      `broadcast-${broadcast.id}-${u.id}`,
-      {
-        userId: u.id,
+  await Promise.all(
+    users.map((u) =>
+      notifyUser(u.id, `broadcast-${broadcast.id}`, {
         type: "broadcast",
         title: broadcast.title,
         body: broadcast.bodyMd,
         data: { broadcastId: broadcast.id },
-      },
-      { removeOnComplete: true },
-    );
-  }
+      }),
+    ),
+  );
 
   await prisma.broadcast.update({
     where: { id: broadcast.id },

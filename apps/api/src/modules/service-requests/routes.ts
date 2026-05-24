@@ -5,8 +5,7 @@ import { prisma } from "../../config/database.js";
 import { authenticate } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { AppError } from "../../utils/errors.js";
-import { notificationsQueue } from "../../queues/index.js";
-import { emitCustomerEvent } from "../realtime/customer-events.js";
+import { emitDomainEvent, notifyAdmins } from "../../utils/notify.js";
 
 const router: RouterType = Router();
 
@@ -83,31 +82,16 @@ router.post(
         preferredDate: new Date(req.body.preferredDate),
       },
     });
-    emitCustomerEvent("maintenance.created", {
-      id: created.id,
-      userId: req.user!.userId,
-      at: new Date().toISOString(),
-      meta: { serviceType: created.serviceType, preferredDate: created.preferredDate },
+    emitDomainEvent("maintenance.created", created.id, req.user!.userId, {
+      serviceType: created.serviceType,
+      preferredDate: created.preferredDate,
     });
-    const staff = await prisma.user.findMany({
-      where: { accountType: { in: ["admin", "staff"] }, status: "active" },
-      select: { id: true },
+    await notifyAdmins(`maint-${created.id}`, {
+      type: "maintenance_pending",
+      title: "New maintenance request",
+      body: `${created.serviceType} · ${new Date(created.preferredDate).toLocaleDateString()}`,
+      data: { maintenanceId: created.id, url: "/service/maintenance" },
     });
-    await Promise.all(
-      staff.map((s) =>
-        notificationsQueue.add(
-          `maint-${created.id}-${s.id}`,
-          {
-            userId: s.id,
-            type: "maintenance_pending",
-            title: "New maintenance request",
-            body: `${created.serviceType} · ${new Date(created.preferredDate).toLocaleDateString()}`,
-            data: { maintenanceId: created.id, url: "/service/maintenance" },
-          },
-          { removeOnComplete: true },
-        ),
-      ),
-    );
     res.status(201).json({ data: created });
   },
 );
@@ -170,31 +154,16 @@ router.post(
     const created = await prisma.customizationRequest.create({
       data: { ...req.body, userId: req.user!.userId },
     });
-    emitCustomerEvent("customization.created", {
-      id: created.id,
-      userId: req.user!.userId,
-      at: new Date().toISOString(),
-      meta: { kind: created.kind, budget: created.budget ?? null },
+    emitDomainEvent("customization.created", created.id, req.user!.userId, {
+      kind: created.kind,
+      budget: created.budget ?? null,
     });
-    const staff = await prisma.user.findMany({
-      where: { accountType: { in: ["admin", "staff"] }, status: "active" },
-      select: { id: true },
+    await notifyAdmins(`cust-${created.id}`, {
+      type: "customization_pending",
+      title: "New customization request",
+      body: `${created.kind}${created.budget ? ` · EGP ${created.budget.toLocaleString()}` : ""}`,
+      data: { customizationId: created.id, url: "/service/customization" },
     });
-    await Promise.all(
-      staff.map((s) =>
-        notificationsQueue.add(
-          `cust-${created.id}-${s.id}`,
-          {
-            userId: s.id,
-            type: "customization_pending",
-            title: "New customization request",
-            body: `${created.kind}${created.budget ? ` · EGP ${created.budget.toLocaleString()}` : ""}`,
-            data: { customizationId: created.id, url: "/service/customization" },
-          },
-          { removeOnComplete: true },
-        ),
-      ),
-    );
     res.status(201).json({ data: created });
   },
 );
@@ -255,31 +224,16 @@ router.post(
     const created = await prisma.transportRequest.create({
       data: { ...req.body, userId: req.user!.userId, pickupAt: new Date(req.body.pickupAt) },
     });
-    emitCustomerEvent("pickup.created", {
-      id: created.id,
-      userId: req.user!.userId,
-      at: new Date().toISOString(),
-      meta: { fromAddress: created.fromAddress, toAddress: created.toAddress },
+    emitDomainEvent("pickup.created", created.id, req.user!.userId, {
+      fromAddress: created.fromAddress,
+      toAddress: created.toAddress,
     });
-    const staff = await prisma.user.findMany({
-      where: { accountType: { in: ["admin", "staff"] }, status: "active" },
-      select: { id: true },
+    await notifyAdmins(`trans-${created.id}`, {
+      type: "transport_pending",
+      title: "New pickup/delivery request",
+      body: `${created.fromAddress.slice(0, 30)} → ${created.toAddress.slice(0, 30)}`,
+      data: { transportId: created.id, url: "/service/pickup-delivery" },
     });
-    await Promise.all(
-      staff.map((s) =>
-        notificationsQueue.add(
-          `trans-${created.id}-${s.id}`,
-          {
-            userId: s.id,
-            type: "transport_pending",
-            title: "New pickup/delivery request",
-            body: `${created.fromAddress.slice(0, 30)} → ${created.toAddress.slice(0, 30)}`,
-            data: { transportId: created.id, url: "/service/pickup-delivery" },
-          },
-          { removeOnComplete: true },
-        ),
-      ),
-    );
     res.status(201).json({ data: created });
   },
 );

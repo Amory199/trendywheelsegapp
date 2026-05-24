@@ -1,10 +1,9 @@
 import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
-import { notificationsQueue } from "../../queues/index.js";
 import { requireOwner, scopeListToOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
-import { emitCustomerEvent } from "../realtime/customer-events.js";
+import { emitDomainEvent, notifyUser } from "../../utils/notify.js";
 
 const STAFF_TYPES = new Set(["admin", "staff"]);
 
@@ -70,11 +69,9 @@ export async function create(req: Request, res: Response): Promise<void> {
       preferredDate: req.body.preferredDate ? new Date(req.body.preferredDate) : null,
     },
   });
-  emitCustomerEvent("repair.created", {
-    id: repair.id,
-    userId: req.user!.userId,
-    at: new Date().toISOString(),
-    meta: { category: repair.category, priority: repair.priority },
+  emitDomainEvent("repair.created", repair.id, req.user!.userId, {
+    category: repair.category,
+    priority: repair.priority,
   });
   res.status(201).json({ data: fromDbStatus(repair), id: repair.id });
 }
@@ -118,12 +115,7 @@ export async function update(req: Request, res: Response): Promise<void> {
     where: { id: req.params.id },
     data: data as never,
   });
-  emitCustomerEvent("repair.updated", {
-    id: updated.id,
-    userId: updated.userId,
-    at: new Date().toISOString(),
-    meta: { status: updated.status },
-  });
+  emitDomainEvent("repair.updated", updated.id, updated.userId, { status: updated.status });
   res.json({ data: fromDbStatus(updated) });
 }
 
@@ -143,25 +135,15 @@ async function transition(
     include: { vehicle: { select: { name: true } }, user: { select: { id: true } } },
   });
 
-  emitCustomerEvent("repair.updated", {
-    id,
-    userId: updated.user.id,
-    at: new Date().toISOString(),
-    meta: { status: nextStatus },
-  });
+  emitDomainEvent("repair.updated", id, updated.user.id, { status: nextStatus });
 
   // Notify customer of status change.
-  await notificationsQueue.add(
-    `repair-${id}-${nextStatus}`,
-    {
-      userId: updated.user.id,
-      type: "repair_status",
-      title: "Repair update",
-      body: `Your ${updated.vehicle?.name ?? "vehicle"} repair is now ${nextStatus.replace("_", " ")}.`,
-      data: { repairId: id, status: nextStatus },
-    },
-    { removeOnComplete: true, removeOnFail: 50 },
-  );
+  await notifyUser(updated.user.id, `repair-${id}-${nextStatus}`, {
+    type: "repair_status",
+    title: "Repair update",
+    body: `Your ${updated.vehicle?.name ?? "vehicle"} repair is now ${nextStatus.replace("_", " ")}.`,
+    data: { repairId: id, status: nextStatus },
+  });
 
   return fromDbStatus(updated);
 }
