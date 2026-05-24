@@ -170,6 +170,34 @@ export interface SalesListing {
   updatedAt: string;
 }
 
+export type RentalListingStatus =
+  | "submitted"
+  | "reviewing"
+  | "approved"
+  | "declined"
+  | "paused"
+  | "withdrawn";
+
+export interface RentalListing {
+  id: string;
+  userId: string;
+  brand: string;
+  model: string;
+  year: number;
+  category: VehicleCategory;
+  condition: "excellent" | "good" | "fair" | "poor";
+  dailyRateEgp: number | null;
+  notes: string | null;
+  photos: string[];
+  status: RentalListingStatus;
+  declineReason: string | null;
+  reviewedById: string | null;
+  reviewedAt: string | null;
+  vehicleId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SupportTicket {
   id: string;
   userId: string;

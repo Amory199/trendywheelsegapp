@@ -7,6 +7,8 @@ import type {
   Message,
   Notification,
   PaginatedResponse,
+  RentalListing,
+  RentalListingStatus,
   RepairRequest,
   SalesListing,
   SupportTicket,
@@ -258,6 +260,63 @@ class ApiClient {
 
   async deleteSalesListing(id: string): Promise<{ success: boolean }> {
     return this.request("DELETE", `/api/sales/${encodeURIComponent(id)}`);
+  }
+
+  // ─── Rental Listings (owner-submitted carts for managed rental) ───
+
+  async submitRentalListing(data: {
+    brand: string;
+    model: string;
+    year: number;
+    category?: string;
+    condition: "excellent" | "good" | "fair" | "poor";
+    dailyRateEgp?: number;
+    notes?: string;
+    photos?: string[];
+  }): Promise<ApiResponse<RentalListing>> {
+    return this.request("POST", "/api/rental-listings", { body: data });
+  }
+
+  async getRentalListings(): Promise<ApiResponse<RentalListing[]>> {
+    return this.request("GET", "/api/rental-listings");
+  }
+
+  async getRentalListing(id: string): Promise<ApiResponse<RentalListing>> {
+    return this.request("GET", `/api/rental-listings/${encodeURIComponent(id)}`);
+  }
+
+  async updateRentalListing(
+    id: string,
+    data: {
+      status?: RentalListingStatus;
+      declineReason?: string | null;
+      vehicleId?: string | null;
+      dailyRateEgp?: number | null;
+      notes?: string | null;
+    },
+  ): Promise<ApiResponse<RentalListing>> {
+    return this.request("PATCH", `/api/rental-listings/${encodeURIComponent(id)}`, { body: data });
+  }
+
+  async deleteRentalListing(id: string): Promise<{ success: boolean }> {
+    return this.request("DELETE", `/api/rental-listings/${encodeURIComponent(id)}`);
+  }
+
+  // ─── Trade-in ────────────────────────────────────────────
+
+  async submitTradeIn(data: {
+    brand: string;
+    model: string;
+    year: number;
+    condition: "excellent" | "good" | "fair" | "poor";
+    notes?: string;
+    photos?: string[];
+  }): Promise<ApiResponse<{ id: string; status: string }>> {
+    return this.request("POST", "/api/trade-in", { body: data });
+  }
+
+  async getTradeIns(): Promise<ApiResponse<unknown[]>> {
+    return this.request("GET", "/api/trade-in");
   }
 
   // ─── Repair Requests ─────────────────────────────────────
