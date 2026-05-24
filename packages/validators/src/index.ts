@@ -593,3 +593,37 @@ export const cannedReplySchema = z.object({
   bodyMd: z.string().min(1),
   category: z.string().max(40).optional(),
 });
+
+// ─── Response schemas (opt-in runtime validation) ────────────
+// Pass these to `api.request(..., { parse: schemaName })` to validate the
+// response shape at runtime. Useful when the local TypeScript type drifts
+// from the server contract — you'd rather know at the network boundary
+// than crash inside a render.
+
+export const adminMetricsResponseSchema = z.object({
+  data: z
+    .object({
+      totalUsers: z.number(),
+      totalVehicles: z.number(),
+      totalBookings: z.number(),
+      pendingBookings: z.number(),
+      pendingListings: z.number(),
+      openTickets: z.number(),
+      monthlyRevenue: z.number(),
+    })
+    .passthrough(),
+});
+
+// Most "list" responses use this envelope — { data: [...] }. We don't validate
+// the row shape here because each list has wildly different fields; consumers
+// pass a custom schema if they need per-row validation.
+export const listEnvelopeSchema = z.object({
+  data: z.array(z.unknown()),
+  total: z.number().optional(),
+  page: z.number().optional(),
+  limit: z.number().optional(),
+});
+
+export const itemEnvelopeSchema = z.object({
+  data: z.unknown(),
+});

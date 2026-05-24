@@ -14,6 +14,7 @@ import type {
   Vehicle,
   VehicleFilters,
 } from "@trendywheels/types";
+import type { ZodTypeAny } from "zod";
 
 type TokenProvider = () => Promise<string | null>;
 
@@ -57,7 +58,15 @@ class ApiClient {
   async request<T>(
     method: string,
     path: string,
-    options?: { body?: unknown; params?: Record<string, string | number | boolean | undefined> },
+    options?: {
+      body?: unknown;
+      params?: Record<string, string | number | boolean | undefined>;
+      // Optional Zod schema. If provided, the response is `.parse()`d so a
+      // backend shape drift surfaces as a typed error at the call site
+      // instead of a silent `undefined` deep in the UI. Opt-in to avoid
+      // breaking every existing typed method on the client.
+      parse?: ZodTypeAny;
+    },
   ): Promise<T> {
     const url = new URL(`${this.config.baseUrl}${path}`);
     if (options?.params) {
@@ -115,7 +124,19 @@ class ApiClient {
       );
     }
 
-    return response.json() as Promise<T>;
+    const json = await response.json();
+    if (options?.parse) {
+      const parsed = options.parse.safeParse(json);
+      if (!parsed.success) {
+        throw new ApiClientError(
+          `Response shape mismatch for ${method} ${path}: ${parsed.error.message}`,
+          200,
+          "RESPONSE_INVALID",
+        );
+      }
+      return parsed.data as T;
+    }
+    return json as T;
   }
 
   // ─── Auth ────────────────────────────────────────────────

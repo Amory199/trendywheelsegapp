@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
+import { adminMetricsResponseSchema } from "@trendywheels/validators";
 import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -32,8 +33,10 @@ export default function AdminDashboard(): JSX.Element {
   const metricsQ = useQuery({
     queryKey: ["admin", "metrics"],
     queryFn: async (): Promise<AdminMetrics> => {
-      const res = await api.adminMetrics();
-      return res.data as unknown as AdminMetrics;
+      const res = await api.request<{ data: AdminMetrics }>("GET", "/api/admin/metrics", {
+        parse: adminMetricsResponseSchema,
+      });
+      return res.data;
     },
   });
 
