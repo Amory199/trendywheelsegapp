@@ -11,7 +11,10 @@ import { useAuth } from "../../lib/auth-store";
 export default function LoginPage(): JSX.Element {
   const router = useRouter();
   const { loginWithEmail } = useAuth();
-  const [email, setEmail] = useState("mohamed@example.com");
+  // Real customers sign up via phone+OTP on mobile and never set a web
+  // password — the customer web is effectively a staff portal for now.
+  // Prefill the superadmin so the form works out of the box.
+  const [email, setEmail] = useState("admin@trendywheelseg.com");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);

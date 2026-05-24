@@ -11,7 +11,9 @@ import { useAuth } from "../../lib/auth-store";
 export default function LoginPage(): JSX.Element {
   const router = useRouter();
   const { loginWithEmail } = useAuth();
-  const [email, setEmail] = useState("support@trendywheelseg.com");
+  // Sales agents handle support per the 3-role model — seed creates
+  // amira/youssef/rana as sales staff (no dedicated `support@` user).
+  const [email, setEmail] = useState("amira@trendywheelseg.com");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
