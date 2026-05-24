@@ -6,13 +6,12 @@ import { requireOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 import { emitDomainEvent, notifyAdmins } from "../../utils/notify.js";
 
-const SALES_CACHE_TTL = 60;
-const SALES_CACHE_PREFIX = "sales:list:";
-
-async function invalidateSalesCache(): Promise<void> {
-  const keys = await redis.keys(`${SALES_CACHE_PREFIX}*`);
-  if (keys.length > 0) await redis.del(...keys);
-}
+import {
+  invalidateSalesCache,
+  SALES_CACHE_PREFIX,
+  SALES_CACHE_TTL,
+  setListingStatus,
+} from "./service.js";
 
 const CATEGORY_MAP: Record<string, string> = {
   "golf-cart": "golf_cart",
@@ -137,11 +136,7 @@ async function setStatus(
   status: "active" | "sold" | "pending",
 ): Promise<void> {
   if (!STAFF_TYPES.has(req.user!.accountType)) throw AppError.forbidden();
-  const listing = await prisma.salesListing.update({
-    where: { id: req.params.id },
-    data: { status },
-  });
-  await invalidateSalesCache();
+  const listing = await setListingStatus(req.params.id, status);
   res.json({ data: listing });
 }
 

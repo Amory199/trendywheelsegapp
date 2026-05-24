@@ -3,14 +3,16 @@ import type { Request, Response } from "express";
 import { prisma } from "../../config/database.js";
 import { requireOwner, scopeListToOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
-import { emitDomainEvent, notifyUser } from "../../utils/notify.js";
+import { emitDomainEvent } from "../../utils/notify.js";
+
+import { transitionRepair, type RepairDbStatus } from "./service.js";
 
 const STAFF_TYPES = new Set(["admin", "staff"]);
 
 // API ↔ DB status translation. Validators use kebab-case ("in-progress"),
 // Prisma client uses snake_case ("in_progress"). The DB column @maps to "in-progress".
 type ApiStatus = "submitted" | "assigned" | "in-progress" | "completed" | "cancelled";
-type DbStatus = "submitted" | "assigned" | "in_progress" | "completed" | "cancelled";
+type DbStatus = RepairDbStatus;
 
 function toDbStatus(s: ApiStatus | DbStatus | undefined): DbStatus | undefined {
   if (!s) return undefined;
@@ -121,49 +123,22 @@ export async function update(req: Request, res: Response): Promise<void> {
 
 // ─── Status transitions ─────────────────────────────────────
 
-async function transition(
-  id: string,
-  nextStatus: DbStatus,
-  extra: Record<string, unknown> = {},
-): Promise<unknown> {
-  const repair = await prisma.repairRequest.findUnique({ where: { id } });
-  if (!repair) throw AppError.notFound("Repair request not found");
-
-  const updated = await prisma.repairRequest.update({
-    where: { id },
-    data: { status: nextStatus, ...extra } as never,
-    include: { vehicle: { select: { name: true } }, user: { select: { id: true } } },
-  });
-
-  emitDomainEvent("repair.updated", id, updated.user.id, { status: nextStatus });
-
-  // Notify customer of status change.
-  await notifyUser(updated.user.id, `repair-${id}-${nextStatus}`, {
-    type: "repair_status",
-    title: "Repair update",
-    body: `Your ${updated.vehicle?.name ?? "vehicle"} repair is now ${nextStatus.replace("_", " ")}.`,
-    data: { repairId: id, status: nextStatus },
-  });
-
-  return fromDbStatus(updated);
-}
-
 export async function start(req: Request, res: Response): Promise<void> {
   const repair = await prisma.repairRequest.findUnique({ where: { id: req.params.id } });
   if (!repair) throw AppError.notFound("Repair request not found");
   // If no mechanic assigned yet, assign the calling staff member.
   const extra: Record<string, unknown> = {};
   if (!repair.assignedMechanicId) extra.assignedMechanicId = req.user!.userId;
-  const updated = await transition(req.params.id, "in_progress", extra);
-  res.json({ data: updated });
+  const updated = await transitionRepair(req.params.id, "in_progress", extra);
+  res.json({ data: fromDbStatus(updated) });
 }
 
 export async function complete(req: Request, res: Response): Promise<void> {
   const { actualCost } = (req.body ?? {}) as { actualCost?: number };
   const extra: Record<string, unknown> = {};
   if (typeof actualCost === "number") extra.actualCost = actualCost;
-  const updated = await transition(req.params.id, "completed", extra);
-  res.json({ data: updated });
+  const updated = await transitionRepair(req.params.id, "completed", extra);
+  res.json({ data: fromDbStatus(updated) });
 }
 
 export async function cancel(req: Request, res: Response): Promise<void> {
@@ -173,8 +148,8 @@ export async function cancel(req: Request, res: Response): Promise<void> {
   if (!STAFF_TYPES.has(req.user!.accountType) && repair.userId !== req.user!.userId) {
     throw AppError.forbidden();
   }
-  const updated = await transition(req.params.id, "cancelled");
-  res.json({ data: updated });
+  const updated = await transitionRepair(req.params.id, "cancelled");
+  res.json({ data: fromDbStatus(updated) });
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {

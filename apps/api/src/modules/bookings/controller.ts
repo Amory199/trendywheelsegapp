@@ -7,6 +7,8 @@ import { AppError } from "../../utils/errors.js";
 import { emitDomainEvent, notifyAdmins, notifyUser } from "../../utils/notify.js";
 import { recordActivity } from "../crm/service.js";
 
+import { onBookingCompleted } from "./service.js";
+
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
 const STAFF_TYPES = new Set(["admin", "staff"]);
@@ -297,72 +299,6 @@ export async function update(req: Request, res: Response): Promise<void> {
     emitDomainEvent("booking.updated", booking.id, booking.userId, { status: body.status });
   }
   res.json({ data: updated });
-}
-
-async function onBookingCompleted(
-  bookingId: string,
-  userId: string,
-  totalCost: number,
-): Promise<void> {
-  // 1. Award loyalty points (10 pts per EGP 100, rounded down)
-  const earnedPts = Math.floor(totalCost / 10);
-  if (earnedPts > 0) {
-    await prisma.$transaction([
-      prisma.loyaltyTransaction.create({
-        data: {
-          userId,
-          points: earnedPts,
-          type: "earned",
-          reason: `Completed booking ${bookingId}`,
-        },
-      }),
-      prisma.user.update({
-        where: { id: userId },
-        data: { loyaltyPoints: { increment: earnedPts } },
-      }),
-    ]);
-  }
-
-  // 2. Check referral: if this user was referred and this is their first completed booking,
-  //    award 500 pts to both parties.
-  const referral = await prisma.referral.findUnique({ where: { refereeId: userId } });
-  if (referral && !referral.completedAt) {
-    const completedCount = await prisma.booking.count({
-      where: { userId, status: "completed" },
-    });
-    if (completedCount === 1) {
-      await prisma.$transaction([
-        prisma.referral.update({
-          where: { id: referral.id },
-          data: { completedAt: new Date(), rewardPaid: true },
-        }),
-        prisma.loyaltyTransaction.create({
-          data: {
-            userId: referral.referrerId,
-            points: 500,
-            type: "earned",
-            reason: "Referral bonus",
-          },
-        }),
-        prisma.loyaltyTransaction.create({
-          data: {
-            userId: referral.refereeId,
-            points: 500,
-            type: "earned",
-            reason: "Welcome bonus (referred)",
-          },
-        }),
-        prisma.user.update({
-          where: { id: referral.referrerId },
-          data: { loyaltyPoints: { increment: 500 } },
-        }),
-        prisma.user.update({
-          where: { id: referral.refereeId },
-          data: { loyaltyPoints: { increment: 500 } },
-        }),
-      ]);
-    }
-  }
 }
 
 export async function cancel(req: Request, res: Response): Promise<void> {
