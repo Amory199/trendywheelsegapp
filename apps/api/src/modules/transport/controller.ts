@@ -1,24 +1,12 @@
 import type { Request, Response } from "express";
-import { z } from "zod";
+
+import { scheduleTransportSchema, submitTransportSchema } from "@trendywheels/validators";
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
 
-const submitSchema = z.object({
-  fromAddress: z.string().min(1).max(500),
-  toAddress: z.string().min(1).max(500),
-  pickupAt: z.coerce.date(),
-  cargoNotes: z.string().max(1000).optional(),
-});
-
-const scheduleSchema = z.object({
-  priceEgp: z.coerce.number().positive(),
-  driverId: z.string().uuid().optional().nullable(),
-  status: z.enum(["scheduled", "in_transit", "completed", "cancelled"]).default("scheduled"),
-});
-
 export async function submit(req: Request, res: Response): Promise<void> {
-  const input = submitSchema.parse(req.body);
+  const input = submitTransportSchema.parse(req.body);
   const item = await prisma.transportRequest.create({
     data: { ...input, userId: req.user!.userId },
   });
@@ -43,7 +31,7 @@ export async function listAll(_req: Request, res: Response): Promise<void> {
 }
 
 export async function schedule(req: Request, res: Response): Promise<void> {
-  const input = scheduleSchema.parse(req.body);
+  const input = scheduleTransportSchema.parse(req.body);
   const updated = await prisma.transportRequest.update({
     where: { id: req.params.id },
     data: input,

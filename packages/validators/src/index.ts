@@ -293,3 +293,303 @@ export const createLeadActivitySchema = z.object({
   body: z.string().min(1).max(2000),
   metadata: z.record(z.unknown()).optional(),
 });
+
+// ─── Products (catalog) ──────────────────────────────────────
+
+const productCategoryEnum = z.enum(["cart_new", "cart_used", "parts", "accessory"]);
+
+export const createProductSchema = z.object({
+  category: productCategoryEnum,
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  priceEgp: z.coerce.number().positive(),
+  images: z.array(z.string().url()).default([]),
+  inStock: z.boolean().default(true),
+  stockCount: z.coerce.number().int().nonnegative().optional().nullable(),
+  attributes: z.record(z.unknown()).default({}),
+  vehicleId: z.string().uuid().optional().nullable(),
+  brand: z.string().max(100).optional(),
+  model: z.string().max(100).optional(),
+  year: z.coerce.number().int().min(1900).max(2100).optional(),
+});
+
+export const updateProductSchema = createProductSchema.partial();
+
+export const productListQuerySchema = z.object({
+  category: productCategoryEnum.optional(),
+  minPrice: z.coerce.number().nonnegative().optional(),
+  maxPrice: z.coerce.number().nonnegative().optional(),
+  inStock: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === "true")),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(24),
+});
+
+// ─── Orders ──────────────────────────────────────────────────
+
+const orderStatusEnum = z.enum(["pending", "paid", "shipped", "delivered", "cancelled"]);
+
+export const createOrderSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        productId: z.string().uuid(),
+        quantity: z.coerce.number().int().positive().default(1),
+      }),
+    )
+    .min(1, "At least one item required"),
+  tradeInId: z.string().uuid().optional().nullable(),
+});
+
+export const updateOrderStatusSchema = z.object({ status: orderStatusEnum });
+
+// ─── Maintenance (vehicle servicing — staff fleet ops) ───────
+
+export const createVehicleMaintenanceSchema = z.object({
+  vehicleId: z.string().uuid(),
+  type: z.string().min(1).max(120),
+  description: z.string().max(2000).optional(),
+  scheduledAt: z.string().datetime(),
+  cost: z.number().min(0).optional(),
+  notes: z.string().max(2000).optional(),
+  photos: z.array(z.string().url()).max(10).optional(),
+});
+
+export const updateVehicleMaintenanceSchema = z.object({
+  type: z.string().min(1).max(120).optional(),
+  description: z.string().max(2000).optional(),
+  scheduledAt: z.string().datetime().optional(),
+  cost: z.number().min(0).optional(),
+  notes: z.string().max(2000).optional(),
+  photos: z.array(z.string().url()).max(10).optional(),
+});
+
+export const completeVehicleMaintenanceSchema = z.object({
+  cost: z.number().min(0).optional(),
+  notes: z.string().max(2000).optional(),
+  photos: z.array(z.string().url()).max(10).optional(),
+});
+
+// ─── Inventory ops (alert config + condition reports) ────────
+
+export const updateAlertConfigSchema = z.object({
+  utilizationMaxPct: z.number().int().min(0).max(100).optional(),
+  maintenanceDueDays: z.number().int().min(1).max(365).optional(),
+  maxConcurrentRepairs: z.number().int().min(0).max(1000).optional(),
+});
+
+export const createConditionReportSchema = z.object({
+  notes: z.string().min(1).max(5000),
+  photos: z.array(z.string().url()).max(10).default([]),
+  severity: z.enum(["minor", "moderate", "severe"]).default("minor"),
+});
+
+// ─── Storage ─────────────────────────────────────────────────
+
+export const presignUploadSchema = z.object({
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+  prefix: z.string().min(1).max(100).default("uploads"),
+});
+
+// ─── Transport requests (customer-side pickup/delivery) ──────
+
+export const submitTransportSchema = z.object({
+  fromAddress: z.string().min(1).max(500),
+  toAddress: z.string().min(1).max(500),
+  pickupAt: z.coerce.date(),
+  cargoNotes: z.string().max(1000).optional(),
+});
+
+export const scheduleTransportSchema = z.object({
+  priceEgp: z.coerce.number().positive(),
+  driverId: z.string().uuid().optional().nullable(),
+  status: z.enum(["scheduled", "in_transit", "completed", "cancelled"]).default("scheduled"),
+});
+
+// ─── Trade-in quotes ─────────────────────────────────────────
+
+export const submitTradeInSchema = z.object({
+  brand: z.string().min(1).max(100),
+  model: z.string().min(1).max(100),
+  year: z.coerce.number().int().min(1990).max(2100),
+  condition: z.enum(["excellent", "good", "fair", "poor"]),
+  notes: z.string().max(2000).optional(),
+  photos: z.array(z.string().url()).max(8).default([]),
+});
+
+export const quoteTradeInSchema = z.object({
+  quoteEgp: z.coerce.number().nonnegative(),
+  validForDays: z.coerce.number().int().positive().default(7),
+  status: z.enum(["quoted", "rejected"]).default("quoted"),
+});
+
+// ─── Service requests (maintenance / customization / transport) ───
+
+const serviceStatusEnum = z.enum([
+  "submitted",
+  "assigned",
+  "in-progress",
+  "completed",
+  "cancelled",
+]);
+
+export const createMaintenanceRequestSchema = z.object({
+  serviceType: z.enum(["oil", "battery", "tire", "inspection", "full"]),
+  preferredDate: z.string().datetime(),
+  vehicleId: z.string().uuid().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const updateMaintenanceRequestSchema = z.object({
+  status: serviceStatusEnum.optional(),
+  notes: z.string().max(2000).optional().nullable(),
+  estimatedCost: z.coerce.number().nonnegative().optional().nullable(),
+  assignedToId: z.string().uuid().optional().nullable(),
+  preferredDate: z.string().datetime().optional(),
+});
+
+export const createCustomizationRequestSchema = z.object({
+  kind: z.enum(["paint", "lights", "wrap", "audio", "other"]),
+  budget: z.coerce.number().positive().optional(),
+  vehicleId: z.string().uuid().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const updateCustomizationRequestSchema = z.object({
+  status: serviceStatusEnum.optional(),
+  notes: z.string().max(2000).optional().nullable(),
+  budget: z.coerce.number().nonnegative().optional().nullable(),
+  assignedToId: z.string().uuid().optional().nullable(),
+});
+
+export const createTransportRequestSchema = z.object({
+  fromAddress: z.string().min(3).max(500),
+  toAddress: z.string().min(3).max(500),
+  pickupAt: z.string().datetime(),
+  cargoNotes: z.string().max(2000).optional(),
+});
+
+export const updateTransportRequestSchema = z.object({
+  status: serviceStatusEnum.optional(),
+  cargoNotes: z.string().max(2000).optional().nullable(),
+  priceEgp: z.coerce.number().nonnegative().optional().nullable(),
+  driverId: z.string().uuid().optional().nullable(),
+  pickupAt: z.string().datetime().optional(),
+});
+
+// ─── Staff CRUD (admin → users) ──────────────────────────────
+
+export const createStaffSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  phone: z.string().min(6).max(40),
+  password: z.string().min(8).max(72),
+  staffRole: z.enum(["admin", "sales", "support", "inventory", "mechanic"]),
+});
+
+export const requestAccountDeletionSchema = z.object({
+  email: z.string().email(),
+  phone: z.string().min(6).max(40),
+  reason: z.string().max(500).optional(),
+});
+
+// ─── Admin system config + customer notes ────────────────────
+
+export const updateSystemConfigSchema = z.object({
+  companyName: z.string().min(1).max(120).optional(),
+  companyEmail: z.string().email().nullable().optional(),
+  companyPhone: z.string().max(40).nullable().optional(),
+  companyAddress: z.string().max(500).nullable().optional(),
+  companyHours: z.string().max(200).nullable().optional(),
+  currency: z.enum(["EGP", "USD", "EUR"]).optional(),
+  taxRatePct: z.number().min(0).max(100).optional(),
+  emailTemplates: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const createCustomerNoteSchema = z.object({
+  body: z.string().min(1).max(5000),
+});
+
+// ─── Diagnostics (anonymous client error reporting) ──────────
+
+export const clientErrorReportSchema = z.object({
+  level: z.enum(["error", "warn", "fatal"]).default("error"),
+  source: z.enum(["admin", "support", "inventory", "customer", "mobile"]),
+  message: z.string().min(1).max(2000),
+  stack: z.string().max(20_000).optional(),
+  route: z.string().max(500).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+// ─── Reviews (customer-features) ─────────────────────────────
+
+export const createReviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  title: z.string().max(120).optional(),
+  body: z.string().max(2000).optional(),
+  photos: z.array(z.string().url()).max(8).default([]),
+});
+
+export const applyReferralSchema = z.object({
+  code: z.string().min(4).max(12),
+});
+
+export const validatePromoCodeSchema = z.object({
+  code: z.string().min(2).max(40),
+  totalAmount: z.number().nonnegative(),
+});
+
+// ─── Godmode: promo / pricing / templates / broadcasts / canned replies ───
+
+export const promoCodeSchema = z.object({
+  code: z.string().min(3).max(40).toUpperCase(),
+  kind: z.enum(["percent", "fixed"]),
+  value: z.number().positive(),
+  appliesTo: z.enum(["booking", "sale", "both"]).default("booking"),
+  usageLimit: z.number().int().positive().optional(),
+  expiresAt: z.string().datetime().optional(),
+  active: z.boolean().default(true),
+});
+
+export const pricingRuleSchema = z.object({
+  name: z.string().min(1).max(120),
+  kind: z.enum(["weekend", "peak", "holiday", "blackout"]),
+  surchargePct: z.number(),
+  daysOfWeek: z.array(z.number().int().min(0).max(6)).default([]),
+  dateRanges: z.array(z.object({ from: z.string(), to: z.string() })).default([]),
+  appliesTo: z.enum(["rent", "sell", "both"]).default("rent"),
+  active: z.boolean().default(true),
+});
+
+export const notificationTemplateSchema = z.object({
+  key: z.string().min(1).max(80),
+  channel: z.enum(["push", "email", "sms"]),
+  subject: z.string().max(200).optional(),
+  bodyMd: z.string().min(1),
+  variables: z
+    .array(
+      z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        default: z.string().optional(),
+      }),
+    )
+    .default([]),
+  active: z.boolean().default(true),
+});
+
+export const broadcastSchema = z.object({
+  title: z.string().min(1).max(120),
+  bodyMd: z.string().min(1),
+  audience: z.string().min(1).max(80),
+  channels: z.array(z.enum(["push", "email", "sms"])).default(["push"]),
+  scheduledAt: z.string().datetime().optional(),
+});
+
+export const cannedReplySchema = z.object({
+  label: z.string().min(1).max(80),
+  bodyMd: z.string().min(1),
+  category: z.string().max(40).optional(),
+});

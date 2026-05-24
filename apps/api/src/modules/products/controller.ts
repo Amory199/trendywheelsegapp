@@ -1,42 +1,16 @@
 import type { Request, Response } from "express";
-import { z } from "zod";
+
+import {
+  createProductSchema,
+  productListQuerySchema,
+  updateProductSchema,
+} from "@trendywheels/validators";
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
 
-const PRODUCT_CATEGORIES = ["cart_new", "cart_used", "parts", "accessory"] as const;
-
-const productCreateSchema = z.object({
-  category: z.enum(PRODUCT_CATEGORIES),
-  name: z.string().min(1).max(200),
-  description: z.string().max(2000).optional(),
-  priceEgp: z.coerce.number().positive(),
-  images: z.array(z.string().url()).default([]),
-  inStock: z.boolean().default(true),
-  stockCount: z.coerce.number().int().nonnegative().optional().nullable(),
-  attributes: z.record(z.unknown()).default({}),
-  vehicleId: z.string().uuid().optional().nullable(),
-  brand: z.string().max(100).optional(),
-  model: z.string().max(100).optional(),
-  year: z.coerce.number().int().min(1900).max(2100).optional(),
-});
-
-const productUpdateSchema = productCreateSchema.partial();
-
-const listQuerySchema = z.object({
-  category: z.enum(PRODUCT_CATEGORIES).optional(),
-  minPrice: z.coerce.number().nonnegative().optional(),
-  maxPrice: z.coerce.number().nonnegative().optional(),
-  inStock: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((v) => (v === undefined ? undefined : v === "true")),
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(24),
-});
-
 export async function list(req: Request, res: Response): Promise<void> {
-  const q = listQuerySchema.parse(req.query);
+  const q = productListQuerySchema.parse(req.query);
   const where: Record<string, unknown> = {};
   if (q.category) where.category = q.category;
   if (q.inStock !== undefined) where.inStock = q.inStock;
@@ -71,7 +45,7 @@ export async function getById(req: Request, res: Response): Promise<void> {
 }
 
 export async function create(req: Request, res: Response): Promise<void> {
-  const input = productCreateSchema.parse(req.body);
+  const input = createProductSchema.parse(req.body);
   const data: Record<string, unknown> = { ...input };
   if (data.vehicleId === null) data.vehicleId = undefined;
   if (data.stockCount === null) data.stockCount = undefined;
@@ -80,7 +54,7 @@ export async function create(req: Request, res: Response): Promise<void> {
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
-  const input = productUpdateSchema.parse(req.body);
+  const input = updateProductSchema.parse(req.body);
   const data: Record<string, unknown> = { ...input };
   if (data.vehicleId === null) data.vehicleId = undefined;
   if (data.stockCount === null) data.stockCount = undefined;

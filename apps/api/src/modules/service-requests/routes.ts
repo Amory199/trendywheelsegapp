@@ -1,5 +1,13 @@
 import { Router, type Router as RouterType } from "express";
-import { z } from "zod";
+
+import {
+  createCustomizationRequestSchema,
+  createMaintenanceRequestSchema,
+  createTransportRequestSchema,
+  updateCustomizationRequestSchema,
+  updateMaintenanceRequestSchema,
+  updateTransportRequestSchema,
+} from "@trendywheels/validators";
 
 import { prisma } from "../../config/database.js";
 import { authenticate } from "../../middleware/auth.js";
@@ -11,39 +19,7 @@ const router: RouterType = Router();
 
 const STAFF = new Set(["admin", "staff"]);
 
-const SERVICE_STATUS = z.enum(["submitted", "assigned", "in-progress", "completed", "cancelled"]);
-
-const updateMaintenanceSchema = z.object({
-  status: SERVICE_STATUS.optional(),
-  notes: z.string().max(2000).optional().nullable(),
-  estimatedCost: z.coerce.number().nonnegative().optional().nullable(),
-  assignedToId: z.string().uuid().optional().nullable(),
-  preferredDate: z.string().datetime().optional(),
-});
-
-const updateCustomizationSchema = z.object({
-  status: SERVICE_STATUS.optional(),
-  notes: z.string().max(2000).optional().nullable(),
-  budget: z.coerce.number().nonnegative().optional().nullable(),
-  assignedToId: z.string().uuid().optional().nullable(),
-});
-
-const updateTransportSchema = z.object({
-  status: SERVICE_STATUS.optional(),
-  cargoNotes: z.string().max(2000).optional().nullable(),
-  priceEgp: z.coerce.number().nonnegative().optional().nullable(),
-  driverId: z.string().uuid().optional().nullable(),
-  pickupAt: z.string().datetime().optional(),
-});
-
 // ─── Maintenance ────────────────────────────────────────────────────────
-
-const createMaintenanceSchema = z.object({
-  serviceType: z.enum(["oil", "battery", "tire", "inspection", "full"]),
-  preferredDate: z.string().datetime(),
-  vehicleId: z.string().uuid().optional(),
-  notes: z.string().max(2000).optional(),
-});
 
 router.get("/maintenance", authenticate, async (req, res) => {
   const isStaff = STAFF.has(req.user!.accountType);
@@ -73,7 +49,7 @@ router.get("/maintenance/:id", authenticate, async (req, res) => {
 router.post(
   "/maintenance",
   authenticate,
-  validate({ body: createMaintenanceSchema }),
+  validate({ body: createMaintenanceRequestSchema }),
   async (req, res) => {
     const created = await prisma.maintenanceRequest.create({
       data: {
@@ -99,7 +75,7 @@ router.post(
 router.patch(
   "/maintenance/:id",
   authenticate,
-  validate({ body: updateMaintenanceSchema }),
+  validate({ body: updateMaintenanceRequestSchema }),
   async (req, res) => {
     if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
     const data: Record<string, unknown> = { ...req.body };
@@ -113,13 +89,6 @@ router.patch(
 );
 
 // ─── Customization ──────────────────────────────────────────────────────
-
-const createCustomizationSchema = z.object({
-  kind: z.enum(["paint", "lights", "wrap", "audio", "other"]),
-  budget: z.coerce.number().positive().optional(),
-  vehicleId: z.string().uuid().optional(),
-  notes: z.string().max(2000).optional(),
-});
 
 router.get("/customization", authenticate, async (req, res) => {
   const isStaff = STAFF.has(req.user!.accountType);
@@ -149,7 +118,7 @@ router.get("/customization/:id", authenticate, async (req, res) => {
 router.post(
   "/customization",
   authenticate,
-  validate({ body: createCustomizationSchema }),
+  validate({ body: createCustomizationRequestSchema }),
   async (req, res) => {
     const created = await prisma.customizationRequest.create({
       data: { ...req.body, userId: req.user!.userId },
@@ -171,7 +140,7 @@ router.post(
 router.patch(
   "/customization/:id",
   authenticate,
-  validate({ body: updateCustomizationSchema }),
+  validate({ body: updateCustomizationRequestSchema }),
   async (req, res) => {
     if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
     const updated = await prisma.customizationRequest.update({
@@ -183,13 +152,6 @@ router.patch(
 );
 
 // ─── Transport (pickup-delivery) ────────────────────────────────────────
-
-const createTransportSchema = z.object({
-  fromAddress: z.string().min(3).max(500),
-  toAddress: z.string().min(3).max(500),
-  pickupAt: z.string().datetime(),
-  cargoNotes: z.string().max(2000).optional(),
-});
 
 router.get("/transport", authenticate, async (req, res) => {
   const isStaff = STAFF.has(req.user!.accountType);
@@ -219,7 +181,7 @@ router.get("/transport/:id", authenticate, async (req, res) => {
 router.post(
   "/transport",
   authenticate,
-  validate({ body: createTransportSchema }),
+  validate({ body: createTransportRequestSchema }),
   async (req, res) => {
     const created = await prisma.transportRequest.create({
       data: { ...req.body, userId: req.user!.userId, pickupAt: new Date(req.body.pickupAt) },
@@ -241,7 +203,7 @@ router.post(
 router.patch(
   "/transport/:id",
   authenticate,
-  validate({ body: updateTransportSchema }),
+  validate({ body: updateTransportRequestSchema }),
   async (req, res) => {
     if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
     const data: Record<string, unknown> = { ...req.body };

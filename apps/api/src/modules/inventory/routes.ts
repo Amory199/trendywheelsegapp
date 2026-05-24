@@ -1,5 +1,6 @@
 import { Router, type Router as RouterType } from "express";
-import { z } from "zod";
+
+import { createConditionReportSchema, updateAlertConfigSchema } from "@trendywheels/validators";
 
 import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
@@ -17,14 +18,8 @@ router.get("/alert-config", async (_req, res) => {
   res.json({ data: config });
 });
 
-const updateConfigSchema = z.object({
-  utilizationMaxPct: z.number().int().min(0).max(100).optional(),
-  maintenanceDueDays: z.number().int().min(1).max(365).optional(),
-  maxConcurrentRepairs: z.number().int().min(0).max(1000).optional(),
-});
-
 router.patch("/alert-config", async (req, res) => {
-  const body = updateConfigSchema.parse(req.body);
+  const body = updateAlertConfigSchema.parse(req.body);
   const userId = req.user!.userId;
   const existing = await prisma.alertConfig.findFirst({ orderBy: { updatedAt: "desc" } });
   const updated = existing
@@ -71,18 +66,15 @@ router.get("/vehicles/:vehicleId/condition-reports", async (req, res) => {
   res.json({ data: reports });
 });
 
-const createReportSchema = z.object({
-  notes: z.string().min(1).max(5000),
-  photos: z.array(z.string().url()).max(10).default([]),
-  severity: z.enum(["minor", "moderate", "severe"]).default("minor"),
-});
-
 router.post("/vehicles/:vehicleId/condition-reports", async (req, res) => {
   const { vehicleId } = req.params;
-  const body = createReportSchema.parse(req.body);
+  const body = createConditionReportSchema.parse(req.body);
   const reporterId = req.user!.userId;
 
-  const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId }, select: { id: true } });
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    select: { id: true },
+  });
   if (!vehicle) throw AppError.notFound("Vehicle not found");
 
   const created = await prisma.vehicleConditionReport.create({

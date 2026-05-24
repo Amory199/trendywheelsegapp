@@ -1,26 +1,12 @@
 import type { Request, Response } from "express";
-import { z } from "zod";
+
+import { createOrderSchema, updateOrderStatusSchema } from "@trendywheels/validators";
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
 
-const orderCreateSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        productId: z.string().uuid(),
-        quantity: z.coerce.number().int().positive().default(1),
-      }),
-    )
-    .min(1, "At least one item required"),
-  tradeInId: z.string().uuid().optional().nullable(),
-});
-
-const ALLOWED_STATUSES = ["pending", "paid", "shipped", "delivered", "cancelled"] as const;
-const statusUpdateSchema = z.object({ status: z.enum(ALLOWED_STATUSES) });
-
 export async function create(req: Request, res: Response): Promise<void> {
-  const input = orderCreateSchema.parse(req.body);
+  const input = createOrderSchema.parse(req.body);
   const productIds = input.items.map((i) => i.productId);
   const products = await prisma.product.findMany({ where: { id: { in: productIds } } });
   if (products.length !== input.items.length) {
@@ -102,7 +88,7 @@ export async function listAll(req: Request, res: Response): Promise<void> {
 }
 
 export async function setStatus(req: Request, res: Response): Promise<void> {
-  const { status } = statusUpdateSchema.parse(req.body);
+  const { status } = updateOrderStatusSchema.parse(req.body);
   const order = await prisma.order.update({
     where: { id: req.params.id },
     data: { status },

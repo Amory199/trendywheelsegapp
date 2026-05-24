@@ -1,6 +1,7 @@
 import express, { Router, type Router as RouterType } from "express";
 import multer from "multer";
-import { z } from "zod";
+
+import { presignUploadSchema } from "@trendywheels/validators";
 
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { AppError } from "../../utils/errors.js";
@@ -25,11 +26,6 @@ const upload = multer({
 // Customer-facing prefixes are namespaced per-user; staff/admin may
 // upload to broader buckets (e.g. vehicle hero shots, KB attachments).
 const CUSTOMER_PREFIX_ALLOWLIST = ["uploads", "license-photos", "avatars", "reviews"];
-
-const presignBodySchema = z.object({
-  mimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
-  prefix: z.string().min(1).max(100).default("uploads"),
-});
 
 const router: RouterType = Router();
 
@@ -57,7 +53,7 @@ router.post(
 
 // Presigned upload URL (client uploads directly to MinIO)
 router.post("/presign", authenticate, async (req, res) => {
-  const parsed = presignBodySchema.safeParse(req.body);
+  const parsed = presignUploadSchema.safeParse(req.body);
   if (!parsed.success) throw AppError.badRequest(parsed.error.message);
 
   const isStaff = req.user!.accountType === "admin" || req.user!.accountType === "staff";

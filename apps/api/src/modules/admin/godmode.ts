@@ -1,6 +1,14 @@
 import { Router, type Router as RouterType } from "express";
 import { z } from "zod";
 
+import {
+  broadcastSchema,
+  cannedReplySchema,
+  notificationTemplateSchema,
+  pricingRuleSchema,
+  promoCodeSchema,
+} from "@trendywheels/validators";
+
 import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { alertEvaluatorQueue, leadSweeperQueue, remindersQueue } from "../../queues/index.js";
@@ -148,16 +156,6 @@ router.post("/bookings/:id/refund-partial", async (req, res) => {
 });
 
 // ─── Promo codes ─────────────────────────────────────────────
-const promoSchema = z.object({
-  code: z.string().min(3).max(40).toUpperCase(),
-  kind: z.enum(["percent", "fixed"]),
-  value: z.number().positive(),
-  appliesTo: z.enum(["booking", "sale", "both"]).default("booking"),
-  usageLimit: z.number().int().positive().optional(),
-  expiresAt: z.string().datetime().optional(),
-  active: z.boolean().default(true),
-});
-
 router.get("/promo-codes", async (_req, res) => {
   const list = await prisma.promoCode.findMany({
     orderBy: { createdAt: "desc" },
@@ -167,7 +165,7 @@ router.get("/promo-codes", async (_req, res) => {
 });
 
 router.post("/promo-codes", async (req, res) => {
-  const body = promoSchema.parse(req.body);
+  const body = promoCodeSchema.parse(req.body);
   const created = await prisma.promoCode.create({
     data: { ...body, expiresAt: body.expiresAt ? new Date(body.expiresAt) : null },
   });
@@ -176,7 +174,7 @@ router.post("/promo-codes", async (req, res) => {
 });
 
 router.patch("/promo-codes/:id", async (req, res) => {
-  const body = promoSchema.partial().parse(req.body);
+  const body = promoCodeSchema.partial().parse(req.body);
   const updated = await prisma.promoCode.update({
     where: { id: req.params.id },
     data: { ...body, expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined },
@@ -192,23 +190,13 @@ router.delete("/promo-codes/:id", async (req, res) => {
 });
 
 // ─── Pricing rules ───────────────────────────────────────────
-const pricingSchema = z.object({
-  name: z.string().min(1).max(120),
-  kind: z.enum(["weekend", "peak", "holiday", "blackout"]),
-  surchargePct: z.number(),
-  daysOfWeek: z.array(z.number().int().min(0).max(6)).default([]),
-  dateRanges: z.array(z.object({ from: z.string(), to: z.string() })).default([]),
-  appliesTo: z.enum(["rent", "sell", "both"]).default("rent"),
-  active: z.boolean().default(true),
-});
-
 router.get("/pricing-rules", async (_req, res) => {
   const list = await prisma.pricingRule.findMany({ orderBy: { createdAt: "desc" } });
   res.json({ data: list });
 });
 
 router.post("/pricing-rules", async (req, res) => {
-  const body = pricingSchema.parse(req.body);
+  const body = pricingRuleSchema.parse(req.body);
   const created = await prisma.pricingRule.create({
     data: { ...body, dateRanges: body.dateRanges as never },
   });
@@ -217,7 +205,7 @@ router.post("/pricing-rules", async (req, res) => {
 });
 
 router.patch("/pricing-rules/:id", async (req, res) => {
-  const body = pricingSchema.partial().parse(req.body);
+  const body = pricingRuleSchema.partial().parse(req.body);
   const updated = await prisma.pricingRule.update({
     where: { id: req.params.id },
     data: { ...body, dateRanges: body.dateRanges as never | undefined },
@@ -233,30 +221,13 @@ router.delete("/pricing-rules/:id", async (req, res) => {
 });
 
 // ─── Notification templates ──────────────────────────────────
-const templateSchema = z.object({
-  key: z.string().min(1).max(80),
-  channel: z.enum(["push", "email", "sms"]),
-  subject: z.string().max(200).optional(),
-  bodyMd: z.string().min(1),
-  variables: z
-    .array(
-      z.object({
-        name: z.string(),
-        description: z.string().optional(),
-        default: z.string().optional(),
-      }),
-    )
-    .default([]),
-  active: z.boolean().default(true),
-});
-
 router.get("/templates", async (_req, res) => {
   const list = await prisma.notificationTemplate.findMany({ orderBy: { key: "asc" } });
   res.json({ data: list });
 });
 
 router.post("/templates", async (req, res) => {
-  const body = templateSchema.parse(req.body);
+  const body = notificationTemplateSchema.parse(req.body);
   const created = await prisma.notificationTemplate.create({
     data: { ...body, variables: body.variables as never },
   });
@@ -272,7 +243,7 @@ router.post("/templates", async (req, res) => {
 });
 
 router.patch("/templates/:id", async (req, res) => {
-  const body = templateSchema.partial().parse(req.body);
+  const body = notificationTemplateSchema.partial().parse(req.body);
   const updated = await prisma.notificationTemplate.update({
     where: { id: req.params.id },
     data: { ...body, variables: body.variables as never | undefined },
@@ -302,14 +273,6 @@ router.delete("/templates/:id", async (req, res) => {
 });
 
 // ─── Broadcasts ──────────────────────────────────────────────
-const broadcastSchema = z.object({
-  title: z.string().min(1).max(120),
-  bodyMd: z.string().min(1),
-  audience: z.string().min(1).max(80),
-  channels: z.array(z.enum(["push", "email", "sms"])).default(["push"]),
-  scheduledAt: z.string().datetime().optional(),
-});
-
 router.get("/broadcasts", async (_req, res) => {
   const list = await prisma.broadcast.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
   res.json({ data: list });
@@ -374,19 +337,13 @@ router.delete("/broadcasts/:id", async (req, res) => {
 });
 
 // ─── Canned replies ──────────────────────────────────────────
-const cannedSchema = z.object({
-  label: z.string().min(1).max(80),
-  bodyMd: z.string().min(1),
-  category: z.string().max(40).optional(),
-});
-
 router.get("/canned-replies", async (_req, res) => {
   const list = await prisma.cannedReply.findMany({ orderBy: { label: "asc" } });
   res.json({ data: list });
 });
 
 router.post("/canned-replies", async (req, res) => {
-  const body = cannedSchema.parse(req.body);
+  const body = cannedReplySchema.parse(req.body);
   const created = await prisma.cannedReply.create({
     data: { ...body, createdById: req.user!.userId },
   });
@@ -394,7 +351,7 @@ router.post("/canned-replies", async (req, res) => {
 });
 
 router.patch("/canned-replies/:id", async (req, res) => {
-  const body = cannedSchema.partial().parse(req.body);
+  const body = cannedReplySchema.partial().parse(req.body);
   const updated = await prisma.cannedReply.update({ where: { id: req.params.id }, data: body });
   res.json({ data: updated });
 });

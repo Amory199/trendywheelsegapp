@@ -1,21 +1,16 @@
 import type { Request, Response } from "express";
 
 import { Prisma } from "@prisma/client";
-import { updateUserSchema } from "@trendywheels/validators";
+import {
+  createStaffSchema,
+  requestAccountDeletionSchema,
+  updateUserSchema,
+} from "@trendywheels/validators";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 
 import { prisma } from "../../config/database.js";
 import { requireOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
-
-const createStaffSchema = z.object({
-  name: z.string().min(1).max(100),
-  email: z.string().email(),
-  phone: z.string().min(6).max(40),
-  password: z.string().min(8).max(72),
-  staffRole: z.enum(["admin", "sales", "support", "inventory", "mechanic"]),
-});
 
 export async function list(req: Request, res: Response): Promise<void> {
   const { page = "1", limit = "20" } = req.query as Record<string, string>;
@@ -173,18 +168,12 @@ export async function exportData(req: Request, res: Response): Promise<void> {
   });
 }
 
-const requestDeletionSchema = z.object({
-  email: z.string().email(),
-  phone: z.string().min(6).max(40),
-  reason: z.string().max(500).optional(),
-});
-
 // Public endpoint backing the /account/delete form (Google Play Store requires
 // a self-service deletion path accessible without app login). Creates a
 // DeletionRequest the ops team processes within 30 days, in line with our
 // privacy policy.
 export async function requestDeletion(req: Request, res: Response): Promise<void> {
-  const { email, phone, reason } = requestDeletionSchema.parse(req.body);
+  const { email, phone, reason } = requestAccountDeletionSchema.parse(req.body);
 
   // Best-effort link to an existing user (by email or phone) but the request is
   // still recorded even if no match — ops verifies offline.
