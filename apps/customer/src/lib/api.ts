@@ -30,15 +30,6 @@ export const api = new ApiClient({
   getAccessToken: async () => readToken(ACCESS_KEY),
   getRefreshToken: async () => readToken(REFRESH_KEY),
   onTokenRefresh: async (tokens) => writeTokens(tokens),
-  refreshTokens: async (refreshToken) => {
-    const res = await fetch(`${baseUrl}/api/auth/refresh-token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    });
-    if (!res.ok) throw new Error("Refresh failed");
-    return res.json() as Promise<AuthTokens>;
-  },
 });
 
 export { baseUrl };

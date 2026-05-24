@@ -25,13 +25,4 @@ export const api = new ApiClient({
   getAccessToken,
   getRefreshToken: () => SecureStore.getItemAsync(REFRESH_KEY),
   onTokenRefresh: async (tokens) => setTokens(tokens.token, tokens.refreshToken),
-  refreshTokens: async (refreshToken) => {
-    const res = await fetch(`${baseUrl}/api/auth/refresh-token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    });
-    if (!res.ok) throw new Error("Refresh failed");
-    return res.json();
-  },
 });

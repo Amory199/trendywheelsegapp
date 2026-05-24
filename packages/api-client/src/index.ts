@@ -16,14 +16,12 @@ import type {
 } from "@trendywheels/types";
 
 type TokenProvider = () => Promise<string | null>;
-type TokenRefresher = (refreshToken: string) => Promise<AuthTokens>;
 
 interface ClientConfig {
   baseUrl: string;
   getAccessToken: TokenProvider;
   getRefreshToken: TokenProvider;
   onTokenRefresh: (tokens: AuthTokens) => Promise<void>;
-  refreshTokens: TokenRefresher;
 }
 
 interface PaginationParams {
@@ -32,10 +30,28 @@ interface PaginationParams {
 }
 
 class ApiClient {
+  public readonly baseUrl: string;
   private config: ClientConfig;
 
   constructor(config: ClientConfig) {
     this.config = config;
+    this.baseUrl = config.baseUrl;
+  }
+
+  async getAccessToken(): Promise<string | null> {
+    return this.config.getAccessToken();
+  }
+
+  // Raw fetch — bypasses `request()` so a 401 retry path can't recursively
+  // re-enter the refresh handler. Used internally by the 401-retry branch.
+  private async doRefreshTokens(refreshToken: string): Promise<AuthTokens> {
+    const res = await fetch(`${this.baseUrl}/api/auth/refresh-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!res.ok) throw new ApiClientError("Refresh failed", res.status, "REFRESH_FAILED");
+    return res.json() as Promise<AuthTokens>;
   }
 
   async request<T>(
@@ -84,7 +100,7 @@ class ApiClient {
     if (response.status === 401) {
       const refreshToken = await this.config.getRefreshToken();
       if (refreshToken) {
-        const newTokens = await this.config.refreshTokens(refreshToken);
+        const newTokens = await this.doRefreshTokens(refreshToken);
         await this.config.onTokenRefresh(newTokens);
         response = await fetchWithTimeout(`Bearer ${newTokens.token}`);
       }
@@ -564,6 +580,47 @@ class ApiClient {
 
   async deleteFile(key: string): Promise<{ success: boolean }> {
     return this.request("DELETE", `/api/storage/${encodeURIComponent(key)}`);
+  }
+
+  // ─── Referrals ───────────────────────────────────────────
+
+  async getReferralsMe(): Promise<{
+    data: { code: string; usedCount: number; referrals: Array<{ completedAt: string | null }> };
+  }> {
+    return this.request("GET", "/api/referrals/me");
+  }
+
+  // ─── Unread badges ───────────────────────────────────────
+
+  async getUnreadMessageCount(): Promise<{ count: number }> {
+    const json = await this.request<{ count?: number; data?: { count?: number } }>(
+      "GET",
+      "/api/messages/unread-count",
+    );
+    return { count: json.count ?? json.data?.count ?? 0 };
+  }
+
+  // ─── Client-side error reporting ─────────────────────────
+
+  // Best-effort: swallow network errors so reporting never throws into the
+  // global error handler that called us.
+  async reportClientError(payload: {
+    level: "error" | "warn" | "fatal";
+    message: string;
+    stack?: string;
+    route?: string;
+    metadata?: Record<string, unknown>;
+    source?: "mobile" | "customer" | "admin" | "support" | "inventory";
+  }): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/api/client-errors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      /* swallow — error reporting must never throw */
+    }
   }
 }
 

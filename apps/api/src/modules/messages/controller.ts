@@ -122,6 +122,13 @@ export async function createConversation(req: Request, res: Response): Promise<v
   res.status(201).json({ data: { id: conversationId } });
 }
 
+export async function unreadCount(req: Request, res: Response): Promise<void> {
+  const count = await prisma.message.count({
+    where: { recipientId: req.user!.userId, readAt: null },
+  });
+  res.json({ count });
+}
+
 export async function markRead(req: Request, res: Response): Promise<void> {
   await assertParticipant(req.params.conversationId, req.user!.userId);
   await prisma.message.updateMany({

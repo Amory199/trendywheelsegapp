@@ -64,18 +64,7 @@ export default function ProfileScreen(): React.JSX.Element {
   });
   const unreadQ = useQuery({
     queryKey: ["profile-unread"],
-    queryFn: async () => {
-      const baseUrl = (api as unknown as { baseUrl: string }).baseUrl;
-      const token = await (
-        api as unknown as { config: { getAccessToken: () => Promise<string | null> } }
-      ).config.getAccessToken();
-      const res = await fetch(`${baseUrl}/api/messages/unread-count`, {
-        headers: { Authorization: `Bearer ${token ?? ""}` },
-      });
-      if (!res.ok) return { count: 0 };
-      const json = (await res.json()) as { count?: number; data?: { count?: number } };
-      return { count: json.count ?? json.data?.count ?? 0 };
-    },
+    queryFn: () => api.getUnreadMessageCount().catch(() => ({ count: 0 })),
     enabled: !!user,
   });
 

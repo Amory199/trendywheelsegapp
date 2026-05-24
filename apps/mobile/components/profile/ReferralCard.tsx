@@ -23,17 +23,7 @@ interface ReferralData {
 export function ReferralCard(): React.JSX.Element | null {
   const q = useQuery<{ data: ReferralData }>({
     queryKey: ["mobile-referral"],
-    queryFn: async () => {
-      const baseUrl = (api as unknown as { baseUrl: string }).baseUrl;
-      const token = await (
-        api as unknown as { config: { getAccessToken: () => Promise<string | null> } }
-      ).config.getAccessToken();
-      const res = await fetch(`${baseUrl}/api/referrals/me`, {
-        headers: { Authorization: `Bearer ${token ?? ""}` },
-      });
-      if (!res.ok) throw new Error("Failed to load referrals");
-      return res.json();
-    },
+    queryFn: () => api.getReferralsMe(),
   });
   const data = q.data?.data;
   if (!data) return null;
