@@ -280,6 +280,46 @@ done
 [ "$NOTIF_COUNT" -gt 0 ] || fail "no lead_* Notification row for sales after reassign (worker not draining?)"
 pass "reassign enqueues notification row ($NOTIF_COUNT rows visible)"
 
+# ─── 12i. Rental-listing submit + read + admin transition + cleanup ──
+note "12i. Rental listing round-trip"
+RL_CREATE=$(curl -fsS -XPOST "$BASE/rental-listings" \
+  -H "Authorization: Bearer $SALES_TOKEN" -H "$JSON" \
+  -d '{"brand":"Club Car","model":"Onward 4P","year":2022,"category":"golf-cart","condition":"good","notes":"smoke-test rental listing","photos":[]}') \
+  || fail "POST /rental-listings rejected"
+RL_ID=$(echo "$RL_CREATE" | jq -r '.data.id')
+RL_STATUS=$(echo "$RL_CREATE" | jq -r '.data.status')
+[ -n "$RL_ID" ] && [ "$RL_ID" != "null" ] || fail "no rental-listing id: $RL_CREATE"
+[ "$RL_STATUS" = "submitted" ] || fail "expected status=submitted, got $RL_STATUS"
+pass "rental listing created id=$RL_ID status=submitted"
+
+# Owner (sales) lists their own — should include the new row
+RL_MINE=$(curl -fsS "$BASE/rental-listings" -H "Authorization: Bearer $SALES_TOKEN" | jq "[.data[] | select(.id == \"$RL_ID\")] | length")
+[ "$RL_MINE" = "1" ] || fail "owner can't see their own listing in GET /rental-listings (got count=$RL_MINE)"
+pass "owner sees own listing"
+
+# Detail readable by owner
+curl -fsS "$BASE/rental-listings/$RL_ID" -H "Authorization: Bearer $SALES_TOKEN" >/dev/null \
+  || fail "GET /rental-listings/:id failed for owner"
+pass "owner can read detail"
+
+# Admin transitions to reviewing
+curl -fsS -XPATCH "$BASE/rental-listings/$RL_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"status":"reviewing"}' >/dev/null \
+  || fail "admin PATCH status=reviewing rejected"
+pass "admin transitioned to reviewing"
+
+# Owner can no longer delete (status is reviewing, not submitted/withdrawn)
+DELETE_CODE=$(curl -sS -o /dev/null -w "%{http_code}" -XDELETE \
+  "$BASE/rental-listings/$RL_ID" -H "Authorization: Bearer $SALES_TOKEN")
+[ "$DELETE_CODE" = "403" ] || fail "owner DELETE on reviewing listing returned $DELETE_CODE, expected 403"
+pass "owner blocked from deleting non-deletable status"
+
+# Admin deletes for cleanup
+curl -fsS -XDELETE "$BASE/rental-listings/$RL_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
+  || fail "admin DELETE /rental-listings/:id failed"
+pass "admin cleanup"
+
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
 # No DELETE endpoint on /crm/leads, so leave the smoke-test lead. The contact

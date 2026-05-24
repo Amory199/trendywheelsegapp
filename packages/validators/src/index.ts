@@ -425,6 +425,44 @@ export const quoteTradeInSchema = z.object({
   status: z.enum(["quoted", "rejected"]).default("quoted"),
 });
 
+// ─── Rental listings (owner-submitted carts offered to TrendyWheels for managed rental) ───
+//
+// `category` is accepted in the same kebab-case shape as the public Sales API
+// (e.g. "golf-cart") and converted to the Prisma snake_case enum inside the
+// controller — same pattern as apps/api/src/modules/sales/controller.ts.
+
+export const rentalListingStatusEnum = z.enum([
+  "submitted",
+  "reviewing",
+  "approved",
+  "declined",
+  "paused",
+  "withdrawn",
+]);
+
+export const createRentalListingSchema = z.object({
+  brand: z.string().min(1).max(100),
+  model: z.string().min(1).max(100),
+  year: z.coerce.number().int().min(1990).max(2100),
+  category: vehicleCategoryEnum.default("golf-cart"),
+  condition: z.enum(["excellent", "good", "fair", "poor"]),
+  dailyRateEgp: z.coerce.number().positive().optional(),
+  notes: z.string().max(2000).optional(),
+  photos: z.array(z.string().url()).max(8).default([]),
+});
+
+// Update covers two callers:
+//  - Owner: status -> "paused" | "withdrawn" (no admin fields).
+//  - Admin: status -> any transition + optional declineReason / vehicleId.
+// The handler enforces which role may set which fields; schema just permits them.
+export const updateRentalListingSchema = z.object({
+  status: rentalListingStatusEnum.optional(),
+  declineReason: z.string().max(1000).optional().nullable(),
+  vehicleId: z.string().uuid().optional().nullable(),
+  dailyRateEgp: z.coerce.number().positive().optional().nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
 // ─── Service requests (maintenance / customization / transport) ───
 
 const serviceStatusEnum = z.enum([

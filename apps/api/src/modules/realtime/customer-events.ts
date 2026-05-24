@@ -21,7 +21,9 @@ export type CustomerEventType =
   | "maintenance.created"
   | "pickup.created"
   | "customization.created"
-  | "customer.signup";
+  | "customer.signup"
+  | "rental-listing.created"
+  | "rental-listing.updated";
 
 interface CustomerEventPayload {
   id: string;

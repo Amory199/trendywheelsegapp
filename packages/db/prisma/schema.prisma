@@ -51,70 +51,72 @@ enum LeadStatus {
 
 enum LeadSource {
   signup
-  rent_inquiry  @map("rent-inquiry")
-  sell_inquiry  @map("sell-inquiry")
+  rent_inquiry   @map("rent-inquiry")
+  sell_inquiry   @map("sell-inquiry")
   repair_inquiry @map("repair-inquiry")
   manual
   imported
 }
 
 model User {
-  id            String      @id @default(uuid()) @db.Uuid
-  phone         String      @unique
-  email         String?     @unique
-  name          String      @default("")
-  age           Int?
-  avatarUrl     String?     @map("avatar_url")
-  accountType   AccountType @default(customer) @map("account_type")
-  status        UserStatus  @default(active)
-  preferences   Json?
-  loyaltyTier   LoyaltyTier @default(bronze) @map("loyalty_tier")
-  loyaltyPoints Int         @default(0) @map("loyalty_points")
-  passwordHash  String?     @map("password_hash")
-  totpSecret    String?     @map("totp_secret")
-  licenseNumber  String?    @map("license_number")
-  licenseExpiry  DateTime?  @map("license_expiry")
-  licensePhotoUrl String?   @map("license_photo_url")
-  staffRole          StaffRole? @map("staff_role")
-  salesTargetMonthly Decimal?   @map("sales_target_monthly") @db.Decimal(12, 2)
-  salesAssignmentWeight Int     @default(1) @map("sales_assignment_weight")
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  id                    String      @id @default(uuid()) @db.Uuid
+  phone                 String      @unique
+  email                 String?     @unique
+  name                  String      @default("")
+  age                   Int?
+  avatarUrl             String?     @map("avatar_url")
+  accountType           AccountType @default(customer) @map("account_type")
+  status                UserStatus  @default(active)
+  preferences           Json?
+  loyaltyTier           LoyaltyTier @default(bronze) @map("loyalty_tier")
+  loyaltyPoints         Int         @default(0) @map("loyalty_points")
+  passwordHash          String?     @map("password_hash")
+  totpSecret            String?     @map("totp_secret")
+  licenseNumber         String?     @map("license_number")
+  licenseExpiry         DateTime?   @map("license_expiry")
+  licensePhotoUrl       String?     @map("license_photo_url")
+  staffRole             StaffRole?  @map("staff_role")
+  salesTargetMonthly    Decimal?    @map("sales_target_monthly") @db.Decimal(12, 2)
+  salesAssignmentWeight Int         @default(1) @map("sales_assignment_weight")
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
 
-  bookings         Booking[]
-  sentMessages     Message[]       @relation("SentMessages")
-  receivedMessages Message[]       @relation("ReceivedMessages")
-  repairRequests   RepairRequest[] @relation("UserRepairs")
-  assignedRepairs  RepairRequest[] @relation("MechanicRepairs")
-  salesListings    SalesListing[]
-  supportTickets   SupportTicket[] @relation("UserTickets")
-  assignedTickets  SupportTicket[] @relation("AgentTickets")
-  refreshTokens    RefreshToken[]
-  otpCodes         OtpCode[]
-  auditLogs        AuditLog[]
-  notifications    Notification[]
-  loyaltyTxns      LoyaltyTransaction[]
-  conditionReports VehicleConditionReport[] @relation("ConditionReporter")
+  bookings                 Booking[]
+  sentMessages             Message[]                 @relation("SentMessages")
+  receivedMessages         Message[]                 @relation("ReceivedMessages")
+  repairRequests           RepairRequest[]           @relation("UserRepairs")
+  assignedRepairs          RepairRequest[]           @relation("MechanicRepairs")
+  salesListings            SalesListing[]
+  supportTickets           SupportTicket[]           @relation("UserTickets")
+  assignedTickets          SupportTicket[]           @relation("AgentTickets")
+  refreshTokens            RefreshToken[]
+  otpCodes                 OtpCode[]
+  auditLogs                AuditLog[]
+  notifications            Notification[]
+  loyaltyTxns              LoyaltyTransaction[]
+  conditionReports         VehicleConditionReport[]  @relation("ConditionReporter")
   conversationParticipants ConversationParticipant[]
-  customerNotes    CustomerNote[]           @relation("CustomerNotes")
-  authoredNotes    CustomerNote[]           @relation("AuthorNotes")
-  ownedLeads       Lead[]                    @relation("LeadOwner")
-  customerLead     Lead?                     @relation("LeadCustomer")
-  leadActivities   LeadActivity[]            @relation("LeadActivityActor")
-  reviews          Review[]
-  referralCode     ReferralCode?
-  referralsMade    Referral[]                @relation("ReferralReferrer")
-  referralReceived Referral?                 @relation("ReferralReferee")
-  promoRedemptions PromoRedemption[]
-  broadcasts       Broadcast[]               @relation("BroadcastAuthor")
-  cannedReplies    CannedReply[]
-  salesTargets     SalesTarget[]
-  orders           Order[]
-  tradeInQuotes    TradeInQuote[]
-  transportRequests TransportRequest[]
-  maintenanceRequests   MaintenanceRequest[]   @relation("MaintenanceCustomer")
-  customizationRequests CustomizationRequest[] @relation("CustomizationCustomer")
-  pushTokens       PushToken[]
+  customerNotes            CustomerNote[]            @relation("CustomerNotes")
+  authoredNotes            CustomerNote[]            @relation("AuthorNotes")
+  ownedLeads               Lead[]                    @relation("LeadOwner")
+  customerLead             Lead?                     @relation("LeadCustomer")
+  leadActivities           LeadActivity[]            @relation("LeadActivityActor")
+  reviews                  Review[]
+  referralCode             ReferralCode?
+  referralsMade            Referral[]                @relation("ReferralReferrer")
+  referralReceived         Referral?                 @relation("ReferralReferee")
+  promoRedemptions         PromoRedemption[]
+  broadcasts               Broadcast[]               @relation("BroadcastAuthor")
+  cannedReplies            CannedReply[]
+  salesTargets             SalesTarget[]
+  orders                   Order[]
+  tradeInQuotes            TradeInQuote[]
+  transportRequests        TransportRequest[]
+  maintenanceRequests      MaintenanceRequest[]      @relation("MaintenanceCustomer")
+  customizationRequests    CustomizationRequest[]    @relation("CustomizationCustomer")
+  pushTokens               PushToken[]
+  rentalListings           RentalListing[]
+  rentalListingsReviewed   RentalListing[]           @relation("RentalListingReviewer")
 
   @@map("users")
 }
@@ -122,11 +124,11 @@ model User {
 // ─── Auth ────────────────────────────────────────────────────
 
 model RefreshToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  tokenHash String   @map("token_hash")
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
   revokedAt DateTime? @map("revoked_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -137,13 +139,13 @@ model RefreshToken {
 }
 
 model OtpCode {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String?  @map("user_id") @db.Uuid
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String?   @map("user_id") @db.Uuid
   phone     String
   code      String
-  expiresAt DateTime @map("expires_at")
+  expiresAt DateTime  @map("expires_at")
   usedAt    DateTime? @map("used_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -245,26 +247,26 @@ enum ListingType {
 }
 
 model Vehicle {
-  id            String        @id @default(uuid()) @db.Uuid
-  name          String
-  category      VehicleCategory @default(golf_cart)
-  type          VehicleType
-  seating       Int
-  fuelType      FuelType      @map("fuel_type")
-  transmission  Transmission
-  dailyRate     Decimal       @map("daily_rate") @db.Decimal(10, 2)
-  location      String
-  status        VehicleStatus @default(available)
-  listingType   ListingType   @default(rent) @map("listing_type")
-  salePrice     Decimal?      @map("sale_price") @db.Decimal(12, 2)
-  saleDescription String?     @map("sale_description")
-  totalBookings Int           @default(0) @map("total_bookings")
-  averageRating Decimal       @default(0) @map("average_rating") @db.Decimal(3, 2)
-  reviewCount   Int           @default(0) @map("review_count")
-  quantity      Int           @default(1)
-  features      Json          @default("[]")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  id              String          @id @default(uuid()) @db.Uuid
+  name            String
+  category        VehicleCategory @default(golf_cart)
+  type            VehicleType
+  seating         Int
+  fuelType        FuelType        @map("fuel_type")
+  transmission    Transmission
+  dailyRate       Decimal         @map("daily_rate") @db.Decimal(10, 2)
+  location        String
+  status          VehicleStatus   @default(available)
+  listingType     ListingType     @default(rent) @map("listing_type")
+  salePrice       Decimal?        @map("sale_price") @db.Decimal(12, 2)
+  saleDescription String?         @map("sale_description")
+  totalBookings   Int             @default(0) @map("total_bookings")
+  averageRating   Decimal         @default(0) @map("average_rating") @db.Decimal(3, 2)
+  reviewCount     Int             @default(0) @map("review_count")
+  quantity        Int             @default(1)
+  features        Json            @default("[]")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
 
   images           VehicleImage[]
   bookings         Booking[]
@@ -274,6 +276,7 @@ model Vehicle {
   alertEvents      AlertEvent[]
   reviews          Review[]
   products         Product[]
+  rentalListings   RentalListing[]
 
   @@index([status])
   @@index([type])
@@ -322,14 +325,14 @@ model Booking {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  promoCode      String?    @map("promo_code")
-  promoDiscount  Decimal?   @map("promo_discount") @db.Decimal(10, 2)
-  loyaltyPointsRedeemed Int @default(0) @map("loyalty_points_redeemed")
-  loyaltyDiscount Decimal?  @map("loyalty_discount") @db.Decimal(10, 2)
+  promoCode             String?  @map("promo_code")
+  promoDiscount         Decimal? @map("promo_discount") @db.Decimal(10, 2)
+  loyaltyPointsRedeemed Int      @default(0) @map("loyalty_points_redeemed")
+  loyaltyDiscount       Decimal? @map("loyalty_discount") @db.Decimal(10, 2)
 
-  user    User    @relation(fields: [userId], references: [id])
-  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
-  review  Review?
+  user            User             @relation(fields: [userId], references: [id])
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id])
+  review          Review?
   promoRedemption PromoRedemption?
 
   @@index([userId])
@@ -366,14 +369,14 @@ model ConversationParticipant {
 }
 
 model Message {
-  id             String   @id @default(uuid()) @db.Uuid
-  senderId       String   @map("sender_id") @db.Uuid
-  recipientId    String   @map("recipient_id") @db.Uuid
-  conversationId String   @map("conversation_id") @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
+  senderId       String    @map("sender_id") @db.Uuid
+  recipientId    String    @map("recipient_id") @db.Uuid
+  conversationId String    @map("conversation_id") @db.Uuid
   message        String
-  attachments    Json     @default("[]")
+  attachments    Json      @default("[]")
   readAt         DateTime? @map("read_at")
-  createdAt      DateTime @default(now()) @map("created_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
 
   sender       User         @relation("SentMessages", fields: [senderId], references: [id])
   recipient    User         @relation("ReceivedMessages", fields: [recipientId], references: [id])
@@ -424,9 +427,9 @@ model RepairRequest {
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
-  user     User    @relation("UserRepairs", fields: [userId], references: [id])
+  user     User     @relation("UserRepairs", fields: [userId], references: [id])
   vehicle  Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: NoAction)
-  mechanic User?   @relation("MechanicRepairs", fields: [assignedMechanicId], references: [id])
+  mechanic User?    @relation("MechanicRepairs", fields: [assignedMechanicId], references: [id])
 
   @@index([userId])
   @@index([vehicleId])
@@ -444,25 +447,25 @@ enum ListingStatus {
 }
 
 model SalesListing {
-  id             String        @id @default(uuid()) @db.Uuid
-  userId         String        @map("user_id") @db.Uuid
+  id             String          @id @default(uuid()) @db.Uuid
+  userId         String          @map("user_id") @db.Uuid
   title          String
   category       VehicleCategory @default(golf_cart)
   make           String
   model          String
   year           Int
   mileage        Int
-  price          Decimal       @db.Decimal(10, 2)
+  price          Decimal         @db.Decimal(10, 2)
   transmission   Transmission
-  fuelType       FuelType      @map("fuel_type")
+  fuelType       FuelType        @map("fuel_type")
   color          String
   description    String
-  images         Json          @default("[]")
-  status         ListingStatus @default(active)
-  viewsCount     Int           @default(0) @map("views_count")
-  inquiriesCount Int           @default(0) @map("inquiries_count")
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
+  images         Json            @default("[]")
+  status         ListingStatus   @default(active)
+  viewsCount     Int             @default(0) @map("views_count")
+  inquiriesCount Int             @default(0) @map("inquiries_count")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -489,14 +492,14 @@ enum TicketPriority {
 }
 
 model SupportTicket {
-  id             String         @id @default(uuid()) @db.Uuid
-  userId         String         @map("user_id") @db.Uuid
-  subject        String
-  status         TicketStatus   @default(open)
-  priority       TicketPriority @default(medium)
-  assignedAgentId String?       @map("assigned_agent_id") @db.Uuid
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  id              String         @id @default(uuid()) @db.Uuid
+  userId          String         @map("user_id") @db.Uuid
+  subject         String
+  status          TicketStatus   @default(open)
+  priority        TicketPriority @default(medium)
+  assignedAgentId String?        @map("assigned_agent_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
 
   user  User  @relation("UserTickets", fields: [userId], references: [id])
   agent User? @relation("AgentTickets", fields: [assignedAgentId], references: [id])
@@ -508,15 +511,15 @@ model SupportTicket {
 }
 
 model KBArticle {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String                   @id @default(uuid()) @db.Uuid
   title        String
   content      String
   category     String
-  viewsCount   Int      @default(0) @map("views_count")
-  helpfulCount Int      @default(0) @map("helpful_count")
+  viewsCount   Int                      @default(0) @map("views_count")
+  helpfulCount Int                      @default(0) @map("helpful_count")
   searchVector Unsupported("tsvector")? @map("search_vector")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt    DateTime                 @default(now()) @map("created_at")
+  updatedAt    DateTime                 @updatedAt @map("updated_at")
 
   @@index([category])
   @@map("kb_articles")
@@ -525,17 +528,17 @@ model KBArticle {
 // ─── Vehicle Maintenance ─────────────────────────────────────
 
 model VehicleMaintenance {
-  id          String   @id @default(uuid()) @db.Uuid
-  vehicleId   String   @map("vehicle_id") @db.Uuid
+  id          String    @id @default(uuid()) @db.Uuid
+  vehicleId   String    @map("vehicle_id") @db.Uuid
   type        String
   description String?
-  scheduledAt DateTime @map("scheduled_at")
+  scheduledAt DateTime  @map("scheduled_at")
   completedAt DateTime? @map("completed_at")
-  cost        Decimal? @db.Decimal(10, 2)
+  cost        Decimal?  @db.Decimal(10, 2)
   notes       String?
-  photos      Json     @default("[]")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  photos      Json      @default("[]")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   vehicle Vehicle @relation(fields: [vehicleId], references: [id])
 
@@ -547,14 +550,14 @@ model VehicleMaintenance {
 // ─── Notifications ───────────────────────────────────────────
 
 model Notification {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
   type      String
   title     String
   body      String
   data      Json?
   readAt    DateTime? @map("read_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -566,17 +569,17 @@ model Notification {
 // ─── Audit Logging ───────────────────────────────────────────
 
 model AuditLog {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  actingAsId  String?  @map("acting_as_id") @db.Uuid
-  action      String
-  entity      String
-  entityId    String?  @map("entity_id")
-  metadata    Json?
-  diff        Json?
-  ipAddress   String?  @map("ip_address")
-  userAgent   String?  @map("user_agent")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  actingAsId String?  @map("acting_as_id") @db.Uuid
+  action     String
+  entity     String
+  entityId   String?  @map("entity_id")
+  metadata   Json?
+  diff       Json?
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -593,7 +596,7 @@ model LoyaltyTransaction {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
   points    Int
-  type      String   // "earned", "redeemed", "expired"
+  type      String // "earned", "redeemed", "expired"
   reason    String
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -604,34 +607,34 @@ model LoyaltyTransaction {
 }
 
 model SystemConfig {
-  id              String   @id @default(uuid()) @db.Uuid
-  companyName     String   @default("TrendyWheels") @map("company_name")
-  companyEmail    String?  @map("company_email")
-  companyPhone    String?  @map("company_phone")
-  companyAddress  String?  @map("company_address")
-  companyHours    String?  @map("company_hours")
-  currency        String   @default("EGP")
-  taxRatePct      Decimal  @default(14.0) @db.Decimal(5, 2) @map("tax_rate_pct")
-  emailTemplates  Json     @default("{}") @map("email_templates")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  updatedById     String?  @map("updated_by_id") @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
+  companyName    String   @default("TrendyWheels") @map("company_name")
+  companyEmail   String?  @map("company_email")
+  companyPhone   String?  @map("company_phone")
+  companyAddress String?  @map("company_address")
+  companyHours   String?  @map("company_hours")
+  currency       String   @default("EGP")
+  taxRatePct     Decimal  @default(14.0) @map("tax_rate_pct") @db.Decimal(5, 2)
+  emailTemplates Json     @default("{}") @map("email_templates")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedById    String?  @map("updated_by_id") @db.Uuid
 
   @@map("system_config")
 }
 
 model CrmRules {
-  id                       String   @id @default(uuid()) @db.Uuid
-  firstCallWithinMinutes   Int      @default(120) @map("first_call_within_minutes")
-  followUpCallWithinHours  Int      @default(4)   @map("follow_up_call_within_hours")
-  reassignAfterHours       Int      @default(48)  @map("reassign_after_hours")
-  maxReassignmentsBeforeEscalation Int @default(2) @map("max_reassignments_before_escalation")
-  maxCallsBeforeReassign   Int      @default(4)   @map("max_calls_before_reassign")
-  requireMessageAfterCall  Boolean  @default(true) @map("require_message_after_call")
-  notifyOnAssignment       Boolean  @default(true) @map("notify_on_assignment")
-  notifyOnEscalation       Boolean  @default(true) @map("notify_on_escalation")
-  enforceRules             Boolean  @default(true) @map("enforce_rules")
-  updatedAt                DateTime @updatedAt   @map("updated_at")
-  updatedById              String?  @map("updated_by_id") @db.Uuid
+  id                               String   @id @default(uuid()) @db.Uuid
+  firstCallWithinMinutes           Int      @default(120) @map("first_call_within_minutes")
+  followUpCallWithinHours          Int      @default(4) @map("follow_up_call_within_hours")
+  reassignAfterHours               Int      @default(48) @map("reassign_after_hours")
+  maxReassignmentsBeforeEscalation Int      @default(2) @map("max_reassignments_before_escalation")
+  maxCallsBeforeReassign           Int      @default(4) @map("max_calls_before_reassign")
+  requireMessageAfterCall          Boolean  @default(true) @map("require_message_after_call")
+  notifyOnAssignment               Boolean  @default(true) @map("notify_on_assignment")
+  notifyOnEscalation               Boolean  @default(true) @map("notify_on_escalation")
+  enforceRules                     Boolean  @default(true) @map("enforce_rules")
+  updatedAt                        DateTime @updatedAt @map("updated_at")
+  updatedById                      String?  @map("updated_by_id") @db.Uuid
 
   @@map("crm_rules")
 }
@@ -639,22 +642,22 @@ model CrmRules {
 model AlertConfig {
   id                   String   @id @default(uuid()) @db.Uuid
   utilizationMaxPct    Int      @default(80) @map("utilization_max_pct")
-  maintenanceDueDays   Int      @default(7)  @map("maintenance_due_days")
-  maxConcurrentRepairs Int      @default(5)  @map("max_concurrent_repairs")
-  updatedAt            DateTime @updatedAt   @map("updated_at")
+  maintenanceDueDays   Int      @default(7) @map("maintenance_due_days")
+  maxConcurrentRepairs Int      @default(5) @map("max_concurrent_repairs")
+  updatedAt            DateTime @updatedAt @map("updated_at")
   updatedById          String?  @map("updated_by_id") @db.Uuid
 
   @@map("alert_config")
 }
 
 model VehicleConditionReport {
-  id          String   @id @default(uuid()) @db.Uuid
-  vehicleId   String   @map("vehicle_id") @db.Uuid
-  reporterId  String   @map("reporter_id") @db.Uuid
-  notes       String
-  photos      Json     @default("[]")
-  severity    String   @default("minor")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  vehicleId  String   @map("vehicle_id") @db.Uuid
+  reporterId String   @map("reporter_id") @db.Uuid
+  notes      String
+  photos     Json     @default("[]")
+  severity   String   @default("minor")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   vehicle  Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   reporter User    @relation("ConditionReporter", fields: [reporterId], references: [id])
@@ -680,32 +683,32 @@ model CustomerNote {
 // ─── CRM / Sales Cycle ───────────────────────────────────────
 
 model Lead {
-  id                String      @id @default(uuid()) @db.Uuid
-  customerId        String?     @unique @map("customer_id") @db.Uuid
-  contactName       String      @map("contact_name")
-  contactPhone      String?     @map("contact_phone")
-  contactEmail      String?     @map("contact_email")
-  source            LeadSource  @default(signup)
-  status            LeadStatus  @default(new)
-  estimatedValue    Decimal     @default(0) @map("estimated_value") @db.Decimal(12, 2)
+  id                String     @id @default(uuid()) @db.Uuid
+  customerId        String?    @unique @map("customer_id") @db.Uuid
+  contactName       String     @map("contact_name")
+  contactPhone      String?    @map("contact_phone")
+  contactEmail      String?    @map("contact_email")
+  source            LeadSource @default(signup)
+  status            LeadStatus @default(new)
+  estimatedValue    Decimal    @default(0) @map("estimated_value") @db.Decimal(12, 2)
   notes             String?
-  ownerId           String?     @map("owner_id") @db.Uuid
-  assignedAt        DateTime?   @map("assigned_at")
-  claimDeadline     DateTime?   @map("claim_deadline")
-  lastActivityAt    DateTime    @default(now()) @map("last_activity_at")
-  lastCallAt        DateTime?   @map("last_call_at")
-  callCount         Int         @default(0) @map("call_count")
-  lastMessageAt     DateTime?   @map("last_message_at")
-  messageCount      Int         @default(0) @map("message_count")
-  escalationLevel   Int         @default(0) @map("escalation_level")
-  reassignmentCount Int         @default(0) @map("reassignment_count")
-  closedAt          DateTime?   @map("closed_at")
-  createdAt         DateTime    @default(now()) @map("created_at")
-  updatedAt         DateTime    @updatedAt @map("updated_at")
+  ownerId           String?    @map("owner_id") @db.Uuid
+  assignedAt        DateTime?  @map("assigned_at")
+  claimDeadline     DateTime?  @map("claim_deadline")
+  lastActivityAt    DateTime   @default(now()) @map("last_activity_at")
+  lastCallAt        DateTime?  @map("last_call_at")
+  callCount         Int        @default(0) @map("call_count")
+  lastMessageAt     DateTime?  @map("last_message_at")
+  messageCount      Int        @default(0) @map("message_count")
+  escalationLevel   Int        @default(0) @map("escalation_level")
+  reassignmentCount Int        @default(0) @map("reassignment_count")
+  closedAt          DateTime?  @map("closed_at")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
 
-  customer    User?           @relation("LeadCustomer", fields: [customerId], references: [id], onDelete: SetNull)
-  owner       User?           @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  activities  LeadActivity[]
+  customer   User?          @relation("LeadCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  owner      User?          @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  activities LeadActivity[]
 
   @@index([ownerId])
   @@index([status])
@@ -718,7 +721,7 @@ model LeadActivity {
   id        String   @id @default(uuid()) @db.Uuid
   leadId    String   @map("lead_id") @db.Uuid
   actorId   String?  @map("actor_id") @db.Uuid
-  type      String   // "created" | "assigned" | "reassigned" | "status-change" | "note" | "call" | "email" | "won" | "lost"
+  type      String // "created" | "assigned" | "reassigned" | "status-change" | "note" | "call" | "email" | "won" | "lost"
   body      String
   metadata  Json?
   createdAt DateTime @default(now()) @map("created_at")
@@ -750,31 +753,31 @@ model AlertEvent {
 // ─── God Mode: promo codes, pricing, broadcasts, business config ─────────────
 
 model PromoCode {
-  id           String    @id @default(uuid()) @db.Uuid
-  code         String    @unique
-  kind         String    // "percent" | "fixed"
-  value        Decimal   @db.Decimal(10, 2)
-  appliesTo    String    @map("applies_to") // "booking" | "sale" | "both"
-  usageLimit   Int?      @map("usage_limit")
-  usedCount    Int       @default(0) @map("used_count")
-  expiresAt    DateTime? @map("expires_at")
-  active       Boolean   @default(true)
-  createdAt    DateTime  @default(now()) @map("created_at")
+  id         String    @id @default(uuid()) @db.Uuid
+  code       String    @unique
+  kind       String // "percent" | "fixed"
+  value      Decimal   @db.Decimal(10, 2)
+  appliesTo  String    @map("applies_to") // "booking" | "sale" | "both"
+  usageLimit Int?      @map("usage_limit")
+  usedCount  Int       @default(0) @map("used_count")
+  expiresAt  DateTime? @map("expires_at")
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now()) @map("created_at")
 
-  redemptions  PromoRedemption[]
+  redemptions PromoRedemption[]
 
   @@index([active, expiresAt])
   @@map("promo_codes")
 }
 
 model PromoRedemption {
-  id              String   @id @default(uuid()) @db.Uuid
-  promoId         String   @map("promo_id") @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  bookingId       String?  @unique @map("booking_id") @db.Uuid
-  salesListingId  String?  @map("sales_listing_id") @db.Uuid
-  discountAmount  Decimal  @map("discount_amount") @db.Decimal(10, 2)
-  redeemedAt      DateTime @default(now()) @map("redeemed_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  promoId        String   @map("promo_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  bookingId      String?  @unique @map("booking_id") @db.Uuid
+  salesListingId String?  @map("sales_listing_id") @db.Uuid
+  discountAmount Decimal  @map("discount_amount") @db.Decimal(10, 2)
+  redeemedAt     DateTime @default(now()) @map("redeemed_at")
 
   promo   PromoCode @relation(fields: [promoId], references: [id], onDelete: Cascade)
   user    User      @relation(fields: [userId], references: [id])
@@ -788,7 +791,7 @@ model PromoRedemption {
 model PricingRule {
   id           String   @id @default(uuid()) @db.Uuid
   name         String
-  kind         String   // "weekend" | "peak" | "holiday" | "blackout"
+  kind         String // "weekend" | "peak" | "holiday" | "blackout"
   surchargePct Decimal  @map("surcharge_pct") @db.Decimal(5, 2)
   daysOfWeek   Int[]    @map("days_of_week")
   dateRanges   Json     @default("[]") @map("date_ranges")
@@ -803,7 +806,7 @@ model PricingRule {
 model NotificationTemplate {
   id        String   @id @default(uuid()) @db.Uuid
   key       String   @unique
-  channel   String   // "push" | "email" | "sms"
+  channel   String // "push" | "email" | "sms"
   subject   String?
   bodyMd    String   @map("body_md")
   variables Json     @default("[]")
@@ -817,7 +820,7 @@ model Broadcast {
   id          String    @id @default(uuid()) @db.Uuid
   title       String
   bodyMd      String    @map("body_md")
-  audience    String    // "all" | "customers" | "staff" | "tier:gold" | "city:Marassi"
+  audience    String // "all" | "customers" | "staff" | "tier:gold" | "city:Marassi"
   channels    String[]  @default(["push"])
   scheduledAt DateTime? @map("scheduled_at")
   sentAt      DateTime? @map("sent_at")
@@ -848,8 +851,8 @@ model CannedReply {
 model BusinessHours {
   id         String  @id @default(uuid()) @db.Uuid
   dayOfWeek  Int     @map("day_of_week") // 0 = Sunday
-  openHHMM   String  @map("open_hhmm")   // "08:00"
-  closeHHMM  String  @map("close_hhmm")  // "22:00"
+  openHHMM   String  @map("open_hhmm") // "08:00"
+  closeHHMM  String  @map("close_hhmm") // "22:00"
   locationId String? @map("location_id")
   active     Boolean @default(true)
 
@@ -899,7 +902,7 @@ model Review {
   userId        String   @map("user_id") @db.Uuid
   vehicleId     String   @map("vehicle_id") @db.Uuid
   bookingId     String   @unique @map("booking_id") @db.Uuid
-  rating        Int      // 1-5
+  rating        Int // 1-5
   title         String?
   body          String?
   photos        Json     @default("[]")
@@ -1026,17 +1029,17 @@ model TradeInQuote {
 }
 
 model TransportRequest {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  fromAddress String    @map("from_address")
-  toAddress   String    @map("to_address")
-  pickupAt    DateTime  @map("pickup_at")
-  cargoNotes  String?   @map("cargo_notes")
-  status      String    @default("submitted")
-  priceEgp    Decimal?  @map("price_egp") @db.Decimal(12, 2)
-  driverId    String?   @map("driver_id") @db.Uuid
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  fromAddress String   @map("from_address")
+  toAddress   String   @map("to_address")
+  pickupAt    DateTime @map("pickup_at")
+  cargoNotes  String?  @map("cargo_notes")
+  status      String   @default("submitted")
+  priceEgp    Decimal? @map("price_egp") @db.Decimal(12, 2)
+  driverId    String?  @map("driver_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1046,17 +1049,17 @@ model TransportRequest {
 }
 
 model Order {
-  id        String      @id @default(uuid()) @db.Uuid
-  userId    String      @map("user_id") @db.Uuid
-  status    String      @default("pending")
-  totalEgp  Decimal     @map("total_egp") @db.Decimal(12, 2)
-  tradeInId String?     @map("trade_in_id") @db.Uuid
-  createdAt DateTime    @default(now()) @map("created_at")
-  updatedAt DateTime    @updatedAt @map("updated_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  status    String   @default("pending")
+  totalEgp  Decimal  @map("total_egp") @db.Decimal(12, 2)
+  tradeInId String?  @map("trade_in_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  user      User           @relation(fields: [userId], references: [id])
-  items     OrderItem[]
-  tradeIns  TradeInQuote[]
+  user     User           @relation(fields: [userId], references: [id])
+  items    OrderItem[]
+  tradeIns TradeInQuote[]
 
   @@index([userId, createdAt])
   @@index([status])
@@ -1075,6 +1078,46 @@ model OrderItem {
 
   @@index([orderId])
   @@map("order_items")
+}
+
+enum RentalListingStatus {
+  submitted
+  reviewing
+  approved
+  declined
+  paused
+  withdrawn
+}
+
+/// Owner-submitted vehicles offered to TrendyWheels for managed rental
+/// (revenue-share model). Customer submits via /sell/list-for-rent; sales
+/// staff review and either approve (linking a fleet Vehicle row) or decline.
+model RentalListing {
+  id            String              @id @default(uuid()) @db.Uuid
+  userId        String              @map("user_id") @db.Uuid
+  brand         String
+  model         String
+  year          Int
+  category      VehicleCategory     @default(golf_cart)
+  condition     String
+  dailyRateEgp  Decimal?            @map("daily_rate_egp") @db.Decimal(10, 2)
+  notes         String?
+  photos        String[]            @default([])
+  status        RentalListingStatus @default(submitted)
+  declineReason String?             @map("decline_reason")
+  reviewedById  String?             @map("reviewed_by_id") @db.Uuid
+  reviewedAt    DateTime?           @map("reviewed_at")
+  vehicleId     String?             @map("vehicle_id") @db.Uuid
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User?    @relation("RentalListingReviewer", fields: [reviewedById], references: [id])
+  vehicle    Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status])
+  @@map("rental_listings")
 }
 
 /// Self-service account-deletion requests submitted from the public web form at
