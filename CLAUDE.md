@@ -4,8 +4,9 @@ Read these in order before making changes:
 
 1. **[AGENTS.md](./AGENTS.md)** — rules, conventions, monorepo layout, per-app commands
 2. **[INCIDENTS.md](./INCIDENTS.md)** — known problems + their canonical fixes. **Grep here first when diagnosing a bug.**
-3. **[ARCHITECTURE.md](./ARCHITECTURE.md)** — "where does this go?" decision table for new code
-4. **[RUNBOOK.md](./RUNBOOK.md)** — deploy, rollback, on-call, incident response
+3. **[graphify-out/GRAPH_REPORT.md](./graphify-out/GRAPH_REPORT.md)** — knowledge-graph snapshot of the monorepo (God Nodes, Surprising Connections, cross-package edges). **Skim before any cross-cutting change.** Query the full graph with `/graphify <question>` inside Claude Code, or `graphify query "<question>"` from the shell. Regenerate code structure offline with `graphify update .` after meaningful refactors.
+4. **[ARCHITECTURE.md](./ARCHITECTURE.md)** — "where does this go?" decision table for new code
+5. **[RUNBOOK.md](./RUNBOOK.md)** — deploy, rollback, on-call, incident response
 
 App-specific notes live in each `apps/*/AGENTS.md` if present.
 
@@ -13,6 +14,7 @@ App-specific notes live in each `apps/*/AGENTS.md` if present.
 
 - **Never** add AI attribution (Claude / Anthropic / "Co-Authored-By: Claude") to commits, code, comments, or any tracked file.
 - **Always** scan [INCIDENTS.md](./INCIDENTS.md) before fixing a non-trivial bug. If the symptom matches a past INC, reuse that fix pattern.
+- **Use the graph for code recall before grep.** Skim [graphify-out/GRAPH_REPORT.md](./graphify-out/GRAPH_REPORT.md) (God Nodes, Surprising Connections) or run `/graphify "<question>"` / `graphify query "<question>"`. The graph spans all five apps + eight packages — much faster than re-grepping the monorepo from scratch, and surfaces cross-package dependencies grep misses.
 - **Always** append an INC entry after fixing a non-trivial bug. Threshold: >10 min to diagnose, >2 files touched, or user-visible / Sentry / Play / Firebase error.
 - **Always** run `pnpm typecheck` and the touched app's smoke test before committing.
 - **Never** `pnpm install` without `--frozen-lockfile` when verifying a dependency change — silent regenerations hide drift (see [INC-002](./INCIDENTS.md)).

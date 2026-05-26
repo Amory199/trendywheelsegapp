@@ -61,3 +61,9 @@ minio-data/
 apps/mobile/GoogleService-Info.plist
 apps/mobile/google-services.json
 .claude/
+
+# Graphify — generated artifacts (regen with `graphify update .` for code-only,
+# or full re-extract via `/graphify .` in Claude Code). GRAPH_REPORT.md is
+# committed as a human-readable snapshot.
+graphify-out/*
+!graphify-out/GRAPH_REPORT.md
