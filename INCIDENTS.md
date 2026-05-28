@@ -88,6 +88,23 @@ The original keystore lives forever in the original Expo project's credentials. 
 - Keep `/opt/pl/@<account>__<project>-keystore-backup.zip` as your single source of truth; back it up off the VPS (Drive, password manager).
 - Production builds stay on `credentialsSource: "local"` for as long as we use a recovered keystore — the EAS-managed default for this account is wrong.
 
+**2026-05-26 update — Firebase still failed for Play installs after the upload-key recovery**
+
+vcode 101 installed from Play Store still threw `[auth/app-not-authorized] ... A play_integrity_token was passed, but no matching SHA-256 was registered in the Firebase console` on the first OTP attempt.
+
+Reason: Play Store re-signs every uploaded AAB with the **Play App Signing key** (Google-managed, different from the upload keystore). `@react-native-firebase/auth` v24 uses Play Integrity, which keys the token against that Play App Signing key's SHA-256. The recovery above only restored the **upload key**; Firebase still had no fingerprint matching the Play-signed binary that end-users actually install.
+
+Fix: register **four** fingerprints in Firebase Console (Project `trendywheels-a7635` → Project settings → Android app `com.trendywheels.app` → Add fingerprint):
+
+- Play App Signing **SHA-1** (Play Console → Setup → App integrity → "App signing key certificate")
+- Play App Signing **SHA-256** ← the one the error names
+- Upload key **SHA-1** (same Play page → "Upload key certificate")
+- Upload key **SHA-256**
+
+No code change, no rebuild — Firebase propagates within ~5 min and the next OTP attempt succeeds.
+
+Pattern: whenever any signing key changes (upload **or** app signing), the Firebase Console fingerprint list is the first place to check, **not** after a build fails. Both upload and Play App Signing keys belong in there; treating them as one is the trap.
+
 ---
 
 ### INC-002 — AU-11 lockfile bumped but four app `package.json` files were not (2026-05-21)
