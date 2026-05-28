@@ -46,9 +46,19 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 | 006 | 2026-05-24 | Customer rent page filter chips used car-template enums (sedan/van)  | Fixed      | P2  |
 | 007 | 2026-05-24 | Smoke-test 4xx assertions polluted Sentry every run                  | Fixed      | P3  |
 | 008 | 2026-05-24 | Play Console rejected AAB — upload-key fingerprint mismatch          | Fixed      | P0  |
-| 009 | 2026-05-24 | `/api/health` returns 401 for unauthenticated probes                 | Open       | P3  |
+| 009 | 2026-05-24 | `/api/health` returns 401 for unauthenticated probes                 | Fixed      | P3  |
 | 010 | 2026-05-24 | Customer web has no phone+OTP login (staff-only portal)              | Open       | P2  |
 | 011 | 2026-05-24 | 4 mobile screens use `as unknown as <Type>` instead of runtime parse | Open       | P3  |
+| 012 | 2026-05-28 | Refresh-token lookup scans every active token (CPU DoS at scale)     | Open       | P0  |
+| 013 | 2026-05-28 | Access-token revocation missing (stolen token usable up to 24h)      | Open       | P1  |
+| 014 | 2026-05-28 | Cascade delete on `User → Booking/Notification` destroys records     | Open       | P1  |
+| 015 | 2026-05-28 | No soft-delete on `User` (GDPR / Play Store deletion)                | Open       | P1  |
+| 016 | 2026-05-28 | Composite indexes missing on hot query paths                         | Open       | P1  |
+| 017 | 2026-05-28 | BullMQ workers lack retry/concurrency/idempotency/DLQ                | Open       | P1  |
+| 018 | 2026-05-28 | Mass-assignment in `sales`, `repairs`, `kb` controllers              | Open       | P1  |
+| 019 | 2026-05-28 | Web tokens in localStorage (XSS escalation path)                     | Open       | P1  |
+| 020 | 2026-05-28 | Prod infra SPOFs + no uptime monitor + no secret-rotation runbook    | Open       | P1  |
+| 021 | 2026-05-28 | No certificate pinning on mobile API calls                           | Open       | P2  |
 
 ---
 
@@ -324,19 +334,19 @@ See INC-001 for the recovery procedure. Result: AAB build `a5a45e32-...` (versio
 
 ### INC-009 — `/api/health` returns 401 for unauthenticated probes (2026-05-24)
 
-**Status:** Open
+**Status:** Fixed (2026-05-28)
 **Severity:** P3
-**Touched:** unknown — likely `apps/api/src/app.ts` route mounting
-**Fixed in:** open
+**Touched:** `apps/api/src/app.ts`
+**Fixed in:** audit commit 2026-05-28
 
 **Symptom**
-`curl -sS http://localhost:4000/api/health` returns 401 instead of a 200 health-check body. External uptime monitors can't probe it without an auth header. The smoke test works around this by hitting `/healthz` (root, not under `/api`) instead.
+`curl -sS http://localhost:4000/api/health` returned 401 instead of a 200 health-check body. External uptime monitors couldn't probe it without an auth header. The smoke test worked around it by hitting `/healthz` (root, not under `/api`) instead.
 
-**Root cause** (suspected, not confirmed)
-The `/api/*` mount is behind `authenticate` middleware globally and `/api/health` wasn't whitelisted. The root-level `/healthz` route works because it's mounted before the auth middleware.
+**Root cause**
+Health routes were only mounted at `/`, not `/api`. External probes pointed at `/api/health` hit one of the auth-gated modules and got a 401.
 
-**Fix** (planned)
-Either (a) mount `/api/health` before the auth middleware, or (b) just remove it and document `/healthz` as the canonical health URL. Option b is less work and matches what smoke + pm2 already use.
+**Fix**
+Mounted `healthRoutes` at both `/` (existing) and `/api` (new) in `apps/api/src/app.ts`. Both `/healthz`, `/readyz`, `/api/healthz`, `/api/readyz` now resolve to the same handlers — external monitors can use either prefix without thinking about routing.
 
 **Pattern to follow next time**
 
@@ -386,6 +396,264 @@ For each screen: (1) define or import the appropriate response schema from `pack
 
 - New screens that hit the API **must not** use `as unknown as <Type>`. Use `parse:` with a schema from `@trendywheels/validators`. The runtime cost is ~10% of the request; the benefit is typed errors instead of `Cannot read property of undefined`.
 - See `apps/mobile/app/admin/dashboard.tsx` for the canonical example.
+
+---
+
+### INC-012 — Refresh-token lookup scans every active token (CPU DoS at scale) (2026-05-28)
+
+**Status:** Open
+**Severity:** P0
+**Touched:** `apps/api/src/modules/auth/service.ts:314-334`
+**Fixed in:** open (rate-limit mitigation landed inline in audit commit; root-cause fix tracked here)
+**Related:** AUDIT_FINDINGS.md finding API #2
+
+**Symptom**
+`refreshAccessToken()` calls `prisma.refreshToken.findMany({ where: { revokedAt: null, expiresAt: { gt: new Date() } } })` — fetches every active refresh token across all users, then loops `bcrypt.compare()` against each. At 1M users × ~3 active tokens = 3M bcrypt compares per refresh request. CPU exhaustion vector + unsustainable latency.
+
+**Root cause**
+The refresh JWT payload doesn't carry the user id, so the controller has no way to scope the lookup. The design defers user resolution until after the token hash match.
+
+**Fix** (planned)
+Embed `userId` in the refresh token payload at issue time. In `refreshAccessToken`: decode the JWT first (signature-verify only, ignoring expiry checks at this stage), extract `userId`, then `findMany({ where: { userId, revokedAt: null, expiresAt: { gt } } })` — bounded to that user's ~3 tokens. Existing tokens remain valid; new ones get the embedded userId after deploy.
+
+**Pattern to follow next time**
+
+- Any token lookup should be O(tokens-per-user), never O(total-tokens). If the table can ever exceed 10k rows, the indexed/scoped query is mandatory.
+
+---
+
+### INC-013 — Access-token revocation missing (2026-05-28)
+
+**Status:** Open
+**Severity:** P1
+**Touched:** `apps/api/src/middleware/auth.ts`, `apps/api/src/modules/auth/service.ts`
+**Fixed in:** open
+**Related:** AUDIT_FINDINGS.md finding API #4
+
+**Symptom**
+On logout, refresh tokens are revoked but access tokens stay valid until natural expiry (`JWT_ACCESS_EXPIRY=24h`). A stolen access token (Sentry crash log, MITM, screenshot) is usable for up to 24h after the victim logs out.
+
+**Root cause**
+JWT validation is stateless by design — `authenticate` middleware checks signature and expiry without server-side lookup.
+
+**Fix** (planned)
+Add a Redis bloom filter `access_token_revoked:<sha256(token)>` populated on logout / password reset. Check it from `authenticate` middleware before trusting the JWT. Bloom filter is O(1) lookup with bounded memory, false positives forced into refresh path (acceptable). Token-sig hash is 32 bytes per entry → 1M revocations ≈ 32 MB.
+
+**Pattern to follow next time**
+
+- For long-lived bearer tokens, plan revocation from day one — even if the initial impl is just "set short expiry and ignore". Lengthening the expiry without a revocation channel is an invisible regression.
+
+---
+
+### INC-014 — Cascade delete on `User → Booking/Notification` destroys audit/revenue records (2026-05-28)
+
+**Status:** Open
+**Severity:** P1
+**Touched:** `packages/db/prisma/schema.prisma` — `Notification` (`onDelete: Cascade`), `Booking` (implicit cascade)
+**Fixed in:** open
+**Related:** AUDIT_FINDINGS.md finding Infra #2,#11
+
+**Symptom**
+Deleting a `User` row also wipes their `Booking` and `Notification` rows. Bookings carry revenue and tax history we are legally required to retain. Notifications are minor but still wanted for support audit trails.
+
+**Root cause**
+Schema convenience choice when `User` was first scaffolded; the implication for financial records wasn't considered.
+
+**Fix** (planned)
+
+- `Booking.userId` → make nullable; relation `onDelete: SetNull`; anonymize PII at delete time via a deletion worker.
+- `Notification.userId` → same pattern, or alternatively keep cascade but only after we have a soft-delete (see INC-015), which removes the need to ever hard-delete a User.
+- Migration must backfill cleanly — `userId` already non-null for every existing row, so the column becomes nullable without data loss.
+
+**Pattern to follow next time**
+
+- For every `onDelete: Cascade` on `User`: ask "is this row a financial / regulatory / audit artefact?" If yes → `SetNull` + anonymize. The default should be `SetNull`, not `Cascade`.
+
+---
+
+### INC-015 — No soft-delete on `User` (GDPR / Play Store deletion-request) (2026-05-28)
+
+**Status:** Open
+**Severity:** P1
+**Touched:** `packages/db/prisma/schema.prisma`, every Prisma `User` query in `apps/api/src/modules/**`
+**Fixed in:** open
+**Related:** AUDIT_FINDINGS.md finding Infra #14, INC-014
+
+**Symptom**
+The `DeletionRequest` model exists for GDPR / Play Store user-data-deletion requests, but there's no `deletedAt` column on `User`. The only way to honor a request is hard delete → cascade chaos (INC-014).
+
+**Root cause**
+Soft-delete was deferred until a deletion request actually came in. Now it's the precondition for fixing INC-014 properly.
+
+**Fix** (planned)
+Add `deletedAt DateTime?` to `User`. Add a Prisma middleware (or refactor to explicit `where: { deletedAt: null }` everywhere — preferred for explicitness). Deletion worker sets `deletedAt = now()` + scrubs PII (`email = null`, `phone = null`, `name = "[deleted user]"`). Bookings/notifications via INC-014 already point at the nulled `userId`.
+
+**Pattern to follow next time**
+
+- Any model representing a long-lived business entity (User, Vehicle, Listing, Order) defaults to soft-delete. Hard-delete only for ephemeral rows (OTP codes, expired tokens, idempotency keys).
+
+---
+
+### INC-016 — Missing composite indexes on hot query paths (2026-05-28)
+
+**Status:** Open
+**Severity:** P1
+**Touched:** `packages/db/prisma/schema.prisma` — `User`, `RefreshToken`, `Booking`, `SalesListing`, `RepairRequest`, `Notification`, `RentalListing`, `Vehicle`
+**Fixed in:** open
+**Related:** AUDIT_FINDINGS.md finding Infra #1,#2,#3,#4,#5,#6,#7,#19,#20
+
+**Symptom**
+Multiple hot endpoints filter by compound conditions (e.g., `WHERE userId = ? AND status = ?`) without composite indexes. Each query uses one single-column index then filters in memory — fine at 1k rows, painful at 100k+, lethal at 1M+.
+
+**Root cause**
+Indexes added one-at-a-time as endpoints were built; nobody did a pass over the schema after the rental-listings module landed.
+
+**Fix** (planned)
+Single migration adding ~8 composite indexes:
+
+- `User`: explicit `@@index([email])`, `@@index([phone])` (the implicit @unique indexes are fine but explicit is clearer for partials later)
+- `RefreshToken`: `@@index([userId, revokedAt, expiresAt])` (post-INC-012 this is the primary lookup)
+- `Booking`: `@@index([userId, status, startDate])`
+- `SalesListing`: `@@index([userId, status])`, `@@index([status, createdAt])`
+- `RepairRequest`: `@@index([assignedMechanicId])`
+- `Notification`: `@@index([userId, createdAt])`
+- `Vehicle`: `@@index([category])`
+
+Migration is purely additive — runs concurrently in Postgres if applied with `CREATE INDEX CONCURRENTLY`.
+
+**Pattern to follow next time**
+
+- Every Prisma `where:` with two or more filter columns → composite `@@index`. SCALE checklist now enforces this at PR time.
+
+---
+
+### INC-017 — BullMQ workers lack retry policy, concurrency cap, idempotency, DLQ (2026-05-28)
+
+**Status:** Open
+**Severity:** P1
+**Touched:** `apps/api/src/workers/index.ts` (all `new Worker()` instantiations), `apps/api/src/queues/index.ts`
+**Fixed in:** open
+**Related:** AUDIT_FINDINGS.md finding API #8, Infra #18,#19,#20,#21
+
+**Symptom**
+Workers fail silently under transient Redis/Prisma issues, replay create-row jobs to produce duplicates, run unbounded concurrent jobs (memory risk), and drop failed jobs after 50 retentions (no DLQ for manual inspection).
+
+**Root cause**
+Default BullMQ options were never overridden. Each shortcoming compounds: no retry means failures aren't caught, no concurrency cap means failures cascade, no idempotency means retries duplicate state, no DLQ means root causes are lost.
+
+**Fix** (planned)
+
+- Add `defaultJobOptions: { attempts: 3, backoff: { type: "exponential", delay: 2000 } }` to each `Worker`.
+- Set `concurrency: 10` (notifications), `5` (email — external rate limit), `2` (alert-evaluator — DB-heavy). Adjust per worker.
+- For each write-producing handler: add an `idempotencyKey` to `job.data`, dedupe with Redis SETNX before executing.
+- New `dead-letter-queue` BullMQ queue; failed jobs auto-moved after `attempts` exhausted, exposed via `/admin/queues/dead-letter` (staff-only).
+
+**Pattern to follow next time**
+
+- New `Worker(...)` → must specify `concurrency` and `defaultJobOptions` explicitly. The SCALE checklist now enforces this.
+
+---
+
+### INC-018 — Mass-assignment in `sales`, `repairs`, `kb` controllers (2026-05-28)
+
+**Status:** Open
+**Severity:** P1
+**Touched:** `apps/api/src/modules/sales/controller.ts:85-99`, `apps/api/src/modules/repairs/controller.ts:65-72`, `apps/api/src/modules/kb/controller.ts:54-69`
+**Fixed in:** open
+**Related:** AUDIT_FINDINGS.md finding API #5,#6,#7
+
+**Symptom**
+Three controllers use `data: { ...req.body, ... }` patterns in Prisma `.create()` calls. When the schema gains a new field (e.g., `featured: Boolean`, `priority: Int`), an attacker can set it via the request body, bypassing the Zod validator which only covers known fields.
+
+**Root cause**
+Convenience pattern from initial scaffolding. The Zod validator stops bad shapes; it doesn't stop _extra_ shapes from being forwarded to Prisma.
+
+**Fix** (planned)
+Replace `...req.body` with explicit field picks in all three controllers. Pattern reference: `apps/api/src/modules/rental-listings/controller.ts` already uses explicit picks.
+
+**Pattern to follow next time**
+
+- Never spread `req.body` into Prisma `data:`. Always explicit picks: `data: { title: body.title, ... userId: req.user.id, status: "initial" }`. Captured in SECURITY checklist as a hard rule.
+
+---
+
+### INC-019 — Web tokens in localStorage (XSS escalation path) (2026-05-28)
+
+**Status:** Open
+**Severity:** P1
+**Touched:** `apps/customer/src/lib/api.ts`, `apps/admin/src/lib/api.ts`, `apps/support/src/lib/api.ts`, `apps/inventory/src/lib/api.ts`, plus matching backend cookie handling in `apps/api`
+**Fixed in:** open
+**Related:** AUDIT_FINDINGS.md finding web/mobile #1
+
+**Symptom**
+All four Next.js apps store access + refresh tokens in `localStorage`. Any successful XSS injection (third-party script compromise, npm package compromise, content injection bug) reads tokens and exfiltrates the user's session — including for staff/admin accounts.
+
+**Root cause**
+Originally simpler than cookie + CSRF dance; never revisited as the app matured into a staff portal handling sensitive operations.
+
+**Fix** (planned)
+Migrate to `Set-Cookie: token=...; HttpOnly; Secure; SameSite=Lax` issued by the API on login. Add a per-request CSRF token (double-submit cookie or sync token) for state-changing requests. Mobile is unaffected — already uses SecureStore. Significant track: touches all 4 web apps + API auth controller + every fetch site.
+
+**Pattern to follow next time**
+
+- New web auth surfaces ship with httpOnly cookies + CSRF from day one. No localStorage tokens.
+
+---
+
+### INC-020 — Prod infra single points of failure + no external uptime monitor + no documented secret rotation (2026-05-28)
+
+**Status:** Open
+**Severity:** P1
+**Touched:** `RUNBOOK.md`, ops infra (no code change here — runbook + external service config)
+**Fixed in:** open
+**Related:** AUDIT_FINDINGS.md finding Infra #4,#5,#6,#8,#41,#44,#45
+
+**Symptom**
+
+- Single Postgres on the VPS, no replica, no automated failover. Disk failure = data loss.
+- Single Redis on the VPS, no AOF in prod (the inline fix above only covers local dev). Crash = queued jobs + sessions lost.
+- No external uptime monitor — outages discovered by users, not us.
+- No documented rotation procedure for JWT keys, Firebase service account, third-party API keys.
+
+**Root cause**
+Single-VPS deployment from day zero; HA was deferred to post-launch. That's defensible. But the uptime monitor + secret-rotation runbook are free wins that were never written.
+
+**Fix** (planned)
+
+- **Now (free, half-hour each):** UptimeRobot or BetterStack ping on `https://api.trendywheelseg.com/readyz` every 5 min, SMS + Slack alert. Mirror local-dev Redis AOF config to `/etc/redis/redis.conf` on the VPS.
+- **Now (doc):** add "Secret rotation" + "Disaster recovery" sections to RUNBOOK.md.
+- **Post-launch (multi-day):** migrate Postgres to managed (Supabase, RDS) with automated backups + read replica. Redis to Upstash or ElastiCache.
+
+**Pattern to follow next time**
+
+- Every external dependency we add (new third-party service, new env var, new infra component) → entry in RUNBOOK.md "Rotation" section _at the time it's added_, not later.
+
+---
+
+### INC-021 — No certificate pinning on mobile API calls (2026-05-28)
+
+**Status:** Open
+**Severity:** P2
+**Touched:** `apps/mobile/lib/api.ts`, EAS build config
+**Fixed in:** open
+**Related:** AUDIT_FINDINGS.md finding web/mobile #7
+
+**Symptom**
+The mobile app trusts any TLS cert chain that resolves to `api.trendywheelseg.com`. A compromised CA, MITM on public WiFi, or rogue corporate network can intercept API traffic — including auth tokens and OTP exchanges.
+
+**Root cause**
+Cert pinning was deprioritized because Egypt's CA threat model is not in the top three risks today; pinning also adds operational complexity (cert rotation needs coordinated mobile app release).
+
+**Fix** (planned)
+
+- Install `react-native-cert-pinner` (or use the Hermes-compatible alternative).
+- Pin the leaf cert's SHA-256 fingerprint for `api.trendywheelseg.com`.
+- Document the rotation procedure: when certbot renews, the next mobile build embeds the new pin; release before the old cert hits its renewal window.
+- Trade-off: any client running an older app build will break the day the cert rotates without the new pin baked in. Mitigation: pin **two** fingerprints (current + next) with a 30-day rotation overlap.
+
+**Pattern to follow next time**
+
+- Cert pinning is a multi-step deploy involving mobile + ops + a planned rollout. Don't bolt it on the day before a launch — plan the cycle.
 
 ---
 

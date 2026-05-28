@@ -14,6 +14,16 @@ import { logger } from "./utils/logger.js";
 import { initSentry, Sentry } from "./utils/sentry.js";
 import { ensureBucket } from "./utils/storage.js";
 
+if (env.NODE_ENV === "production" && env.ENABLE_TRIAL_OTP_BYPASS) {
+  // eslint-disable-next-line no-console
+  console.error(
+    "[startup] REFUSING TO START: ENABLE_TRIAL_OTP_BYPASS=true in production. " +
+      "Hardcoded test OTPs (see auth/service.ts) would let anyone sign in as staff. " +
+      "Unset the flag or set NODE_ENV=development.",
+  );
+  process.exit(1);
+}
+
 initSentry();
 initFirebase();
 
