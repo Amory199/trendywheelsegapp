@@ -19,9 +19,10 @@ import {
 import { useCounter } from "../hooks/useCounter";
 import { readToken, ACCESS_KEY } from "../lib/api";
 import { useAuth } from "../lib/auth-store";
+
+import { OpsDashboard } from "./_dashboards/ops";
 import { SalesDashboard } from "./_dashboards/sales";
 import { SupportDashboard } from "./_dashboards/support";
-import { OpsDashboard } from "./_dashboards/ops";
 
 // Top-level dashboard router — picks the role-appropriate view based on the
 // hydrated auth user. Superadmins (and unknown/unhydrated state) land on the

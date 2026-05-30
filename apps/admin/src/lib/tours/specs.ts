@@ -1,6 +1,6 @@
 import type { TourSpec } from "../tour-runner";
 
-import { registerTour } from "./index";
+import { registerTour } from "./registry";
 
 // Per-page guided tours for the admin app. Each spec targets stable
 // `data-tour="..."` anchors added to the page during Phase 4. Steps are

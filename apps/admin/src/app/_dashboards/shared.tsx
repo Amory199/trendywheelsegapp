@@ -1,13 +1,13 @@
 "use client";
 
-import { StatCard } from "@trendywheels/ui-brand/stat-card";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
+import { StatCard } from "@trendywheels/ui-brand/stat-card";
 import { twPalette } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import * as React from "react";
 
-import { TourHelpButton } from "../../lib/tour-help-button";
 import { readToken, ACCESS_KEY } from "../../lib/api";
+import { TourHelpButton } from "../../lib/tour-help-button";
 
 // Auth-aware fetcher shared by every role-specific dashboard. Returns parsed
 // JSON or throws — React Query handles retry/backoff/error display.
