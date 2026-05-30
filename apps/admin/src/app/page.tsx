@@ -18,6 +18,26 @@ import {
 
 import { useCounter } from "../hooks/useCounter";
 import { readToken, ACCESS_KEY } from "../lib/api";
+import { useAuth } from "../lib/auth-store";
+import { SalesDashboard } from "./_dashboards/sales";
+import { SupportDashboard } from "./_dashboards/support";
+import { OpsDashboard } from "./_dashboards/ops";
+
+// Top-level dashboard router — picks the role-appropriate view based on the
+// hydrated auth user. Superadmins (and unknown/unhydrated state) land on the
+// full admin dashboard with system-wide KPIs + charts + activity feed. Sales /
+// support / ops roles each get a focused single-screen workspace tailored to
+// their day-to-day surfaces.
+export default function DashboardPage(): JSX.Element {
+  const user = useAuth((s) => s.user);
+  if (!user) return <SuperadminDashboard />;
+  if (user.accountType === "admin") return <SuperadminDashboard />;
+  const role = user.staffRole ?? null;
+  if (role === "sales") return <SalesDashboard />;
+  if (role === "support") return <SupportDashboard />;
+  if (role === "inventory" || role === "mechanic") return <OpsDashboard />;
+  return <SuperadminDashboard />;
+}
 
 interface MetricsResponse {
   data: {
@@ -95,7 +115,7 @@ function Chip({
   );
 }
 
-export default function DashboardPage(): JSX.Element {
+function SuperadminDashboard(): JSX.Element {
   const palette = twPalette(false);
   const [range, setRange] = React.useState<"week" | "month" | "90">("month");
 
