@@ -2,6 +2,7 @@
 
 import { colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
+import type { JSX } from "react";
 
 type Tone = "blue" | "pink" | "amber" | "pool" | "purple";
 
@@ -18,6 +19,7 @@ const ICON_MAP: Record<string, string> = {
   listings: "🏷️",
   repairs: "🔧",
   messages: "💬",
+  rentals: "🚗",
 };
 
 interface Props {

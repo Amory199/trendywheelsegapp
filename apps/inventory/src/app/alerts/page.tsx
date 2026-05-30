@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RepairRequest, Vehicle } from "@trendywheels/types";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { JSX } from "react";
 
 import { api, baseUrl, readToken, ACCESS_KEY } from "../../lib/api";
 
@@ -25,7 +26,9 @@ async function fetchAlertConfig(): Promise<AlertConfigResponse> {
   return res.json();
 }
 
-async function patchAlertConfig(body: Partial<AlertConfigResponse["data"]>): Promise<AlertConfigResponse> {
+async function patchAlertConfig(
+  body: Partial<AlertConfigResponse["data"]>,
+): Promise<AlertConfigResponse> {
   const res = await fetch(`${baseUrl}/api/inventory/alert-config`, {
     method: "PATCH",
     headers: {
@@ -139,7 +142,8 @@ export default function AlertsPage(): JSX.Element {
       id: "maintenance-high",
       severity: inMaintenance >= 5 ? "critical" : "warning",
       title: `${inMaintenance} vehicles in maintenance`,
-      description: "High number of vehicles off-road for maintenance is reducing available fleet capacity.",
+      description:
+        "High number of vehicles off-road for maintenance is reducing available fleet capacity.",
       link: "/availability",
     });
   }
@@ -245,9 +249,7 @@ export default function AlertsPage(): JSX.Element {
               />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-gray-500 block mb-1">
-                Max open repairs
-              </span>
+              <span className="text-xs font-medium text-gray-500 block mb-1">Max open repairs</span>
               <input
                 type="number"
                 min={1}
@@ -303,7 +305,9 @@ export default function AlertsPage(): JSX.Element {
         </div>
         <div className="bg-white rounded-xl border p-4">
           <div className="text-xs text-gray-500 mb-1">In Maintenance</div>
-          <div className={`text-3xl font-bold ${inMaintenance >= 3 ? "text-orange-600" : "text-gray-800"}`}>
+          <div
+            className={`text-3xl font-bold ${inMaintenance >= 3 ? "text-orange-600" : "text-gray-800"}`}
+          >
             {inMaintenance}
           </div>
         </div>

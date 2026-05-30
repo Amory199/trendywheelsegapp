@@ -2,18 +2,16 @@ import type { Request, Response } from "express";
 
 import { redis } from "../../config/redis.js";
 import { prisma } from "../../config/database.js";
-import { notificationsQueue } from "../../queues/index.js";
 import { requireOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
-import { emitCustomerEvent } from "../realtime/customer-events.js";
+import { emitDomainEvent, notifyAdmins } from "../../utils/notify.js";
 
-const SALES_CACHE_TTL = 60;
-const SALES_CACHE_PREFIX = "sales:list:";
-
-async function invalidateSalesCache(): Promise<void> {
-  const keys = await redis.keys(`${SALES_CACHE_PREFIX}*`);
-  if (keys.length > 0) await redis.del(...keys);
-}
+import {
+  invalidateSalesCache,
+  SALES_CACHE_PREFIX,
+  SALES_CACHE_TTL,
+  setListingStatus,
+} from "./service.js";
 
 const CATEGORY_MAP: Record<string, string> = {
   "golf-cart": "golf_cart",
@@ -101,30 +99,15 @@ export async function create(req: Request, res: Response): Promise<void> {
   });
   await invalidateSalesCache();
   // Notify staff that a listing is awaiting approval.
-  const staff = await prisma.user.findMany({
-    where: { accountType: { in: ["admin", "staff"] }, status: "active" },
-    select: { id: true },
+  await notifyAdmins(`listing-pending-${listing.id}`, {
+    type: "listing_pending",
+    title: "New sale listing awaiting approval",
+    body: listing.title ?? "Untitled listing",
+    data: { listingId: listing.id },
   });
-  await Promise.all(
-    staff.map((s) =>
-      notificationsQueue.add(
-        `listing-pending-${listing.id}-${s.id}`,
-        {
-          userId: s.id,
-          type: "listing_pending",
-          title: "New sale listing awaiting approval",
-          body: listing.title ?? "Untitled listing",
-          data: { listingId: listing.id },
-        },
-        { removeOnComplete: true },
-      ),
-    ),
-  );
-  emitCustomerEvent("sales-listing.created", {
-    id: listing.id,
-    userId: req.user!.userId,
-    at: new Date().toISOString(),
-    meta: { title: listing.title ?? null, status: listing.status },
+  emitDomainEvent("sales-listing.created", listing.id, req.user!.userId, {
+    title: listing.title ?? null,
+    status: listing.status,
   });
   res.status(201).json({ data: listing, id: listing.id });
 }
@@ -139,11 +122,8 @@ export async function update(req: Request, res: Response): Promise<void> {
     data: req.body,
   });
   await invalidateSalesCache();
-  emitCustomerEvent("sales-listing.updated", {
-    id: updated.id,
-    userId: updated.userId,
-    at: new Date().toISOString(),
-    meta: { status: updated.status },
+  emitDomainEvent("sales-listing.updated", updated.id, updated.userId, {
+    status: updated.status,
   });
   res.json({ data: updated });
 }
@@ -156,11 +136,7 @@ async function setStatus(
   status: "active" | "sold" | "pending",
 ): Promise<void> {
   if (!STAFF_TYPES.has(req.user!.accountType)) throw AppError.forbidden();
-  const listing = await prisma.salesListing.update({
-    where: { id: req.params.id },
-    data: { status },
-  });
-  await invalidateSalesCache();
+  const listing = await setListingStatus(req.params.id, status);
   res.json({ data: listing });
 }
 

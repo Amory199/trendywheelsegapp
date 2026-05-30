@@ -8,6 +8,7 @@
 // backend change needed for this redesign.
 
 import { useQuery } from "@tanstack/react-query";
+import type { LoyaltyTier } from "@trendywheels/types";
 import { TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
@@ -17,7 +18,7 @@ import { Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { ActivityCard } from "../../components/profile/ActivityCard";
-import { HeroStrip, type Tier } from "../../components/profile/HeroStrip";
+import { HeroStrip } from "../../components/profile/HeroStrip";
 import { KpiRow } from "../../components/profile/KpiRow";
 import { LoyaltyCard } from "../../components/profile/LoyaltyCard";
 import { ReferralCard } from "../../components/profile/ReferralCard";
@@ -60,20 +61,14 @@ export default function ProfileScreen(): React.JSX.Element {
     queryFn: () => api.getRepairRequests({ mine: true, limit: 1 } as never),
     enabled: !!user,
   });
+  const rentalsQ = useQuery({
+    queryKey: ["profile-rental-listings"],
+    queryFn: () => api.getRentalListings(),
+    enabled: !!user,
+  });
   const unreadQ = useQuery({
     queryKey: ["profile-unread"],
-    queryFn: async () => {
-      const baseUrl = (api as unknown as { baseUrl: string }).baseUrl;
-      const token = await (
-        api as unknown as { config: { getAccessToken: () => Promise<string | null> } }
-      ).config.getAccessToken();
-      const res = await fetch(`${baseUrl}/api/messages/unread-count`, {
-        headers: { Authorization: `Bearer ${token ?? ""}` },
-      });
-      if (!res.ok) return { count: 0 };
-      const json = (await res.json()) as { count?: number; data?: { count?: number } };
-      return { count: json.count ?? json.data?.count ?? 0 };
-    },
+    queryFn: () => api.getUnreadMessageCount().catch(() => ({ count: 0 })),
     enabled: !!user,
   });
 
@@ -97,7 +92,7 @@ export default function ProfileScreen(): React.JSX.Element {
     );
   }
 
-  const tier = (user.loyaltyTier ?? "bronze") as Tier;
+  const tier = (user.loyaltyTier ?? "bronze") as LoyaltyTier;
   const points = user.loyaltyPoints ?? 0;
   const bookingsCount =
     (bookingsQ.data as { total?: number; data?: unknown[] } | undefined)?.total ??
@@ -111,6 +106,10 @@ export default function ProfileScreen(): React.JSX.Element {
     (repairsQ.data as { total?: number; data?: unknown[] } | undefined)?.total ??
     (repairsQ.data as { data?: unknown[] } | undefined)?.data?.length ??
     0;
+  const rentalsCount =
+    (rentalsQ.data as { total?: number; data?: unknown[] } | undefined)?.total ??
+    (rentalsQ.data as { data?: unknown[] } | undefined)?.data?.length ??
+    0;
   const unreadCount = unreadQ.data?.count ?? 0;
 
   const latestBooking = (bookingsQ.data as { data?: Array<{ status?: string }> } | undefined)
@@ -118,6 +117,8 @@ export default function ProfileScreen(): React.JSX.Element {
   const latestRepair = (repairsQ.data as { data?: Array<{ status?: string }> } | undefined)
     ?.data?.[0];
   const latestListing = (listingsQ.data as { data?: Array<{ title?: string }> } | undefined)
+    ?.data?.[0];
+  const latestRental = (rentalsQ.data as { data?: Array<{ status?: string }> } | undefined)
     ?.data?.[0];
 
   const appVersion =
@@ -195,6 +196,22 @@ export default function ProfileScreen(): React.JSX.Element {
           }
           tone="amber"
           onPress={() => router.push("/(tabs)/repair")}
+        />
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.duration(470).delay(330)}>
+        <ActivityCard
+          icon="car-sport-outline"
+          title="Rental listings"
+          subtitle={
+            rentalsCount === 0
+              ? "List your cart for managed rental"
+              : latestRental?.status
+                ? `${rentalsCount} total · latest: ${latestRental.status}`
+                : `${rentalsCount} total`
+          }
+          tone="purple"
+          onPress={() => router.push("/sell/list-for-rent")}
         />
       </Animated.View>
 

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../../lib/fetcher";
 
@@ -76,8 +77,7 @@ export default function AdminCustomerDetailPage(): JSX.Element {
 
   const { data: notesData } = useQuery({
     queryKey: ["admin-customer-notes", id],
-    queryFn: () =>
-      authedFetch<{ data: CustomerNote[] }>(`/api/admin/customers/${id}/notes`),
+    queryFn: () => authedFetch<{ data: CustomerNote[] }>(`/api/admin/customers/${id}/notes`),
     enabled: Boolean(id),
   });
   const notes = notesData?.data ?? [];
@@ -364,10 +364,7 @@ export default function AdminCustomerDetailPage(): JSX.Element {
                 </p>
               ) : (
                 notes.map((n) => (
-                  <div
-                    key={n.id}
-                    className="bg-yellow-50 border border-yellow-200 rounded-lg p-3"
-                  >
+                  <div key={n.id} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                     <p className="text-sm text-gray-800 whitespace-pre-wrap">{n.body}</p>
                     <div className="flex items-center justify-between mt-2">
                       <p className="text-xs text-gray-500">

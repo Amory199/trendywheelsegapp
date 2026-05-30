@@ -7,6 +7,10 @@
     "./web": "./src/web.tsx",
     "./web-canvas": "./src/web-canvas.tsx",
     "./intro-overlay-web": "./src/intro-overlay-web.tsx",
+    "./page-header": "./src/page-header.tsx",
+    "./info-tooltip": "./src/info-tooltip.tsx",
+    "./stat-card": "./src/stat-card.tsx",
+    "./empty-state": "./src/empty-state.tsx",
     "./native": "./src/native.tsx"
   },
   "scripts": {
@@ -29,9 +33,9 @@
   "devDependencies": {
     "@trendywheels/eslint-config": "workspace:*",
     "@trendywheels/tsconfig": "workspace:*",
-    "@types/react": "~18.3.0",
+    "@types/react": "^19.0.0",
     "eslint": "^8.57.0",
-    "react": "18.3.1",
+    "react": "19.0.0",
     "react-native": "0.79.6",
     "react-native-svg": "^15.11.2",
     "typescript": "^5.0.0"

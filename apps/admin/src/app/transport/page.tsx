@@ -1,7 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -46,7 +48,11 @@ export default function AdminTransportPage(): JSX.Element {
       {q.isLoading ? (
         <div className="text-gray-500 py-12 text-center">Loading…</div>
       ) : items.length === 0 ? (
-        <div className="text-gray-500 py-12 text-center">No requests yet.</div>
+        <EmptyState
+          icon="🚚"
+          title="No transport requests yet"
+          description="Customers request pickups from the mobile app. When one lands, you'll set a price, assign a driver, and update status from here."
+        />
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm">

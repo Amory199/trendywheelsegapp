@@ -1,29 +1,19 @@
 "use client";
 
-import { colors } from "@trendywheels/ui-tokens";
+import type { LoyaltyTier } from "@trendywheels/types";
+import { initialsOf, TIER_GRADIENTS } from "@trendywheels/ui-tokens";
 import Link from "next/link";
-
-const TIER_GRADIENTS: Record<string, string> = {
-  bronze: "linear-gradient(135deg, #CD7F32, #8B5A2B)",
-  silver: "linear-gradient(135deg, #9E9E9E, #5E5E5E)",
-  gold: "linear-gradient(135deg, #F5B800, #D19500)",
-  platinum: `linear-gradient(135deg, ${colors.brand.poolBlue}, ${colors.brand.friendlyBlue})`,
-};
+import type { JSX } from "react";
 
 interface Props {
   name: string;
   phone: string;
-  tier: string;
+  tier: LoyaltyTier | string;
 }
 
 export function HeroStrip({ name, phone, tier }: Props): JSX.Element {
-  const initials = (name || "")
-    .split(" ")
-    .map((n) => n[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const gradient = TIER_GRADIENTS[tier as LoyaltyTier] ?? TIER_GRADIENTS.bronze;
+  const initials = initialsOf(name);
 
   return (
     <Link
@@ -32,7 +22,7 @@ export function HeroStrip({ name, phone, tier }: Props): JSX.Element {
     >
       <div
         style={{
-          background: TIER_GRADIENTS[tier] ?? TIER_GRADIENTS.bronze,
+          background: gradient,
           color: "#fff",
           borderRadius: 20,
           padding: 24,

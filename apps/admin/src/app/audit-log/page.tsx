@@ -1,8 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { colors } from "@trendywheels/ui-tokens";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -155,9 +157,17 @@ export default function AuditLogPage(): JSX.Element {
           </div>
         ))}
         {items.length === 0 && !q.isLoading ? (
-          <div style={{ padding: 32, textAlign: "center", color: "#6B6A85", fontSize: 13 }}>
-            No matching entries.
-          </div>
+          filter.action || filter.entity || filter.userId ? (
+            <div style={{ padding: 32, textAlign: "center", color: "#6B6A85", fontSize: 13 }}>
+              No entries match the current filters. Try clearing them.
+            </div>
+          ) : (
+            <EmptyState
+              icon="📜"
+              title="No audit entries yet"
+              description="Every privileged action — staff edits, role changes, settings tweaks — is recorded here. Entries appear as soon as someone makes a change."
+            />
+          )
         ) : null}
       </div>
     </div>

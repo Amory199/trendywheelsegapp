@@ -2,11 +2,12 @@ import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
-import { notificationsQueue } from "../../queues/index.js";
 import { requireOwner, scopeListToOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
+import { emitDomainEvent, notifyAdmins, notifyUser } from "../../utils/notify.js";
 import { recordActivity } from "../crm/service.js";
-import { emitCustomerEvent } from "../realtime/customer-events.js";
+
+import { onBookingCompleted } from "./service.js";
 
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
@@ -182,31 +183,17 @@ export async function create(req: Request, res: Response): Promise<void> {
   }
 
   // Notify staff that there's a pending booking to approve.
-  const staff = await prisma.user.findMany({
-    where: { accountType: { in: ["admin", "staff"] }, status: "active" },
-    select: { id: true },
+  await notifyAdmins(`booking-pending-${booking.id}`, {
+    type: "booking_pending",
+    title: "New booking awaiting approval",
+    body: `${vehicle.name} · ${days} day${days === 1 ? "" : "s"} · EGP ${totalCost.toLocaleString()}`,
+    data: { bookingId: booking.id, vehicleId, url: "/admin/bookings" },
   });
-  await Promise.all(
-    staff.map((s) =>
-      notificationsQueue.add(
-        `booking-pending-${booking.id}-${s.id}`,
-        {
-          userId: s.id,
-          type: "booking_pending",
-          title: "New booking awaiting approval",
-          body: `${vehicle.name} · ${days} day${days === 1 ? "" : "s"} · EGP ${totalCost.toLocaleString()}`,
-          data: { bookingId: booking.id, vehicleId, url: "/admin/bookings" },
-        },
-        { removeOnComplete: true },
-      ),
-    ),
-  );
 
-  emitCustomerEvent("booking.created", {
-    id: booking.id,
-    userId,
-    at: new Date().toISOString(),
-    meta: { vehicleId, totalCost, status: booking.status },
+  emitDomainEvent("booking.created", booking.id, userId, {
+    vehicleId,
+    totalCost,
+    status: booking.status,
   });
   res.status(201).json({ data: booking, id: booking.id });
 }
@@ -222,23 +209,13 @@ export async function approve(req: Request, res: Response): Promise<void> {
     where: { id: booking.id },
     data: { status: "confirmed" },
   });
-  emitCustomerEvent("booking.updated", {
-    id: booking.id,
-    userId: booking.userId,
-    at: new Date().toISOString(),
-    meta: { status: "confirmed" },
+  emitDomainEvent("booking.updated", booking.id, booking.userId, { status: "confirmed" });
+  await notifyUser(booking.userId, `booking-approved-${booking.id}`, {
+    type: "booking_approved",
+    title: "Booking confirmed",
+    body: "Your booking has been approved. See you soon.",
+    data: { bookingId: booking.id, url: `/rent/my-bookings` },
   });
-  await notificationsQueue.add(
-    `booking-approved-${booking.id}`,
-    {
-      userId: booking.userId,
-      type: "booking_approved",
-      title: "Booking confirmed",
-      body: "Your booking has been approved. See you soon.",
-      data: { bookingId: booking.id, url: `/rent/my-bookings` },
-    },
-    { removeOnComplete: true },
-  );
   res.json({ data: updated });
 }
 
@@ -254,23 +231,16 @@ export async function reject(req: Request, res: Response): Promise<void> {
     where: { id: booking.id },
     data: { status: "cancelled", notes: reason },
   });
-  emitCustomerEvent("booking.updated", {
-    id: booking.id,
-    userId: booking.userId,
-    at: new Date().toISOString(),
-    meta: { status: "cancelled", reason },
+  emitDomainEvent("booking.updated", booking.id, booking.userId, {
+    status: "cancelled",
+    reason,
   });
-  await notificationsQueue.add(
-    `booking-rejected-${booking.id}`,
-    {
-      userId: booking.userId,
-      type: "booking_rejected",
-      title: "Booking declined",
-      body: reason ?? "Your booking was declined. Please contact support.",
-      data: { bookingId: booking.id, url: `/rent/my-bookings` },
-    },
-    { removeOnComplete: true },
-  );
+  await notifyUser(booking.userId, `booking-rejected-${booking.id}`, {
+    type: "booking_rejected",
+    title: "Booking declined",
+    body: reason ?? "Your booking was declined. Please contact support.",
+    data: { bookingId: booking.id, url: `/rent/my-bookings` },
+  });
   res.json({ data: updated });
 }
 
@@ -326,80 +296,9 @@ export async function update(req: Request, res: Response): Promise<void> {
   }
 
   if (body.status && body.status !== booking.status) {
-    emitCustomerEvent("booking.updated", {
-      id: booking.id,
-      userId: booking.userId,
-      at: new Date().toISOString(),
-      meta: { status: body.status },
-    });
+    emitDomainEvent("booking.updated", booking.id, booking.userId, { status: body.status });
   }
   res.json({ data: updated });
-}
-
-async function onBookingCompleted(
-  bookingId: string,
-  userId: string,
-  totalCost: number,
-): Promise<void> {
-  // 1. Award loyalty points (10 pts per EGP 100, rounded down)
-  const earnedPts = Math.floor(totalCost / 10);
-  if (earnedPts > 0) {
-    await prisma.$transaction([
-      prisma.loyaltyTransaction.create({
-        data: {
-          userId,
-          points: earnedPts,
-          type: "earned",
-          reason: `Completed booking ${bookingId}`,
-        },
-      }),
-      prisma.user.update({
-        where: { id: userId },
-        data: { loyaltyPoints: { increment: earnedPts } },
-      }),
-    ]);
-  }
-
-  // 2. Check referral: if this user was referred and this is their first completed booking,
-  //    award 500 pts to both parties.
-  const referral = await prisma.referral.findUnique({ where: { refereeId: userId } });
-  if (referral && !referral.completedAt) {
-    const completedCount = await prisma.booking.count({
-      where: { userId, status: "completed" },
-    });
-    if (completedCount === 1) {
-      await prisma.$transaction([
-        prisma.referral.update({
-          where: { id: referral.id },
-          data: { completedAt: new Date(), rewardPaid: true },
-        }),
-        prisma.loyaltyTransaction.create({
-          data: {
-            userId: referral.referrerId,
-            points: 500,
-            type: "earned",
-            reason: "Referral bonus",
-          },
-        }),
-        prisma.loyaltyTransaction.create({
-          data: {
-            userId: referral.refereeId,
-            points: 500,
-            type: "earned",
-            reason: "Welcome bonus (referred)",
-          },
-        }),
-        prisma.user.update({
-          where: { id: referral.referrerId },
-          data: { loyaltyPoints: { increment: 500 } },
-        }),
-        prisma.user.update({
-          where: { id: referral.refereeId },
-          data: { loyaltyPoints: { increment: 500 } },
-        }),
-      ]);
-    }
-  }
 }
 
 export async function cancel(req: Request, res: Response): Promise<void> {

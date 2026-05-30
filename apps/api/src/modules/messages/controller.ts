@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
-import { notificationsQueue } from "../../queues/index.js";
 import { AppError } from "../../utils/errors.js";
 import { getIO } from "../../utils/io-registry.js";
+import { notifyUser } from "../../utils/notify.js";
 
 async function findOrCreateConversation(userA: string, userB: string): Promise<string> {
   const existing = await prisma.conversation.findFirst({
@@ -84,17 +84,12 @@ export async function send(req: Request, res: Response): Promise<void> {
     where: { id: senderId },
     select: { name: true },
   });
-  await notificationsQueue.add(
-    `message-${created.id}`,
-    {
-      userId: recipientId,
-      type: "message_new",
-      title: sender?.name || "New message",
-      body: typeof message === "string" ? message.slice(0, 140) : "New message",
-      data: { conversationId, messageId: created.id, url: `/messages/${conversationId}` },
-    },
-    { removeOnComplete: 100, removeOnFail: 50 },
-  );
+  await notifyUser(recipientId, `message-${created.id}`, {
+    type: "message_new",
+    title: sender?.name || "New message",
+    body: typeof message === "string" ? message.slice(0, 140) : "New message",
+    data: { conversationId, messageId: created.id, url: `/messages/${conversationId}` },
+  });
 
   res.status(201).json({ data: created });
 }
@@ -120,6 +115,13 @@ export async function createConversation(req: Request, res: Response): Promise<v
   if (recipientId === userId) throw AppError.badRequest("Cannot message yourself");
   const conversationId = await findOrCreateConversation(userId, recipientId);
   res.status(201).json({ data: { id: conversationId } });
+}
+
+export async function unreadCount(req: Request, res: Response): Promise<void> {
+  const count = await prisma.message.count({
+    where: { recipientId: req.user!.userId, readAt: null },
+  });
+  res.json({ count });
 }
 
 export async function markRead(req: Request, res: Response): Promise<void> {

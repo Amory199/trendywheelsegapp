@@ -5,6 +5,7 @@ import type { SupportTicket, TicketPriority, TicketStatus } from "@trendywheels/
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../../lib/fetcher";
 

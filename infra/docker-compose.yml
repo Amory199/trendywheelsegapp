@@ -22,7 +22,10 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --requirepass trendywheels_redis
+    # appendonly yes + everysec fsync gives durable queue/session state at <1s
+    # data-loss window. Without AOF a Redis crash drops every queued BullMQ job
+    # and active session. fsync=everysec is the standard prod tradeoff.
+    command: redis-server --appendonly yes --appendfsync everysec --requirepass trendywheels_redis
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
@@ -37,8 +40,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     ports:
-      - "127.0.0.1:9000:9000"   # API (proxied via Nginx cdn.trendywheelseg.com)
-      - "127.0.0.1:9001:9001"   # Console (internal only)
+      - "127.0.0.1:9000:9000" # API (proxied via Nginx cdn.trendywheelseg.com)
+      - "127.0.0.1:9001:9001" # Console (internal only)
     volumes:
       - minio_data:/data
     healthcheck:

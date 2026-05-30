@@ -1,50 +1,25 @@
 import { Router, type Router as RouterType } from "express";
-import { z } from "zod";
+
+import {
+  createCustomizationRequestSchema,
+  createMaintenanceRequestSchema,
+  createTransportRequestSchema,
+  updateCustomizationRequestSchema,
+  updateMaintenanceRequestSchema,
+  updateTransportRequestSchema,
+} from "@trendywheels/validators";
 
 import { prisma } from "../../config/database.js";
 import { authenticate } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { AppError } from "../../utils/errors.js";
-import { notificationsQueue } from "../../queues/index.js";
-import { emitCustomerEvent } from "../realtime/customer-events.js";
+import { emitDomainEvent, notifyAdmins } from "../../utils/notify.js";
 
 const router: RouterType = Router();
 
 const STAFF = new Set(["admin", "staff"]);
 
-const SERVICE_STATUS = z.enum(["submitted", "assigned", "in-progress", "completed", "cancelled"]);
-
-const updateMaintenanceSchema = z.object({
-  status: SERVICE_STATUS.optional(),
-  notes: z.string().max(2000).optional().nullable(),
-  estimatedCost: z.coerce.number().nonnegative().optional().nullable(),
-  assignedToId: z.string().uuid().optional().nullable(),
-  preferredDate: z.string().datetime().optional(),
-});
-
-const updateCustomizationSchema = z.object({
-  status: SERVICE_STATUS.optional(),
-  notes: z.string().max(2000).optional().nullable(),
-  budget: z.coerce.number().nonnegative().optional().nullable(),
-  assignedToId: z.string().uuid().optional().nullable(),
-});
-
-const updateTransportSchema = z.object({
-  status: SERVICE_STATUS.optional(),
-  cargoNotes: z.string().max(2000).optional().nullable(),
-  priceEgp: z.coerce.number().nonnegative().optional().nullable(),
-  driverId: z.string().uuid().optional().nullable(),
-  pickupAt: z.string().datetime().optional(),
-});
-
 // ─── Maintenance ────────────────────────────────────────────────────────
-
-const createMaintenanceSchema = z.object({
-  serviceType: z.enum(["oil", "battery", "tire", "inspection", "full"]),
-  preferredDate: z.string().datetime(),
-  vehicleId: z.string().uuid().optional(),
-  notes: z.string().max(2000).optional(),
-});
 
 router.get("/maintenance", authenticate, async (req, res) => {
   const isStaff = STAFF.has(req.user!.accountType);
@@ -74,7 +49,7 @@ router.get("/maintenance/:id", authenticate, async (req, res) => {
 router.post(
   "/maintenance",
   authenticate,
-  validate({ body: createMaintenanceSchema }),
+  validate({ body: createMaintenanceRequestSchema }),
   async (req, res) => {
     const created = await prisma.maintenanceRequest.create({
       data: {
@@ -83,31 +58,16 @@ router.post(
         preferredDate: new Date(req.body.preferredDate),
       },
     });
-    emitCustomerEvent("maintenance.created", {
-      id: created.id,
-      userId: req.user!.userId,
-      at: new Date().toISOString(),
-      meta: { serviceType: created.serviceType, preferredDate: created.preferredDate },
+    emitDomainEvent("maintenance.created", created.id, req.user!.userId, {
+      serviceType: created.serviceType,
+      preferredDate: created.preferredDate,
     });
-    const staff = await prisma.user.findMany({
-      where: { accountType: { in: ["admin", "staff"] }, status: "active" },
-      select: { id: true },
+    await notifyAdmins(`maint-${created.id}`, {
+      type: "maintenance_pending",
+      title: "New maintenance request",
+      body: `${created.serviceType} · ${new Date(created.preferredDate).toLocaleDateString()}`,
+      data: { maintenanceId: created.id, url: "/service/maintenance" },
     });
-    await Promise.all(
-      staff.map((s) =>
-        notificationsQueue.add(
-          `maint-${created.id}-${s.id}`,
-          {
-            userId: s.id,
-            type: "maintenance_pending",
-            title: "New maintenance request",
-            body: `${created.serviceType} · ${new Date(created.preferredDate).toLocaleDateString()}`,
-            data: { maintenanceId: created.id, url: "/service/maintenance" },
-          },
-          { removeOnComplete: true },
-        ),
-      ),
-    );
     res.status(201).json({ data: created });
   },
 );
@@ -115,7 +75,7 @@ router.post(
 router.patch(
   "/maintenance/:id",
   authenticate,
-  validate({ body: updateMaintenanceSchema }),
+  validate({ body: updateMaintenanceRequestSchema }),
   async (req, res) => {
     if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
     const data: Record<string, unknown> = { ...req.body };
@@ -129,13 +89,6 @@ router.patch(
 );
 
 // ─── Customization ──────────────────────────────────────────────────────
-
-const createCustomizationSchema = z.object({
-  kind: z.enum(["paint", "lights", "wrap", "audio", "other"]),
-  budget: z.coerce.number().positive().optional(),
-  vehicleId: z.string().uuid().optional(),
-  notes: z.string().max(2000).optional(),
-});
 
 router.get("/customization", authenticate, async (req, res) => {
   const isStaff = STAFF.has(req.user!.accountType);
@@ -165,36 +118,21 @@ router.get("/customization/:id", authenticate, async (req, res) => {
 router.post(
   "/customization",
   authenticate,
-  validate({ body: createCustomizationSchema }),
+  validate({ body: createCustomizationRequestSchema }),
   async (req, res) => {
     const created = await prisma.customizationRequest.create({
       data: { ...req.body, userId: req.user!.userId },
     });
-    emitCustomerEvent("customization.created", {
-      id: created.id,
-      userId: req.user!.userId,
-      at: new Date().toISOString(),
-      meta: { kind: created.kind, budget: created.budget ?? null },
+    emitDomainEvent("customization.created", created.id, req.user!.userId, {
+      kind: created.kind,
+      budget: created.budget ?? null,
     });
-    const staff = await prisma.user.findMany({
-      where: { accountType: { in: ["admin", "staff"] }, status: "active" },
-      select: { id: true },
+    await notifyAdmins(`cust-${created.id}`, {
+      type: "customization_pending",
+      title: "New customization request",
+      body: `${created.kind}${created.budget ? ` · EGP ${created.budget.toLocaleString()}` : ""}`,
+      data: { customizationId: created.id, url: "/service/customization" },
     });
-    await Promise.all(
-      staff.map((s) =>
-        notificationsQueue.add(
-          `cust-${created.id}-${s.id}`,
-          {
-            userId: s.id,
-            type: "customization_pending",
-            title: "New customization request",
-            body: `${created.kind}${created.budget ? ` · EGP ${created.budget.toLocaleString()}` : ""}`,
-            data: { customizationId: created.id, url: "/service/customization" },
-          },
-          { removeOnComplete: true },
-        ),
-      ),
-    );
     res.status(201).json({ data: created });
   },
 );
@@ -202,7 +140,7 @@ router.post(
 router.patch(
   "/customization/:id",
   authenticate,
-  validate({ body: updateCustomizationSchema }),
+  validate({ body: updateCustomizationRequestSchema }),
   async (req, res) => {
     if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
     const updated = await prisma.customizationRequest.update({
@@ -214,13 +152,6 @@ router.patch(
 );
 
 // ─── Transport (pickup-delivery) ────────────────────────────────────────
-
-const createTransportSchema = z.object({
-  fromAddress: z.string().min(3).max(500),
-  toAddress: z.string().min(3).max(500),
-  pickupAt: z.string().datetime(),
-  cargoNotes: z.string().max(2000).optional(),
-});
 
 router.get("/transport", authenticate, async (req, res) => {
   const isStaff = STAFF.has(req.user!.accountType);
@@ -250,36 +181,21 @@ router.get("/transport/:id", authenticate, async (req, res) => {
 router.post(
   "/transport",
   authenticate,
-  validate({ body: createTransportSchema }),
+  validate({ body: createTransportRequestSchema }),
   async (req, res) => {
     const created = await prisma.transportRequest.create({
       data: { ...req.body, userId: req.user!.userId, pickupAt: new Date(req.body.pickupAt) },
     });
-    emitCustomerEvent("pickup.created", {
-      id: created.id,
-      userId: req.user!.userId,
-      at: new Date().toISOString(),
-      meta: { fromAddress: created.fromAddress, toAddress: created.toAddress },
+    emitDomainEvent("pickup.created", created.id, req.user!.userId, {
+      fromAddress: created.fromAddress,
+      toAddress: created.toAddress,
     });
-    const staff = await prisma.user.findMany({
-      where: { accountType: { in: ["admin", "staff"] }, status: "active" },
-      select: { id: true },
+    await notifyAdmins(`trans-${created.id}`, {
+      type: "transport_pending",
+      title: "New pickup/delivery request",
+      body: `${created.fromAddress.slice(0, 30)} → ${created.toAddress.slice(0, 30)}`,
+      data: { transportId: created.id, url: "/service/pickup-delivery" },
     });
-    await Promise.all(
-      staff.map((s) =>
-        notificationsQueue.add(
-          `trans-${created.id}-${s.id}`,
-          {
-            userId: s.id,
-            type: "transport_pending",
-            title: "New pickup/delivery request",
-            body: `${created.fromAddress.slice(0, 30)} → ${created.toAddress.slice(0, 30)}`,
-            data: { transportId: created.id, url: "/service/pickup-delivery" },
-          },
-          { removeOnComplete: true },
-        ),
-      ),
-    );
     res.status(201).json({ data: created });
   },
 );
@@ -287,7 +203,7 @@ router.post(
 router.patch(
   "/transport/:id",
   authenticate,
-  validate({ body: updateTransportSchema }),
+  validate({ body: updateTransportRequestSchema }),
   async (req, res) => {
     if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
     const data: Record<string, unknown> = { ...req.body };

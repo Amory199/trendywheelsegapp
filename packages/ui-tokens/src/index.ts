@@ -291,3 +291,11 @@ export const tailwindPreset = {
     },
   },
 } as const;
+
+// Domain-aware tokens, split into sibling modules to keep the surface readable.
+// Bare specifiers (no `.js`) because moduleResolution is `bundler` — works for
+// both tsc and the Next/webpack consumers (which can't resolve `./x.js` →
+// `./x.ts` inside transpilePackages).
+export * from "./loyalty";
+export * from "./statuses";
+export * from "./text";

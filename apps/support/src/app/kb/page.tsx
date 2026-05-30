@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { KBArticle } from "@trendywheels/types";
 import Link from "next/link";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -37,8 +38,7 @@ export default function KBPage(): JSX.Element {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      authedFetch(`/api/kb/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => authedFetch(`/api/kb/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       setExpandedId(null);
       void qc.invalidateQueries({ queryKey: ["kb"] });

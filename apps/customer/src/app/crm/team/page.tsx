@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../../lib/fetcher";
 
@@ -27,9 +28,33 @@ export default function TeamPage(): JSX.Element {
 
   if (q.error) {
     return (
-      <div style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, padding: 32, textAlign: "center" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: colors.brand.trendyPink, letterSpacing: "0.12em" }}>RESTRICTED</span>
-        <h1 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 28, margin: "8px 0", textTransform: "uppercase" }}>
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #ECECF1",
+          borderRadius: 16,
+          padding: 32,
+          textAlign: "center",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: colors.brand.trendyPink,
+            letterSpacing: "0.12em",
+          }}
+        >
+          RESTRICTED
+        </span>
+        <h1
+          style={{
+            fontFamily: "Anton, Impact, sans-serif",
+            fontSize: 28,
+            margin: "8px 0",
+            textTransform: "uppercase",
+          }}
+        >
           Team view is admin-only
         </h1>
         <p style={{ color: "#6B6A85", fontSize: 14 }}>
@@ -46,11 +71,29 @@ export default function TeamPage(): JSX.Element {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
       <div>
-        <span style={{ fontSize: 11, fontWeight: 700, color: colors.brand.trendyPink, letterSpacing: "0.12em" }}>TEAM</span>
-        <h1 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 36, margin: "4px 0 0", textTransform: "uppercase" }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: colors.brand.trendyPink,
+            letterSpacing: "0.12em",
+          }}
+        >
+          TEAM
+        </span>
+        <h1
+          style={{
+            fontFamily: "Anton, Impact, sans-serif",
+            fontSize: 36,
+            margin: "4px 0 0",
+            textTransform: "uppercase",
+          }}
+        >
           The squad<span style={{ color: colors.brand.trendyPink }}>.</span>
         </h1>
-        <p style={{ color: "#6B6A85", marginTop: 4 }}>Sales targets · open pipeline · month-to-date wins</p>
+        <p style={{ color: "#6B6A85", marginTop: 4 }}>
+          Sales targets · open pipeline · month-to-date wins
+        </p>
       </div>
 
       <Section title="Sales agents" members={sales} accent={colors.brand.trendyPink} />
@@ -59,11 +102,37 @@ export default function TeamPage(): JSX.Element {
   );
 }
 
-function Section({ title, members, accent }: { title: string; members: TeamMember[]; accent: string }): JSX.Element {
+function Section({
+  title,
+  members,
+  accent,
+}: {
+  title: string;
+  members: TeamMember[];
+  accent: string;
+}): JSX.Element {
   return (
     <div>
-      <h2 style={{ fontSize: 13, fontWeight: 700, color: "#6B6A85", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>{title}</h2>
-      <div className="tw-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
+      <h2
+        style={{
+          fontSize: 13,
+          fontWeight: 700,
+          color: "#6B6A85",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          marginBottom: 12,
+        }}
+      >
+        {title}
+      </h2>
+      <div
+        className="tw-stagger"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 12,
+        }}
+      >
         {members.map((m) => {
           const pct = m.progressPct ?? 0;
           const target = m.salesTargetMonthly ? Number(m.salesTargetMonthly) : 0;
@@ -71,7 +140,13 @@ function Section({ title, members, accent }: { title: string; members: TeamMembe
             <div
               key={m.id}
               className="tw-card-lift"
-              style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 14, padding: 18, borderTop: `3px solid ${accent}` }}
+              style={{
+                background: "#fff",
+                border: "1px solid #ECECF1",
+                borderRadius: 14,
+                padding: 18,
+                borderTop: `3px solid ${accent}`,
+              }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div
@@ -97,19 +172,45 @@ function Section({ title, members, accent }: { title: string; members: TeamMembe
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, color: colors.brand.trustWorth }}>{m.name}</div>
-                  <div style={{ fontSize: 11, color: "#6B6A85", textTransform: "capitalize" }}>{m.staffRole ?? "staff"} · weight {m.salesAssignmentWeight}</div>
+                  <div style={{ fontSize: 11, color: "#6B6A85", textTransform: "capitalize" }}>
+                    {m.staffRole ?? "staff"} · weight {m.salesAssignmentWeight}
+                  </div>
                 </div>
               </div>
 
-              <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6A85" }}>
-                <span>{m.monthWonCount} won · {m.openLeads} open</span>
-                <span style={{ color: colors.brand.ecoLimelight === accent ? colors.brand.trustWorth : "#4B4A6B", fontWeight: 700 }}>
+              <div
+                style={{
+                  marginTop: 14,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 12,
+                  color: "#6B6A85",
+                }}
+              >
+                <span>
+                  {m.monthWonCount} won · {m.openLeads} open
+                </span>
+                <span
+                  style={{
+                    color:
+                      colors.brand.ecoLimelight === accent ? colors.brand.trustWorth : "#4B4A6B",
+                    fontWeight: 700,
+                  }}
+                >
                   EGP {Math.round(m.monthWonAmount).toLocaleString()}
                 </span>
               </div>
               {target > 0 ? (
                 <>
-                  <div style={{ marginTop: 8, height: 8, borderRadius: 4, background: "#F4F4F7", overflow: "hidden" }}>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      background: "#F4F4F7",
+                      overflow: "hidden",
+                    }}
+                  >
                     <div
                       style={{
                         height: "100%",
@@ -124,12 +225,16 @@ function Section({ title, members, accent }: { title: string; members: TeamMembe
                   </div>
                 </>
               ) : (
-                <div style={{ marginTop: 8, fontSize: 11, color: "#9E9DAE" }}>No monthly target set</div>
+                <div style={{ marginTop: 8, fontSize: 11, color: "#9E9DAE" }}>
+                  No monthly target set
+                </div>
               )}
             </div>
           );
         })}
-        {members.length === 0 ? <div style={{ color: "#6B6A85", fontSize: 13 }}>No team members yet.</div> : null}
+        {members.length === 0 ? (
+          <div style={{ color: "#6B6A85", fontSize: 13 }}>No team members yet.</div>
+        ) : null}
       </div>
     </div>
   );

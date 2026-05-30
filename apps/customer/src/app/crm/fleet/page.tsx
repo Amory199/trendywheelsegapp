@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
+import type { JSX } from "react";
 
 import { ACCESS_KEY, baseUrl, readToken } from "../../../lib/api";
 

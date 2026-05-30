@@ -1,8 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { colors } from "@trendywheels/ui-tokens";
+import type { RepairStatus } from "@trendywheels/types";
+import { colors, REPAIR_STATUS_TONE } from "@trendywheels/ui-tokens";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -10,7 +12,7 @@ interface RepairRow {
   id: string;
   category: string;
   priority: string;
-  status: "submitted" | "assigned" | "in-progress" | "completed";
+  status: RepairStatus;
   description: string;
   preferredDate: string | null;
   createdAt: string;
@@ -20,13 +22,6 @@ interface VehicleRow {
   id: string;
   name: string;
 }
-
-const STATUS_LABEL: Record<RepairRow["status"], { fg: string; bg: string }> = {
-  submitted: { bg: "#E6F0FF", fg: "#1338A8" },
-  assigned: { bg: "#F0E5FF", fg: "#5300A8" },
-  "in-progress": { bg: "#FFF4D6", fg: "#806000" },
-  completed: { bg: "#E6F8E6", fg: "#0A6B0A" },
-};
 
 const CATEGORIES = ["mechanical", "electrical", "cosmetic", "other"];
 const PRIORITIES = ["low", "medium", "high", "urgent"];
@@ -59,12 +54,20 @@ export default function RepairPage(): JSX.Element {
         method: "POST",
         body: JSON.stringify({
           ...form,
-          preferredDate: form.preferredDate ? new Date(form.preferredDate).toISOString() : undefined,
+          preferredDate: form.preferredDate
+            ? new Date(form.preferredDate).toISOString()
+            : undefined,
         }),
       }),
     onSuccess: () => {
       setShowForm(false);
-      setForm({ vehicleId: "", category: "mechanical", priority: "medium", description: "", preferredDate: "" });
+      setForm({
+        vehicleId: "",
+        category: "mechanical",
+        priority: "medium",
+        description: "",
+        preferredDate: "",
+      });
       void qc.invalidateQueries({ queryKey: ["customer-repairs"] });
     },
   });
@@ -74,7 +77,15 @@ export default function RepairPage(): JSX.Element {
 
   return (
     <div style={{ display: "grid", gap: 24 }}>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
         <div>
           <h1
             style={{
@@ -108,9 +119,22 @@ export default function RepairPage(): JSX.Element {
       </div>
 
       {showForm && (
-        <div style={{ background: "#fff", border: "1px solid #ECECF1", borderRadius: 16, padding: 24, display: "grid", gap: 14 }}>
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid #ECECF1",
+            borderRadius: 16,
+            padding: 24,
+            display: "grid",
+            gap: 14,
+          }}
+        >
           <h3 style={{ margin: 0 }}>New repair request</h3>
-          <Select label="Vehicle" value={form.vehicleId} onChange={(v) => setForm((f) => ({ ...f, vehicleId: v }))}>
+          <Select
+            label="Vehicle"
+            value={form.vehicleId}
+            onChange={(v) => setForm((f) => ({ ...f, vehicleId: v }))}
+          >
             <option value="">Select vehicle…</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
@@ -119,14 +143,22 @@ export default function RepairPage(): JSX.Element {
             ))}
           </Select>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Select label="Category" value={form.category} onChange={(v) => setForm((f) => ({ ...f, category: v }))}>
+            <Select
+              label="Category"
+              value={form.category}
+              onChange={(v) => setForm((f) => ({ ...f, category: v }))}
+            >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
               ))}
             </Select>
-            <Select label="Priority" value={form.priority} onChange={(v) => setForm((f) => ({ ...f, priority: v }))}>
+            <Select
+              label="Priority"
+              value={form.priority}
+              onChange={(v) => setForm((f) => ({ ...f, priority: v }))}
+            >
               {PRIORITIES.map((p) => (
                 <option key={p} value={p}>
                   {p}
@@ -141,7 +173,15 @@ export default function RepairPage(): JSX.Element {
             onChange={(v) => setForm((f) => ({ ...f, preferredDate: v }))}
           />
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#4B4A6B", letterSpacing: 0.4, textTransform: "uppercase" }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#4B4A6B",
+                letterSpacing: 0.4,
+                textTransform: "uppercase",
+              }}
+            >
               Description
             </span>
             <textarea
@@ -187,12 +227,20 @@ export default function RepairPage(): JSX.Element {
         {repairsQ.isLoading ? (
           <div style={{ color: "#6B6A85" }}>Loading…</div>
         ) : repairs.length === 0 ? (
-          <div style={{ background: "#fff", borderRadius: 16, padding: 40, textAlign: "center", color: "#6B6A85" }}>
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              padding: 40,
+              textAlign: "center",
+              color: "#6B6A85",
+            }}
+          >
             No repairs yet.
           </div>
         ) : (
           repairs.map((r) => {
-            const tone = STATUS_LABEL[r.status] ?? STATUS_LABEL.submitted;
+            const tone = REPAIR_STATUS_TONE[r.status] ?? REPAIR_STATUS_TONE.submitted;
             return (
               <div
                 key={r.id}
@@ -265,14 +313,28 @@ function Field({
 }): JSX.Element {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "#4B4A6B", letterSpacing: 0.4, textTransform: "uppercase" }}>
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "#4B4A6B",
+          letterSpacing: 0.4,
+          textTransform: "uppercase",
+        }}
+      >
         {label}
       </span>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid #ECECF1", fontSize: 14, fontFamily: "inherit" }}
+        style={{
+          padding: "12px 14px",
+          borderRadius: 10,
+          border: "1px solid #ECECF1",
+          fontSize: 14,
+          fontFamily: "inherit",
+        }}
       />
     </label>
   );
@@ -291,13 +353,29 @@ function Select({
 }): JSX.Element {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "#4B4A6B", letterSpacing: 0.4, textTransform: "uppercase" }}>
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "#4B4A6B",
+          letterSpacing: 0.4,
+          textTransform: "uppercase",
+        }}
+      >
         {label}
       </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid #ECECF1", fontSize: 14, fontFamily: "inherit", background: "#fff", textTransform: "capitalize" }}
+        style={{
+          padding: "12px 14px",
+          borderRadius: 10,
+          border: "1px solid #ECECF1",
+          fontSize: 14,
+          fontFamily: "inherit",
+          background: "#fff",
+          textTransform: "capitalize",
+        }}
       >
         {children}
       </select>

@@ -10,6 +10,7 @@ import type {
 } from "@trendywheels/types";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import type { JSX } from "react";
 
 import { api } from "../../../lib/api";
 

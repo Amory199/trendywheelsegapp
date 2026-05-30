@@ -1,8 +1,6 @@
 import { api } from "./api";
 import { initMobileSentry, reportError } from "./sentry";
 
-const SOURCE = "mobile" as const;
-
 interface ReportPayload {
   level: "error" | "warn" | "fatal";
   message: string;
@@ -11,17 +9,8 @@ interface ReportPayload {
   metadata?: Record<string, unknown>;
 }
 
-const baseUrl = (api as unknown as { baseUrl: string }).baseUrl;
-
 export function reportClientError(payload: ReportPayload): void {
-  const body = JSON.stringify({ ...payload, source: SOURCE });
-  fetch(`${baseUrl}/api/client-errors`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-  }).catch(() => {
-    // never let reporting throw
-  });
+  void api.reportClientError({ ...payload, source: "mobile" });
 }
 
 let installed = false;

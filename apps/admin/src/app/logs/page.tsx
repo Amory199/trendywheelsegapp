@@ -1,8 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { colors } from "@trendywheels/ui-tokens";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -225,8 +227,13 @@ export default function LogsPage(): JSX.Element {
         }}
       >
         {items.length === 0 && !q.isLoading ? (
-          <div style={{ padding: 48, textAlign: "center", color: "#6B6A85", fontSize: 14 }}>
-            🎉 No matching errors. The system is clean.
+          <div style={{ padding: 24 }}>
+            <EmptyState
+              flush
+              icon="🎉"
+              title="No errors logged"
+              description="Application errors land here as soon as they happen. The system is clean for now — keep an eye on this page during deploys and busy periods."
+            />
           </div>
         ) : null}
 

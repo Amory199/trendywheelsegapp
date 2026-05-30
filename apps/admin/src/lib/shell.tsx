@@ -6,78 +6,161 @@ import {
   TWHamburgerIcon,
   TWLogoLockup,
 } from "@trendywheels/ui-brand/web";
-import { colors, twPalette } from "@trendywheels/ui-tokens";
+import { colors, initialsOf, twPalette } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import { useEffect, useState } from "react";
+import type { JSX } from "react";
 
 import { useAuth } from "./auth-store";
 
-type NavGroup = {
+// Sidebar role-gating. Superadmins (accountType === "admin") see every item;
+// staff are filtered by `allowedRoles` against their `staffRole`. Items with
+// `allowedRoles` omitted are visible to all staff. An empty group (all items
+// filtered out) collapses silently so the sidebar doesn't show dead headers.
+type StaffRoleKey = "sales" | "support" | "inventory" | "mechanic" | "admin";
+
+type NavItem = {
+  href: string;
   label: string;
-  items: Array<{
-    href: string;
-    label: string;
-    icon: keyof typeof NAV_ICONS;
-    badge?: string;
-  }>;
+  icon: keyof typeof NAV_ICONS;
+  badge?: string;
+  /** Omit for "everyone with admin app access". */
+  allowedRoles?: StaffRoleKey[];
 };
 
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+// Canonical grouping post-reorg:
+// Dashboard / Sales / Inventory / Customers / Comms / System.
+// Power tools junk-drawer dissolved. URLs preserved (bookmarks survive).
 const NAV_GROUPS: NavGroup[] = [
   {
     label: "Overview",
     items: [{ href: "/", label: "Dashboard", icon: "trend" }],
   },
   {
-    label: "Operations",
+    label: "Sales",
     items: [
-      { href: "/vehicles", label: "Vehicles", icon: "car" },
-      { href: "/fleet", label: "Fleet status", icon: "trend" },
-      { href: "/maintenance", label: "Maintenance", icon: "wrench" },
-      { href: "/bookings", label: "Bookings", icon: "calendar" },
-      { href: "/sales", label: "Sales", icon: "tag" },
-      { href: "/products", label: "Catalog", icon: "tag" },
-      { href: "/orders", label: "Orders", icon: "tag" },
-      { href: "/trade-ins", label: "Trade-ins", icon: "tag" },
-      { href: "/transport", label: "Transport", icon: "trend" },
-      { href: "/repairs", label: "Repairs", icon: "wrench" },
-      { href: "/alerts", label: "Alerts", icon: "alert" },
+      { href: "/sales", label: "Sales listings", icon: "tag", allowedRoles: ["sales", "admin"] },
+      { href: "/trade-ins", label: "Trade-ins", icon: "tag", allowedRoles: ["sales", "admin"] },
+      { href: "/orders", label: "Orders", icon: "tag", allowedRoles: ["sales", "admin"] },
+      {
+        href: "/pricing-rules",
+        label: "Pricing rules",
+        icon: "trend",
+        allowedRoles: ["sales", "admin"],
+      },
+      { href: "/promo-codes", label: "Promo codes", icon: "tag", allowedRoles: ["sales", "admin"] },
+      {
+        href: "/sales-targets",
+        label: "Sales targets",
+        icon: "trend",
+        allowedRoles: ["sales", "admin"],
+      },
+    ],
+  },
+  {
+    label: "Inventory",
+    items: [
+      {
+        href: "/vehicles",
+        label: "Vehicles",
+        icon: "car",
+        allowedRoles: ["sales", "inventory", "admin"],
+      },
+      {
+        href: "/fleet",
+        label: "Fleet status",
+        icon: "trend",
+        allowedRoles: ["inventory", "admin"],
+      },
+      { href: "/products", label: "Catalog", icon: "tag", allowedRoles: ["inventory", "admin"] },
+      {
+        href: "/maintenance",
+        label: "Maintenance",
+        icon: "wrench",
+        allowedRoles: ["inventory", "mechanic", "admin"],
+      },
+      { href: "/repairs", label: "Repairs", icon: "wrench", allowedRoles: ["mechanic", "admin"] },
     ],
   },
   {
     label: "Customers",
     items: [
-      { href: "/customers", label: "CRM", icon: "users" },
-      { href: "/users", label: "All users", icon: "user" },
-      { href: "/tickets", label: "Support tickets", icon: "ticket" },
-      { href: "/messages", label: "Messages", icon: "chat" },
-      { href: "/notifications", label: "Notifications", icon: "bell" },
+      {
+        href: "/customers",
+        label: "CRM",
+        icon: "users",
+        allowedRoles: ["sales", "support", "admin"],
+      },
+      {
+        href: "/bookings",
+        label: "Bookings",
+        icon: "calendar",
+        allowedRoles: ["sales", "support", "admin"],
+      },
+      {
+        href: "/transport",
+        label: "Transport",
+        icon: "trend",
+        allowedRoles: ["inventory", "admin"],
+      },
+      {
+        href: "/tickets",
+        label: "Support tickets",
+        icon: "ticket",
+        allowedRoles: ["support", "admin"],
+      },
+      { href: "/messages", label: "Messages", icon: "chat", allowedRoles: ["support", "admin"] },
     ],
   },
   {
-    label: "Power tools",
+    label: "Comms",
     items: [
-      { href: "/ops", label: "Operations", icon: "bolt" },
-      { href: "/promo-codes", label: "Promo codes", icon: "tag" },
-      { href: "/pricing-rules", label: "Pricing rules", icon: "trend" },
-      { href: "/broadcasts", label: "Broadcasts", icon: "bell" },
-      { href: "/templates", label: "Templates", icon: "book" },
-      { href: "/audit-log", label: "Audit log", icon: "shield" },
-      { href: "/logs", label: "Error logs", icon: "bolt" },
-      { href: "/feature-flags", label: "Feature flags", icon: "flag" },
-      { href: "/sales-targets", label: "Sales targets", icon: "trend" },
-      { href: "/business", label: "Business config", icon: "gear" },
+      { href: "/broadcasts", label: "Broadcasts", icon: "bell", allowedRoles: ["admin"] },
+      { href: "/templates", label: "Templates", icon: "book", allowedRoles: ["support", "admin"] },
+      { href: "/notifications", label: "Notifications", icon: "bell", allowedRoles: ["admin"] },
     ],
   },
   {
-    label: "Content",
+    label: "System",
     items: [
-      { href: "/kb", label: "Knowledge base", icon: "book" },
-      { href: "/settings", label: "Settings", icon: "gear" },
+      { href: "/kb", label: "Knowledge base", icon: "book", allowedRoles: ["support", "admin"] },
+      { href: "/business", label: "Business config", icon: "gear", allowedRoles: ["admin"] },
+      { href: "/settings", label: "Settings", icon: "gear", allowedRoles: ["admin"] },
+      { href: "/users", label: "All users", icon: "user", allowedRoles: ["admin"] },
+      { href: "/feature-flags", label: "Feature flags", icon: "flag", allowedRoles: ["admin"] },
+      { href: "/privacy", label: "Privacy", icon: "shield", allowedRoles: ["admin"] },
+      { href: "/ops", label: "Operations", icon: "bolt", allowedRoles: ["admin"] },
+      { href: "/alerts", label: "Alerts", icon: "alert", allowedRoles: ["admin"] },
+      { href: "/audit-log", label: "Audit log", icon: "shield", allowedRoles: ["admin"] },
+      { href: "/logs", label: "Error logs", icon: "bolt", allowedRoles: ["admin"] },
     ],
   },
 ];
+
+function visibleGroups(
+  groups: NavGroup[],
+  user: { accountType?: string | null; staffRole?: string | null } | null,
+): NavGroup[] {
+  // Superadmins (`accountType === "admin"`) see everything. If the user hasn't
+  // hydrated yet, show every group so the sidebar doesn't flash empty.
+  if (!user || user.accountType === "admin") return groups;
+  const role = (user.staffRole ?? null) as StaffRoleKey | null;
+  return groups
+    .map((g) => ({
+      ...g,
+      items: g.items.filter(
+        (item) => !item.allowedRoles || (role !== null && item.allowedRoles.includes(role)),
+      ),
+    }))
+    .filter((g) => g.items.length > 0);
+}
 
 // Minimal stroke-icon set, mirroring the mockup's TWIcon library.
 const NAV_ICONS = {
@@ -215,6 +298,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
   const { user, initialized, hydrate, logout } = useAuth();
   const palette = twPalette(false);
   const [navOpen, setNavOpen] = useState(false);
+  const navGroups = React.useMemo(() => visibleGroups(NAV_GROUPS, user), [user]);
 
   useEffect(() => {
     setNavOpen(false);
@@ -273,14 +357,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
     "Home",
     ...(path === "/" ? ["Dashboard"] : path.split("/").filter(Boolean).map(humanCrumb)),
   ];
-  const initials =
-    user.name
-      ?.split(" ")
-      .map((n) => n[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() ?? "OS";
+  const initials = initialsOf(user.name) || "OS";
 
   return (
     <div
@@ -318,7 +395,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
           style={{ padding: "0 12px 12px", flex: 1, overflowY: "auto" }}
           className="tw-scrollbar-none"
         >
-          {NAV_GROUPS.map((group) => (
+          {navGroups.map((group) => (
             <div key={group.label} style={{ marginTop: 14 }}>
               <div
                 style={{
@@ -621,7 +698,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
           </button>
         </div>
         <div style={{ padding: "8px 12px 12px" }} className="tw-scrollbar-none">
-          {NAV_GROUPS.map((group) => (
+          {navGroups.map((group) => (
             <div key={group.label} style={{ marginTop: 14 }}>
               <div
                 style={{

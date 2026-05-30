@@ -4,3 +4,8 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# Local Android signing credentials — keystore + passwords live on disk for
+# `credentialsSource: local` builds. NEVER commit.
+credentials/
+credentials.json

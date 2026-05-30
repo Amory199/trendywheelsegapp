@@ -5,6 +5,7 @@ import type { Vehicle } from "@trendywheels/types";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import type { JSX } from "react";
 
 import { ACCESS_KEY, api, baseUrl, readToken } from "../../../../lib/api";
 
@@ -59,15 +60,13 @@ async function postReport(
   return res.json();
 }
 
-const TYPE_CONFIG: Record<
-  ConditionReport["type"],
-  { label: string; icon: string; badge: string }
-> = {
-  inspection: { label: "Inspection", icon: "🔍", badge: "bg-blue-100 text-blue-700" },
-  damage: { label: "Damage", icon: "⚠️", badge: "bg-red-100 text-red-700" },
-  service: { label: "Service", icon: "🔧", badge: "bg-yellow-100 text-yellow-700" },
-  delivery: { label: "Delivery", icon: "🚗", badge: "bg-green-100 text-green-700" },
-};
+const TYPE_CONFIG: Record<ConditionReport["type"], { label: string; icon: string; badge: string }> =
+  {
+    inspection: { label: "Inspection", icon: "🔍", badge: "bg-blue-100 text-blue-700" },
+    damage: { label: "Damage", icon: "⚠️", badge: "bg-red-100 text-red-700" },
+    service: { label: "Service", icon: "🔧", badge: "bg-yellow-100 text-yellow-700" },
+    delivery: { label: "Delivery", icon: "🚗", badge: "bg-green-100 text-green-700" },
+  };
 
 export default function VehicleConditionPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -112,7 +111,11 @@ export default function VehicleConditionPage(): JSX.Element {
       const urls: string[] = [];
       for (const file of files) {
         const { uploadUrl, fileUrl } = await api.getUploadUrl(file.type, "condition");
-        await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+        await fetch(uploadUrl, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type },
+        });
         urls.push(fileUrl);
       }
       setUploadedPhotos((prev) => [...prev, ...urls]);
@@ -161,7 +164,10 @@ export default function VehicleConditionPage(): JSX.Element {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 mb-4 block">
+      <button
+        onClick={() => router.back()}
+        className="text-gray-400 hover:text-gray-600 mb-4 block"
+      >
         ← Back
       </button>
 
@@ -192,7 +198,9 @@ export default function VehicleConditionPage(): JSX.Element {
               <label className="text-xs font-medium text-gray-500 block mb-1">Type</label>
               <select
                 value={form.type}
-                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as ConditionReport["type"] }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, type: e.target.value as ConditionReport["type"] }))
+                }
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {Object.entries(TYPE_CONFIG).map(([k, v]) => (
@@ -301,9 +309,7 @@ export default function VehicleConditionPage(): JSX.Element {
                   <div className="w-8 h-8 rounded-full bg-white border-2 border-emerald-400 flex items-center justify-center text-sm">
                     {cfg.icon}
                   </div>
-                  {index < reports.length - 1 && (
-                    <div className="w-0.5 flex-1 bg-gray-200 mt-2" />
-                  )}
+                  {index < reports.length - 1 && <div className="w-0.5 flex-1 bg-gray-200 mt-2" />}
                 </div>
                 <div className="flex-1 bg-white rounded-xl border p-4 mb-4">
                   <div className="flex items-center gap-2 mb-2">

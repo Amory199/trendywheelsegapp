@@ -36,7 +36,6 @@ export function IntroOverlay({ mode }: Props): React.JSX.Element | null {
     }, SAFETY_TIMEOUT_MS);
 
     return () => clearTimeout(safety);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   React.useEffect(() => {

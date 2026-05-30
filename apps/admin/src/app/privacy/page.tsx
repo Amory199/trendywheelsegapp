@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { JSX } from "react";
 
 export const metadata = {
   title: "Privacy Policy — TrendyWheels",
@@ -39,8 +40,8 @@ export default function PrivacyPage(): JSX.Element {
       </p>
 
       <Section title="Who we are">
-        TrendyWheels (&quot;we,&quot; &quot;us,&quot; &quot;our&quot;) is a vehicle rental, sales, and repair platform
-        operating in Egypt. We are reachable at{" "}
+        TrendyWheels (&quot;we,&quot; &quot;us,&quot; &quot;our&quot;) is a vehicle rental, sales,
+        and repair platform operating in Egypt. We are reachable at{" "}
         <a href="mailto:privacy@trendywheelseg.com" style={{ color: "#2B0FF8" }}>
           privacy@trendywheelseg.com
         </a>
@@ -50,10 +51,16 @@ export default function PrivacyPage(): JSX.Element {
       <Section title="What we collect">
         <ul style={{ paddingLeft: 20 }}>
           <li>Account information — phone number, name, email, profile photo (optional).</li>
-          <li>Identity verification — driver&apos;s license photo for rentals, national ID (encrypted at rest).</li>
+          <li>
+            Identity verification — driver&apos;s license photo for rentals, national ID (encrypted
+            at rest).
+          </li>
           <li>Booking, sales, and repair history.</li>
           <li>Device information — app version, OS, crash logs.</li>
-          <li>Approximate location — for listing nearby vehicles (precise location only when you explicitly grant it during vehicle pickup).</li>
+          <li>
+            Approximate location — for listing nearby vehicles (precise location only when you
+            explicitly grant it during vehicle pickup).
+          </li>
           <li>Payment details — processed by a payment provider; we never store card numbers.</li>
         </ul>
       </Section>
@@ -61,9 +68,13 @@ export default function PrivacyPage(): JSX.Element {
       <Section title="How we use your information">
         <ul style={{ paddingLeft: 20 }}>
           <li>Deliver the core service: fulfilling rentals, sales listings, repair requests.</li>
-          <li>Verify your identity to prevent fraud and comply with Egyptian transport regulations.</li>
+          <li>
+            Verify your identity to prevent fraud and comply with Egyptian transport regulations.
+          </li>
           <li>Communicate booking confirmations, reminders, and support replies.</li>
-          <li>Improve the product — aggregate, anonymised usage analytics (Plausible, self-hosted).</li>
+          <li>
+            Improve the product — aggregate, anonymised usage analytics (Plausible, self-hosted).
+          </li>
           <li>Prevent abuse — rate limiting, bot protection, security monitoring.</li>
         </ul>
         <p>We do not sell your data to third parties. Ever.</p>
@@ -71,8 +82,13 @@ export default function PrivacyPage(): JSX.Element {
 
       <Section title="Who we share with">
         <ul style={{ paddingLeft: 20 }}>
-          <li>Vehicle owners and mechanics — only the information needed to complete your booking or repair (name, phone, booking reference).</li>
-          <li>SMS and email providers — Twilio, SendGrid — for OTP codes and transactional messages.</li>
+          <li>
+            Vehicle owners and mechanics — only the information needed to complete your booking or
+            repair (name, phone, booking reference).
+          </li>
+          <li>
+            SMS and email providers — Twilio, SendGrid — for OTP codes and transactional messages.
+          </li>
           <li>Crash reporting — Sentry, for diagnosing app crashes. IP addresses are truncated.</li>
           <li>Egyptian authorities — only when compelled by a lawful court order.</li>
         </ul>
@@ -82,13 +98,16 @@ export default function PrivacyPage(): JSX.Element {
         <p>At any time, you can:</p>
         <ul style={{ paddingLeft: 20 }}>
           <li>
-            <b>Access</b> a JSON export of all your data — Profile → Settings → Export my data, or email us.
+            <b>Access</b> a JSON export of all your data — Profile → Settings → Export my data, or
+            email us.
           </li>
           <li>
             <b>Correct</b> any field on your profile directly in the app.
           </li>
           <li>
-            <b>Delete</b> your account — Profile → Settings → Delete account. We anonymise personally identifiable fields within 30 days and retain only what Egyptian law requires for tax and safety records.
+            <b>Delete</b> your account — Profile → Settings → Delete account. We anonymise
+            personally identifiable fields within 30 days and retain only what Egyptian law requires
+            for tax and safety records.
           </li>
           <li>
             <b>Withdraw consent</b> for marketing emails from Settings → Notifications at any time.
@@ -97,11 +116,15 @@ export default function PrivacyPage(): JSX.Element {
       </Section>
 
       <Section title="Data security">
-        All data is transmitted over HTTPS. Sensitive fields (passwords, refresh tokens, ID photos) are encrypted at rest. We rotate keys quarterly and run automated dependency audits. If we ever experience a breach affecting your personal data, we will notify affected users within 72 hours.
+        All data is transmitted over HTTPS. Sensitive fields (passwords, refresh tokens, ID photos)
+        are encrypted at rest. We rotate keys quarterly and run automated dependency audits. If we
+        ever experience a breach affecting your personal data, we will notify affected users within
+        72 hours.
       </Section>
 
       <Section title="Children">
-        TrendyWheels is not intended for users under 18. We do not knowingly collect personal information from minors. If you believe a minor has submitted personal data to us, contact{" "}
+        TrendyWheels is not intended for users under 18. We do not knowingly collect personal
+        information from minors. If you believe a minor has submitted personal data to us, contact{" "}
         <a href="mailto:privacy@trendywheelseg.com" style={{ color: "#2B0FF8" }}>
           privacy@trendywheelseg.com
         </a>{" "}
@@ -109,7 +132,9 @@ export default function PrivacyPage(): JSX.Element {
       </Section>
 
       <Section title="Changes to this policy">
-        We may update this policy as the product evolves. Material changes will trigger an in-app notice and an email to your registered address. The &quot;Last updated&quot; date at the top of this page is always the source of truth.
+        We may update this policy as the product evolves. Material changes will trigger an in-app
+        notice and an email to your registered address. The &quot;Last updated&quot; date at the top
+        of this page is always the source of truth.
       </Section>
 
       <Section title="Contact">

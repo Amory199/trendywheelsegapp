@@ -1,6 +1,8 @@
 import { Router, type Router as RouterType } from "express";
-import { z } from "zod";
 
+import { createCustomerNoteSchema, updateSystemConfigSchema } from "@trendywheels/validators";
+
+import { PAGINATION } from "../../config/limits.js";
 import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
 
@@ -14,17 +16,6 @@ router.get("/system-config", async (_req, res) => {
     (await prisma.systemConfig.findFirst({ orderBy: { updatedAt: "desc" } })) ??
     (await prisma.systemConfig.create({ data: {} }));
   res.json({ data: config });
-});
-
-const updateSystemConfigSchema = z.object({
-  companyName: z.string().min(1).max(120).optional(),
-  companyEmail: z.string().email().nullable().optional(),
-  companyPhone: z.string().max(40).nullable().optional(),
-  companyAddress: z.string().max(500).nullable().optional(),
-  companyHours: z.string().max(200).nullable().optional(),
-  currency: z.enum(["EGP", "USD", "EUR"]).optional(),
-  taxRatePct: z.number().min(0).max(100).optional(),
-  emailTemplates: z.record(z.string(), z.unknown()).optional(),
 });
 
 router.patch("/system-config", async (req, res) => {
@@ -174,7 +165,7 @@ router.get("/revenue-breakdown", async (_req, res) => {
 router.get("/customers", async (req, res) => {
   const { q, page = "1", limit = "25" } = req.query as Record<string, string>;
   const pageNum = Math.max(1, Number(page));
-  const limitNum = Math.min(100, Math.max(1, Number(limit)));
+  const limitNum = Math.min(PAGINATION.max, Math.max(1, Number(limit)));
 
   const where: Record<string, unknown> = { accountType: "customer" };
   if (q) {
@@ -216,7 +207,6 @@ router.get("/customers", async (req, res) => {
 });
 
 // ─── Customer notes (CRM) ────────────────────────────────────
-const createNoteSchema = z.object({ body: z.string().min(1).max(5000) });
 
 router.get("/customers/:id/notes", async (req, res) => {
   const notes = await prisma.customerNote.findMany({
@@ -229,7 +219,7 @@ router.get("/customers/:id/notes", async (req, res) => {
 });
 
 router.post("/customers/:id/notes", async (req, res) => {
-  const { body } = createNoteSchema.parse(req.body);
+  const { body } = createCustomerNoteSchema.parse(req.body);
   const note = await prisma.customerNote.create({
     data: { customerId: req.params.id, authorId: req.user!.userId, body },
     include: { author: { select: { id: true, name: true } } },
@@ -303,7 +293,7 @@ router.get("/customers/:id", async (req, res) => {
 router.get("/conversations", async (req, res) => {
   const { page = "1", limit = "30" } = req.query as Record<string, string>;
   const pageNum = Math.max(1, Number(page));
-  const limitNum = Math.min(100, Math.max(1, Number(limit)));
+  const limitNum = Math.min(PAGINATION.max, Math.max(1, Number(limit)));
 
   const [conversations, total] = await Promise.all([
     prisma.conversation.findMany({

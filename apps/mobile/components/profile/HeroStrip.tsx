@@ -3,7 +3,8 @@
 // the affordance obvious without an extra row).
 
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@trendywheels/ui-tokens";
+import type { LoyaltyTier } from "@trendywheels/types";
+import { initialsOf, TIER_COLORS } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as React from "react";
@@ -20,31 +21,16 @@ import Animated, {
 
 import { TWPressable } from "../ui";
 
-export type Tier = "bronze" | "silver" | "gold" | "platinum";
-
-const TIER_COLORS: Record<Tier, [string, string]> = {
-  bronze: ["#CD7F32", "#8B5A2B"],
-  silver: ["#9E9E9E", "#5E5E5E"],
-  gold: ["#F5B800", "#D19500"],
-  platinum: [colors.brand.poolBlue, colors.brand.friendlyBlue],
-};
-
 interface Props {
   name: string;
   phone: string;
-  tier: Tier;
+  tier: LoyaltyTier;
 }
 
 export function HeroStrip({ name, phone, tier }: Props): React.JSX.Element {
   const router = useRouter();
   const colorsPair = TIER_COLORS[tier] ?? TIER_COLORS.bronze;
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const initials = initialsOf(name);
 
   return (
     <TWPressable onPress={() => router.push("/profile/edit")}>
@@ -99,7 +85,7 @@ export function HeroStrip({ name, phone, tier }: Props): React.JSX.Element {
 }
 
 // Subtle shimmer that sweeps left-to-right over the tier pill.
-function TierShimmerPill({ tier }: { tier: Tier }): React.JSX.Element {
+function TierShimmerPill({ tier }: { tier: LoyaltyTier }): React.JSX.Element {
   const t = useSharedValue(0);
   const [pillW, setPillW] = React.useState(0);
   useEffect(() => {

@@ -1,0 +1,64 @@
+name: checklist-gate
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+# Fail the PR if the PR body doesn't carry the required CHECKLISTS-COMPLETED
+# markers for the surfaces this PR touches. The rule:
+#
+#   - every PR must have:                          CHECKLISTS-COMPLETED: feature
+#   - PRs that tick the auth/secrets/file-upload   CHECKLISTS-COMPLETED: security
+#     box in the template must also have:
+#   - PRs that tick the DB/queue/cache/socket/     CHECKLISTS-COMPLETED: scale
+#     unbounded-list box must also have:
+#
+# The "ticked box" detection is done from the PR template — markdown lines
+# starting with "- [x]" inside the "Touches" section. The checks themselves
+# are intentionally simple regex; we want predictable behaviour over
+# cleverness. If the rule turns out to be too tight, adjust here.
+#
+# See AGENTS.md rules 11–13, CHECKLISTS/*.md for what each gate means.
+
+jobs:
+  required-markers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read PR body
+        id: body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # Persist multiline body to a file so subsequent steps can grep it.
+          printf '%s' "$PR_BODY" > /tmp/pr-body.md
+          echo "----- PR BODY START -----"
+          cat /tmp/pr-body.md
+          echo "----- PR BODY END -----"
+
+      - name: "Require CHECKLISTS-COMPLETED: feature"
+        run: |
+          if ! grep -qiE '^CHECKLISTS-COMPLETED:[[:space:]]*feature' /tmp/pr-body.md; then
+            echo "::error::Every PR must include 'CHECKLISTS-COMPLETED: feature' in the description. See CHECKLISTS/FEATURE.md."
+            exit 1
+          fi
+
+      - name: "Require CHECKLISTS-COMPLETED: security if PR touches auth/secrets/upload"
+        run: |
+          if grep -qiE '^- \[x\][[:space:]]*(Auth|Secrets|File upload)' /tmp/pr-body.md; then
+            if ! grep -qiE '^CHECKLISTS-COMPLETED:[[:space:]]*security' /tmp/pr-body.md; then
+              echo "::error::This PR ticks an auth/secrets/file-upload box. Add 'CHECKLISTS-COMPLETED: security' after going through CHECKLISTS/SECURITY.md."
+              exit 1
+            fi
+          fi
+
+      - name: "Require CHECKLISTS-COMPLETED: scale if PR touches DB/queue/cache/socket/list"
+        run: |
+          if grep -qiE '^- \[x\][[:space:]]*(Prisma schema|BullMQ|Cache|Socket\.IO|New list endpoint)' /tmp/pr-body.md; then
+            if ! grep -qiE '^CHECKLISTS-COMPLETED:[[:space:]]*scale' /tmp/pr-body.md; then
+              echo "::error::This PR ticks a DB/queue/cache/websocket/list box. Add 'CHECKLISTS-COMPLETED: scale' after going through CHECKLISTS/SCALE.md."
+              exit 1
+            fi
+          fi
+
+      - name: Ok
+        run: echo "Required checklist markers present."

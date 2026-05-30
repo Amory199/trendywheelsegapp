@@ -6,12 +6,10 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../../config/database.js";
 import { env } from "../../config/env.js";
 import type { AuthPayload } from "../../middleware/auth.js";
-import { ADMIN_FILTER } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 import { logger } from "../../utils/logger.js";
-import { notificationsQueue } from "../../queues/index.js";
+import { emitDomainEvent, notifyAdmins } from "../../utils/notify.js";
 import { assignLeadRoundRobin, recordActivity } from "../crm/service.js";
-import { emitCustomerEvent } from "../realtime/customer-events.js";
 
 // Push every admin so they know a new customer just joined. Fire-and-forget
 // from inside the signup setImmediate block — failure here must not break the
@@ -21,25 +19,12 @@ async function notifyAdminsOfSignup(customer: {
   name: string | null;
   phone: string;
 }): Promise<void> {
-  const admins = await prisma.user.findMany({
-    where: { ...ADMIN_FILTER, status: "active" },
-    select: { id: true },
+  await notifyAdmins(`customer-signup-${customer.id}`, {
+    type: "customer_signup",
+    title: "New customer signup",
+    body: `${customer.name ?? `Customer ${customer.phone.slice(-4)}`} just joined`,
+    data: { userId: customer.id, phone: customer.phone },
   });
-  await Promise.all(
-    admins.map((a) =>
-      notificationsQueue.add(
-        `customer-signup-${customer.id}-${a.id}`,
-        {
-          userId: a.id,
-          type: "customer_signup",
-          title: "New customer signup",
-          body: `${customer.name ?? `Customer ${customer.phone.slice(-4)}`} just joined`,
-          data: { userId: customer.id, phone: customer.phone },
-        },
-        { removeOnComplete: true },
-      ),
-    ),
-  );
 }
 
 function generateOtp(): string {
@@ -173,11 +158,9 @@ export async function verifyOtp(
           });
           await recordActivity(lead.id, null, "created", "Lead auto-created from signup");
           await assignLeadRoundRobin(lead.id);
-          emitCustomerEvent("customer.signup", {
-            id: customer.id,
-            userId: customer.id,
-            at: new Date().toISOString(),
-            meta: { phone: customer.phone, leadId: lead.id },
+          emitDomainEvent("customer.signup", customer.id, customer.id, {
+            phone: customer.phone,
+            leadId: lead.id,
           });
           await notifyAdminsOfSignup({
             id: customer.id,
@@ -283,11 +266,9 @@ export async function issueTokensForPhone(
           });
           await recordActivity(lead.id, null, "created", "Lead auto-created from signup");
           await assignLeadRoundRobin(lead.id);
-          emitCustomerEvent("customer.signup", {
-            id: customer.id,
-            userId: customer.id,
-            at: new Date().toISOString(),
-            meta: { phone: customer.phone, leadId: lead.id },
+          emitDomainEvent("customer.signup", customer.id, customer.id, {
+            phone: customer.phone,
+            leadId: lead.id,
           });
           await notifyAdminsOfSignup({
             id: customer.id,

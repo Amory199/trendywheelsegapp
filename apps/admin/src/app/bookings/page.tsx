@@ -1,10 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
+import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import Link from "next/link";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
+import { TourHelpButton } from "../../lib/tour-help-button";
 import { TWSelect } from "../../lib/tw-select";
 
 interface BookingRow {
@@ -55,101 +59,119 @@ export default function BookingsPage(): JSX.Element {
   const selected = selectedId ? (bookings.find((b) => b.id === selectedId) ?? null) : null;
 
   return (
-    <div className="p-8 space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Bookings</h1>
-          <p className="text-sm text-gray-500">{bookings.length} bookings</p>
-        </div>
-        <TWSelect
-          value={statusFilter}
-          onChange={(v) => setStatusFilter(v as BookingRow["status"] | "")}
-          options={[
-            { value: "", label: "All statuses" },
-            { value: "pending", label: "Pending", color: "#B45309" },
-            { value: "confirmed", label: "Confirmed", color: "#1338A8" },
-            { value: "active", label: "Active", color: "#5300A8" },
-            { value: "completed", label: "Completed", color: "#0A6B0A" },
-            { value: "cancelled", label: "Cancelled", color: "#A00000" },
-          ]}
-        />
-      </header>
-
-      <div className="bg-white border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-            <tr>
-              <th className="text-left px-4 py-3">Customer</th>
-              <th className="text-left px-4 py-3">Vehicle</th>
-              <th className="text-left px-4 py-3">Period</th>
-              <th className="text-left px-4 py-3">Status</th>
-              <th className="text-left px-4 py-3">Payment</th>
-              <th className="text-right px-4 py-3">Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y tw-stagger">
-            {isLoading ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
-                  Loading…
-                </td>
-              </tr>
-            ) : bookings.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
-                  No bookings.
-                </td>
-              </tr>
-            ) : (
-              bookings.map((b) => (
-                <tr
-                  key={b.id}
-                  onClick={() => setSelectedId(b.id)}
-                  className={`cursor-pointer hover:bg-gray-50 ${
-                    selectedId === b.id ? "bg-blue-50" : ""
-                  }`}
-                >
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{b.user?.name ?? "—"}</div>
-                    <div className="text-xs text-gray-400">{b.user?.phone}</div>
-                  </td>
-                  <td className="px-4 py-3">{b.vehicle?.name ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs">
-                    {new Date(b.startDate).toLocaleDateString()} →{" "}
-                    {new Date(b.endDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[b.status]}`}
-                    >
-                      {b.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PAYMENT_STYLES[b.paymentStatus]}`}
-                    >
-                      {b.paymentStatus}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium">
-                    EGP {Number(b.totalCost ?? 0).toLocaleString()}
-                  </td>
+    <>
+      <PageHeader
+        title="Bookings"
+        subtitle={`${bookings.length} bookings`}
+        helpButton={<TourHelpButton pageKey="admin:bookings" />}
+        rightSlot={
+          <TWSelect
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v as BookingRow["status"] | "")}
+            options={[
+              { value: "", label: "All statuses" },
+              { value: "pending", label: "Pending", color: "#B45309" },
+              { value: "confirmed", label: "Confirmed", color: "#1338A8" },
+              { value: "active", label: "Active", color: "#5300A8" },
+              { value: "completed", label: "Completed", color: "#0A6B0A" },
+              { value: "cancelled", label: "Cancelled", color: "#A00000" },
+            ]}
+          />
+        }
+      />
+      <div className="p-8 space-y-6">
+        {!isLoading && bookings.length === 0 && !statusFilter ? (
+          <EmptyState
+            icon="📅"
+            title="No bookings yet"
+            description="Bookings appear here as soon as customers reserve a cart from your fleet. Make sure you have at least one cart published and available to rent."
+            action={
+              <Link
+                href="/vehicles"
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition"
+              >
+                Review your fleet
+              </Link>
+            }
+          />
+        ) : (
+          <div className="bg-white border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                <tr>
+                  <th className="text-left px-4 py-3">Customer</th>
+                  <th className="text-left px-4 py-3">Vehicle</th>
+                  <th className="text-left px-4 py-3">Period</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                  <th className="text-left px-4 py-3">Payment</th>
+                  <th className="text-right px-4 py-3">Total</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y tw-stagger">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                      Loading…
+                    </td>
+                  </tr>
+                ) : bookings.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                      No bookings with status &quot;{statusFilter}&quot;.
+                    </td>
+                  </tr>
+                ) : (
+                  bookings.map((b) => (
+                    <tr
+                      key={b.id}
+                      onClick={() => setSelectedId(b.id)}
+                      className={`cursor-pointer hover:bg-gray-50 ${
+                        selectedId === b.id ? "bg-blue-50" : ""
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="font-medium">{b.user?.name ?? "—"}</div>
+                        <div className="text-xs text-gray-400">{b.user?.phone}</div>
+                      </td>
+                      <td className="px-4 py-3">{b.vehicle?.name ?? "—"}</td>
+                      <td className="px-4 py-3 text-xs">
+                        {new Date(b.startDate).toLocaleDateString()} →{" "}
+                        {new Date(b.endDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[b.status]}`}
+                        >
+                          {b.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PAYMENT_STYLES[b.paymentStatus]}`}
+                        >
+                          {b.paymentStatus}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium">
+                        EGP {Number(b.totalCost ?? 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      {selected && (
-        <BookingDrawer
-          booking={selected}
-          onClose={() => setSelectedId(null)}
-          onChange={() => void qc.invalidateQueries({ queryKey: ["bookings"] })}
-        />
-      )}
-    </div>
+        {selected && (
+          <BookingDrawer
+            booking={selected}
+            onClose={() => setSelectedId(null)}
+            onChange={() => void qc.invalidateQueries({ queryKey: ["bookings"] })}
+          />
+        )}
+      </div>
+    </>
   );
 }
 

@@ -1,9 +1,13 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
+import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
+import { TourHelpButton } from "../../lib/tour-help-button";
 
 interface Vehicle {
   id: string;
@@ -153,250 +157,260 @@ export default function MaintenancePage(): JSX.Element {
   const upcoming = items.filter((m) => !m.completedAt);
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Maintenance</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {upcoming.length} upcoming · {items.length - upcoming.length} completed
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setView("list")}
-            className={`px-3 py-1.5 rounded-md text-sm border transition ${view === "list" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 hover:bg-gray-50"}`}
-          >
-            ☰ List
-          </button>
-          <button
-            onClick={() => setView("calendar")}
-            className={`px-3 py-1.5 rounded-md text-sm border transition ${view === "calendar" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 hover:bg-gray-50"}`}
-          >
-            📅 Calendar
-          </button>
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition"
-          >
-            + Schedule
-          </button>
-        </div>
-      </div>
-
-      {showForm && (
-        <div className="bg-white rounded-xl border p-5 mb-6 space-y-4">
-          <h2 className="font-semibold">Schedule maintenance</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">Vehicle</label>
-              <select
-                value={form.vehicleId}
-                onChange={(e) => setForm((f) => ({ ...f, vehicleId: e.target.value }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select vehicle…</option>
-                {vehicles.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">Type</label>
-              <select
-                value={form.type}
-                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {MAINTENANCE_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">Scheduled at</label>
-              <input
-                type="datetime-local"
-                value={form.scheduledAt}
-                onChange={(e) => setForm((f) => ({ ...f, scheduledAt: e.target.value }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">
-                Estimated cost (EGP)
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={form.cost}
-                onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))}
-                placeholder="optional"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">Notes</label>
-            <textarea
-              value={form.notes}
-              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              rows={2}
-              placeholder="Mechanic, parts needed, anything else…"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex gap-2">
+    <>
+      <PageHeader
+        title="Maintenance"
+        subtitle={`${upcoming.length} upcoming · ${items.length - upcoming.length} completed`}
+        helpButton={<TourHelpButton pageKey="admin:maintenance" />}
+        rightSlot={
+          <div className="flex gap-2" data-tour="maintenance-actions">
             <button
-              onClick={() => createMutation.mutate()}
-              disabled={!form.vehicleId || !form.type || createMutation.isPending}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition disabled:opacity-40"
+              onClick={() => setView("list")}
+              className={`px-3 py-1.5 rounded-md text-sm border transition ${view === "list" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 hover:bg-gray-50"}`}
             >
-              {createMutation.isPending ? "Saving…" : "Save appointment"}
+              ☰ List
             </button>
             <button
-              onClick={() => setShowForm(false)}
-              className="px-4 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm rounded-md transition"
+              onClick={() => setView("calendar")}
+              className={`px-3 py-1.5 rounded-md text-sm border transition ${view === "calendar" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 hover:bg-gray-50"}`}
             >
-              Cancel
+              📅 Calendar
+            </button>
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              data-tour="maintenance-schedule-button"
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition"
+            >
+              + Schedule
             </button>
           </div>
-        </div>
-      )}
-
-      {view === "calendar" ? (
-        <div className="bg-white rounded-xl border overflow-hidden">
-          <div className="flex items-center justify-between p-4 border-b">
-            <button onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded">
-              ←
-            </button>
-            <h2 className="font-semibold">
-              {MONTHS[calMonth]} {calYear}
-            </h2>
-            <button onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded">
-              →
-            </button>
-          </div>
-          <div className="grid grid-cols-7 text-center text-xs font-medium text-gray-500 border-b">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-              <div key={d} className="py-2">
-                {d}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7">
-            {emptyDays.map((i) => (
-              <div key={`e${i}`} className="h-24 border-b border-r" />
-            ))}
-            {calDays.map((day) => {
-              const dayItems = itemsOnDay(day);
-              const isToday =
-                day === today.getDate() &&
-                calMonth === today.getMonth() &&
-                calYear === today.getFullYear();
-              return (
-                <div key={day} className="h-24 border-b border-r p-1 overflow-hidden">
-                  <div
-                    className={`text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-1 ${
-                      isToday ? "bg-blue-600 text-white" : "text-gray-700"
-                    }`}
-                  >
-                    {day}
-                  </div>
-                  {dayItems.slice(0, 3).map((m) => (
-                    <div
-                      key={m.id}
-                      className={`text-xs rounded px-1 truncate mb-0.5 ${m.completedAt ? "bg-gray-100 text-gray-500 line-through" : "bg-yellow-100 text-yellow-700"}`}
-                      title={`${m.vehicle?.name ?? ""} — ${m.type}`}
-                    >
-                      {m.type}
-                    </div>
+        }
+      />
+      <div className="p-6">
+        {showForm && (
+          <div className="bg-white rounded-xl border p-5 mb-6 space-y-4">
+            <h2 className="font-semibold">Schedule maintenance</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Vehicle</label>
+                <select
+                  value={form.vehicleId}
+                  onChange={(e) => setForm((f) => ({ ...f, vehicleId: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select vehicle…</option>
+                  {vehicles.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
                   ))}
-                  {dayItems.length > 3 && (
-                    <div className="text-xs text-gray-400">+{dayItems.length - 3} more</div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {itemsQ.isLoading ? (
-            <div className="flex items-center justify-center h-40 text-gray-400">Loading…</div>
-          ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 text-gray-400 gap-2">
-              <span className="text-4xl">🔧</span>
-              <span>No maintenance scheduled</span>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Type</label>
+                <select
+                  value={form.type}
+                  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {MAINTENANCE_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Scheduled at</label>
+                <input
+                  type="datetime-local"
+                  value={form.scheduledAt}
+                  onChange={(e) => setForm((f) => ({ ...f, scheduledAt: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">
+                  Estimated cost (EGP)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.cost}
+                  onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))}
+                  placeholder="optional"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
-          ) : (
-            items.map((m) => {
-              const isDone = !!m.completedAt;
-              const isOverdue = !isDone && new Date(m.scheduledAt) < new Date();
-              return (
-                <div key={m.id} className="bg-white rounded-xl border p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">{m.type}</span>
-                        <span className="text-xs text-gray-300">·</span>
-                        <span className="text-sm text-gray-700">{m.vehicle?.name ?? "—"}</span>
-                        {isDone ? (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                            Completed
-                          </span>
-                        ) : isOverdue ? (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                            Overdue
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                            Scheduled
-                          </span>
-                        )}
-                      </div>
-                      {m.description ? (
-                        <p className="text-sm text-gray-600">{m.description}</p>
-                      ) : null}
-                      <p className="text-xs text-gray-400 mt-1">
-                        📅 {new Date(m.scheduledAt).toLocaleString()}
-                        {m.cost ? ` · EGP ${Number(m.cost).toLocaleString()}` : ""}
-                        {isDone ? ` · done ${new Date(m.completedAt!).toLocaleDateString()}` : ""}
-                      </p>
-                      {m.notes ? (
-                        <p className="text-xs text-gray-500 mt-1 italic">{m.notes}</p>
-                      ) : null}
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">Notes</label>
+              <textarea
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                rows={2}
+                placeholder="Mechanic, parts needed, anything else…"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => createMutation.mutate()}
+                disabled={!form.vehicleId || !form.type || createMutation.isPending}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition disabled:opacity-40"
+              >
+                {createMutation.isPending ? "Saving…" : "Save appointment"}
+              </button>
+              <button
+                onClick={() => setShowForm(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm rounded-md transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {view === "calendar" ? (
+          <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <button onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded">
+                ←
+              </button>
+              <h2 className="font-semibold">
+                {MONTHS[calMonth]} {calYear}
+              </h2>
+              <button onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded">
+                →
+              </button>
+            </div>
+            <div className="grid grid-cols-7 text-center text-xs font-medium text-gray-500 border-b">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                <div key={d} className="py-2">
+                  {d}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7">
+              {emptyDays.map((i) => (
+                <div key={`e${i}`} className="h-24 border-b border-r" />
+              ))}
+              {calDays.map((day) => {
+                const dayItems = itemsOnDay(day);
+                const isToday =
+                  day === today.getDate() &&
+                  calMonth === today.getMonth() &&
+                  calYear === today.getFullYear();
+                return (
+                  <div key={day} className="h-24 border-b border-r p-1 overflow-hidden">
+                    <div
+                      className={`text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-1 ${
+                        isToday ? "bg-blue-600 text-white" : "text-gray-700"
+                      }`}
+                    >
+                      {day}
                     </div>
-                    <div className="flex items-center gap-2 ml-4 shrink-0">
-                      {!isDone ? (
-                        <button
-                          onClick={() => completeMutation.mutate(m.id)}
-                          disabled={completeMutation.isPending}
-                          className="px-3 py-1 text-xs font-medium border border-blue-600 text-blue-600 hover:bg-blue-50 rounded-md transition"
-                        >
-                          ✓ Mark done
-                        </button>
-                      ) : null}
-                      <button
-                        onClick={() => {
-                          if (confirm("Delete this maintenance record?"))
-                            deleteMutation.mutate(m.id);
-                        }}
-                        className="px-2 py-1 text-xs text-gray-400 hover:text-red-600 transition"
+                    {dayItems.slice(0, 3).map((m) => (
+                      <div
+                        key={m.id}
+                        className={`text-xs rounded px-1 truncate mb-0.5 ${m.completedAt ? "bg-gray-100 text-gray-500 line-through" : "bg-yellow-100 text-yellow-700"}`}
+                        title={`${m.vehicle?.name ?? ""} — ${m.type}`}
                       >
-                        ✕
-                      </button>
+                        {m.type}
+                      </div>
+                    ))}
+                    {dayItems.length > 3 && (
+                      <div className="text-xs text-gray-400">+{dayItems.length - 3} more</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {itemsQ.isLoading ? (
+              <div className="flex items-center justify-center h-40 text-gray-400">Loading…</div>
+            ) : items.length === 0 ? (
+              <EmptyState
+                icon="🔧"
+                title="No maintenance scheduled"
+                description="Schedule routine work to keep your fleet running. Each appointment notifies the assigned mechanic and shows up on the customer's vehicle timeline."
+                action={
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition"
+                  >
+                    + Schedule your first appointment
+                  </button>
+                }
+              />
+            ) : (
+              items.map((m) => {
+                const isDone = !!m.completedAt;
+                const isOverdue = !isDone && new Date(m.scheduledAt) < new Date();
+                return (
+                  <div key={m.id} className="bg-white rounded-xl border p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold">{m.type}</span>
+                          <span className="text-xs text-gray-300">·</span>
+                          <span className="text-sm text-gray-700">{m.vehicle?.name ?? "—"}</span>
+                          {isDone ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              Completed
+                            </span>
+                          ) : isOverdue ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                              Overdue
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                              Scheduled
+                            </span>
+                          )}
+                        </div>
+                        {m.description ? (
+                          <p className="text-sm text-gray-600">{m.description}</p>
+                        ) : null}
+                        <p className="text-xs text-gray-400 mt-1">
+                          📅 {new Date(m.scheduledAt).toLocaleString()}
+                          {m.cost ? ` · EGP ${Number(m.cost).toLocaleString()}` : ""}
+                          {isDone ? ` · done ${new Date(m.completedAt!).toLocaleDateString()}` : ""}
+                        </p>
+                        {m.notes ? (
+                          <p className="text-xs text-gray-500 mt-1 italic">{m.notes}</p>
+                        ) : null}
+                      </div>
+                      <div className="flex items-center gap-2 ml-4 shrink-0">
+                        {!isDone ? (
+                          <button
+                            onClick={() => completeMutation.mutate(m.id)}
+                            disabled={completeMutation.isPending}
+                            className="px-3 py-1 text-xs font-medium border border-blue-600 text-blue-600 hover:bg-blue-50 rounded-md transition"
+                          >
+                            ✓ Mark done
+                          </button>
+                        ) : null}
+                        <button
+                          onClick={() => {
+                            if (confirm("Delete this maintenance record?"))
+                              deleteMutation.mutate(m.id);
+                          }}
+                          className="px-2 py-1 text-xs text-gray-400 hover:text-red-600 transition"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-    </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

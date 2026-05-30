@@ -1,7 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
+import Link from "next/link";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -79,7 +82,25 @@ export default function AdminOrdersPage(): JSX.Element {
       {q.isLoading ? (
         <div className="text-gray-500 py-12 text-center">Loading…</div>
       ) : filtered.length === 0 ? (
-        <div className="text-gray-500 py-12 text-center">No orders.</div>
+        items.length === 0 && !filter ? (
+          <EmptyState
+            icon="🛒"
+            title="No orders yet"
+            description="Product orders show up here as soon as customers check out from the mobile app. Make sure your products page is stocked first."
+            action={
+              <Link
+                href="/products"
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition"
+              >
+                Manage products
+              </Link>
+            }
+          />
+        ) : (
+          <div className="text-gray-500 py-12 text-center">
+            No orders with status &quot;{filter}&quot;.
+          </div>
+        )
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm">

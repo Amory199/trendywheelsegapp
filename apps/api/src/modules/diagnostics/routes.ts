@@ -1,5 +1,6 @@
 import { Router, type Router as RouterType } from "express";
-import { z } from "zod";
+
+import { clientErrorReportSchema } from "@trendywheels/validators";
 
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { prisma } from "../../config/database.js";
@@ -11,17 +12,8 @@ const router: RouterType = Router();
 // Frontend (web + mobile) posts unhandled errors here. We accept anonymous
 // reports because crashes can happen before / after auth — we still want to
 // see them. The shared rate limit on /api keeps abuse in check.
-const clientErrorSchema = z.object({
-  level: z.enum(["error", "warn", "fatal"]).default("error"),
-  source: z.enum(["admin", "support", "inventory", "customer", "mobile"]),
-  message: z.string().min(1).max(2000),
-  stack: z.string().max(20_000).optional(),
-  route: z.string().max(500).optional(),
-  metadata: z.record(z.unknown()).optional(),
-});
-
 router.post("/client-errors", async (req, res) => {
-  const parsed = clientErrorSchema.parse(req.body);
+  const parsed = clientErrorReportSchema.parse(req.body);
   const userAgent = req.headers["user-agent"] ?? null;
   const ipFromHeader = (req.headers["x-forwarded-for"] as string | undefined)
     ?.split(",")[0]

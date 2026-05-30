@@ -1,26 +1,26 @@
 import type { Request, Response } from "express";
 
 import { Prisma } from "@prisma/client";
-import { updateUserSchema } from "@trendywheels/validators";
+import {
+  createStaffSchema,
+  requestAccountDeletionSchema,
+  updateUserPreferencesSchema,
+  updateUserSchema,
+  userPreferencesSchema,
+} from "@trendywheels/validators";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 
+import { PAGINATION } from "../../config/limits.js";
 import { prisma } from "../../config/database.js";
 import { requireOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 
-const createStaffSchema = z.object({
-  name: z.string().min(1).max(100),
-  email: z.string().email(),
-  phone: z.string().min(6).max(40),
-  password: z.string().min(8).max(72),
-  staffRole: z.enum(["admin", "sales", "support", "inventory", "mechanic"]),
-});
+import { buildCustomerTimeline, mergePreferences } from "./service.js";
 
 export async function list(req: Request, res: Response): Promise<void> {
   const { page = "1", limit = "20" } = req.query as Record<string, string>;
   const pageNum = Math.max(1, Number(page));
-  const limitNum = Math.min(100, Math.max(1, Number(limit)));
+  const limitNum = Math.min(PAGINATION.max, Math.max(1, Number(limit)));
 
   const [users, total] = await Promise.all([
     prisma.user.findMany({
@@ -66,6 +66,32 @@ export async function getMe(req: Request, res: Response): Promise<void> {
   });
   if (!user) throw AppError.notFound("User not found");
   res.json({ data: user });
+}
+
+// PATCH /api/users/me/preferences
+// Deep-merges the patch into existing user.preferences. The merged result is
+// re-validated against userPreferencesSchema before save — so a malformed
+// existing JSON column gets normalized on first write, and unknown keys are
+// silently dropped instead of accumulating drift.
+export async function updateMyPreferences(req: Request, res: Response): Promise<void> {
+  const patch = updateUserPreferencesSchema.parse(req.body);
+
+  const current = await prisma.user.findUnique({
+    where: { id: req.user!.userId },
+    select: { preferences: true },
+  });
+  if (!current) throw AppError.notFound("User not found");
+
+  const merged = mergePreferences(current.preferences, patch);
+  const normalized = userPreferencesSchema.parse(merged);
+
+  const updated = await prisma.user.update({
+    where: { id: req.user!.userId },
+    data: { preferences: normalized as unknown as Prisma.InputJsonValue },
+    select: { preferences: true },
+  });
+
+  res.json({ data: updated.preferences });
 }
 
 export async function getById(req: Request, res: Response): Promise<void> {
@@ -173,18 +199,12 @@ export async function exportData(req: Request, res: Response): Promise<void> {
   });
 }
 
-const requestDeletionSchema = z.object({
-  email: z.string().email(),
-  phone: z.string().min(6).max(40),
-  reason: z.string().max(500).optional(),
-});
-
 // Public endpoint backing the /account/delete form (Google Play Store requires
 // a self-service deletion path accessible without app login). Creates a
 // DeletionRequest the ops team processes within 30 days, in line with our
 // privacy policy.
 export async function requestDeletion(req: Request, res: Response): Promise<void> {
-  const { email, phone, reason } = requestDeletionSchema.parse(req.body);
+  const { email, phone, reason } = requestAccountDeletionSchema.parse(req.body);
 
   // Best-effort link to an existing user (by email or phone) but the request is
   // still recorded even if no match — ops verifies offline.
@@ -325,155 +345,9 @@ export async function getInteractions(req: Request, res: Response): Promise<void
 }
 
 // Per-customer activity timeline. Returns a unified, chronologically-sorted
-// list of every entity the customer has touched: bookings, repairs, sales
-// listings, maintenance, customization, pickup-delivery, sign-up. Admin/staff
-// only — the auth gate is in routes.ts.
+// list of every entity the customer has touched. Admin/staff only — the auth
+// gate is in routes.ts.
 export async function getTimeline(req: Request, res: Response): Promise<void> {
-  const userId = req.params.id;
-
-  // Fetch in parallel — each query is small (per-user). Keep limits per
-  // category so a power-user account can't blow up the response.
-  const [user, bookings, repairs, listings, maintenance, customization, transport, leadActivities] =
-    await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, name: true, phone: true, email: true, createdAt: true },
-      }),
-      prisma.booking.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-        include: { vehicle: { select: { name: true } } },
-      }),
-      prisma.repairRequest.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      }),
-      prisma.salesListing.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      }),
-      prisma.maintenanceRequest.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      }),
-      prisma.customizationRequest.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      }),
-      prisma.transportRequest.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      }),
-      // Lead activities — find the lead bound to this customer, then pull its
-      // activities (calls, WhatsApp, notes, status changes, rotations…).
-      prisma.leadActivity.findMany({
-        where: { lead: { customerId: userId } },
-        orderBy: { createdAt: "desc" },
-        take: 100,
-      }),
-    ]);
-
-  if (!user) throw AppError.notFound("User not found");
-
-  interface TimelineRow {
-    at: string;
-    kind:
-      | "signup"
-      | "booking"
-      | "repair"
-      | "sales-listing"
-      | "maintenance"
-      | "customization"
-      | "pickup"
-      | "lead-activity";
-    entityId: string;
-    summary: string;
-    meta?: Record<string, unknown>;
-  }
-
-  const rows: TimelineRow[] = [];
-  rows.push({
-    at: user.createdAt.toISOString(),
-    kind: "signup",
-    entityId: user.id,
-    summary: `Account created${user.name ? ` — ${user.name}` : ""}`,
-  });
-  for (const b of bookings) {
-    rows.push({
-      at: b.createdAt.toISOString(),
-      kind: "booking",
-      entityId: b.id,
-      summary: `Booked ${b.vehicle?.name ?? "vehicle"} (${b.status})`,
-      meta: { status: b.status, totalCost: Number(b.totalCost) },
-    });
-  }
-  for (const r of repairs) {
-    rows.push({
-      at: r.createdAt.toISOString(),
-      kind: "repair",
-      entityId: r.id,
-      summary: `Repair request — ${r.category} (${r.status})`,
-      meta: { status: r.status, priority: r.priority },
-    });
-  }
-  for (const l of listings) {
-    rows.push({
-      at: l.createdAt.toISOString(),
-      kind: "sales-listing",
-      entityId: l.id,
-      summary: `Listed for sale — ${l.title ?? "untitled"} (${l.status})`,
-      meta: { status: l.status, price: Number(l.price) },
-    });
-  }
-  for (const m of maintenance) {
-    rows.push({
-      at: m.createdAt.toISOString(),
-      kind: "maintenance",
-      entityId: m.id,
-      summary: `Maintenance request — ${m.serviceType}`,
-      meta: { status: m.status },
-    });
-  }
-  for (const c of customization) {
-    rows.push({
-      at: c.createdAt.toISOString(),
-      kind: "customization",
-      entityId: c.id,
-      summary: `Customization request — ${c.kind}`,
-      meta: { status: c.status },
-    });
-  }
-  for (const t of transport) {
-    rows.push({
-      at: t.createdAt.toISOString(),
-      kind: "pickup",
-      entityId: t.id,
-      summary: `Pickup/delivery — ${t.fromAddress.slice(0, 30)} → ${t.toAddress.slice(0, 30)}`,
-      meta: { status: t.status },
-    });
-  }
-  for (const a of leadActivities) {
-    rows.push({
-      at: a.createdAt.toISOString(),
-      kind: "lead-activity",
-      entityId: a.id,
-      summary: a.body,
-      meta: { type: a.type, leadId: a.leadId },
-    });
-  }
-
-  rows.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
-
-  res.json({
-    data: {
-      user: { id: user.id, name: user.name, phone: user.phone, email: user.email },
-      rows,
-    },
-  });
+  const data = await buildCustomerTimeline(req.params.id);
+  res.json({ data });
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { colors } from "@trendywheels/ui-tokens";
+import { colors, LISTING_STATUS_TONE, type SalesListingStatus } from "@trendywheels/ui-tokens";
 import Link from "next/link";
+import type { JSX } from "react";
 
 import { useAuth } from "../../../lib/auth-store";
 import { authedFetch } from "../../../lib/fetcher";
@@ -12,17 +13,9 @@ interface Listing {
   title: string;
   category: string;
   askPrice?: number;
-  status: "pending" | "active" | "sold" | "withdrawn" | "paused";
+  status: SalesListingStatus;
   createdAt: string;
 }
-
-const STATUS_STYLE: Record<Listing["status"], { fg: string; bg: string }> = {
-  pending: { bg: "#FFF4D6", fg: "#806000" },
-  active: { bg: "#E6F8E6", fg: "#0A6B0A" },
-  sold: { bg: "#E6F0FF", fg: "#1338A8" },
-  withdrawn: { bg: "#F1F1F1", fg: "#5B5B5B" },
-  paused: { bg: "#F0E5FF", fg: "#5300A8" },
-};
 
 export default function MyListingsPage(): JSX.Element {
   const { user } = useAuth();
@@ -90,7 +83,7 @@ export default function MyListingsPage(): JSX.Element {
         </div>
       ) : (
         rows.map((l) => {
-          const s = STATUS_STYLE[l.status] ?? STATUS_STYLE.paused;
+          const s = LISTING_STATUS_TONE[l.status] ?? LISTING_STATUS_TONE.paused;
           return (
             <Link
               key={l.id}

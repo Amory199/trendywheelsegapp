@@ -1,7 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -81,7 +83,23 @@ export default function AdminProductsPage(): JSX.Element {
       {q.isLoading ? (
         <div className="text-gray-500 py-12 text-center">Loading…</div>
       ) : items.length === 0 ? (
-        <div className="text-gray-500 py-12 text-center">No products yet.</div>
+        tab === "all" ? (
+          <EmptyState
+            icon="📦"
+            title="No products in your catalog yet"
+            description="Add carts, parts, or accessories so customers can browse and buy from the mobile app's shop."
+            action={
+              <button
+                onClick={() => setShowCreate(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
+              >
+                + Add your first product
+              </button>
+            }
+          />
+        ) : (
+          <div className="text-gray-500 py-12 text-center">No products in this category.</div>
+        )
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm">

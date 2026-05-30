@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -22,9 +24,7 @@ export default function AdminMessagesPage(): JSX.Element {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-conversations"],
     queryFn: () =>
-      authedFetch<{ data: ConversationRow[]; total: number }>(
-        "/api/admin/conversations?limit=50",
-      ),
+      authedFetch<{ data: ConversationRow[]; total: number }>("/api/admin/conversations?limit=50"),
   });
 
   const conversations = data?.data ?? [];
@@ -56,8 +56,15 @@ export default function AdminMessagesPage(): JSX.Element {
               </tr>
             ) : conversations.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-gray-400">
-                  No conversations yet.
+                <td colSpan={3} className="px-0 py-0">
+                  <div className="p-6">
+                    <EmptyState
+                      flush
+                      icon="💬"
+                      title="No conversations yet"
+                      description="Every chat between a customer and your team appears here. They'll start as soon as a customer opens a chat from the mobile app."
+                    />
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -83,9 +90,7 @@ export default function AdminMessagesPage(): JSX.Element {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                      {c.lastMessageAt
-                        ? new Date(c.lastMessageAt).toLocaleString()
-                        : "—"}
+                      {c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleString() : "—"}
                     </td>
                   </tr>
                 );

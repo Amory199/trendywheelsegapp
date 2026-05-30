@@ -1,8 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { colors } from "@trendywheels/ui-tokens";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -158,7 +160,11 @@ export default function FeatureFlagsPage(): JSX.Element {
           </div>
         ))}
         {items.length === 0 ? (
-          <div style={{ color: "#6B6A85", fontSize: 13 }}>No flags yet.</div>
+          <EmptyState
+            icon="🚩"
+            title="No feature flags yet"
+            description="Add a flag with the form above to gate features behind a runtime switch. Flip the toggle to enable or disable a feature platform-wide without a redeploy."
+          />
         ) : null}
       </div>
     </div>

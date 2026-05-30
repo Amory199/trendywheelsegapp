@@ -4,6 +4,7 @@ import { colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
+import type { JSX } from "react";
 
 // Tabs for the customer surface. 5 max — anything more crowds on small
 // phones. "Sell" lives inside the Home action-chip grid + drawer rather

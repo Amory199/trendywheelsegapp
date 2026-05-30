@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { KBArticle } from "@trendywheels/types";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../../lib/fetcher";
 
@@ -63,9 +64,7 @@ function KBEditor(): JSX.Element {
         <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600">
           ←
         </button>
-        <h1 className="text-2xl font-bold flex-1">
-          {editId ? "Edit Article" : "New Article"}
-        </h1>
+        <h1 className="text-2xl font-bold flex-1">{editId ? "Edit Article" : "New Article"}</h1>
         <button
           onClick={() => setPreview((v) => !v)}
           className={`px-3 py-1.5 border rounded-md text-sm transition ${
@@ -150,7 +149,9 @@ function KBEditor(): JSX.Element {
 
 export default function NewKBPage(): JSX.Element {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64 text-gray-400">Loading…</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center h-64 text-gray-400">Loading…</div>}
+    >
       <KBEditor />
     </Suspense>
   );

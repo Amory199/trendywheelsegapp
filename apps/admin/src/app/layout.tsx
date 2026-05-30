@@ -1,7 +1,9 @@
 import { IntroOverlay } from "@trendywheels/ui-brand/intro-overlay-web";
 import type { Metadata, Viewport } from "next";
+import type { JSX } from "react";
 
 import { ErrorReporter } from "../lib/error-reporter";
+import { GlobalTourMounter } from "../lib/global-tour-mounter";
 import { Providers } from "../lib/providers";
 import { Shell } from "../lib/shell";
 import { ServiceWorkerRegistrar } from "../lib/sw-registrar";
@@ -47,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
         <ServiceWorkerRegistrar />
         <Providers>
           <ErrorReporter />
+          <GlobalTourMounter />
           <Shell>{children}</Shell>
         </Providers>
       </body>

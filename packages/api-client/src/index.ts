@@ -7,6 +7,8 @@ import type {
   Message,
   Notification,
   PaginatedResponse,
+  RentalListing,
+  RentalListingStatus,
   RepairRequest,
   SalesListing,
   SupportTicket,
@@ -14,16 +16,15 @@ import type {
   Vehicle,
   VehicleFilters,
 } from "@trendywheels/types";
+import type { ZodTypeAny } from "zod";
 
 type TokenProvider = () => Promise<string | null>;
-type TokenRefresher = (refreshToken: string) => Promise<AuthTokens>;
 
 interface ClientConfig {
   baseUrl: string;
   getAccessToken: TokenProvider;
   getRefreshToken: TokenProvider;
   onTokenRefresh: (tokens: AuthTokens) => Promise<void>;
-  refreshTokens: TokenRefresher;
 }
 
 interface PaginationParams {
@@ -32,16 +33,42 @@ interface PaginationParams {
 }
 
 class ApiClient {
+  public readonly baseUrl: string;
   private config: ClientConfig;
 
   constructor(config: ClientConfig) {
     this.config = config;
+    this.baseUrl = config.baseUrl;
+  }
+
+  async getAccessToken(): Promise<string | null> {
+    return this.config.getAccessToken();
+  }
+
+  // Raw fetch — bypasses `request()` so a 401 retry path can't recursively
+  // re-enter the refresh handler. Used internally by the 401-retry branch.
+  private async doRefreshTokens(refreshToken: string): Promise<AuthTokens> {
+    const res = await fetch(`${this.baseUrl}/api/auth/refresh-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!res.ok) throw new ApiClientError("Refresh failed", res.status, "REFRESH_FAILED");
+    return res.json() as Promise<AuthTokens>;
   }
 
   async request<T>(
     method: string,
     path: string,
-    options?: { body?: unknown; params?: Record<string, string | number | boolean | undefined> },
+    options?: {
+      body?: unknown;
+      params?: Record<string, string | number | boolean | undefined>;
+      // Optional Zod schema. If provided, the response is `.parse()`d so a
+      // backend shape drift surfaces as a typed error at the call site
+      // instead of a silent `undefined` deep in the UI. Opt-in to avoid
+      // breaking every existing typed method on the client.
+      parse?: ZodTypeAny;
+    },
   ): Promise<T> {
     const url = new URL(`${this.config.baseUrl}${path}`);
     if (options?.params) {
@@ -84,7 +111,7 @@ class ApiClient {
     if (response.status === 401) {
       const refreshToken = await this.config.getRefreshToken();
       if (refreshToken) {
-        const newTokens = await this.config.refreshTokens(refreshToken);
+        const newTokens = await this.doRefreshTokens(refreshToken);
         await this.config.onTokenRefresh(newTokens);
         response = await fetchWithTimeout(`Bearer ${newTokens.token}`);
       }
@@ -99,7 +126,19 @@ class ApiClient {
       );
     }
 
-    return response.json() as Promise<T>;
+    const json = await response.json();
+    if (options?.parse) {
+      const parsed = options.parse.safeParse(json);
+      if (!parsed.success) {
+        throw new ApiClientError(
+          `Response shape mismatch for ${method} ${path}: ${parsed.error.message}`,
+          200,
+          "RESPONSE_INVALID",
+        );
+      }
+      return parsed.data as T;
+    }
+    return json as T;
   }
 
   // ─── Auth ────────────────────────────────────────────────
@@ -221,6 +260,63 @@ class ApiClient {
 
   async deleteSalesListing(id: string): Promise<{ success: boolean }> {
     return this.request("DELETE", `/api/sales/${encodeURIComponent(id)}`);
+  }
+
+  // ─── Rental Listings (owner-submitted carts for managed rental) ───
+
+  async submitRentalListing(data: {
+    brand: string;
+    model: string;
+    year: number;
+    category?: string;
+    condition: "excellent" | "good" | "fair" | "poor";
+    dailyRateEgp?: number;
+    notes?: string;
+    photos?: string[];
+  }): Promise<ApiResponse<RentalListing>> {
+    return this.request("POST", "/api/rental-listings", { body: data });
+  }
+
+  async getRentalListings(): Promise<ApiResponse<RentalListing[]>> {
+    return this.request("GET", "/api/rental-listings");
+  }
+
+  async getRentalListing(id: string): Promise<ApiResponse<RentalListing>> {
+    return this.request("GET", `/api/rental-listings/${encodeURIComponent(id)}`);
+  }
+
+  async updateRentalListing(
+    id: string,
+    data: {
+      status?: RentalListingStatus;
+      declineReason?: string | null;
+      vehicleId?: string | null;
+      dailyRateEgp?: number | null;
+      notes?: string | null;
+    },
+  ): Promise<ApiResponse<RentalListing>> {
+    return this.request("PATCH", `/api/rental-listings/${encodeURIComponent(id)}`, { body: data });
+  }
+
+  async deleteRentalListing(id: string): Promise<{ success: boolean }> {
+    return this.request("DELETE", `/api/rental-listings/${encodeURIComponent(id)}`);
+  }
+
+  // ─── Trade-in ────────────────────────────────────────────
+
+  async submitTradeIn(data: {
+    brand: string;
+    model: string;
+    year: number;
+    condition: "excellent" | "good" | "fair" | "poor";
+    notes?: string;
+    photos?: string[];
+  }): Promise<ApiResponse<{ id: string; status: string }>> {
+    return this.request("POST", "/api/trade-in", { body: data });
+  }
+
+  async getTradeIns(): Promise<ApiResponse<unknown[]>> {
+    return this.request("GET", "/api/trade-in");
   }
 
   // ─── Repair Requests ─────────────────────────────────────
@@ -564,6 +660,47 @@ class ApiClient {
 
   async deleteFile(key: string): Promise<{ success: boolean }> {
     return this.request("DELETE", `/api/storage/${encodeURIComponent(key)}`);
+  }
+
+  // ─── Referrals ───────────────────────────────────────────
+
+  async getReferralsMe(): Promise<{
+    data: { code: string; usedCount: number; referrals: Array<{ completedAt: string | null }> };
+  }> {
+    return this.request("GET", "/api/referrals/me");
+  }
+
+  // ─── Unread badges ───────────────────────────────────────
+
+  async getUnreadMessageCount(): Promise<{ count: number }> {
+    const json = await this.request<{ count?: number; data?: { count?: number } }>(
+      "GET",
+      "/api/messages/unread-count",
+    );
+    return { count: json.count ?? json.data?.count ?? 0 };
+  }
+
+  // ─── Client-side error reporting ─────────────────────────
+
+  // Best-effort: swallow network errors so reporting never throws into the
+  // global error handler that called us.
+  async reportClientError(payload: {
+    level: "error" | "warn" | "fatal";
+    message: string;
+    stack?: string;
+    route?: string;
+    metadata?: Record<string, unknown>;
+    source?: "mobile" | "customer" | "admin" | "support" | "inventory";
+  }): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/api/client-errors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      /* swallow — error reporting must never throw */
+    }
   }
 }
 

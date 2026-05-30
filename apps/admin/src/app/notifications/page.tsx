@@ -1,6 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
+import Link from "next/link";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -26,9 +29,7 @@ export default function AdminNotificationsPage(): JSX.Element {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-notifications"],
     queryFn: () =>
-      authedFetch<{ data: NotificationRow[]; total: number }>(
-        "/api/admin/notifications?limit=100",
-      ),
+      authedFetch<{ data: NotificationRow[]; total: number }>("/api/admin/notifications?limit=100"),
   });
 
   const rows = data?.data ?? [];
@@ -63,8 +64,23 @@ export default function AdminNotificationsPage(): JSX.Element {
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                  No notifications yet.
+                <td colSpan={5} className="px-0 py-0">
+                  <div className="p-6">
+                    <EmptyState
+                      flush
+                      icon="🔔"
+                      title="No notifications sent yet"
+                      description="System notifications appear here as your business runs — bookings, payments, repairs. Want to push something now? Send a broadcast."
+                      action={
+                        <Link
+                          href="/broadcasts"
+                          className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition"
+                        >
+                          Send a broadcast
+                        </Link>
+                      }
+                    />
+                  </div>
                 </td>
               </tr>
             ) : (

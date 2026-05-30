@@ -1,11 +1,11 @@
-import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { VEHICLE_CATEGORIES, type VehicleCategory } from "@trendywheels/types";
 import { borderRadius, colors, type Palette, spacing } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
-import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -23,6 +23,7 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 import { playSound } from "../../lib/sounds";
+import { uploadImages } from "../../lib/upload";
 import { useTheme } from "../../lib/use-theme";
 
 type Transmission = "automatic" | "manual";
@@ -82,23 +83,7 @@ export default function SellCreateScreen(): JSX.Element {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      // Upload images first, then create listing
-      const uploadedUrls: string[] = [];
-      for (const localUri of form.images) {
-        try {
-          const mimeType = "image/jpeg";
-          const { uploadUrl, fileUrl } = await api.getUploadUrl(mimeType, "sales");
-          const blob = await fetch(localUri).then((r) => r.blob());
-          await fetch(uploadUrl, {
-            method: "PUT",
-            body: blob,
-            headers: { "Content-Type": mimeType },
-          });
-          uploadedUrls.push(fileUrl);
-        } catch {
-          // If upload fails, skip this image
-        }
-      }
+      const uploadedUrls = await uploadImages(form.images, "sales");
 
       const payload = {
         title: form.title,

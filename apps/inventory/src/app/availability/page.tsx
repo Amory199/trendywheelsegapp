@@ -9,6 +9,7 @@ import {
 } from "@trendywheels/types";
 import Link from "next/link";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { api } from "../../lib/api";
 

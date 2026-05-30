@@ -1,4 +1,5 @@
 import { TWLogoLockup } from "@trendywheels/ui-brand/web";
+import type { JSX } from "react";
 
 export const metadata = {
   title: "Privacy Policy — TrendyWheels",

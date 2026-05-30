@@ -1,8 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { colors } from "@trendywheels/ui-tokens";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -221,7 +223,11 @@ export default function PromoCodesPage(): JSX.Element {
           </div>
         ))}
         {codes.length === 0 && !q.isLoading ? (
-          <div style={{ color: "#6B6A85", fontSize: 13 }}>No codes yet. Create one above.</div>
+          <EmptyState
+            icon="🎟️"
+            title="No promo codes yet"
+            description="Use the form above to create your first code — percentage or fixed discount, scoped to bookings, sales, or both. Set a usage limit so promos don't run away from you."
+          />
         ) : null}
       </div>
     </div>

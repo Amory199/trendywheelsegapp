@@ -1,6 +1,12 @@
 import { Router, type Router as RouterType } from "express";
-import { z } from "zod";
 
+import {
+  completeVehicleMaintenanceSchema,
+  createVehicleMaintenanceSchema,
+  updateVehicleMaintenanceSchema,
+} from "@trendywheels/validators";
+
+import { PAGINATION } from "../../config/limits.js";
 import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { AppError } from "../../utils/errors.js";
@@ -26,7 +32,7 @@ router.get("/", async (req, res) => {
     where,
     orderBy: { scheduledAt: "asc" },
     include: { vehicle: { select: { id: true, name: true, type: true } } },
-    take: 500,
+    take: PAGINATION.large,
   });
   res.json({ data: items });
 });
@@ -41,19 +47,12 @@ router.get("/:id", async (req, res) => {
 });
 
 // ─── Create ──────────────────────────────────────────────────
-const createSchema = z.object({
-  vehicleId: z.string().uuid(),
-  type: z.string().min(1).max(120),
-  description: z.string().max(2000).optional(),
-  scheduledAt: z.string().datetime(),
-  cost: z.number().min(0).optional(),
-  notes: z.string().max(2000).optional(),
-  photos: z.array(z.string().url()).max(10).optional(),
-});
-
 router.post("/", async (req, res) => {
-  const body = createSchema.parse(req.body);
-  const vehicle = await prisma.vehicle.findUnique({ where: { id: body.vehicleId }, select: { id: true } });
+  const body = createVehicleMaintenanceSchema.parse(req.body);
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: body.vehicleId },
+    select: { id: true },
+  });
   if (!vehicle) throw AppError.notFound("Vehicle not found");
 
   const item = await prisma.vehicleMaintenance.create({
@@ -72,17 +71,8 @@ router.post("/", async (req, res) => {
 });
 
 // ─── Update / reschedule ────────────────────────────────────
-const updateSchema = z.object({
-  type: z.string().min(1).max(120).optional(),
-  description: z.string().max(2000).optional(),
-  scheduledAt: z.string().datetime().optional(),
-  cost: z.number().min(0).optional(),
-  notes: z.string().max(2000).optional(),
-  photos: z.array(z.string().url()).max(10).optional(),
-});
-
 router.put("/:id", async (req, res) => {
-  const body = updateSchema.parse(req.body);
+  const body = updateVehicleMaintenanceSchema.parse(req.body);
   const existing = await prisma.vehicleMaintenance.findUnique({ where: { id: req.params.id } });
   if (!existing) throw AppError.notFound("Maintenance appointment not found");
 
@@ -99,14 +89,8 @@ router.put("/:id", async (req, res) => {
 });
 
 // ─── Mark completed ──────────────────────────────────────────
-const completeSchema = z.object({
-  cost: z.number().min(0).optional(),
-  notes: z.string().max(2000).optional(),
-  photos: z.array(z.string().url()).max(10).optional(),
-});
-
 router.post("/:id/complete", async (req, res) => {
-  const body = completeSchema.parse(req.body);
+  const body = completeVehicleMaintenanceSchema.parse(req.body);
   const existing = await prisma.vehicleMaintenance.findUnique({ where: { id: req.params.id } });
   if (!existing) throw AppError.notFound("Maintenance appointment not found");
 

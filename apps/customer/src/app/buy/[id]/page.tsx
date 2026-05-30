@@ -5,6 +5,7 @@ import { colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../../lib/fetcher";
 

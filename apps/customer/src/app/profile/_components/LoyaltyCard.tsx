@@ -1,25 +1,30 @@
 "use client";
 
-import { colors } from "@trendywheels/ui-tokens";
+import type { LoyaltyTier } from "@trendywheels/types";
+import { colors, nextTier, pointsToNext, tierProgress } from "@trendywheels/ui-tokens";
+import type { JSX } from "react";
 
-const TIER_NEXT: Record<string, { next: string | null; at: number }> = {
-  bronze: { next: "silver", at: 1000 },
-  silver: { next: "gold", at: 5000 },
-  gold: { next: "platinum", at: 15000 },
-  platinum: { next: null, at: 0 },
-};
-
-const TIER_RING: Record<string, string> = {
+// Web-only sweep palette for the conic ring around the loyalty star. Richer
+// than the flat TIER_COLORS pair from ui-tokens (which is meant for linear
+// hero gradients); kept here because conic-gradient is web-specific.
+const TIER_RING: Record<LoyaltyTier, string> = {
   bronze: "conic-gradient(#CD7F32, #F5B800, #CD7F32)",
   silver: "conic-gradient(#E3E3E3, #BFBFBF, #9E9E9E, #E3E3E3)",
   gold: "conic-gradient(#F5B800, #FFD96B, #D19500, #F5B800)",
   platinum: `conic-gradient(${colors.brand.poolBlue}, #FFFFFF, ${colors.brand.friendlyBlue}, ${colors.brand.poolBlue})`,
 };
 
-export function LoyaltyCard({ tier, points }: { tier: string; points: number }): JSX.Element {
-  const meta = TIER_NEXT[tier] ?? TIER_NEXT.bronze;
-  const progress = meta.next ? Math.min(1, points / meta.at) : 1;
-  const remaining = meta.next ? Math.max(0, meta.at - points) : 0;
+export function LoyaltyCard({
+  tier,
+  points,
+}: {
+  tier: LoyaltyTier | string;
+  points: number;
+}): JSX.Element {
+  const t = (tier as LoyaltyTier) in TIER_RING ? (tier as LoyaltyTier) : "bronze";
+  const next = nextTier(t);
+  const progress = tierProgress(t, points);
+  const remaining = pointsToNext(t, points);
 
   return (
     <div
@@ -38,7 +43,7 @@ export function LoyaltyCard({ tier, points }: { tier: string; points: number }):
           width: 72,
           height: 72,
           borderRadius: 36,
-          background: TIER_RING[tier] ?? TIER_RING.bronze,
+          background: TIER_RING[t] ?? TIER_RING.bronze,
           display: "grid",
           placeItems: "center",
           flexShrink: 0,
@@ -101,9 +106,7 @@ export function LoyaltyCard({ tier, points }: { tier: string; points: number }):
           />
         </div>
         <div style={{ fontSize: 12, color: "#6B6A85", marginTop: 6 }}>
-          {meta.next
-            ? `${remaining.toLocaleString()} pts to ${meta.next}`
-            : "Top tier — maxed out 🏆"}
+          {next ? `${remaining.toLocaleString()} pts to ${next}` : "Top tier — maxed out 🏆"}
         </div>
       </div>
     </div>

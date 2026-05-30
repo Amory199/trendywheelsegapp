@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupportTicket, TicketPriority, TicketStatus } from "@trendywheels/types";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { JSX } from "react";
 
 import { api } from "../../lib/api";
 

@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
+
 import compression from "compression";
 import cors from "cors";
 import express from "express";
-import type { Express } from "express";
+import type { Express, NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
@@ -23,6 +25,7 @@ import { messageRoutes } from "./modules/messages/routes.js";
 import { notificationRoutes } from "./modules/notifications/routes.js";
 import { orderRoutes } from "./modules/orders/routes.js";
 import { productRoutes } from "./modules/products/routes.js";
+import { rentalListingRoutes } from "./modules/rental-listings/routes.js";
 import { repairRoutes } from "./modules/repairs/routes.js";
 import { salesRoutes } from "./modules/sales/routes.js";
 import { serviceRequestsRoutes } from "./modules/service-requests/routes.js";
@@ -125,17 +128,55 @@ const otpVerifyLimiter = rateLimit({
   },
 });
 
+// Refresh-token endpoint: stop token-enumeration brute force. Legitimate clients
+// refresh roughly every access-token expiry (~1h), so 60 / 15min per IP is plenty
+// while keeping the per-request bcrypt cost (currently O(n_active_tokens)) bounded
+// under attack until the lookup is scoped per-user.
+const refreshTokenLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Too many refresh attempts. Sign in again.",
+    code: "RATE_LIMIT_REFRESH",
+    statusCode: 429,
+  },
+});
+
+// Request ID — propagates an x-request-id through every log line and into the
+// response header so support can correlate user reports with server traces.
+// Uses an upstream-provided id (nginx, Vercel edge) when present, generates one
+// otherwise.
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const incoming = req.headers["x-request-id"];
+  const id =
+    typeof incoming === "string" && incoming.length > 0 && incoming.length <= 64
+      ? incoming
+      : randomUUID();
+  (req as Request & { id: string }).id = id;
+  res.setHeader("X-Request-ID", id);
+  next();
+});
+
 // Request logging
 app.use((req, _res, next) => {
-  logger.info({ method: req.method, url: req.url }, "Incoming request");
+  logger.info(
+    { method: req.method, url: req.url, requestId: (req as Request & { id: string }).id },
+    "Incoming request",
+  );
   next();
 });
 
 // ─── Routes ──────────────────────────────────────────────────
 app.use("/", healthRoutes);
+// Mirror at /api/* so external probes that hit the API prefix also work.
+// /api/healthz + /api/readyz now resolve to the same handlers — closes INC-009.
+app.use("/api", healthRoutes);
 app.use("/api/auth/send-otp", authLimiter);
 app.use("/api/auth/verify-otp", otpVerifyLimiter);
 app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/refresh-token", refreshTokenLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/bookings", bookingRoutes);
@@ -163,6 +204,7 @@ app.use("/api/crm", crmRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/trade-in", tradeInRoutes);
+app.use("/api/rental-listings", rentalListingRoutes);
 app.use("/api/transport", transportRoutes);
 
 // OpenAPI docs — Swagger UI needs inline scripts/styles, so opt out of strict CSP.

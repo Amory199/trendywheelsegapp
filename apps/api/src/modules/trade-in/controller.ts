@@ -1,26 +1,12 @@
 import type { Request, Response } from "express";
-import { z } from "zod";
+
+import { quoteTradeInSchema, submitTradeInSchema } from "@trendywheels/validators";
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
 
-const submitSchema = z.object({
-  brand: z.string().min(1).max(100),
-  model: z.string().min(1).max(100),
-  year: z.coerce.number().int().min(1990).max(2100),
-  condition: z.enum(["excellent", "good", "fair", "poor"]),
-  notes: z.string().max(2000).optional(),
-  photos: z.array(z.string().url()).max(8).default([]),
-});
-
-const quoteSchema = z.object({
-  quoteEgp: z.coerce.number().nonnegative(),
-  validForDays: z.coerce.number().int().positive().default(7),
-  status: z.enum(["quoted", "rejected"]).default("quoted"),
-});
-
 export async function submit(req: Request, res: Response): Promise<void> {
-  const input = submitSchema.parse(req.body);
+  const input = submitTradeInSchema.parse(req.body);
   const ti = await prisma.tradeInQuote.create({
     data: { ...input, userId: req.user!.userId },
   });
@@ -45,7 +31,7 @@ export async function listAll(_req: Request, res: Response): Promise<void> {
 }
 
 export async function quote(req: Request, res: Response): Promise<void> {
-  const input = quoteSchema.parse(req.body);
+  const input = quoteTradeInSchema.parse(req.body);
   const validUntil = new Date(Date.now() + input.validForDays * 86400_000);
   const updated = await prisma.tradeInQuote.update({
     where: { id: req.params.id },

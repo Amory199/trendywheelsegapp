@@ -8,6 +8,7 @@ import {
   SweepGradient,
   vec,
 } from "@shopify/react-native-skia";
+import type { LoyaltyTier } from "@trendywheels/types";
 import { colors } from "@trendywheels/ui-tokens";
 import { useEffect } from "react";
 import {
@@ -18,9 +19,10 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-type Tier = "bronze" | "silver" | "gold" | "platinum";
-
-const TIER_PALETTE: Record<Tier, [string, string, string]> = {
+// 3-stop palette specific to the Skia sweep — the simpler 2-stop TIER_COLORS
+// shared from ui-tokens is meant for flat gradients. This badge needs a mid
+// stop for the rotating highlight, so we keep a richer per-tier palette here.
+const TIER_PALETTE: Record<LoyaltyTier, [string, string, string]> = {
   bronze: ["#7B3F1F", "#C97D45", "#E8A567"],
   silver: ["#535362", "#A2A2B5", "#D9D9E4"],
   gold: ["#7A5A0F", "#E8B341", "#FFE89B"],
@@ -28,7 +30,7 @@ const TIER_PALETTE: Record<Tier, [string, string, string]> = {
 };
 
 interface Props {
-  tier: Tier;
+  tier: LoyaltyTier;
   size?: number;
   starColor?: string;
 }

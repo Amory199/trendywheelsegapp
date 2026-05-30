@@ -77,6 +77,16 @@ export interface UserPreferences {
     push: boolean;
   };
   marketingOptIn: boolean;
+  /**
+   * UI hints — tour state + tooltip preference. Sparse: the server zod schema
+   * fills in defaults on first PATCH, but legacy `preferences` rows may not
+   * have this key, so every read should treat each subfield as optional.
+   */
+  ui?: {
+    tours?: Record<string, boolean>;
+    tooltips?: "on" | "off";
+    introSeen?: boolean;
+  };
 }
 
 export interface Vehicle {
@@ -166,6 +176,34 @@ export interface SalesListing {
   status: "active" | "sold" | "pending";
   viewsCount: number;
   inquiriesCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type RentalListingStatus =
+  | "submitted"
+  | "reviewing"
+  | "approved"
+  | "declined"
+  | "paused"
+  | "withdrawn";
+
+export interface RentalListing {
+  id: string;
+  userId: string;
+  brand: string;
+  model: string;
+  year: number;
+  category: VehicleCategory;
+  condition: "excellent" | "good" | "fair" | "poor";
+  dailyRateEgp: number | null;
+  notes: string | null;
+  photos: string[];
+  status: RentalListingStatus;
+  declineReason: string | null;
+  reviewedById: string | null;
+  reviewedAt: string | null;
+  vehicleId: string | null;
   createdAt: string;
   updatedAt: string;
 }

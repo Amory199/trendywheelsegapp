@@ -1,7 +1,6 @@
 import { prisma } from "../../config/database.js";
-import { notificationsQueue } from "../../queues/index.js";
-import { ADMIN_FILTER } from "../../utils/auth-roles.js";
 import { logger } from "../../utils/logger.js";
+import { notifyAdmins, notifyUser } from "../../utils/notify.js";
 
 import {
   emitLeadActivity,
@@ -158,17 +157,12 @@ export async function assignLeadRoundRobin(
   await recordActivity(leadId, null, "assigned", `Auto-assigned to agent ${chosen.id}`);
 
   if (rules.notifyOnAssignment) {
-    await notificationsQueue.add(
-      `lead-assigned-${leadId}-${chosen.id}`,
-      {
-        userId: chosen.id,
-        type: "lead_assigned",
-        title: "New lead assigned",
-        body: `Call ${lead.contactName} within ${rules.firstCallWithinMinutes} minutes`,
-        data: { leadId, contactName: lead.contactName },
-      },
-      { removeOnComplete: true },
-    );
+    await notifyUser(chosen.id, `lead-assigned-${leadId}`, {
+      type: "lead_assigned",
+      title: "New lead assigned",
+      body: `Call ${lead.contactName} within ${rules.firstCallWithinMinutes} minutes`,
+      data: { leadId, contactName: lead.contactName },
+    });
   }
 
   emitLeadAssigned(leadId, null, chosen.id);
@@ -346,17 +340,12 @@ export async function sweepStaleLeads(): Promise<{ reassigned: number; escalated
     const result = await rotateLeadToNextAgent(lead.id, null);
 
     // Notify the agent who lost the lead
-    await notificationsQueue.add(
-      `lead-lost-${lead.id}-${previousOwnerId}`,
-      {
-        userId: previousOwnerId,
-        type: "lead_reassigned",
-        title: "Lead reassigned",
-        body: `${lead.contactName} was taken back: ${reason}`,
-        data: { leadId: lead.id },
-      },
-      { removeOnComplete: true },
-    );
+    await notifyUser(previousOwnerId, `lead-lost-${lead.id}`, {
+      type: "lead_reassigned",
+      title: "Lead reassigned",
+      body: `${lead.contactName} was taken back: ${reason}`,
+      data: { leadId: lead.id },
+    });
 
     if (result.status === "rotated") {
       reassigned++;
@@ -364,23 +353,12 @@ export async function sweepStaleLeads(): Promise<{ reassigned: number; escalated
       // Parked inactive — surface to admin queue.
       escalated++;
       if (rules.notifyOnEscalation) {
-        const admins = await prisma.user.findMany({
-          where: { status: "active", ...ADMIN_FILTER },
-          select: { id: true },
+        await notifyAdmins(`lead-inactive-${lead.id}`, {
+          type: "lead_inactive",
+          title: "Lead parked inactive",
+          body: `${lead.contactName} exhausted rotation after ${result.triedCount} agents`,
+          data: { leadId: lead.id, triedCount: result.triedCount },
         });
-        for (const admin of admins) {
-          await notificationsQueue.add(
-            `lead-inactive-${lead.id}-${admin.id}`,
-            {
-              userId: admin.id,
-              type: "lead_inactive",
-              title: "Lead parked inactive",
-              body: `${lead.contactName} exhausted rotation after ${result.triedCount} agents`,
-              data: { leadId: lead.id, triedCount: result.triedCount },
-            },
-            { removeOnComplete: true },
-          );
-        }
       }
     }
   }

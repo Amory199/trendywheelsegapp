@@ -17,6 +17,7 @@ router.get(
 );
 router.post("/conversations/:conversationId/read", authenticate, messagesController.markRead);
 router.get("/support-contact", authenticate, messagesController.supportContact);
+router.get("/unread-count", authenticate, messagesController.unreadCount);
 router.post("/", authenticate, validate({ body: sendMessageSchema }), messagesController.send);
 
 export { router as messageRoutes };

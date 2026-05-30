@@ -2,6 +2,7 @@
 
 import { TWLogoLockup } from "@trendywheels/ui-brand/web";
 import { useState } from "react";
+import type { JSX } from "react";
 
 const FAQS: { q: string; a: string }[] = [
   {

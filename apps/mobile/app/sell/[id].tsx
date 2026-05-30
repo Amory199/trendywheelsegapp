@@ -6,12 +6,11 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import {
   ActivityIndicator,
   Dimensions,
   Linking,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -77,7 +76,10 @@ export default function SellDetailScreen(): JSX.Element {
         <Ionicons name="chevron-back" size={24} color={colors.text.light} />
       </Pressable>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Image carousel */}
         <View>
           <ScrollView
@@ -137,9 +139,7 @@ export default function SellDetailScreen(): JSX.Element {
               </Text>
             </View>
           </View>
-          <Text style={styles.price}>
-            {Number(listing.price).toLocaleString()} EGP
-          </Text>
+          <Text style={styles.price}>{Number(listing.price).toLocaleString()} EGP</Text>
         </Animated.View>
 
         {/* Specs grid */}
@@ -155,11 +155,7 @@ export default function SellDetailScreen(): JSX.Element {
             <SpecCell icon="cog-outline" label="Transmission" value={listing.transmission} />
             <SpecCell icon="flame-outline" label="Fuel" value={listing.fuelType} />
             <SpecCell icon="color-palette-outline" label="Color" value={listing.color} />
-            <SpecCell
-              icon="eye-outline"
-              label="Views"
-              value={String(listing.viewsCount ?? 0)}
-            />
+            <SpecCell icon="eye-outline" label="Views" value={String(listing.viewsCount ?? 0)} />
           </View>
         </Animated.View>
 

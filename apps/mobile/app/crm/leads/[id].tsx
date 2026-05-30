@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { colors, type Palette } from "@trendywheels/ui-tokens";
+import { colors } from "@trendywheels/ui-tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -13,7 +13,6 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -26,6 +25,10 @@ import { followUpAfterNoAnswer } from "../../../lib/lead-templates";
 import { playSound } from "../../../lib/sounds";
 import { useTheme } from "../../../lib/use-theme";
 
+import { CadenceStrip, type CrmRules } from "./_components/CadenceStrip";
+import { DetailField } from "./_components/DetailField";
+import { makeStyles } from "./_components/styles";
+
 type ActivityType =
   | "note"
   | "call"
@@ -34,13 +37,6 @@ type ActivityType =
   | "call_answered"
   | "call_no_answer"
   | "whatsapp_sent";
-
-interface CrmRules {
-  firstCallWithinMinutes: number;
-  followUpCallWithinHours: number;
-  maxCallsBeforeReassign: number;
-  requireMessageAfterCall: boolean;
-}
 
 const DEFAULT_RULES: CrmRules = {
   firstCallWithinMinutes: 120,
@@ -797,293 +793,4 @@ export default function LeadDetail(): React.JSX.Element {
       </Modal>
     </View>
   );
-}
-
-function CadenceStrip({
-  calls,
-  messages,
-  lastCallAt,
-  rules,
-}: {
-  calls: number;
-  messages: number;
-  lastCallAt: string | null;
-  rules: CrmRules;
-}): React.JSX.Element {
-  const { palette } = useTheme();
-  const styles = useMemo(() => makeStyles(palette), [palette]);
-  const callsBad = calls >= rules.maxCallsBeforeReassign;
-  const msgsBad = messages >= rules.maxCallsBeforeReassign;
-  let nextLabel = "Ready";
-  let nextBad = false;
-  if (lastCallAt) {
-    const next = new Date(lastCallAt).getTime() + rules.followUpCallWithinHours * 3600_000;
-    if (next > Date.now()) {
-      nextLabel = `Next ${new Date(next).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-      nextBad = true;
-    }
-  }
-  const cadenceChip = (label: string, value: string, bad: boolean): React.JSX.Element => (
-    <View
-      style={[
-        styles.cadenceChip,
-        { backgroundColor: bad ? "rgba(255,72,72,0.15)" : "rgba(0,200,120,0.15)" },
-      ]}
-    >
-      <Text style={[styles.cadenceChipLabel, { color: bad ? "#FF8888" : "#3DD68C" }]}>{label}</Text>
-      <Text style={styles.cadenceChipValue}>{value}</Text>
-    </View>
-  );
-  return (
-    <View style={styles.cadenceRow}>
-      {cadenceChip("Calls", `${calls}/${rules.maxCallsBeforeReassign}`, callsBad)}
-      {cadenceChip("Msgs", `${messages}/${rules.maxCallsBeforeReassign}`, msgsBad)}
-      {cadenceChip("Cadence", nextLabel, nextBad)}
-    </View>
-  );
-}
-
-function DetailField({
-  label,
-  value,
-  onChange,
-  keyboardType,
-  multiline,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  keyboardType?: "default" | "numeric" | "email-address" | "phone-pad";
-  multiline?: boolean;
-}): React.JSX.Element {
-  const { palette } = useTheme();
-  const styles = useMemo(() => makeStyles(palette), [palette]);
-  return (
-    <View style={styles.card}>
-      <Text style={styles.sectionTitle}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        keyboardType={keyboardType ?? "default"}
-        multiline={multiline}
-        placeholderTextColor={palette.muted}
-        style={[styles.noteInput, multiline ? { minHeight: 80 } : { minHeight: 0, paddingTop: 4 }]}
-      />
-    </View>
-  );
-}
-
-function makeStyles(palette: Palette) {
-  return StyleSheet.create({
-    root: { flex: 1, backgroundColor: palette.bg },
-    topBar: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 16,
-      paddingBottom: 12,
-      backgroundColor: palette.bg,
-      borderBottomWidth: 1,
-      borderBottomColor: palette.border,
-    },
-    topBarTitle: {
-      color: palette.text,
-      fontSize: 17,
-      fontWeight: "700",
-      flex: 1,
-      textAlign: "center",
-      marginHorizontal: 12,
-    },
-    heroCard: {
-      margin: 14,
-      backgroundColor: palette.card,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: palette.border,
-      padding: 14,
-      gap: 12,
-    },
-    heroTop: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-    name: { color: palette.text, fontSize: 22, fontWeight: "800" },
-    subline: { color: palette.muted, fontSize: 12, marginTop: 2 },
-    assigned: { color: colors.brand.friendlyBlue, fontSize: 11, fontWeight: "700", marginTop: 4 },
-    unassigned: { color: "#F5B800", fontSize: 11, fontWeight: "700", marginTop: 4 },
-    value: { color: colors.brand.trendyPink, fontWeight: "800", fontSize: 16 },
-    stageChip: {
-      marginTop: 6,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 999,
-      backgroundColor: colors.brand.trendyPink + "22",
-    },
-    stageChipText: {
-      color: colors.brand.trendyPink,
-      fontSize: 10,
-      fontWeight: "800",
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
-    },
-    actionsRow: { flexDirection: "row", gap: 8 },
-    cadenceRow: { flexDirection: "row", gap: 6, marginTop: 6 },
-    cadenceChip: {
-      flex: 1,
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-      borderRadius: 8,
-      alignItems: "center",
-    },
-    cadenceChipLabel: {
-      fontSize: 9,
-      fontWeight: "800",
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
-    },
-    cadenceChipValue: { color: palette.text, fontSize: 12, fontWeight: "700", marginTop: 1 },
-    actionBtn: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 999,
-    },
-    actionBtnText: { color: "#fff", fontWeight: "800", fontSize: 11 },
-    tabRow: {
-      flexDirection: "row",
-      paddingHorizontal: 14,
-      gap: 6,
-      marginBottom: 4,
-    },
-    tab: {
-      flex: 1,
-      paddingVertical: 10,
-      borderRadius: 10,
-      backgroundColor: palette.card,
-      borderWidth: 1,
-      borderColor: palette.border,
-      alignItems: "center",
-    },
-    tabActive: { backgroundColor: colors.brand.trendyPink, borderColor: colors.brand.trendyPink },
-    tabText: {
-      color: palette.muted,
-      fontSize: 12,
-      fontWeight: "800",
-      textTransform: "uppercase",
-    },
-    tabTextActive: { color: "#fff" },
-    card: {
-      backgroundColor: palette.card,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.border,
-      padding: 12,
-      gap: 8,
-    },
-    sectionTitle: { color: palette.muted, fontSize: 11, fontWeight: "700", letterSpacing: 1 },
-    stageRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-    stage: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 999,
-      backgroundColor: palette.bg,
-      borderWidth: 1,
-      borderColor: palette.border,
-    },
-    stageText: {
-      color: palette.muted,
-      fontSize: 11,
-      fontWeight: "700",
-      textTransform: "capitalize",
-    },
-    noteInput: {
-      backgroundColor: palette.bg,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: palette.border,
-      padding: 10,
-      color: palette.text,
-      fontSize: 14,
-      minHeight: 80,
-      textAlignVertical: "top",
-    },
-    logBtn: {
-      backgroundColor: colors.brand.trendyPink,
-      borderRadius: 10,
-      paddingVertical: 10,
-      alignItems: "center",
-    },
-    logBtnText: { color: "#fff", fontWeight: "800" },
-    activityRow: { flexDirection: "row", gap: 10, paddingVertical: 8 },
-    activityDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: colors.brand.trendyPink,
-      marginTop: 6,
-    },
-    activityType: {
-      color: palette.text,
-      fontSize: 13,
-      fontWeight: "700",
-      textTransform: "capitalize",
-    },
-    activityNote: { color: palette.muted, fontSize: 12, marginTop: 2 },
-    activityDate: { color: palette.muted, fontSize: 10, marginTop: 4 },
-    empty: { alignItems: "center", paddingVertical: 30, gap: 6 },
-    emptyText: { color: palette.muted, fontSize: 12 },
-    vehicleRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
-      backgroundColor: palette.card,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: palette.border,
-      padding: 10,
-    },
-    vehicleName: { color: palette.text, fontSize: 13, fontWeight: "700" },
-    attachBtn: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 6,
-      backgroundColor: colors.brand.friendlyBlue,
-      paddingVertical: 12,
-      borderRadius: 10,
-    },
-    attachBtnText: { color: "#fff", fontWeight: "800", fontSize: 13 },
-    modalBg: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-    modal: {
-      backgroundColor: palette.bg,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      padding: 20,
-      paddingBottom: 40,
-      maxHeight: "70%",
-    },
-    modalTitle: { color: palette.text, fontSize: 18, fontWeight: "700", marginBottom: 12 },
-    modalSearch: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      backgroundColor: palette.bg,
-      borderWidth: 1,
-      borderColor: palette.border,
-      borderRadius: 10,
-      paddingHorizontal: 10,
-      height: 40,
-      marginBottom: 10,
-    },
-    modalSearchInput: { flex: 1, color: palette.text, fontSize: 14, paddingVertical: 0 },
-    vehiclePickerRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
-      paddingVertical: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: palette.border,
-    },
-    vName: { color: palette.text, fontSize: 14, fontWeight: "700" },
-    vMeta: { color: palette.muted, fontSize: 11 },
-  });
 }

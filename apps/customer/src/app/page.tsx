@@ -5,6 +5,7 @@ import { TWParticleHero } from "@trendywheels/ui-brand/web-canvas";
 import { colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { JSX } from "react";
 
 import { useAuth } from "../lib/auth-store";
 import { authedFetch } from "../lib/fetcher";
@@ -139,80 +140,6 @@ export default function HomePage(): JSX.Element {
             <span style={{ color: colors.brand.trendyPink }}>need today?</span>
           </h1>
         </div>
-      </section>
-
-      {/* CATEGORY STRIP — horizontal scroll of per-category hero videos */}
-      <section
-        aria-label="Browse categories"
-        style={{
-          marginTop: "clamp(16px, 4vw, 24px)",
-          display: "flex",
-          gap: "clamp(10px, 2.5vw, 14px)",
-          overflowX: "auto",
-          WebkitOverflowScrolling: "touch",
-          scrollSnapType: "x mandatory",
-          paddingBottom: 6,
-        }}
-      >
-        {[
-          { label: "Golf Carts", src: "/category/golf-cart.mp4", href: "/rent" },
-          { label: "Scooters", src: "/category/scooter.mp4", href: "/rent" },
-          { label: "Jet Skis", src: "/category/jet-ski.mp4", href: "/rent" },
-          { label: "Repair", src: "/category/repair.mp4", href: "/service" },
-        ].map((c) => (
-          <Link
-            key={c.label}
-            href={c.href}
-            style={{
-              flex: "0 0 auto",
-              width: "clamp(160px, 42vw, 220px)",
-              aspectRatio: "9 / 16",
-              borderRadius: 16,
-              overflow: "hidden",
-              position: "relative",
-              background: "#02011F",
-              textDecoration: "none",
-              color: "#fff",
-              scrollSnapAlign: "start",
-              boxShadow: "0 6px 24px rgba(2,1,31,0.12)",
-            }}
-          >
-            <video
-              src={c.src}
-              autoPlay
-              loop
-              muted
-              playsInline
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "linear-gradient(to top, rgba(2,1,31,0.85) 0%, rgba(2,1,31,0) 50%)",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                bottom: 10,
-                left: 12,
-                right: 12,
-                fontFamily: "Anton, sans-serif",
-                fontSize: "clamp(18px, 4vw, 22px)",
-                letterSpacing: 0.5,
-              }}
-            >
-              {c.label}
-            </div>
-          </Link>
-        ))}
       </section>
 
       {/* CHIPS — 2 per row on phones, auto-fit on bigger screens */}

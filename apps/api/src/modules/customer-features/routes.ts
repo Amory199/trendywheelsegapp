@@ -1,5 +1,10 @@
 import { Router, type Router as RouterType } from "express";
-import { z } from "zod";
+
+import {
+  applyReferralSchema,
+  createReviewSchema,
+  validatePromoCodeSchema,
+} from "@trendywheels/validators";
 
 import { prisma } from "../../config/database.js";
 import { authenticate } from "../../middleware/auth.js";
@@ -32,15 +37,8 @@ router.get("/vehicles/:id/reviews", async (req, res) => {
 
 router.use(authenticate);
 
-const reviewSchema = z.object({
-  rating: z.number().int().min(1).max(5),
-  title: z.string().max(120).optional(),
-  body: z.string().max(2000).optional(),
-  photos: z.array(z.string().url()).max(8).default([]),
-});
-
 router.post("/bookings/:id/review", async (req, res) => {
-  const body = reviewSchema.parse(req.body);
+  const body = createReviewSchema.parse(req.body);
   const userId = req.user!.userId;
   const booking = await prisma.booking.findUnique({
     where: { id: req.params.id },
@@ -83,7 +81,7 @@ router.post("/bookings/:id/review", async (req, res) => {
 });
 
 router.patch("/reviews/:id", async (req, res) => {
-  const body = reviewSchema.partial().parse(req.body);
+  const body = createReviewSchema.partial().parse(req.body);
   const userId = req.user!.userId;
   const review = await prisma.review.findUnique({ where: { id: req.params.id } });
   if (!review) throw AppError.notFound("Review not found");
@@ -137,8 +135,7 @@ router.get("/referrals/me", async (req, res) => {
 });
 
 router.post("/referrals/apply", async (req, res) => {
-  const schema = z.object({ code: z.string().min(4).max(12) });
-  const body = schema.parse(req.body);
+  const body = applyReferralSchema.parse(req.body);
   const userId = req.user!.userId;
   const existing = await prisma.referral.findUnique({ where: { refereeId: userId } });
   if (existing) throw AppError.badRequest("You've already used a referral code");
@@ -159,11 +156,7 @@ router.post("/referrals/apply", async (req, res) => {
 
 // ─── Promo codes (public validate, authed redeem) ────────────
 router.post("/promo-codes/validate", async (req, res) => {
-  const schema = z.object({
-    code: z.string().min(2).max(40),
-    totalAmount: z.number().nonnegative(),
-  });
-  const body = schema.parse(req.body);
+  const body = validatePromoCodeSchema.parse(req.body);
   const promo = await prisma.promoCode.findUnique({ where: { code: body.code.toUpperCase() } });
   if (!promo || !promo.active) {
     res.json({ valid: false, reason: "Code not found or inactive" });

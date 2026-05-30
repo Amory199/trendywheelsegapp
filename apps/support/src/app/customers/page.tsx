@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { User } from "@trendywheels/types";
 import Link from "next/link";
 import { useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 

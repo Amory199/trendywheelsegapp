@@ -1,10 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
+import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
+import { TourHelpButton } from "../../lib/tour-help-button";
 import { TWSelect } from "../../lib/tw-select";
 
 interface UserRow {
@@ -39,93 +43,111 @@ export default function UsersPage(): JSX.Element {
   const selected = selectedId ? (users.find((u) => u.id === selectedId) ?? null) : null;
 
   return (
-    <div className="p-8 space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Users</h1>
-          <p className="text-sm text-gray-500">{users.length} users — click a row to manage.</p>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
-        >
-          + Add staff member
-        </button>
-      </header>
-
-      <div className="bg-white border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-            <tr>
-              <th className="text-left px-4 py-3">Name</th>
-              <th className="text-left px-4 py-3">Phone</th>
-              <th className="text-left px-4 py-3">Email</th>
-              <th className="text-left px-4 py-3">Type</th>
-              <th className="text-left px-4 py-3">Status</th>
-              <th className="text-left px-4 py-3">Loyalty</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y tw-stagger">
-            {isLoading ? (
+    <>
+      <PageHeader
+        title="Users"
+        subtitle={`${users.length} users — click a row to manage.`}
+        helpButton={<TourHelpButton pageKey="admin:users" />}
+        rightSlot={
+          <button
+            onClick={() => setShowCreate(true)}
+            data-tour="users-add-button"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
+          >
+            + Add staff member
+          </button>
+        }
+      />
+      <div className="p-8 space-y-6">
+        <div className="bg-white border rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
-                  Loading…
-                </td>
+                <th className="text-left px-4 py-3">Name</th>
+                <th className="text-left px-4 py-3">Phone</th>
+                <th className="text-left px-4 py-3">Email</th>
+                <th className="text-left px-4 py-3">Type</th>
+                <th className="text-left px-4 py-3">Status</th>
+                <th className="text-left px-4 py-3">Loyalty</th>
               </tr>
-            ) : users.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
-                  No users.
-                </td>
-              </tr>
-            ) : (
-              users.map((u) => (
-                <tr
-                  key={u.id}
-                  onClick={() => setSelectedId(u.id)}
-                  className={`cursor-pointer hover:bg-gray-50 ${
-                    selectedId === u.id ? "bg-blue-50" : ""
-                  }`}
-                >
-                  <td className="px-4 py-3 font-medium">{u.name || "—"}</td>
-                  <td className="px-4 py-3">{u.phone}</td>
-                  <td className="px-4 py-3">{u.email ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs capitalize">{u.accountType}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[u.status]}`}
-                    >
-                      {u.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {u.loyaltyTier} · {u.loyaltyPoints} pts
+            </thead>
+            <tbody className="divide-y tw-stagger">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                    Loading…
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-0 py-0">
+                    <div className="p-6">
+                      <EmptyState
+                        flush
+                        icon="🧑‍💼"
+                        title="No users yet"
+                        description="Add your first staff member to give them admin-panel access. Pick a role to scope what they can see — sales, support, inventory, or full admin."
+                        action={
+                          <button
+                            onClick={() => setShowCreate(true)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
+                          >
+                            + Add your first staff member
+                          </button>
+                        }
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                users.map((u) => (
+                  <tr
+                    key={u.id}
+                    onClick={() => setSelectedId(u.id)}
+                    className={`cursor-pointer hover:bg-gray-50 ${
+                      selectedId === u.id ? "bg-blue-50" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-3 font-medium">{u.name || "—"}</td>
+                    <td className="px-4 py-3">{u.phone}</td>
+                    <td className="px-4 py-3">{u.email ?? "—"}</td>
+                    <td className="px-4 py-3 text-xs capitalize">{u.accountType}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[u.status]}`}
+                      >
+                        {u.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {u.loyaltyTier} · {u.loyaltyPoints} pts
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {selected && (
+          <UserDrawer
+            user={selected}
+            onClose={() => setSelectedId(null)}
+            onChange={() => void qc.invalidateQueries({ queryKey: ["users"] })}
+          />
+        )}
+
+        {showCreate && (
+          <CreateStaffDrawer
+            onClose={() => setShowCreate(false)}
+            onCreated={() => {
+              void qc.invalidateQueries({ queryKey: ["users"] });
+              setShowCreate(false);
+            }}
+          />
+        )}
       </div>
-
-      {selected && (
-        <UserDrawer
-          user={selected}
-          onClose={() => setSelectedId(null)}
-          onChange={() => void qc.invalidateQueries({ queryKey: ["users"] })}
-        />
-      )}
-
-      {showCreate && (
-        <CreateStaffDrawer
-          onClose={() => setShowCreate(false)}
-          onCreated={() => {
-            void qc.invalidateQueries({ queryKey: ["users"] });
-            setShowCreate(false);
-          }}
-        />
-      )}
-    </div>
+    </>
   );
 }
 

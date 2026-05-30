@@ -1,8 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { colors } from "@trendywheels/ui-tokens";
+import type { BookingStatus } from "@trendywheels/types";
+import { BOOKING_STATUS_TONE, colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
+import type { JSX } from "react";
 
 import { useAuth } from "../../../lib/auth-store";
 import { authedFetch } from "../../../lib/fetcher";
@@ -12,17 +14,10 @@ interface Booking {
   vehicleId: string | null;
   startDate: string;
   endDate: string;
-  status: "pending" | "confirmed" | "completed" | "cancelled";
+  status: BookingStatus;
   totalAmount?: number;
   createdAt: string;
 }
-
-const STATUS_STYLE: Record<Booking["status"], { fg: string; bg: string }> = {
-  pending: { bg: "#FFF4D6", fg: "#806000" },
-  confirmed: { bg: "#E6F8E6", fg: "#0A6B0A" },
-  completed: { bg: "#E6F0FF", fg: "#1338A8" },
-  cancelled: { bg: "#FCE7E7", fg: "#A21F1F" },
-};
 
 export default function MyBookingsPage(): JSX.Element {
   const { user } = useAuth();
@@ -81,7 +76,7 @@ export default function MyBookingsPage(): JSX.Element {
         </div>
       ) : (
         rows.map((b) => {
-          const s = STATUS_STYLE[b.status];
+          const s = BOOKING_STATUS_TONE[b.status];
           return (
             <div
               key={b.id}

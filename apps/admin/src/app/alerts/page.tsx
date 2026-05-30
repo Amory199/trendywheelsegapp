@@ -1,7 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { useEffect, useState } from "react";
+import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 
@@ -85,8 +87,13 @@ export default function AdminAlertsPage(): JSX.Element {
           {eventsQ.isLoading ? (
             <div className="p-4 text-sm text-gray-400 text-center">Loading…</div>
           ) : events.length === 0 ? (
-            <div className="p-6 text-sm text-gray-400 text-center">
-              No active alerts. Fleet is operating within all thresholds.
+            <div className="p-2">
+              <EmptyState
+                flush
+                icon="✅"
+                title="All clear — no active alerts"
+                description="Your fleet is operating within every threshold below. Tighten or loosen them anytime; saved changes apply immediately."
+              />
             </div>
           ) : (
             events.map((e) => (
@@ -167,12 +174,8 @@ export default function AdminAlertsPage(): JSX.Element {
             >
               {saveMutation.isPending ? "Saving…" : "Save thresholds"}
             </button>
-            {saveMutation.isSuccess && (
-              <span className="text-xs text-green-600">Saved.</span>
-            )}
-            {saveMutation.isError && (
-              <span className="text-xs text-red-600">Failed to save.</span>
-            )}
+            {saveMutation.isSuccess && <span className="text-xs text-green-600">Saved.</span>}
+            {saveMutation.isError && <span className="text-xs text-red-600">Failed to save.</span>}
             {data?.data && (
               <span className="text-xs text-gray-400 ml-auto">
                 Last updated {new Date(data.data.updatedAt).toLocaleString()}

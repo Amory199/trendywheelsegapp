@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import type { JSX } from "react";
 
 export function Providers({ children }: { children: ReactNode }): JSX.Element {
   const [client] = useState(

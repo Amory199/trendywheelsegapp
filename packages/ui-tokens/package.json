@@ -9,6 +9,9 @@
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@trendywheels/types": "workspace:*"
+  },
   "devDependencies": {
     "@trendywheels/eslint-config": "workspace:*",
     "@trendywheels/tsconfig": "workspace:*",

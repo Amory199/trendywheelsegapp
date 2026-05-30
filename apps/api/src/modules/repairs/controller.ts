@@ -1,17 +1,18 @@
 import type { Request, Response } from "express";
 
 import { prisma } from "../../config/database.js";
-import { notificationsQueue } from "../../queues/index.js";
 import { requireOwner, scopeListToOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
-import { emitCustomerEvent } from "../realtime/customer-events.js";
+import { emitDomainEvent } from "../../utils/notify.js";
+
+import { transitionRepair, type RepairDbStatus } from "./service.js";
 
 const STAFF_TYPES = new Set(["admin", "staff"]);
 
 // API ↔ DB status translation. Validators use kebab-case ("in-progress"),
 // Prisma client uses snake_case ("in_progress"). The DB column @maps to "in-progress".
 type ApiStatus = "submitted" | "assigned" | "in-progress" | "completed" | "cancelled";
-type DbStatus = "submitted" | "assigned" | "in_progress" | "completed" | "cancelled";
+type DbStatus = RepairDbStatus;
 
 function toDbStatus(s: ApiStatus | DbStatus | undefined): DbStatus | undefined {
   if (!s) return undefined;
@@ -70,11 +71,9 @@ export async function create(req: Request, res: Response): Promise<void> {
       preferredDate: req.body.preferredDate ? new Date(req.body.preferredDate) : null,
     },
   });
-  emitCustomerEvent("repair.created", {
-    id: repair.id,
-    userId: req.user!.userId,
-    at: new Date().toISOString(),
-    meta: { category: repair.category, priority: repair.priority },
+  emitDomainEvent("repair.created", repair.id, req.user!.userId, {
+    category: repair.category,
+    priority: repair.priority,
   });
   res.status(201).json({ data: fromDbStatus(repair), id: repair.id });
 }
@@ -118,53 +117,11 @@ export async function update(req: Request, res: Response): Promise<void> {
     where: { id: req.params.id },
     data: data as never,
   });
-  emitCustomerEvent("repair.updated", {
-    id: updated.id,
-    userId: updated.userId,
-    at: new Date().toISOString(),
-    meta: { status: updated.status },
-  });
+  emitDomainEvent("repair.updated", updated.id, updated.userId, { status: updated.status });
   res.json({ data: fromDbStatus(updated) });
 }
 
 // ─── Status transitions ─────────────────────────────────────
-
-async function transition(
-  id: string,
-  nextStatus: DbStatus,
-  extra: Record<string, unknown> = {},
-): Promise<unknown> {
-  const repair = await prisma.repairRequest.findUnique({ where: { id } });
-  if (!repair) throw AppError.notFound("Repair request not found");
-
-  const updated = await prisma.repairRequest.update({
-    where: { id },
-    data: { status: nextStatus, ...extra } as never,
-    include: { vehicle: { select: { name: true } }, user: { select: { id: true } } },
-  });
-
-  emitCustomerEvent("repair.updated", {
-    id,
-    userId: updated.user.id,
-    at: new Date().toISOString(),
-    meta: { status: nextStatus },
-  });
-
-  // Notify customer of status change.
-  await notificationsQueue.add(
-    `repair-${id}-${nextStatus}`,
-    {
-      userId: updated.user.id,
-      type: "repair_status",
-      title: "Repair update",
-      body: `Your ${updated.vehicle?.name ?? "vehicle"} repair is now ${nextStatus.replace("_", " ")}.`,
-      data: { repairId: id, status: nextStatus },
-    },
-    { removeOnComplete: true, removeOnFail: 50 },
-  );
-
-  return fromDbStatus(updated);
-}
 
 export async function start(req: Request, res: Response): Promise<void> {
   const repair = await prisma.repairRequest.findUnique({ where: { id: req.params.id } });
@@ -172,16 +129,16 @@ export async function start(req: Request, res: Response): Promise<void> {
   // If no mechanic assigned yet, assign the calling staff member.
   const extra: Record<string, unknown> = {};
   if (!repair.assignedMechanicId) extra.assignedMechanicId = req.user!.userId;
-  const updated = await transition(req.params.id, "in_progress", extra);
-  res.json({ data: updated });
+  const updated = await transitionRepair(req.params.id, "in_progress", extra);
+  res.json({ data: fromDbStatus(updated) });
 }
 
 export async function complete(req: Request, res: Response): Promise<void> {
   const { actualCost } = (req.body ?? {}) as { actualCost?: number };
   const extra: Record<string, unknown> = {};
   if (typeof actualCost === "number") extra.actualCost = actualCost;
-  const updated = await transition(req.params.id, "completed", extra);
-  res.json({ data: updated });
+  const updated = await transitionRepair(req.params.id, "completed", extra);
+  res.json({ data: fromDbStatus(updated) });
 }
 
 export async function cancel(req: Request, res: Response): Promise<void> {
@@ -191,8 +148,8 @@ export async function cancel(req: Request, res: Response): Promise<void> {
   if (!STAFF_TYPES.has(req.user!.accountType) && repair.userId !== req.user!.userId) {
     throw AppError.forbidden();
   }
-  const updated = await transition(req.params.id, "cancelled");
-  res.json({ data: updated });
+  const updated = await transitionRepair(req.params.id, "cancelled");
+  res.json({ data: fromDbStatus(updated) });
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {
