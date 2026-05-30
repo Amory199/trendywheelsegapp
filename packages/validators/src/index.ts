@@ -126,6 +126,45 @@ export const bookingFiltersSchema = z.object({
 
 // ─── Users / CRM ─────────────────────────────────────────────
 
+// User preferences — shape-policed by zod. The DB column itself is `Json?`,
+// so this is the only place the structure is enforced. Tour state is sparse
+// (missing key = not seen, false = seen, true = unused).
+//
+// Tour key convention: `<app>:<page>` (e.g., `admin:dashboard`, `admin:sales`).
+// This keeps the same key namespace usable across customer web + mobile later.
+//
+// Existing consumers (apps/mobile/lib/use-theme.ts, apps/customer/.../notifications)
+// read theme/notifications/marketingOptIn — keep them here verbatim.
+const userPreferencesBase = z.object({
+  ui: z
+    .object({
+      tours: z.record(z.string(), z.boolean()).default({}),
+      tooltips: z.enum(["on", "off"]).default("on"),
+      introSeen: z.boolean().default(false),
+    })
+    .default({ tours: {}, tooltips: "on", introSeen: false }),
+  notifications: z
+    .object({
+      email: z.boolean().default(true),
+      sms: z.boolean().default(true),
+      whatsapp: z.boolean().default(true),
+      push: z.boolean().default(true),
+    })
+    .default({ email: true, sms: true, whatsapp: true, push: true }),
+  theme: z.enum(["light", "dark", "system"]).default("system"),
+  language: z.enum(["en", "ar"]).default("en"),
+  marketingOptIn: z.boolean().default(false),
+});
+
+export const userPreferencesSchema = userPreferencesBase.default({});
+
+// PATCH body — deep-merged into the existing preferences. Every leaf is
+// optional; .deepPartial() recursively makes every property optional.
+export const updateUserPreferencesSchema = userPreferencesBase.deepPartial();
+
+export type UserPreferences = z.infer<typeof userPreferencesSchema>;
+export type UserPreferencesPatch = z.infer<typeof updateUserPreferencesSchema>;
+
 export const updateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   age: z.number().int().min(13).max(120).nullable().optional(),

@@ -19,6 +19,7 @@
     "@trendywheels/ui-brand": "workspace:*",
     "@trendywheels/ui-tokens": "workspace:*",
     "@trendywheels/validators": "workspace:*",
+    "driver.js": "^1.4.0",
     "lottie-react": "^2.4.1",
     "next": "15.5.18",
     "react": "^19.0.0",

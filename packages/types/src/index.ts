@@ -77,6 +77,16 @@ export interface UserPreferences {
     push: boolean;
   };
   marketingOptIn: boolean;
+  /**
+   * UI hints — tour state + tooltip preference. Sparse: the server zod schema
+   * fills in defaults on first PATCH, but legacy `preferences` rows may not
+   * have this key, so every read should treat each subfield as optional.
+   */
+  ui?: {
+    tours?: Record<string, boolean>;
+    tooltips?: "on" | "off";
+    introSeen?: boolean;
+  };
 }
 
 export interface Vehicle {

@@ -5,6 +5,25 @@
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
 
+// Recursive deep-merge for user.preferences PATCH semantics. Plain objects are
+// merged key-by-key; arrays and primitives in the patch overwrite. Designed for
+// JSON values only — no Date / Map / Set handling because Prisma's Json column
+// can't store those anyway.
+type JsonRecord = Record<string, unknown>;
+function isPlainObject(v: unknown): v is JsonRecord {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+export function mergePreferences(current: unknown, patch: unknown): JsonRecord {
+  const base: JsonRecord = isPlainObject(current) ? { ...current } : {};
+  if (!isPlainObject(patch)) return base;
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) continue;
+    base[k] = isPlainObject(v) ? mergePreferences(base[k], v) : v;
+  }
+  return base;
+}
+
 // Per-category cap on rows folded into the timeline. Big enough to surface a
 // year of activity for an engaged customer, small enough that a power-user
 // account can't blow up the response.

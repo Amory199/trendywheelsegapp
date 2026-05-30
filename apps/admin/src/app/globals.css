@@ -493,3 +493,13 @@ textarea,
     padding-top: env(safe-area-inset-top);
   }
 }
+
+/* Shimmer used by ui-brand StatCard while loading. */
+@keyframes twshimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}

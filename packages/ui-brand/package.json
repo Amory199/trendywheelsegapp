@@ -7,6 +7,9 @@
     "./web": "./src/web.tsx",
     "./web-canvas": "./src/web-canvas.tsx",
     "./intro-overlay-web": "./src/intro-overlay-web.tsx",
+    "./page-header": "./src/page-header.tsx",
+    "./info-tooltip": "./src/info-tooltip.tsx",
+    "./stat-card": "./src/stat-card.tsx",
     "./native": "./src/native.tsx"
   },
   "scripts": {

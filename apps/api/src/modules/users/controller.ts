@@ -4,7 +4,9 @@ import { Prisma } from "@prisma/client";
 import {
   createStaffSchema,
   requestAccountDeletionSchema,
+  updateUserPreferencesSchema,
   updateUserSchema,
+  userPreferencesSchema,
 } from "@trendywheels/validators";
 import bcrypt from "bcryptjs";
 
@@ -13,7 +15,7 @@ import { prisma } from "../../config/database.js";
 import { requireOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 
-import { buildCustomerTimeline } from "./service.js";
+import { buildCustomerTimeline, mergePreferences } from "./service.js";
 
 export async function list(req: Request, res: Response): Promise<void> {
   const { page = "1", limit = "20" } = req.query as Record<string, string>;
@@ -64,6 +66,32 @@ export async function getMe(req: Request, res: Response): Promise<void> {
   });
   if (!user) throw AppError.notFound("User not found");
   res.json({ data: user });
+}
+
+// PATCH /api/users/me/preferences
+// Deep-merges the patch into existing user.preferences. The merged result is
+// re-validated against userPreferencesSchema before save — so a malformed
+// existing JSON column gets normalized on first write, and unknown keys are
+// silently dropped instead of accumulating drift.
+export async function updateMyPreferences(req: Request, res: Response): Promise<void> {
+  const patch = updateUserPreferencesSchema.parse(req.body);
+
+  const current = await prisma.user.findUnique({
+    where: { id: req.user!.userId },
+    select: { preferences: true },
+  });
+  if (!current) throw AppError.notFound("User not found");
+
+  const merged = mergePreferences(current.preferences, patch);
+  const normalized = userPreferencesSchema.parse(merged);
+
+  const updated = await prisma.user.update({
+    where: { id: req.user!.userId },
+    data: { preferences: normalized as unknown as Prisma.InputJsonValue },
+    select: { preferences: true },
+  });
+
+  res.json({ data: updated.preferences });
 }
 
 export async function getById(req: Request, res: Response): Promise<void> {
