@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Vehicle } from "@trendywheels/types";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import { LISTING_STATUS_CLASS } from "@trendywheels/ui-tokens";
 import Link from "next/link";
@@ -96,120 +97,149 @@ export default function SalesPage(): JSX.Element {
         }
       />
       <div className="p-8 space-y-6">
-        {fleetForSale.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">
-              From your fleet ({fleetForSale.length})
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {fleetForSale.map((v) => (
-                <Link
-                  key={v.id}
-                  href={`/vehicles/${v.id}`}
-                  className="bg-white border rounded-xl p-4 hover:shadow-sm transition block"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-semibold text-gray-900">{v.name}</div>
-                      <div className="text-xs text-gray-500 capitalize">
-                        {v.type} · {v.location}
-                      </div>
-                    </div>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        v.listingType === "both"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-purple-100 text-purple-700"
-                      }`}
+        {!isLoading && fleetForSale.length === 0 && listings.length === 0 && !statusFilter ? (
+          <EmptyState
+            icon="💰"
+            title="Nothing for sale yet"
+            description="List your first cart for sale and it'll appear in the customer app's Sales feed instantly. You can list from your existing fleet or create a brand new listing."
+            action={
+              <button
+                onClick={() => setShowCreate(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
+              >
+                + Create your first listing
+              </button>
+            }
+            secondaryAction={
+              <Link
+                href="/vehicles"
+                className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-md"
+              >
+                Mark a fleet cart for sale
+              </Link>
+            }
+          />
+        ) : (
+          <>
+            {fleetForSale.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                  From your fleet ({fleetForSale.length})
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {fleetForSale.map((v) => (
+                    <Link
+                      key={v.id}
+                      href={`/vehicles/${v.id}`}
+                      className="bg-white border rounded-xl p-4 hover:shadow-sm transition block"
                     >
-                      {v.listingType === "both" ? "Rent + Sale" : "For sale"}
-                    </span>
-                  </div>
-                  <div className="mt-3 flex items-baseline gap-2">
-                    <span className="text-lg font-bold text-purple-700">
-                      EGP {Number(v.salePrice ?? 0).toLocaleString()}
-                    </span>
-                    {v.listingType === "both" && (
-                      <span className="text-xs text-gray-500">
-                        · also {Number(v.dailyRate).toLocaleString()} EGP/day
-                      </span>
-                    )}
-                  </div>
-                  {v.saleDescription && (
-                    <p className="text-xs text-gray-600 mt-2 line-clamp-2">{v.saleDescription}</p>
-                  )}
-                </Link>
-              ))}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-semibold text-gray-900">{v.name}</div>
+                          <div className="text-xs text-gray-500 capitalize">
+                            {v.type} · {v.location}
+                          </div>
+                        </div>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            v.listingType === "both"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-purple-100 text-purple-700"
+                          }`}
+                        >
+                          {v.listingType === "both" ? "Rent + Sale" : "For sale"}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-baseline gap-2">
+                        <span className="text-lg font-bold text-purple-700">
+                          EGP {Number(v.salePrice ?? 0).toLocaleString()}
+                        </span>
+                        {v.listingType === "both" && (
+                          <span className="text-xs text-gray-500">
+                            · also {Number(v.dailyRate).toLocaleString()} EGP/day
+                          </span>
+                        )}
+                      </div>
+                      {v.saleDescription && (
+                        <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+                          {v.saleDescription}
+                        </p>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <div>
+              <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                Customer listings ({listings.length})
+              </h2>
             </div>
-          </section>
-        )}
 
-        <div>
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">
-            Customer listings ({listings.length})
-          </h2>
-        </div>
-
-        <div className="bg-white border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <tr>
-                <th className="text-left px-4 py-3">Title</th>
-                <th className="text-left px-4 py-3">Vehicle</th>
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3">Views</th>
-                <th className="text-left px-4 py-3">Inquiries</th>
-                <th className="text-left px-4 py-3">Listed</th>
-                <th className="text-right px-4 py-3">Price</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y tw-stagger">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                    Loading…
-                  </td>
-                </tr>
-              ) : listings.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                    No listings.
-                  </td>
-                </tr>
-              ) : (
-                listings.map((l) => (
-                  <tr
-                    key={l.id}
-                    onClick={() => setSelectedId(l.id)}
-                    className={`cursor-pointer hover:bg-gray-50 ${
-                      selectedId === l.id ? "bg-blue-50" : ""
-                    }`}
-                  >
-                    <td className="px-4 py-3 font-medium">{l.title}</td>
-                    <td className="px-4 py-3 text-xs">
-                      {l.make} {l.model} ({l.year})
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${LISTING_STATUS_CLASS[l.status]}`}
-                      >
-                        {l.status === "pending" ? "taken down" : l.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">{l.viewsCount}</td>
-                    <td className="px-4 py-3">{l.inquiriesCount}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
-                      {new Date(l.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium">
-                      EGP {Number(l.price ?? 0).toLocaleString()}
-                    </td>
+            <div className="bg-white border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                  <tr>
+                    <th className="text-left px-4 py-3">Title</th>
+                    <th className="text-left px-4 py-3">Vehicle</th>
+                    <th className="text-left px-4 py-3">Status</th>
+                    <th className="text-left px-4 py-3">Views</th>
+                    <th className="text-left px-4 py-3">Inquiries</th>
+                    <th className="text-left px-4 py-3">Listed</th>
+                    <th className="text-right px-4 py-3">Price</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody className="divide-y tw-stagger">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                        Loading…
+                      </td>
+                    </tr>
+                  ) : listings.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                        No customer listings{statusFilter ? ` with status "${statusFilter}"` : ""}{" "}
+                        yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    listings.map((l) => (
+                      <tr
+                        key={l.id}
+                        onClick={() => setSelectedId(l.id)}
+                        className={`cursor-pointer hover:bg-gray-50 ${
+                          selectedId === l.id ? "bg-blue-50" : ""
+                        }`}
+                      >
+                        <td className="px-4 py-3 font-medium">{l.title}</td>
+                        <td className="px-4 py-3 text-xs">
+                          {l.make} {l.model} ({l.year})
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${LISTING_STATUS_CLASS[l.status]}`}
+                          >
+                            {l.status === "pending" ? "taken down" : l.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">{l.viewsCount}</td>
+                        <td className="px-4 py-3">{l.inquiriesCount}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500">
+                          {new Date(l.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium">
+                          EGP {Number(l.price ?? 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
 
         {selected && (
           <SaleDrawer

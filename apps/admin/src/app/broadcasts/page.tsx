@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { colors } from "@trendywheels/ui-tokens";
 import { useState } from "react";
 import type { JSX } from "react";
@@ -179,7 +180,11 @@ export default function BroadcastsPage(): JSX.Element {
           </div>
         ))}
         {items.length === 0 ? (
-          <div style={{ color: "#6B6A85", fontSize: 13 }}>No broadcasts yet.</div>
+          <EmptyState
+            icon="📣"
+            title="No broadcasts yet"
+            description="Compose your first broadcast above to reach every customer at once — push, email, or SMS. Draft broadcasts and the send history will appear here."
+          />
         ) : null}
       </div>
     </div>

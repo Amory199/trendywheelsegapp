@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import Link from "next/link";
 import { useState } from "react";
 import type { JSX } from "react";
@@ -171,9 +172,25 @@ export default function AdminFleetPage(): JSX.Element {
       {isLoading ? (
         <div className="flex items-center justify-center h-40 text-gray-400">Loading fleet…</div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-40 text-gray-400">
-          No vehicles found
-        </div>
+        vehicles.length === 0 ? (
+          <EmptyState
+            icon="🚗"
+            title="Your fleet is empty"
+            description="Add your first cart to start tracking availability, location, and status across the whole fleet."
+            action={
+              <Link
+                href="/vehicles/create"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition"
+              >
+                + Add your first cart
+              </Link>
+            }
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-40 text-gray-400">
+            No vehicles match the current filters.
+          </div>
+        )
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filtered.map((v) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import { useState } from "react";
 import type { JSX } from "react";
@@ -331,10 +332,19 @@ export default function MaintenancePage(): JSX.Element {
             {itemsQ.isLoading ? (
               <div className="flex items-center justify-center h-40 text-gray-400">Loading…</div>
             ) : items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40 text-gray-400 gap-2">
-                <span className="text-4xl">🔧</span>
-                <span>No maintenance scheduled</span>
-              </div>
+              <EmptyState
+                icon="🔧"
+                title="No maintenance scheduled"
+                description="Schedule routine work to keep your fleet running. Each appointment notifies the assigned mechanic and shows up on the customer's vehicle timeline."
+                action={
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition"
+                  >
+                    + Schedule your first appointment
+                  </button>
+                }
+              />
             ) : (
               items.map((m) => {
                 const isDone = !!m.completedAt;

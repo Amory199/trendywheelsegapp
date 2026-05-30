@@ -10,6 +10,7 @@
     "./page-header": "./src/page-header.tsx",
     "./info-tooltip": "./src/info-tooltip.tsx",
     "./stat-card": "./src/stat-card.tsx",
+    "./empty-state": "./src/empty-state.tsx",
     "./native": "./src/native.tsx"
   },
   "scripts": {

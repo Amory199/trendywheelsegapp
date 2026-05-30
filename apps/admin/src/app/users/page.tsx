@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -79,8 +80,23 @@ export default function UsersPage(): JSX.Element {
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
-                    No users.
+                  <td colSpan={6} className="px-0 py-0">
+                    <div className="p-6">
+                      <EmptyState
+                        flush
+                        icon="🧑‍💼"
+                        title="No users yet"
+                        description="Add your first staff member to give them admin-panel access. Pick a role to scope what they can see — sales, support, inventory, or full admin."
+                        action={
+                          <button
+                            onClick={() => setShowCreate(true)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
+                          >
+                            + Add your first staff member
+                          </button>
+                        }
+                      />
+                    </div>
                   </td>
                 </tr>
               ) : (

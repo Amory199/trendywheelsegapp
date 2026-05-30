@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RepairStatus } from "@trendywheels/types";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import { REPAIR_STATUS_CLASS } from "@trendywheels/ui-tokens";
 import Link from "next/link";
@@ -97,8 +98,29 @@ export default function RepairsPage(): JSX.Element {
                 </tr>
               ) : repairs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                    No repairs.
+                  <td colSpan={7} className="px-0 py-0">
+                    {!statusFilter ? (
+                      <div className="p-6">
+                        <EmptyState
+                          flush
+                          icon="🔧"
+                          title="No repair requests yet"
+                          description="Customers submit repair requests from the mobile app. When one lands, you'll assign a mechanic and set a status from here."
+                          action={
+                            <Link
+                              href="/maintenance"
+                              className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition"
+                            >
+                              Schedule maintenance instead
+                            </Link>
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <div className="px-4 py-8 text-center text-gray-400">
+                        No repairs with status &quot;{statusFilter}&quot;.
+                      </div>
+                    )}
                   </td>
                 </tr>
               ) : (

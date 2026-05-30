@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { useState } from "react";
 import type { JSX } from "react";
 
@@ -48,7 +49,11 @@ export default function AdminTradeInsPage(): JSX.Element {
       {q.isLoading ? (
         <div className="text-gray-500 py-12 text-center">Loading…</div>
       ) : items.length === 0 ? (
-        <div className="text-gray-500 py-12 text-center">No submissions yet.</div>
+        <EmptyState
+          icon="🔁"
+          title="No trade-in submissions yet"
+          description="Customers submit their old cart from the mobile app for an instant quote. When a submission lands, you'll review the photos and send a quote from here."
+        />
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm">

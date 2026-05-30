@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import { useState } from "react";
 import type { JSX } from "react";
@@ -182,8 +183,33 @@ export default function AdminKBPage(): JSX.Element {
                 </tr>
               ) : articles.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
-                    No articles yet — click "New article" to publish your first.
+                  <td colSpan={6} className="px-0 py-0">
+                    {!search ? (
+                      <div className="p-6">
+                        <EmptyState
+                          flush
+                          icon="📚"
+                          title="No knowledge-base articles yet"
+                          description="Articles you publish here appear in the customer app's help section. A single FAQ deflects dozens of tickets."
+                          action={
+                            <button
+                              onClick={() => {
+                                setEditing(null);
+                                setForm({ title: "", content: "", category: "General" });
+                                setShowForm(true);
+                              }}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
+                            >
+                              + Publish your first article
+                            </button>
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <div className="px-4 py-8 text-center text-gray-400">
+                        No articles match &quot;{search}&quot;.
+                      </div>
+                    )}
                   </td>
                 </tr>
               ) : (

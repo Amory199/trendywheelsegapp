@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupportTicket, TicketPriority, TicketStatus } from "@trendywheels/types";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import Link from "next/link";
 import { useState } from "react";
@@ -181,8 +182,29 @@ export default function AdminTicketsPage(): JSX.Element {
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                    No tickets found.
+                  <td colSpan={7} className="px-0 py-0">
+                    {tickets.length === 0 && !statusFilter && !priorityFilter && !search ? (
+                      <div className="p-6">
+                        <EmptyState
+                          flush
+                          icon="🎫"
+                          title="All clear — no open tickets"
+                          description="Tickets land here when a customer asks for help from the mobile or web app. You'll get a notification when one is opened."
+                          action={
+                            <Link
+                              href="/kb"
+                              className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition"
+                            >
+                              Browse knowledge base
+                            </Link>
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <div className="px-4 py-8 text-center text-gray-400">
+                        No tickets match the current filters.
+                      </div>
+                    )}
                   </td>
                 </tr>
               ) : (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
 
@@ -86,8 +87,13 @@ export default function AdminAlertsPage(): JSX.Element {
           {eventsQ.isLoading ? (
             <div className="p-4 text-sm text-gray-400 text-center">Loading…</div>
           ) : events.length === 0 ? (
-            <div className="p-6 text-sm text-gray-400 text-center">
-              No active alerts. Fleet is operating within all thresholds.
+            <div className="p-2">
+              <EmptyState
+                flush
+                icon="✅"
+                title="All clear — no active alerts"
+                description="Your fleet is operating within every threshold below. Tighten or loosen them anytime; saved changes apply immediately."
+              />
             </div>
           ) : (
             events.map((e) => (

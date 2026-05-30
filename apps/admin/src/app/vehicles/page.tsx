@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ListingType, Vehicle, VehicleStatus } from "@trendywheels/types";
+import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import Link from "next/link";
 import { useState } from "react";
@@ -176,100 +177,116 @@ export default function VehiclesPage(): JSX.Element {
           </div>
         )}
 
-        <div className="bg-white border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <tr>
-                <th className="px-4 py-3 text-left w-10">
-                  <input
-                    type="checkbox"
-                    checked={selected.size === filtered.length && filtered.length > 0}
-                    onChange={toggleAll}
-                    className="cursor-pointer"
-                  />
-                </th>
-                <th className="text-left px-4 py-3">Name</th>
-                <th className="text-left px-4 py-3">Listing</th>
-                <th className="text-left px-4 py-3">Type</th>
-                <th className="text-left px-4 py-3">Seats</th>
-                <th className="text-left px-4 py-3">Pricing</th>
-                <th className="text-left px-4 py-3">Location</th>
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {isLoading ? (
+        {!isLoading && data.length === 0 ? (
+          <EmptyState
+            icon="🚗"
+            title="No carts in your inventory yet"
+            description="Add your first cart — once it's published, it's instantly bookable in the customer app for rent, sale, or both."
+            action={
+              <Link
+                href="/vehicles/create"
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition"
+              >
+                + Add your first cart
+              </Link>
+            }
+          />
+        ) : (
+          <div className="bg-white border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
-                    Loading…
-                  </td>
+                  <th className="px-4 py-3 text-left w-10">
+                    <input
+                      type="checkbox"
+                      checked={selected.size === filtered.length && filtered.length > 0}
+                      onChange={toggleAll}
+                      className="cursor-pointer"
+                    />
+                  </th>
+                  <th className="text-left px-4 py-3">Name</th>
+                  <th className="text-left px-4 py-3">Listing</th>
+                  <th className="text-left px-4 py-3">Type</th>
+                  <th className="text-left px-4 py-3">Seats</th>
+                  <th className="text-left px-4 py-3">Pricing</th>
+                  <th className="text-left px-4 py-3">Location</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                  <th className="text-left px-4 py-3"></th>
                 </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
-                    No vehicles found.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((v) => {
-                  const listing = (v.listingType ?? "rent") as ListingType;
-                  return (
-                    <tr
-                      key={v.id}
-                      className={`hover:bg-gray-50 ${selected.has(v.id) ? "bg-primary-50" : ""}`}
-                    >
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(v.id)}
-                          onChange={() => toggle(v.id)}
-                          className="cursor-pointer"
-                        />
-                      </td>
-                      <td className="px-4 py-3 font-medium">{v.name}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`text-xs font-medium px-2 py-0.5 rounded ${LISTING_STYLES[listing]}`}
-                        >
-                          {LISTING_LABEL[listing]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">{v.type}</td>
-                      <td className="px-4 py-3">{v.seating}</td>
-                      <td className="px-4 py-3 text-xs">
-                        {listing !== "sale" && (
-                          <div>{Number(v.dailyRate).toLocaleString()} EGP/day</div>
-                        )}
-                        {listing !== "rent" && v.salePrice != null && (
-                          <div className="text-purple-700">
-                            {Number(v.salePrice).toLocaleString()} EGP sale
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">{v.location}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`text-xs font-medium px-2 py-0.5 rounded ${STATUS_STYLES[v.status]}`}
-                        >
-                          {v.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/vehicles/${v.id}`}
-                          className="text-primary-500 hover:underline text-xs"
-                        >
-                          Edit →
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                      Loading…
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                      No carts match the current filter or search. Try clearing them.
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((v) => {
+                    const listing = (v.listingType ?? "rent") as ListingType;
+                    return (
+                      <tr
+                        key={v.id}
+                        className={`hover:bg-gray-50 ${selected.has(v.id) ? "bg-primary-50" : ""}`}
+                      >
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(v.id)}
+                            onChange={() => toggle(v.id)}
+                            className="cursor-pointer"
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-medium">{v.name}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`text-xs font-medium px-2 py-0.5 rounded ${LISTING_STYLES[listing]}`}
+                          >
+                            {LISTING_LABEL[listing]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">{v.type}</td>
+                        <td className="px-4 py-3">{v.seating}</td>
+                        <td className="px-4 py-3 text-xs">
+                          {listing !== "sale" && (
+                            <div>{Number(v.dailyRate).toLocaleString()} EGP/day</div>
+                          )}
+                          {listing !== "rent" && v.salePrice != null && (
+                            <div className="text-purple-700">
+                              {Number(v.salePrice).toLocaleString()} EGP sale
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">{v.location}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`text-xs font-medium px-2 py-0.5 rounded ${STATUS_STYLES[v.status]}`}
+                          >
+                            {v.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link
+                            href={`/vehicles/${v.id}`}
+                            className="text-primary-500 hover:underline text-xs"
+                          >
+                            Edit →
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </>
   );
