@@ -17,19 +17,15 @@ function isSmokeTest(req: { headers?: Record<string, unknown> }): boolean {
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   const smoke = isSmokeTest(req);
 
-  // Zod validation errors → 400, persisted at warn level (client-side bug).
+  // Zod validation errors → 400. Do NOT persist to the errorLog table —
+  // these are pure client-side bugs (stale mobile build, cached browser,
+  // hand-crafted request) and the API already returned a clear 400 to the
+  // caller with the offending field + message. The HTTP access log + the
+  // 400 response itself carry everything needed to debug. Writing them to
+  // `/logs` floods the admin page with yellow noise that drowns out real
+  // server errors. Sentry similarly gets skipped because client validation
+  // is not a server fault.
   if (err instanceof ZodError) {
-    if (!smoke) {
-      void writeError({
-        level: "warn",
-        source: "api",
-        message: `Validation error: ${err.errors.map((e) => `${e.path.join(".")} — ${e.message}`).join("; ")}`,
-        stack: err.stack ?? null,
-        statusCode: 400,
-        ...contextFromRequest(req),
-        metadata: { issues: err.errors },
-      });
-    }
     res.status(400).json({
       message: "Validation error",
       code: "VALIDATION_ERROR",
