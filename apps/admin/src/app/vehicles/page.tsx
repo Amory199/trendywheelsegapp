@@ -5,6 +5,7 @@ import type { ListingType, Vehicle, VehicleStatus } from "@trendywheels/types";
 import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { JSX } from "react";
 
@@ -32,6 +33,7 @@ const LISTING_LABEL: Record<ListingType, string> = {
 };
 
 export default function VehiclesPage(): JSX.Element {
+  const router = useRouter();
   const qc = useQueryClient();
   const { data, isLoading } = useList<Vehicle>("/api/vehicles?limit=200", "vehicles");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -211,19 +213,18 @@ export default function VehiclesPage(): JSX.Element {
                   <th className="text-left px-4 py-3">Pricing</th>
                   <th className="text-left px-4 py-3">Location</th>
                   <th className="text-left px-4 py-3">Status</th>
-                  <th className="text-left px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                       Loading…
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                       No carts match the current filter or search. Try clearing them.
                     </td>
                   </tr>
@@ -233,9 +234,10 @@ export default function VehiclesPage(): JSX.Element {
                     return (
                       <tr
                         key={v.id}
-                        className={`hover:bg-gray-50 ${selected.has(v.id) ? "bg-primary-50" : ""}`}
+                        onClick={() => router.push(`/vehicles/${v.id}`)}
+                        className={`cursor-pointer hover:bg-gray-50 ${selected.has(v.id) ? "bg-primary-50" : ""}`}
                       >
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
                             checked={selected.has(v.id)}
@@ -270,14 +272,6 @@ export default function VehiclesPage(): JSX.Element {
                           >
                             {v.status}
                           </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Link
-                            href={`/vehicles/${v.id}`}
-                            className="text-primary-500 hover:underline text-xs"
-                          >
-                            Edit →
-                          </Link>
                         </td>
                       </tr>
                     );

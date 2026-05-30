@@ -214,7 +214,11 @@ export default function AdminKBPage(): JSX.Element {
                 </tr>
               ) : (
                 articles.map((a) => (
-                  <tr key={a.id} className="hover:bg-gray-50">
+                  <tr
+                    key={a.id}
+                    onClick={() => startEdit(a)}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
                     <td className="px-4 py-3 font-medium">{a.title}</td>
                     <td className="px-4 py-3">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
@@ -226,7 +230,10 @@ export default function AdminKBPage(): JSX.Element {
                     <td className="px-4 py-3 text-xs text-gray-500">
                       {new Date(a.updatedAt).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3 text-right space-x-3">
+                    <td
+                      className="px-4 py-3 text-right space-x-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         onClick={() => startEdit(a)}
                         className="text-blue-600 hover:underline text-xs"

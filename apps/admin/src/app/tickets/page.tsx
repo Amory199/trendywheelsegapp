@@ -5,6 +5,7 @@ import type { SupportTicket, TicketPriority, TicketStatus } from "@trendywheels/
 import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { JSX } from "react";
 
@@ -63,6 +64,7 @@ const ALL_STATUSES: TicketStatus[] = ["open", "in-progress", "resolved", "closed
 const ALL_PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
 
 export default function AdminTicketsPage(): JSX.Element {
+  const router = useRouter();
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "">("");
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | "">("");
@@ -170,19 +172,18 @@ export default function AdminTicketsPage(): JSX.Element {
                 <th className="text-left px-4 py-3">Priority</th>
                 <th className="text-left px-4 py-3">Agent</th>
                 <th className="text-left px-4 py-3">Opened</th>
-                <th className="text-right px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y tw-stagger">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
                     Loading…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-0 py-0">
+                  <td colSpan={6} className="px-0 py-0">
                     {tickets.length === 0 && !statusFilter && !priorityFilter && !search ? (
                       <div className="p-6">
                         <EmptyState
@@ -209,12 +210,16 @@ export default function AdminTicketsPage(): JSX.Element {
                 </tr>
               ) : (
                 filtered.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-50">
+                  <tr
+                    key={t.id}
+                    onClick={() => router.push(`/tickets/${t.id}`)}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
                     <td className="px-4 py-3">
                       <div className="font-medium">{t.subject}</div>
                       <div className="text-xs text-gray-400">#{t.id.slice(0, 8)}</div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       {t.user ? (
                         <Link
                           href={`/customers/${t.user.id}`}
@@ -226,7 +231,7 @@ export default function AdminTicketsPage(): JSX.Element {
                         "—"
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <TWSelect
                         pill
                         value={t.status}
@@ -244,7 +249,7 @@ export default function AdminTicketsPage(): JSX.Element {
                         }))}
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <TWSelect
                         pill
                         value={t.priority}
@@ -267,14 +272,6 @@ export default function AdminTicketsPage(): JSX.Element {
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">
                       {new Date(t.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/tickets/${t.id}`}
-                        className="text-blue-600 hover:underline text-xs font-medium"
-                      >
-                        Open →
-                      </Link>
                     </td>
                   </tr>
                 ))

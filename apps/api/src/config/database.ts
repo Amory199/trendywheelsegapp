@@ -1,37 +1,23 @@
 import { PrismaClient } from "@trendywheels/db";
 
 import { buildAuditExtension } from "../lib/prisma-audit.js";
-import { logger } from "../utils/logger.js";
 
-// Base client owns the EventEmitter surface (`$on`); the extended client
-// returned by `$extends` is functional-only and would throw on $on().
+// Prisma v5 removed `$on('error')` and `$on('warn')` — only `query` still
+// fires as an event. Routing error/warn to stdout lets pino-via-stderr (or
+// the PM2 out/err log split) collect them; process-level
+// `unhandledRejection` handlers in server.ts + workers/index.ts catch
+// anything that escapes a query.
 const basePrisma = new PrismaClient({
   log: [
     { emit: "event", level: "query" },
-    { emit: "event", level: "error" },
-    { emit: "event", level: "warn" },
+    { emit: "stdout", level: "error" },
+    { emit: "stdout", level: "warn" },
   ],
 });
 
 const SLOW_QUERY_MS = 500;
 
-basePrisma.$on("error" as never, (e: { message?: string; target?: string }) => {
-  void import("../utils/error-sink.js").then(({ writeError }) =>
-    writeError({
-      level: "error",
-      source: "api",
-      message: `Prisma error: ${e.message ?? "unknown"}`,
-      metadata: { target: e.target ?? null },
-    }),
-  );
-  logger.error(e, "Prisma error");
-});
-
-basePrisma.$on("warn" as never, (e: { message?: string }) => {
-  logger.warn(e, "Prisma warning");
-});
-
-basePrisma.$on("query" as never, (e: { duration?: number; query?: string }) => {
+basePrisma.$on("query", (e: { duration?: number; query?: string }) => {
   const ms = e.duration ?? 0;
   if (ms >= SLOW_QUERY_MS) {
     void import("../utils/error-sink.js").then(({ writeError }) =>

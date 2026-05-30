@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { JSX } from "react";
 
@@ -34,6 +35,7 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 export default function CustomersPage(): JSX.Element {
+  const router = useRouter();
   const [q, setQ] = useState("");
 
   const { data, isLoading } = useQuery({
@@ -91,25 +93,28 @@ export default function CustomersPage(): JSX.Element {
                   <th className="text-left px-4 py-3">Repairs</th>
                   <th className="text-left px-4 py-3">Listings</th>
                   <th className="text-left px-4 py-3">Joined</th>
-                  <th className="text-right px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y tw-stagger">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                       Loading…
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                       No customers match &quot;{q}&quot;.
                     </td>
                   </tr>
                 ) : (
                   rows.map((c) => (
-                    <tr key={c.id} className="hover:bg-gray-50">
+                    <tr
+                      key={c.id}
+                      onClick={() => router.push(`/customers/${c.id}`)}
+                      className="cursor-pointer hover:bg-gray-50"
+                    >
                       <td className="px-4 py-3 font-medium">{c.name}</td>
                       <td className="px-4 py-3">
                         <div className="text-gray-700">{c.phone}</div>
@@ -131,14 +136,6 @@ export default function CustomersPage(): JSX.Element {
                       <td className="px-4 py-3">{c._count.salesListings}</td>
                       <td className="px-4 py-3 text-xs text-gray-500">
                         {new Date(c.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/customers/${c.id}`}
-                          className="text-blue-600 hover:underline text-xs font-medium"
-                        >
-                          Open profile →
-                        </Link>
                       </td>
                     </tr>
                   ))
