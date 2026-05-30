@@ -2,12 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RepairStatus } from "@trendywheels/types";
+import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import { REPAIR_STATUS_CLASS } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useState } from "react";
 import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
+import { TourHelpButton } from "../../lib/tour-help-button";
 import { TWSelect } from "../../lib/tw-select";
 
 interface RepairRow {
@@ -52,100 +54,102 @@ export default function RepairsPage(): JSX.Element {
   const selected = selectedId ? (repairs.find((r) => r.id === selectedId) ?? null) : null;
 
   return (
-    <div className="p-8 space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Repair requests</h1>
-          <p className="text-sm text-gray-500">{repairs.length} requests</p>
-        </div>
-        <TWSelect
-          value={statusFilter}
-          onChange={(v) => setStatusFilter(v as RepairStatus | "")}
-          options={[
-            { value: "", label: "All statuses" },
-            { value: "submitted", label: "Submitted", color: "#1338A8" },
-            { value: "assigned", label: "Assigned", color: "#5300A8" },
-            { value: "in-progress", label: "In progress", color: "#A87900" },
-            { value: "completed", label: "Completed", color: "#0A6B0A" },
-            { value: "cancelled", label: "Cancelled", color: "#A00000" },
-          ]}
-        />
-      </header>
-
-      <div className="bg-white border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-            <tr>
-              <th className="text-left px-4 py-3">Customer</th>
-              <th className="text-left px-4 py-3">Vehicle</th>
-              <th className="text-left px-4 py-3">Category</th>
-              <th className="text-left px-4 py-3">Priority</th>
-              <th className="text-left px-4 py-3">Status</th>
-              <th className="text-left px-4 py-3">Mechanic</th>
-              <th className="text-left px-4 py-3">Created</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y tw-stagger">
-            {isLoading ? (
+    <>
+      <PageHeader
+        title="Repair requests"
+        subtitle={`${repairs.length} requests`}
+        helpButton={<TourHelpButton pageKey="admin:repairs" />}
+        rightSlot={
+          <TWSelect
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v as RepairStatus | "")}
+            options={[
+              { value: "", label: "All statuses" },
+              { value: "submitted", label: "Submitted", color: "#1338A8" },
+              { value: "assigned", label: "Assigned", color: "#5300A8" },
+              { value: "in-progress", label: "In progress", color: "#A87900" },
+              { value: "completed", label: "Completed", color: "#0A6B0A" },
+              { value: "cancelled", label: "Cancelled", color: "#A00000" },
+            ]}
+          />
+        }
+      />
+      <div className="p-8 space-y-6">
+        <div className="bg-white border rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                  Loading…
-                </td>
+                <th className="text-left px-4 py-3">Customer</th>
+                <th className="text-left px-4 py-3">Vehicle</th>
+                <th className="text-left px-4 py-3">Category</th>
+                <th className="text-left px-4 py-3">Priority</th>
+                <th className="text-left px-4 py-3">Status</th>
+                <th className="text-left px-4 py-3">Mechanic</th>
+                <th className="text-left px-4 py-3">Created</th>
               </tr>
-            ) : repairs.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                  No repairs.
-                </td>
-              </tr>
-            ) : (
-              repairs.map((r) => (
-                <tr
-                  key={r.id}
-                  onClick={() => setSelectedId(r.id)}
-                  className={`cursor-pointer hover:bg-gray-50 ${selectedId === r.id ? "bg-blue-50" : ""}`}
-                >
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{r.user?.name ?? "—"}</div>
-                    <div className="text-xs text-gray-400">{r.user?.phone}</div>
-                  </td>
-                  <td className="px-4 py-3">{r.vehicle?.name ?? "—"}</td>
-                  <td className="px-4 py-3 capitalize">{r.category}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PRIORITY_STYLES[r.priority] ?? "bg-gray-100"}`}
-                    >
-                      {r.priority}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${REPAIR_STATUS_CLASS[r.status]}`}
-                    >
-                      {r.status.replace("-", " ")}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {r.mechanic?.name ?? <span className="text-gray-400">unassigned</span>}
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {new Date(r.createdAt).toLocaleDateString()}
+            </thead>
+            <tbody className="divide-y tw-stagger">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                    Loading…
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : repairs.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                    No repairs.
+                  </td>
+                </tr>
+              ) : (
+                repairs.map((r) => (
+                  <tr
+                    key={r.id}
+                    onClick={() => setSelectedId(r.id)}
+                    className={`cursor-pointer hover:bg-gray-50 ${selectedId === r.id ? "bg-blue-50" : ""}`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{r.user?.name ?? "—"}</div>
+                      <div className="text-xs text-gray-400">{r.user?.phone}</div>
+                    </td>
+                    <td className="px-4 py-3">{r.vehicle?.name ?? "—"}</td>
+                    <td className="px-4 py-3 capitalize">{r.category}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PRIORITY_STYLES[r.priority] ?? "bg-gray-100"}`}
+                      >
+                        {r.priority}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${REPAIR_STATUS_CLASS[r.status]}`}
+                      >
+                        {r.status.replace("-", " ")}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {r.mechanic?.name ?? <span className="text-gray-400">unassigned</span>}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {new Date(r.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      {selected && (
-        <RepairDrawer
-          repair={selected}
-          onClose={() => setSelectedId(null)}
-          onChange={() => void qc.invalidateQueries({ queryKey: ["repairs"] })}
-        />
-      )}
-    </div>
+        {selected && (
+          <RepairDrawer
+            repair={selected}
+            onClose={() => setSelectedId(null)}
+            onChange={() => void qc.invalidateQueries({ queryKey: ["repairs"] })}
+          />
+        )}
+      </div>
+    </>
   );
 }
 
