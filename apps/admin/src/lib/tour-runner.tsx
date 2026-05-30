@@ -52,13 +52,15 @@ function createDriver(spec: TourSpec, onDone?: () => void) {
   return driver({
     showProgress: true,
     showButtons: ["next", "previous", "close"],
-    nextBtnText: "Next",
-    prevBtnText: "Back",
-    doneBtnText: "Done",
+    nextBtnText: "Next →",
+    prevBtnText: "← Back",
+    doneBtnText: "Got it ✨",
     progressText: "{{current}} / {{total}}",
     allowClose: true,
-    overlayOpacity: 0.5,
+    overlayOpacity: 0.6,
     smoothScroll: true,
+    // Hooks our brand styling — see `/* Tour popovers */` block in globals.css.
+    popoverClass: "tw-tour",
     onDestroyed: () => {
       onDone?.();
     },
