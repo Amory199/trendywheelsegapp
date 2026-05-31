@@ -5,9 +5,11 @@ import type {
   FuelType,
   ListingType,
   Transmission,
+  VehicleCategory,
   VehicleStatus,
   VehicleType,
 } from "@trendywheels/types";
+import { VEHICLE_CATEGORIES } from "@trendywheels/types";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { JSX } from "react";
@@ -16,6 +18,7 @@ import { api } from "../../../lib/api";
 
 interface VehicleForm {
   name: string;
+  category: VehicleCategory;
   type: VehicleType;
   seating: number;
   fuelType: FuelType;
@@ -46,9 +49,10 @@ export default function VehicleCreatePage(): JSX.Element {
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<VehicleForm>({
     name: "",
+    category: "golf-cart",
     type: "4-seater",
     seating: 4,
-    fuelType: "gasoline",
+    fuelType: "electric",
     transmission: "automatic",
     dailyRate: 0,
     location: "",
@@ -58,6 +62,12 @@ export default function VehicleCreatePage(): JSX.Element {
     salePrice: 0,
     saleDescription: "",
   });
+  // The `type` field ("4-seater" / "6-seater" / "LED") is golf-cart-specific.
+  // Other categories don't have that taxonomy, so we hide the field and submit
+  // a fixed default ("4-seater") to satisfy the still-required API column.
+  // This is the pragmatic short-term: long-term the API should make `type`
+  // nullable for non-golf-cart categories.
+  const isGolfCart = form.category === "golf-cart";
   const [images, setImages] = useState<Array<{ file: File; preview: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,11 +104,11 @@ export default function VehicleCreatePage(): JSX.Element {
     const needsRent = form.listingType === "rent" || form.listingType === "both";
     const needsSale = form.listingType === "sale" || form.listingType === "both";
     if (needsRent && form.dailyRate <= 0) {
-      setError("Daily rate is required when this cart is for rent.");
+      setError("Daily rate is required when this vehicle is for rent.");
       return;
     }
     if (needsSale && form.salePrice <= 0) {
-      setError("Sale price is required when this cart is for sale.");
+      setError("Sale price is required when this vehicle is for sale.");
       return;
     }
     setLoading(true);
@@ -117,6 +127,7 @@ export default function VehicleCreatePage(): JSX.Element {
 
       await api.createVehicle({
         name: form.name,
+        category: form.category,
         type: form.type,
         seating: form.seating,
         fuelType: form.fuelType,
@@ -159,12 +170,43 @@ export default function VehicleCreatePage(): JSX.Element {
       )}
 
       <div className="space-y-6">
+        {/* Category — which storefront tab the vehicle appears under */}
+        <div className="bg-white rounded-xl border p-6 space-y-4">
+          <div>
+            <h2 className="font-semibold">Category</h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Which storefront tab customers will browse this under.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {VEHICLE_CATEGORIES.map((cat) => {
+              const active = form.category === cat.key;
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, category: cat.key }))}
+                  className={`text-left rounded-lg border-2 p-3 transition ${
+                    active ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div
+                    className={`text-sm font-semibold ${active ? "text-blue-700" : "text-gray-800"}`}
+                  >
+                    {cat.label}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Listing intent */}
         <div className="bg-white rounded-xl border p-6 space-y-4">
           <div>
-            <h2 className="font-semibold">What is this cart for?</h2>
+            <h2 className="font-semibold">What is this vehicle for?</h2>
             <p className="text-xs text-gray-500 mt-1">
-              Pick how this cart will appear on the platform. You can change later.
+              Pick how this vehicle will appear on the platform. You can change later.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -178,7 +220,7 @@ export default function VehicleCreatePage(): JSX.Element {
                 {
                   v: "sale",
                   label: "For sale",
-                  hint: "Listed in the used-cart marketplace",
+                  hint: "Listed in the used marketplace",
                 },
                 {
                   v: "both",
@@ -223,20 +265,22 @@ export default function VehicleCreatePage(): JSX.Element {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">Type</label>
-              <select
-                value={form.type}
-                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as VehicleType }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                {(["4-seater", "6-seater", "LED"] as VehicleType[]).map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isGolfCart && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Type</label>
+                <select
+                  value={form.type}
+                  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as VehicleType }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  {(["4-seater", "6-seater", "LED"] as VehicleType[]).map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">Seating</label>
               <input

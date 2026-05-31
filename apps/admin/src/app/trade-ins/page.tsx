@@ -44,7 +44,7 @@ export default function AdminTradeInsPage(): JSX.Element {
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-1">Trade-ins</h1>
-      <p className="text-sm text-gray-500 mb-5">Customer-submitted carts awaiting quote.</p>
+      <p className="text-sm text-gray-500 mb-5">Customer-submitted vehicles awaiting quote.</p>
 
       {q.isLoading ? (
         <div className="text-gray-500 py-12 text-center">Loading…</div>
@@ -52,7 +52,7 @@ export default function AdminTradeInsPage(): JSX.Element {
         <EmptyState
           icon="🔁"
           title="No trade-in submissions yet"
-          description="Customers submit their old cart from the mobile app for an instant quote. When a submission lands, you'll review the photos and send a quote from here."
+          description="Customers submit their old vehicle from the mobile app for an instant quote. When a submission lands, you'll review the photos and send a quote from here."
         />
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
@@ -61,7 +61,7 @@ export default function AdminTradeInsPage(): JSX.Element {
               <tr>
                 <th className="text-left px-4 py-3">Submitted</th>
                 <th className="text-left px-4 py-3">Customer</th>
-                <th className="text-left px-4 py-3">Cart</th>
+                <th className="text-left px-4 py-3">Vehicle</th>
                 <th className="text-left px-4 py-3">Condition</th>
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-right px-4 py-3">Quote (EGP)</th>

@@ -176,13 +176,13 @@ export default function AdminFleetPage(): JSX.Element {
           <EmptyState
             icon="🚗"
             title="Your fleet is empty"
-            description="Add your first cart to start tracking availability, location, and status across the whole fleet."
+            description="Add your first vehicle to start tracking availability, location, and status across the whole fleet."
             action={
               <Link
                 href="/vehicles/create"
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition"
               >
-                + Add your first cart
+                + Add your first vehicle
               </Link>
             }
           />
