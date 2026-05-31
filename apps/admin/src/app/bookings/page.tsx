@@ -84,7 +84,7 @@ export default function BookingsPage(): JSX.Element {
           <EmptyState
             icon="📅"
             title="No bookings yet"
-            description="Bookings appear here as soon as customers reserve a cart from your fleet. Make sure you have at least one cart published and available to rent."
+            description="Bookings appear here as soon as customers reserve a vehicle from your fleet. Make sure you have at least one vehicle published and available to rent."
             action={
               <Link
                 href="/vehicles"

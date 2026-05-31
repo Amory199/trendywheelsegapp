@@ -101,7 +101,7 @@ export default function SalesPage(): JSX.Element {
           <EmptyState
             icon="💰"
             title="Nothing for sale yet"
-            description="List your first cart for sale and it'll appear in the customer app's Sales feed instantly. You can list from your existing fleet or create a brand new listing."
+            description="List your first vehicle for sale and it'll appear in the customer app's Sales feed instantly. You can list from your existing fleet or create a brand new listing."
             action={
               <button
                 onClick={() => setShowCreate(true)}
@@ -115,7 +115,7 @@ export default function SalesPage(): JSX.Element {
                 href="/vehicles"
                 className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-md"
               >
-                Mark a fleet cart for sale
+                Mark a fleet vehicle for sale
               </Link>
             }
           />
@@ -308,7 +308,7 @@ function CreateListingDrawer({
           <div>
             <h2 className="text-xl font-bold">New sales listing</h2>
             <p className="text-xs text-gray-500 mt-1">
-              For used carts being sold — separate from the rental fleet.
+              For used vehicles being sold — separate from the rental fleet.
             </p>
           </div>
           <button

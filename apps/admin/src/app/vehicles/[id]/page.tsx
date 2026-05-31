@@ -5,9 +5,11 @@ import type {
   FuelType,
   Transmission,
   Vehicle,
+  VehicleCategory,
   VehicleStatus,
   VehicleType,
 } from "@trendywheels/types";
+import { VEHICLE_CATEGORIES } from "@trendywheels/types";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
@@ -40,6 +42,7 @@ export default function VehicleEditPage(): JSX.Element {
   const vehicle = data?.data as Vehicle | undefined;
 
   const [name, setName] = useState("");
+  const [category, setCategory] = useState<VehicleCategory>("golf-cart");
   const [type, setType] = useState<VehicleType>("4-seater");
   const [seating, setSeating] = useState(4);
   const [fuelType, setFuelType] = useState<FuelType>("gasoline");
@@ -56,6 +59,7 @@ export default function VehicleEditPage(): JSX.Element {
   useEffect(() => {
     if (vehicle) {
       setName(vehicle.name);
+      setCategory(vehicle.category);
       setType(vehicle.type);
       setSeating(vehicle.seating);
       setFuelType(vehicle.fuelType);
@@ -109,6 +113,7 @@ export default function VehicleEditPage(): JSX.Element {
 
       await api.updateVehicle(id, {
         name,
+        category,
         type,
         seating,
         fuelType,
@@ -165,6 +170,36 @@ export default function VehicleEditPage(): JSX.Element {
 
       <div className="space-y-6">
         <div className="bg-white rounded-xl border p-6 space-y-4">
+          <div>
+            <h2 className="font-semibold">Category</h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Which storefront tab customers will browse this under.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {VEHICLE_CATEGORIES.map((cat) => {
+              const active = category === cat.key;
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setCategory(cat.key)}
+                  className={`text-left rounded-lg border-2 p-3 transition ${
+                    active ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div
+                    className={`text-sm font-semibold ${active ? "text-blue-700" : "text-gray-800"}`}
+                  >
+                    {cat.label}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border p-6 space-y-4">
           <h2 className="font-semibold">Basic Information</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
@@ -176,20 +211,22 @@ export default function VehicleEditPage(): JSX.Element {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">Type</label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value as VehicleType)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                {(["4-seater", "6-seater", "LED"] as VehicleType[]).map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {category === "golf-cart" && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Type</label>
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value as VehicleType)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  {(["4-seater", "6-seater", "LED"] as VehicleType[]).map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">Seating</label>
               <input

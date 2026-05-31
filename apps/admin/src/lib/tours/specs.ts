@@ -112,15 +112,22 @@ const vehiclesTour: TourSpec = {
       popover: {
         title: "Inventory",
         description:
-          "Every vehicle in your fleet lives here. From this page you set whether it's for rent, sale, or both.",
+          "Every vehicle in your fleet lives here — golf carts, scooters, buggies, UTVs, jet skis, hover boards. From this page you set whether each one is for rent, sale, or both.",
       },
     },
     {
       element: '[data-tour="vehicles-add-button"]',
       popover: {
-        title: "Add a new cart",
+        title: "Add a new vehicle",
         description:
-          "Walks you through a 3-step form: details, photos, pricing. Vehicle becomes available the moment you publish.",
+          "Pick the category first (which storefront tab customers will see it under), then fill in name, photos, and pricing. It's bookable the moment you publish.",
+      },
+    },
+    {
+      popover: {
+        title: "Filter by category",
+        description:
+          "Use the pill row to scope the table to one category — handy when you want to bulk-update only the scooters or only the jet skis.",
       },
     },
     {

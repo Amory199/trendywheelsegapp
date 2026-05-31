@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { ListingType, Vehicle, VehicleStatus } from "@trendywheels/types";
+import type { ListingType, Vehicle, VehicleCategory, VehicleStatus } from "@trendywheels/types";
+import { VEHICLE_CATEGORIES } from "@trendywheels/types";
 import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import Link from "next/link";
@@ -32,6 +33,10 @@ const LISTING_LABEL: Record<ListingType, string> = {
   both: "Rent + Sale",
 };
 
+const CATEGORY_LABEL = Object.fromEntries(
+  VEHICLE_CATEGORIES.map((c) => [c.key, c.label]),
+) as Record<VehicleCategory, string>;
+
 export default function VehiclesPage(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
@@ -40,9 +45,11 @@ export default function VehiclesPage(): JSX.Element {
   const [bulkStatus, setBulkStatus] = useState<VehicleStatus>("inactive");
   const [search, setSearch] = useState("");
   const [listingFilter, setListingFilter] = useState<"all" | ListingType>("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | VehicleCategory>("all");
 
   const filtered = data.filter((v) => {
     if (listingFilter !== "all" && v.listingType !== listingFilter) return false;
+    if (categoryFilter !== "all" && v.category !== categoryFilter) return false;
     if (search) {
       const q = search.toLowerCase();
       return v.name.toLowerCase().includes(q) || v.location.toLowerCase().includes(q);
@@ -90,7 +97,7 @@ export default function VehiclesPage(): JSX.Element {
     <>
       <PageHeader
         title="Inventory"
-        subtitle={`${data.length} cart${data.length === 1 ? "" : "s"} · pick rent / sale / both per cart`}
+        subtitle={`${data.length} vehicle${data.length === 1 ? "" : "s"} · pick rent / sale / both per vehicle`}
         helpButton={<TourHelpButton pageKey="admin:vehicles" />}
         rightSlot={
           <Link
@@ -98,7 +105,7 @@ export default function VehiclesPage(): JSX.Element {
             data-tour="vehicles-add-button"
             className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition"
           >
-            + Add cart
+            + Add vehicle
           </Link>
         }
       />
@@ -132,6 +139,32 @@ export default function VehiclesPage(): JSX.Element {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="flex gap-2 flex-wrap items-center">
+          <button
+            onClick={() => setCategoryFilter("all")}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+              categoryFilter === "all"
+                ? "bg-primary-600 text-white border-primary-600"
+                : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            All categories
+          </button>
+          {VEHICLE_CATEGORIES.map((cat) => (
+            <button
+              key={cat.key}
+              onClick={() => setCategoryFilter(cat.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                categoryFilter === cat.key
+                  ? "bg-primary-600 text-white border-primary-600"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
         </div>
 
         {selected.size > 0 && (
@@ -182,14 +215,14 @@ export default function VehiclesPage(): JSX.Element {
         {!isLoading && data.length === 0 ? (
           <EmptyState
             icon="🚗"
-            title="No carts in your inventory yet"
-            description="Add your first cart — once it's published, it's instantly bookable in the customer app for rent, sale, or both."
+            title="No vehicles in your inventory yet"
+            description="Add your first vehicle — pick a category (golf cart, scooter, buggy, jet ski…) and once published, it's instantly bookable in the customer app."
             action={
               <Link
                 href="/vehicles/create"
                 className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition"
               >
-                + Add your first cart
+                + Add your first vehicle
               </Link>
             }
           />
@@ -207,6 +240,7 @@ export default function VehiclesPage(): JSX.Element {
                     />
                   </th>
                   <th className="text-left px-4 py-3">Name</th>
+                  <th className="text-left px-4 py-3">Category</th>
                   <th className="text-left px-4 py-3">Listing</th>
                   <th className="text-left px-4 py-3">Type</th>
                   <th className="text-left px-4 py-3">Seats</th>
@@ -218,14 +252,14 @@ export default function VehiclesPage(): JSX.Element {
               <tbody className="divide-y">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
                       Loading…
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
-                      No carts match the current filter or search. Try clearing them.
+                    <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                      No vehicles match the current filter or search. Try clearing them.
                     </td>
                   </tr>
                 ) : (
@@ -246,6 +280,9 @@ export default function VehiclesPage(): JSX.Element {
                           />
                         </td>
                         <td className="px-4 py-3 font-medium">{v.name}</td>
+                        <td className="px-4 py-3 text-xs text-gray-700">
+                          {CATEGORY_LABEL[v.category] ?? v.category}
+                        </td>
                         <td className="px-4 py-3">
                           <span
                             className={`text-xs font-medium px-2 py-0.5 rounded ${LISTING_STYLES[listing]}`}
@@ -253,7 +290,7 @@ export default function VehiclesPage(): JSX.Element {
                             {LISTING_LABEL[listing]}
                           </span>
                         </td>
-                        <td className="px-4 py-3">{v.type}</td>
+                        <td className="px-4 py-3">{v.category === "golf-cart" ? v.type : "—"}</td>
                         <td className="px-4 py-3">{v.seating}</td>
                         <td className="px-4 py-3 text-xs">
                           {listing !== "sale" && (
