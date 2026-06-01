@@ -39,9 +39,24 @@ if [ -f "$APP_DIR/apps/api/.env" ]; then
 fi
 pnpm --filter @trendywheels/db exec prisma migrate deploy
 
-# Reload PM2 without downtime
-echo "→ Reloading PM2..."
-pm2 reload "$APP_DIR/infra/ecosystem.config.js" --env production
+# Restart / reload PM2.
+#
+# Split strategy by app:
+#   - Next.js apps (admin, support, inventory, customer) are stateless HTTP
+#     servers — `pm2 reload` swaps workers gracefully so in-flight requests
+#     finish on the old worker while new traffic hits the new one. Zero
+#     downtime.
+#   - trendywheels-api holds long-lived TCP/WebSocket connections and
+#     trendywheels-workers owns BullMQ job leases; a graceful reload would
+#     leave both halves talking to Redis for the handoff window, risking
+#     double-processed jobs and split-brain socket state. A hard `pm2
+#     restart` is the safer call here — the API health-poll loop below
+#     absorbs the brief 502 window.
+echo "→ Reloading Next.js apps (zero-downtime)..."
+pm2 reload "$APP_DIR/infra/ecosystem.config.js" --only trendywheels-admin,trendywheels-support,trendywheels-inventory,trendywheels-customer --env production
+
+echo "→ Restarting API + workers (stateful: sockets + BullMQ)..."
+pm2 restart "$APP_DIR/infra/ecosystem.config.js" --only trendywheels-api,trendywheels-workers --env production
 
 mkdir -p "$LOG_DIR"
 echo "✓ Deploy complete at $(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_DIR/deploys.log"

@@ -1,0 +1,29 @@
+# TrendyWheels Postgres nightly backup -> MinIO
+#
+# Installs to root's crontab. Runs at 03:00 server time daily.
+# Script-side log:  /var/log/trendywheels/backup.log      (timestamped, structured)
+# Cron-side log:    /var/log/trendywheels/backup-cron.log (raw stdout/stderr per run)
+#
+# ── Crontab line (copy exactly) ──────────────────────────────────────────────
+0 3 * * * /opt/trendywheels/infra/scripts/backup-db.sh >> /var/log/trendywheels/backup-cron.log 2>&1
+
+# ── Install ──────────────────────────────────────────────────────────────────
+# 1. Make sure the log directory exists and is writable by root:
+#      sudo mkdir -p /var/log/trendywheels
+#
+# 2. Append the line above to root's crontab:
+#      sudo crontab -l 2>/dev/null | { cat; cat /opt/trendywheels/infra/scripts/backup-cron.txt | grep -v '^#'; } | sudo crontab -
+#
+#    Or interactively:
+#      sudo crontab -e
+#    then paste the single non-comment line.
+#
+# 3. Verify it is installed:
+#      sudo crontab -l | grep backup-db.sh
+#
+# 4. (Optional) Trigger a dry-run immediately to confirm cron PATH/env works:
+#      sudo /opt/trendywheels/infra/scripts/backup-db.sh
+#      tail -n 50 /var/log/trendywheels/backup.log
+#
+# ── Uninstall ────────────────────────────────────────────────────────────────
+#      sudo crontab -l | grep -v '/opt/trendywheels/infra/scripts/backup-db.sh' | sudo crontab -

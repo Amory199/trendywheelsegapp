@@ -30,4 +30,29 @@ router.get("/readyz", async (_req, res) => {
   res.status(allOk ? 200 : 503).json({ status: allOk ? "ready" : "not ready", checks });
 });
 
+router.get("/health", async (_req, res) => {
+  let db: "ok" | "fail" = "ok";
+  let redisStatus: "ok" | "fail" = "ok";
+
+  try {
+    await prisma.$queryRawUnsafe("SELECT 1");
+  } catch {
+    db = "fail";
+  }
+
+  try {
+    await redis.ping();
+  } catch {
+    redisStatus = "fail";
+  }
+
+  const allOk = db === "ok" && redisStatus === "ok";
+  res.status(allOk ? 200 : 503).json({
+    db,
+    redis: redisStatus,
+    uptime: process.uptime(),
+    version: process.env.npm_package_version ?? "unknown",
+  });
+});
+
 export { router as healthRoutes };

@@ -22,6 +22,7 @@ import { inventoryRoutes } from "./modules/inventory/routes.js";
 import { kbRoutes } from "./modules/kb/routes.js";
 import { maintenanceRoutes } from "./modules/maintenance/routes.js";
 import { messageRoutes } from "./modules/messages/routes.js";
+import { metricsMiddleware, metricsRoutes } from "./modules/metrics/routes.js";
 import { notificationRoutes } from "./modules/notifications/routes.js";
 import { orderRoutes } from "./modules/orders/routes.js";
 import { productRoutes } from "./modules/products/routes.js";
@@ -168,6 +169,11 @@ app.use((req, _res, next) => {
   next();
 });
 
+// Prometheus request-duration histogram — must run before route handlers so the
+// `res.on("finish")` listener it registers fires for every request, including
+// 404s. See modules/metrics/routes.ts.
+app.use(metricsMiddleware);
+
 // ─── Routes ──────────────────────────────────────────────────
 app.use("/", healthRoutes);
 // Mirror at /api/* so external probes that hit the API prefix also work.
@@ -190,6 +196,9 @@ app.use("/api/storage", storageRoutes);
 app.use("/api/kb", kbRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin", godModeRoutes);
+// Prometheus scrape endpoint — GET /api/metrics. Auth is a shared-secret
+// header (x-metrics-token === METRICS_TOKEN) handled inside the router.
+app.use("/api", metricsRoutes);
 // Diagnostics must be mounted before customerFeaturesRoutes — that router has
 // a top-level authenticate middleware that intercepts every request entering
 // its `/api` mount, which would block the public POST /api/client-errors.

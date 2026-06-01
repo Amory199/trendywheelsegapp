@@ -281,6 +281,7 @@ model Vehicle {
   @@index([status])
   @@index([type])
   @@index([listingType])
+  @@index([listingType, status])
   @@map("vehicles")
 }
 
@@ -339,6 +340,7 @@ model Booking {
   @@index([vehicleId])
   @@index([status])
   @@index([startDate, endDate])
+  @@index([userId, status])
   @@map("bookings")
 }
 
@@ -434,6 +436,7 @@ model RepairRequest {
   @@index([userId])
   @@index([vehicleId])
   @@index([status])
+  @@index([userId, status])
   @@map("repair_requests")
 }
 
@@ -472,6 +475,7 @@ model SalesListing {
   @@index([userId])
   @@index([status])
   @@index([price])
+  @@index([status, createdAt])
   @@map("sales_listings")
 }
 
