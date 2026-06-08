@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -118,6 +119,12 @@ export default function BookScreen(): JSX.Element {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       playSound("error");
       if (__DEV__) console.log("[book] POST /bookings failed:", err);
+      Alert.alert(
+        "Booking failed",
+        err instanceof Error
+          ? err.message
+          : "We couldn't complete your booking. Check your details and try again.",
+      );
     },
   });
 

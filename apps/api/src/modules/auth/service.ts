@@ -32,15 +32,25 @@ function generateOtp(): string {
 }
 
 // ⚠️ TRIAL BYPASS — REMOVE WHEN FIREBASE PHONE AUTH SHIPS.
-// Hardcoded test accounts for internal QA. These phones skip the OTP DB
-// round-trip and accept the fixed code below. Disabled by default; gated
-// by ENABLE_TRIAL_OTP_BYPASS in apps/api/.env.
-const TRIAL_OTP_BYPASS: Record<string, string> = {
+// Hardcoded test accounts that skip the OTP DB round-trip and accept the
+// fixed code below. Gated by ENABLE_TRIAL_OTP_BYPASS in apps/api/.env.
+//
+// PROD-SAFE: only the Apple App Review phone is enabled in production. The
+// staff/customer dev codes (admin/sales/support/Mohamed) stay dev-only so
+// guessable 6-digit codes don't unlock prod admin sessions.
+const APPLE_REVIEW_BYPASS: Record<string, string> = {
+  "+201234567000": "730284", // Apple App Review demo account
+};
+const DEV_ONLY_TRIAL_BYPASS: Record<string, string> = {
   "+201000000001": "111111", // Admin — Mostafa
   "+201000000010": "222222", // Sales — Amira
   "+201000000011": "333333", // Sales — Youssef
   "+201000000020": "444444", // Support — Layla
   "+201112223344": "555555", // Customer — Mohamed
+};
+const TRIAL_OTP_BYPASS: Record<string, string> = {
+  ...APPLE_REVIEW_BYPASS,
+  ...(env.NODE_ENV !== "production" ? DEV_ONLY_TRIAL_BYPASS : {}),
 };
 
 export function signAccessToken(payload: AuthPayload, expiresIn?: string): string {

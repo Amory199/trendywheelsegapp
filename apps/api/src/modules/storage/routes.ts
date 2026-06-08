@@ -25,7 +25,15 @@ const upload = multer({
 
 // Customer-facing prefixes are namespaced per-user; staff/admin may
 // upload to broader buckets (e.g. vehicle hero shots, KB attachments).
-const CUSTOMER_PREFIX_ALLOWLIST = ["uploads", "license-photos", "avatars", "reviews"];
+const CUSTOMER_PREFIX_ALLOWLIST = [
+  "uploads",
+  "license-photos",
+  "avatars",
+  "reviews",
+  "trade-ins",
+  "sales",
+  "rental-listings",
+];
 
 const router: RouterType = Router();
 

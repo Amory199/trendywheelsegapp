@@ -474,7 +474,7 @@ export default function LeadDetail(): React.JSX.Element {
               {lead.contactPhone ? (
                 <Pressable
                   style={[styles.actionBtn, { backgroundColor: "#25D366" }]}
-                  onPress={() => {
+                  onPress={async () => {
                     // Seed the AppState listener so the return-to-app prompt
                     // ("Did they reply?") fires the same way the call flow
                     // does. Then log the open and finally launch WhatsApp.
@@ -484,10 +484,15 @@ export default function LeadDetail(): React.JSX.Element {
                       startedAt: Date.now(),
                       awaiting: "whatsapp",
                     });
-                    logActivity.mutate({
-                      type: "whatsapp_sent",
-                      body: "Opened WhatsApp",
-                    });
+                    try {
+                      await logActivity.mutateAsync({
+                        type: "whatsapp_sent",
+                        body: "Opened WhatsApp",
+                      });
+                    } catch {
+                      // Swallow like the Call path — log failure shouldn't
+                      // block the WhatsApp launch.
+                    }
                     void Linking.openURL(`https://wa.me/${digits}`);
                   }}
                 >

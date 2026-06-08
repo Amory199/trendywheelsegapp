@@ -251,6 +251,7 @@ const styles = StyleSheet.create({
   priorityRow: { flexDirection: "row", gap: spacing.sm },
   priorityBtn: {
     flex: 1,
+    backgroundColor: colors.dark.card,
     borderWidth: 2,
     borderRadius: 10,
     paddingVertical: spacing.sm,

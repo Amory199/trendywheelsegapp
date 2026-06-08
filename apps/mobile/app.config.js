@@ -14,11 +14,17 @@ module.exports = {
     },
     assetBundlePatterns: ["**/*"],
     ios: {
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: "com.trendywheels.app",
       // On EAS, GOOGLE_SERVICES_PLIST is injected via file secret. Locally
       // it falls back to the gitignored plist next to this config.
       googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ?? "./GoogleService-Info.plist",
+      infoPlist: {
+        // HTTPS-only; no proprietary encryption. Apple's "exempt" category.
+        ITSAppUsesNonExemptEncryption: false,
+        NSPhotoLibraryUsageDescription:
+          "TrendyWheels uses your photo library so you can upload pictures of vehicles for trade-in, repair requests, and your profile.",
+      },
     },
     android: {
       adaptiveIcon: {
@@ -51,18 +57,29 @@ module.exports = {
       [
         "expo-build-properties",
         {
-          ios: { useFrameworks: "static" },
+          ios: { useFrameworks: "static", deploymentTarget: "17.0" },
+          // Android 15+ requires 16 KB page-size alignment. NDK r27+ + SDK 35
+          // produces 16KB-aligned native libs.
+          android: {
+            compileSdkVersion: 35,
+            targetSdkVersion: 35,
+            minSdkVersion: 24,
+            ndkVersion: "27.1.12297006",
+          },
         },
       ],
+      "./plugins/with-fmt-cpp17",
     ],
     experiments: {
       typedRoutes: true,
     },
-    // expo-updates fully disabled until we actually publish OTA updates.
-    // The url + runtimeVersion are intentionally omitted: with url set,
-    // EAS warns about a missing channel on every build even though we
-    // never fetch from it. Re-add both (plus channel in eas.json) when
-    // OTA goes live.
+    runtimeVersion: { policy: "appVersion" },
+    updates: {
+      url: "https://u.expo.dev/641975a5-54c8-49e4-aa3b-2519c084d0e1",
+      enabled: true,
+      checkAutomatically: "ON_LOAD",
+      fallbackToCacheTimeout: 0,
+    },
     owner: "amrco_19",
     extra: {
       eas: {

@@ -15,13 +15,15 @@ import { initSentry, Sentry } from "./utils/sentry.js";
 import { ensureBucket } from "./utils/storage.js";
 
 if (env.NODE_ENV === "production" && env.ENABLE_TRIAL_OTP_BYPASS) {
+  // Prod bypass is now scoped to APPLE_REVIEW_BYPASS only (the dev staff codes
+  // are NODE_ENV-gated in auth/service.ts). Warn loudly so this stays visible
+  // in the audit log and someone removes the flag after App Store approval.
   // eslint-disable-next-line no-console
-  console.error(
-    "[startup] REFUSING TO START: ENABLE_TRIAL_OTP_BYPASS=true in production. " +
-      "Hardcoded test OTPs (see auth/service.ts) would let anyone sign in as staff. " +
-      "Unset the flag or set NODE_ENV=development.",
+  console.warn(
+    "[startup] ENABLE_TRIAL_OTP_BYPASS=true in production. " +
+      "Only APPLE_REVIEW_BYPASS entries are active (see auth/service.ts). " +
+      "Remove this flag once the App Store submission is approved.",
   );
-  process.exit(1);
 }
 
 initSentry();

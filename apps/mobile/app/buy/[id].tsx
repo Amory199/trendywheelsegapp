@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as React from "react";
 import { useState } from "react";
-import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 
 import { api } from "../../lib/api";
 
@@ -43,9 +43,22 @@ export default function ProductDetailScreen(): React.JSX.Element {
       api.request<{ data: { id: string } }>("POST", "/api/orders", {
         body: { items: [{ productId: id, quantity: 1 }] },
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["my-orders"] });
-      router.push("/(tabs)/profile" as never);
+      const orderId = data?.data?.id;
+      Alert.alert(
+        "Order placed",
+        orderId
+          ? `Your order #${orderId.slice(0, 8)} is confirmed. You'll get updates via push and SMS.`
+          : "Your order is confirmed. You'll get updates via push and SMS.",
+        [{ text: "View my orders", onPress: () => router.push("/(tabs)/profile" as never) }],
+      );
+    },
+    onError: (err) => {
+      Alert.alert(
+        "Could not place order",
+        err instanceof Error ? err.message : "Please try again in a moment.",
+      );
     },
   });
 
