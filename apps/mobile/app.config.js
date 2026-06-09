@@ -64,8 +64,8 @@ module.exports = {
           // Android 15+ requires 16 KB page-size alignment. NDK r27+ + SDK 35
           // produces 16KB-aligned native libs.
           android: {
-            compileSdkVersion: 35,
-            targetSdkVersion: 35,
+            compileSdkVersion: 36,
+            targetSdkVersion: 36,
             minSdkVersion: 24,
             ndkVersion: "27.1.12297006",
           },

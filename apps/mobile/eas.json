@@ -44,7 +44,8 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.trendywheelseg.com",
-        "EXPO_PUBLIC_SENTRY_DSN": "https://93ce0c39e197aeac754e220bd597fc67@o4511359676252160.ingest.de.sentry.io/4511359744344144"
+        "EXPO_PUBLIC_SENTRY_DSN": "https://93ce0c39e197aeac754e220bd597fc67@o4511359676252160.ingest.de.sentry.io/4511359744344144",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     }
   },
@@ -53,7 +54,10 @@
       "ios": {
         "appleId": "admin@trendywheelseg.com",
         "ascAppId": "6777470914",
-        "appleTeamId": "P8RUCTV7DY"
+        "appleTeamId": "P8RUCTV7DY",
+        "ascApiKeyId": "559655S624",
+        "ascApiKeyIssuerId": "6eb5dee0-4436-4350-9cae-ab2fa7a632e5",
+        "ascApiKeyPath": "./credentials/AuthKey_559655S624.p8"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
