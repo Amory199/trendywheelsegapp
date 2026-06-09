@@ -89,6 +89,24 @@ MC=$(echo "$LEAD_AFTER" | jq '.data.messageCount')
 [ "$MC" = "1" ] || fail "messageCount=$MC (expected 1) — recordActivity not bumping on whatsapp_sent"
 pass "counters incremented correctly"
 
+# ─── 4b. Lead-assigned push payload ──────────────────────────
+# The round-robin should have notified the picked sales agent with
+# type=lead_assigned. v1.1 spec puts the source in body + data.
+note "4b. lead_assigned notification fired with source in payload"
+NOTIFS=$(curl -fsS -A "$SMOKE_UA" "$BASE/notifications?limit=10" \
+  -H "Authorization: Bearer $SALES_TOKEN") \
+  || fail "GET /notifications as sales failed"
+TOP_TYPE=$(echo "$NOTIFS" | jq -r '.data[0].type // empty')
+TOP_BODY=$(echo "$NOTIFS" | jq -r '.data[0].body // empty')
+TOP_SOURCE=$(echo "$NOTIFS" | jq -r '.data[0].data.source // empty')
+TOP_LEADID=$(echo "$NOTIFS" | jq -r '.data[0].data.leadId // empty')
+[ "$TOP_TYPE" = "lead_assigned" ] || fail "top notification type=$TOP_TYPE (expected lead_assigned)"
+[ "$TOP_LEADID" = "$LEAD_ID" ] || fail "top notification leadId=$TOP_LEADID (expected $LEAD_ID)"
+[ -n "$TOP_SOURCE" ] || fail "top notification missing data.source — v1.1 payload regression"
+echo "$TOP_BODY" | grep -q "$TOP_SOURCE" \
+  || fail "notification body '$TOP_BODY' missing source ($TOP_SOURCE)"
+pass "lead_assigned push payload carries source ($TOP_SOURCE)"
+
 # ─── 5. CRM rules surface new fields ─────────────────────────
 note "5. CRM rules (new fields + bumped defaults)"
 RULES=$(curl -fsS -A "$SMOKE_UA" "$BASE/crm/rules" -H "Authorization: Bearer $ADMIN_TOKEN")

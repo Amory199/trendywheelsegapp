@@ -159,9 +159,9 @@ export async function assignLeadRoundRobin(
   if (rules.notifyOnAssignment) {
     await notifyUser(chosen.id, `lead-assigned-${leadId}`, {
       type: "lead_assigned",
-      title: "New lead assigned",
-      body: `Call ${lead.contactName} within ${rules.firstCallWithinMinutes} minutes`,
-      data: { leadId, contactName: lead.contactName },
+      title: "New lead",
+      body: `${lead.contactName} (${lead.source}) — call within ${rules.firstCallWithinMinutes} min`,
+      data: { leadId, contactName: lead.contactName, source: lead.source },
     });
   }
 
