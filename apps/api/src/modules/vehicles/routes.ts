@@ -2,6 +2,7 @@ import {
   vehicleFiltersSchema,
   createVehicleSchema,
   updateVehicleSchema,
+  vehicleStatusChangeSchema,
   idParamSchema,
 } from "@trendywheels/validators";
 import { Router, type Router as RouterType } from "express";
@@ -35,6 +36,15 @@ router.delete(
   authorize("admin"),
   validate({ params: idParamSchema }),
   vehicleController.remove,
+);
+
+// Sales agents (staff) flip inventory status from mobile without the admin web.
+router.patch(
+  "/:id/status",
+  authenticate,
+  authorize("admin", "staff"),
+  validate({ params: idParamSchema, body: vehicleStatusChangeSchema }),
+  vehicleController.setStatus,
 );
 
 export { router as vehicleRoutes };

@@ -93,6 +93,15 @@ export const vehicleFiltersSchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).default(20),
 });
 
+// Sales-mobile inventory toggle (v1.1 feature #3). Sales agents may only
+// flip between these three statuses from mobile; admin web still owns the
+// maintenance / inactive transitions.
+export const vehicleStatusChangeSchema = z.object({
+  toStatus: z.enum(["available", "reserved", "sold"]),
+  customerId: z.string().uuid().nullish(),
+  dealNote: z.string().max(500).nullish(),
+});
+
 // ─── Bookings ────────────────────────────────────────────────
 
 const bookingStatusEnum = z.enum(["pending", "confirmed", "completed", "cancelled"]);

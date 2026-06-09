@@ -117,6 +117,8 @@ model User {
   pushTokens               PushToken[]
   rentalListings           RentalListing[]
   rentalListingsReviewed   RentalListing[]           @relation("RentalListingReviewer")
+  vehicleStatusChangesMade VehicleStatusChange[]     @relation("VscActor")
+  vehicleStatusChangesOn   VehicleStatusChange[]     @relation("VscCustomer")
 
   @@map("users")
 }
@@ -236,6 +238,8 @@ enum Transmission {
 enum VehicleStatus {
   available
   rented
+  reserved
+  sold
   maintenance
   inactive
 }
@@ -277,12 +281,36 @@ model Vehicle {
   reviews          Review[]
   products         Product[]
   rentalListings   RentalListing[]
+  statusChanges    VehicleStatusChange[]
 
   @@index([status])
   @@index([type])
   @@index([listingType])
   @@index([listingType, status])
   @@map("vehicles")
+}
+
+// Audit log of every vehicle-status mutation. Source of truth for v1.2
+// commission attribution: "who flipped this car to SOLD and for which deal?"
+// Customer is optional (admin-side internal adjustments have no customer);
+// dealNote is a free-text reference (e.g. "cash sale, plate #1234").
+model VehicleStatusChange {
+  id         String        @id @default(uuid()) @db.Uuid
+  vehicleId  String        @map("vehicle_id") @db.Uuid
+  fromStatus VehicleStatus @map("from_status")
+  toStatus   VehicleStatus @map("to_status")
+  actorId    String        @map("actor_id") @db.Uuid
+  customerId String?       @map("customer_id") @db.Uuid
+  dealNote   String?       @map("deal_note")
+  changedAt  DateTime      @default(now()) @map("changed_at")
+
+  vehicle  Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  actor    User    @relation("VscActor", fields: [actorId], references: [id])
+  customer User?   @relation("VscCustomer", fields: [customerId], references: [id])
+
+  @@index([vehicleId, changedAt])
+  @@index([actorId, changedAt])
+  @@map("vehicle_status_changes")
 }
 
 model VehicleImage {

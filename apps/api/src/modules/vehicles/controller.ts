@@ -182,3 +182,42 @@ export async function remove(req: Request, res: Response): Promise<void> {
 
   res.json({ success: true });
 }
+
+// PATCH /vehicles/:id/status — sales agents flip a vehicle between
+// available / reserved / sold without opening the admin web. Records a
+// vehicle_status_changes audit row that v1.2 commission attribution reads
+// to figure out who closed which car.
+export async function setStatus(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const { toStatus, customerId, dealNote } = req.body as {
+    toStatus: "available" | "reserved" | "sold";
+    customerId?: string | null;
+    dealNote?: string | null;
+  };
+
+  const existing = await prisma.vehicle.findUnique({ where: { id } });
+  if (!existing) throw AppError.notFound("Vehicle not found");
+  if (existing.status === toStatus) {
+    res.json({ data: existing });
+    return;
+  }
+
+  const updated = await prisma.$transaction(async (tx: Tx) => {
+    await tx.vehicleStatusChange.create({
+      data: {
+        vehicleId: id,
+        fromStatus: existing.status,
+        toStatus,
+        actorId: req.user!.userId,
+        customerId: customerId ?? null,
+        dealNote: dealNote ?? null,
+      },
+    });
+    return tx.vehicle.update({ where: { id }, data: { status: toStatus } });
+  });
+
+  const keys = await redis.keys(`${VEHICLES_CACHE_PREFIX}*`);
+  if (keys.length > 0) await redis.del(...keys);
+
+  res.json({ data: updated });
+}

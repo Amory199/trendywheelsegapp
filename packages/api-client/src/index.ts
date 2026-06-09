@@ -185,6 +185,19 @@ class ApiClient {
     return this.request("DELETE", `/api/vehicles/${encodeURIComponent(id)}`);
   }
 
+  // Sales-mobile inventory toggle (v1.1 feature #3). Limited to the three
+  // statuses sales agents own from mobile; admin web still drives the rest.
+  async setVehicleStatus(
+    id: string,
+    body: {
+      toStatus: "available" | "reserved" | "sold";
+      customerId?: string | null;
+      dealNote?: string | null;
+    },
+  ): Promise<ApiResponse<Vehicle>> {
+    return this.request("PATCH", `/api/vehicles/${encodeURIComponent(id)}/status`, { body });
+  }
+
   // ─── Bookings ────────────────────────────────────────────
 
   async getBookings(

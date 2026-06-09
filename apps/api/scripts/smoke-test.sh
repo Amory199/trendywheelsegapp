@@ -162,6 +162,41 @@ curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/notifications/push-tokens" \
   || fail "push-token registration failed"
 pass "push token registered"
 
+# ─── 10b. Sales inventory toggle (v1.1 feature #3) ───────────
+# A sales agent flips a real vehicle to reserved → sold and we check
+# the audit row + cache invalidation.
+note "10b. Sales inventory toggle (PATCH /vehicles/:id/status)"
+VEH_ID=$(curl -fsS -A "$SMOKE_UA" "$BASE/vehicles?limit=1" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.data[0].id // empty')
+[ -n "$VEH_ID" ] || fail "no vehicle to toggle — seed missing?"
+ORIG_STATUS=$(curl -fsS -A "$SMOKE_UA" "$BASE/vehicles/$VEH_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.data.status')
+
+# Sales flips → reserved
+curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/vehicles/$VEH_ID/status" \
+  -H "Authorization: Bearer $SALES_TOKEN" -H "$JSON" \
+  -d '{"toStatus":"reserved","dealNote":"smoke-test reserve"}' >/dev/null \
+  || fail "PATCH /vehicles/:id/status (sales→reserved) rejected"
+NEW=$(curl -fsS -A "$SMOKE_UA" "$BASE/vehicles/$VEH_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.data.status')
+[ "$NEW" = "reserved" ] || fail "status not persisted: $NEW (expected reserved)"
+pass "sales toggled to reserved"
+
+# Customer cannot
+HTTP=$(curl -s -o /dev/null -w "%{http_code}" -A "$SMOKE_UA" \
+  -XPATCH "$BASE/vehicles/$VEH_ID/status" \
+  -H "$JSON" -d '{"toStatus":"sold"}')
+[ "$HTTP" = "401" ] || [ "$HTTP" = "403" ] \
+  || fail "anonymous PATCH /status got $HTTP (expected 401/403)"
+pass "anonymous PATCH /status blocked"
+
+# Restore for idempotency
+curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/vehicles/$VEH_ID/status" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"toStatus\":\"$ORIG_STATUS\"}" >/dev/null \
+  || fail "restore PATCH /status failed"
+pass "status restored to $ORIG_STATUS"
+
 # ─── 11. CRM rules PATCH (admin-only widened auth) ───────────
 note "11. Admin can PATCH /crm/rules"
 curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/crm/rules" \
