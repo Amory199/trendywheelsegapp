@@ -22,14 +22,14 @@ import { api } from "../../lib/api";
 interface OrderItem {
   productId: string;
   quantity: number;
-  unitPrice: number | string;
+  unitPriceEgp: number | string;
   product?: { name?: string } | null;
 }
 
 interface Order {
   id: string;
   status: string;
-  total: number | string;
+  totalEgp: number | string;
   createdAt: string;
   items?: OrderItem[];
 }
@@ -108,7 +108,7 @@ export default function MyOrders(): React.JSX.Element {
                   <Text style={styles.meta}>
                     Order #{item.id.slice(0, 8)} · {new Date(item.createdAt).toLocaleDateString()}
                   </Text>
-                  <Text style={styles.amount}>EGP {Number(item.total).toLocaleString()}</Text>
+                  <Text style={styles.amount}>EGP {Number(item.totalEgp).toLocaleString()}</Text>
                 </View>
                 <View style={[styles.statusChip, { backgroundColor: tint }]}>
                   <Text style={styles.statusText}>{item.status}</Text>

@@ -13,13 +13,13 @@ import { api } from "../../../lib/api";
 interface OrderItem {
   productId: string;
   quantity: number;
-  unitPrice: number | string;
+  unitPriceEgp: number | string;
   product?: { name?: string } | null;
 }
 interface Order {
   id: string;
   status: string;
-  total: number | string;
+  totalEgp: number | string;
   createdAt: string;
   items?: OrderItem[];
 }
@@ -62,7 +62,7 @@ export default function OrderDetail(): React.JSX.Element {
           <View style={styles.card}>
             <Text style={styles.label}>Total</Text>
             <Text style={[styles.value, { color: colors.brand.ecoLimelight }]}>
-              EGP {Number(q.data.total).toLocaleString()}
+              EGP {Number(q.data.totalEgp).toLocaleString()}
             </Text>
           </View>
 
@@ -72,11 +72,11 @@ export default function OrderDetail(): React.JSX.Element {
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemName}>{it.product?.name ?? "Item"}</Text>
                 <Text style={styles.itemMeta}>
-                  {it.quantity} × EGP {Number(it.unitPrice).toLocaleString()}
+                  {it.quantity} × EGP {Number(it.unitPriceEgp).toLocaleString()}
                 </Text>
               </View>
               <Text style={styles.itemTotal}>
-                EGP {(Number(it.unitPrice) * it.quantity).toLocaleString()}
+                EGP {(Number(it.unitPriceEgp) * it.quantity).toLocaleString()}
               </Text>
             </View>
           ))}
