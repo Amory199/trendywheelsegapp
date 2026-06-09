@@ -46,6 +46,9 @@ module.exports = {
       "expo-font",
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
+      "@react-native-community/datetimepicker",
+      "@sentry/react-native",
+      "expo-video",
       [
         "expo-notifications",
         {
@@ -69,6 +72,7 @@ module.exports = {
         },
       ],
       "./plugins/with-fmt-cpp17",
+      "./plugins/with-rnfb-modular-headers",
     ],
     experiments: {
       typedRoutes: true,

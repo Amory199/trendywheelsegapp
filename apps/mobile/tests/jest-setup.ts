@@ -24,8 +24,74 @@ jest.mock("expo-router", () => {
   };
 });
 
-// react-native-reanimated — official mock from the lib
-jest.mock("react-native-reanimated", () => require("react-native-reanimated/mock"));
+// react-native-worklets — reanimated 4 imports this at module init and tries
+// to touch native worklets, which crashes under jest. Stub the surface so the
+// reanimated mock loads cleanly.
+jest.mock("react-native-worklets", () => ({
+  runOnJS: (fn: (...args: unknown[]) => unknown) => fn,
+  runOnUI: (fn: (...args: unknown[]) => unknown) => fn,
+  createWorkletRuntime: () => ({}),
+  isWorkletFunction: () => false,
+  __esModule: true,
+}));
+
+// react-native-reanimated — reanimated 4's official mock pulls in the real
+// index which requires native worklets. Provide an identity-style minimal
+// surface covering the entrypoints the app touches (FadeIn family, Animated
+// View/Text/Image/ScrollView, useSharedValue/useAnimatedStyle).
+jest.mock("react-native-reanimated", () => {
+  const React = require("react");
+  const identity: Record<string, any> = {};
+  Object.assign(identity, {
+    delay: () => identity,
+    duration: () => identity,
+    springify: () => identity,
+    damping: () => identity,
+    mass: () => identity,
+    stiffness: () => identity,
+    overshootClamping: () => identity,
+    restDisplacementThreshold: () => identity,
+    restSpeedThreshold: () => identity,
+    withInitialValues: () => identity,
+    randomDelay: () => identity,
+    build: () => () => ({}),
+  });
+  const passthrough = (name: string) =>
+    React.forwardRef((p: any, ref: any) => React.createElement(name, { ...p, ref }));
+  const known: Record<string, any> = {
+    __esModule: true,
+    default: {
+      View: passthrough("View"),
+      Text: passthrough("Text"),
+      Image: passthrough("Image"),
+      ScrollView: passthrough("ScrollView"),
+      createAnimatedComponent: (C: any) => C,
+    },
+    View: passthrough("View"),
+    Text: passthrough("Text"),
+    Image: passthrough("Image"),
+    ScrollView: passthrough("ScrollView"),
+    createAnimatedComponent: (C: any) => C,
+    useSharedValue: (v: unknown) => ({ value: v }),
+    useAnimatedStyle: (fn: () => unknown) => fn(),
+    useDerivedValue: (fn: () => unknown) => ({ value: fn() }),
+    withSpring: (v: unknown) => v,
+    withTiming: (v: unknown) => v,
+    withRepeat: (v: unknown) => v,
+    withDelay: (_d: number, v: unknown) => v,
+    Easing: { linear: () => 0, ease: () => 0, inOut: () => 0 },
+    runOnJS: (fn: (...args: unknown[]) => unknown) => fn,
+    runOnUI: (fn: (...args: unknown[]) => unknown) => fn,
+  };
+  // Any other property (FadeIn, FadeInRight, SlideInUp, BounceOut, etc.) is
+  // returned as the chainable identity.
+  return new Proxy(known, {
+    get(target, prop) {
+      if (prop in target) return (target as any)[prop];
+      return identity;
+    },
+  });
+});
 
 // expo-haptics — silent on tests
 jest.mock("expo-haptics", () => ({

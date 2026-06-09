@@ -13,10 +13,6 @@ jest.mock("../../lib/sounds", () => ({
   playSound: jest.fn(),
 }));
 
-// react-native-reanimated requires an explicit mock; otherwise FadeInDown
-// pulls in worklets that crash under jest-expo.
-jest.mock("react-native-reanimated", () => require("react-native-reanimated/mock"));
-
 // Avoid pulling the native DateTimePicker module — the picker is rendered
 // only after a user tap, so stubbing to null is safe for these tests.
 jest.mock("@react-native-community/datetimepicker", () => () => null);
