@@ -27,6 +27,7 @@ import { useTheme } from "../../../lib/use-theme";
 
 import { CadenceStrip, type CrmRules } from "./_components/CadenceStrip";
 import { DetailField } from "./_components/DetailField";
+import { LeadActionsBar } from "./_components/LeadActionsBar";
 import { makeStyles } from "./_components/styles";
 
 type ActivityType =
@@ -461,78 +462,34 @@ export default function LeadDetail(): React.JSX.Element {
               </View>
             </View>
 
-            <View style={styles.actionsRow}>
-              {lead.contactPhone ? (
-                <Pressable
-                  style={[styles.actionBtn, { backgroundColor: colors.brand.friendlyBlue }]}
-                  onPress={() => void onCallPressed()}
-                >
-                  <Ionicons name="call" size={14} color="#fff" />
-                  <Text style={styles.actionBtnText}>Call</Text>
-                </Pressable>
-              ) : null}
-              {lead.contactPhone ? (
-                <Pressable
-                  style={[styles.actionBtn, { backgroundColor: "#25D366" }]}
-                  onPress={async () => {
-                    // Seed the AppState listener so the return-to-app prompt
-                    // ("Did they reply?") fires the same way the call flow
-                    // does. Then log the open and finally launch WhatsApp.
-                    const digits = lead.contactPhone?.replace(/[^0-9]/g, "") ?? "";
-                    setPendingCall({
-                      phone: digits,
-                      startedAt: Date.now(),
-                      awaiting: "whatsapp",
-                    });
-                    try {
-                      await logActivity.mutateAsync({
-                        type: "whatsapp_sent",
-                        body: "Opened WhatsApp",
-                      });
-                    } catch {
-                      // Swallow like the Call path — log failure shouldn't
-                      // block the WhatsApp launch.
-                    }
-                    const text = encodeURIComponent(initialGreeting(lead.contactName));
-                    void Linking.openURL(`https://wa.me/${digits}?text=${text}`);
-                  }}
-                >
-                  <Ionicons name="logo-whatsapp" size={14} color="#fff" />
-                  <Text style={styles.actionBtnText}>WA</Text>
-                </Pressable>
-              ) : null}
-              {/* "Pass to next agent" replaces the old Claim affordance. Sales
-                  presses this when they can't progress the lead; the backend
-                  rotates to another round-robin pick (excluding everyone who
-                  has tried) or parks the lead inactive after 5 rotations. */}
-              {!isAdmin && lead.ownerId ? (
-                <Pressable
-                  style={[styles.actionBtn, { backgroundColor: colors.brand.poolBlue }]}
-                  onPress={() =>
-                    Alert.alert(
-                      "Pass to next agent?",
-                      "This lead will be reassigned to another sales agent and removed from your pipeline.",
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        { text: "Pass on", style: "destructive", onPress: () => rotate.mutate() },
-                      ],
-                    )
-                  }
-                >
-                  <Ionicons name="swap-horizontal" size={14} color="#fff" />
-                  <Text style={styles.actionBtnText}>Pass</Text>
-                </Pressable>
-              ) : null}
-              {isAdmin ? (
-                <Pressable
-                  style={[styles.actionBtn, { backgroundColor: colors.brand.trendyPink }]}
-                  onPress={() => setReassignModal(true)}
-                >
-                  <Ionicons name="swap-horizontal" size={14} color="#fff" />
-                  <Text style={styles.actionBtnText}>Reassign</Text>
-                </Pressable>
-              ) : null}
-            </View>
+            <LeadActionsBar
+              contactPhone={lead.contactPhone}
+              isAdmin={isAdmin}
+              canPass={!!lead.ownerId}
+              onCall={() => void onCallPressed()}
+              onWhatsApp={async () => {
+                // Seed the AppState listener so the return-to-app prompt
+                // ("Did they reply?") fires the same way the call flow does.
+                const digits = lead.contactPhone?.replace(/[^0-9]/g, "") ?? "";
+                setPendingCall({
+                  phone: digits,
+                  startedAt: Date.now(),
+                  awaiting: "whatsapp",
+                });
+                try {
+                  await logActivity.mutateAsync({
+                    type: "whatsapp_sent",
+                    body: "Opened WhatsApp",
+                  });
+                } catch {
+                  // Swallow like the Call path — log failure shouldn't block.
+                }
+                const text = encodeURIComponent(initialGreeting(lead.contactName));
+                void Linking.openURL(`https://wa.me/${digits}?text=${text}`);
+              }}
+              onPass={() => rotate.mutate()}
+              onReassign={() => setReassignModal(true)}
+            />
 
             {/* Cadence chips — 4 calls / 4 messages per 2 days, ≥4h between */}
             <CadenceStrip
