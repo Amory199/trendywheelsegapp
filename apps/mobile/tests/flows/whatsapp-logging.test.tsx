@@ -136,7 +136,11 @@ describe("Lead detail · WA + Call activity logging", () => {
     fireEvent.press(waBtn);
 
     await waitFor(() => {
-      expect(Linking.openURL).toHaveBeenCalledWith(expect.stringContaining("wa.me/201234567890"));
+      const url = (Linking.openURL as jest.Mock).mock.calls[0][0] as string;
+      expect(url).toMatch(/^https:\/\/wa\.me\/201234567890\?text=.+/);
+      const text = decodeURIComponent(url.split("?text=")[1] ?? "");
+      expect(text).toContain("أهلاً Jane Doe");
+      expect(text).toContain("Hi Jane Doe");
     });
   });
 

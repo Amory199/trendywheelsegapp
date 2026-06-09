@@ -19,6 +19,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { initialGreeting } from "../../lib/lead-templates";
 import { useTheme } from "../../lib/use-theme";
 
 interface Lead {
@@ -301,11 +302,11 @@ export default function CrmPipeline(): React.JSX.Element {
                     <View style={{ flexDirection: "row", gap: 6 }}>
                       <Pressable
                         hitSlop={6}
-                        onPress={() =>
-                          void Linking.openURL(
-                            `https://wa.me/${item.contactPhone!.replace(/[^0-9]/g, "")}`,
-                          )
-                        }
+                        onPress={() => {
+                          const digits = item.contactPhone!.replace(/[^0-9]/g, "");
+                          const text = encodeURIComponent(initialGreeting(item.contactName));
+                          void Linking.openURL(`https://wa.me/${digits}?text=${text}`);
+                        }}
                         style={[styles.callBtn, { backgroundColor: "#25D366" }]}
                       >
                         <Ionicons name="logo-whatsapp" size={14} color="#fff" />

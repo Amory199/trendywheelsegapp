@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-store";
-import { followUpAfterNoAnswer } from "../../../lib/lead-templates";
+import { followUpAfterNoAnswer, initialGreeting } from "../../../lib/lead-templates";
 import { playSound } from "../../../lib/sounds";
 import { useTheme } from "../../../lib/use-theme";
 
@@ -493,7 +493,8 @@ export default function LeadDetail(): React.JSX.Element {
                       // Swallow like the Call path — log failure shouldn't
                       // block the WhatsApp launch.
                     }
-                    void Linking.openURL(`https://wa.me/${digits}`);
+                    const text = encodeURIComponent(initialGreeting(lead.contactName));
+                    void Linking.openURL(`https://wa.me/${digits}?text=${text}`);
                   }}
                 >
                   <Ionicons name="logo-whatsapp" size={14} color="#fff" />
