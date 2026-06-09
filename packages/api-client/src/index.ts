@@ -185,6 +185,21 @@ class ApiClient {
     return this.request("DELETE", `/api/vehicles/${encodeURIComponent(id)}`);
   }
 
+  // Customer-facing "my orders" list. Backend filters to the caller's userId
+  // via the auth middleware; no query params needed.
+  async getMyOrders(): Promise<ApiResponse<unknown[]>> {
+    return this.request("GET", "/api/orders");
+  }
+
+  async getOrder(id: string): Promise<ApiResponse<unknown>> {
+    return this.request("GET", `/api/orders/${encodeURIComponent(id)}`);
+  }
+
+  // Admin-only: every order across the platform.
+  async getAllOrders(): Promise<ApiResponse<unknown[]>> {
+    return this.request("GET", "/api/orders/admin/all");
+  }
+
   // Sales-mobile inventory toggle (v1.1 feature #3). Limited to the three
   // statuses sales agents own from mobile; admin web still drives the rest.
   async setVehicleStatus(

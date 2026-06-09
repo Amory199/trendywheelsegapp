@@ -71,6 +71,11 @@ export default function ProfileScreen(): React.JSX.Element {
     queryFn: () => api.getUnreadMessageCount().catch(() => ({ count: 0 })),
     enabled: !!user,
   });
+  const ordersQ = useQuery({
+    queryKey: ["my-orders"],
+    queryFn: () => api.getMyOrders().catch(() => ({ data: [] })),
+    enabled: !!user,
+  });
 
   // Signed-out fallback.
   if (!user) {
@@ -111,8 +116,11 @@ export default function ProfileScreen(): React.JSX.Element {
     (rentalsQ.data as { data?: unknown[] } | undefined)?.data?.length ??
     0;
   const unreadCount = unreadQ.data?.count ?? 0;
+  const ordersCount = (ordersQ.data as { data?: unknown[] } | undefined)?.data?.length ?? 0;
 
   const latestBooking = (bookingsQ.data as { data?: Array<{ status?: string }> } | undefined)
+    ?.data?.[0];
+  const latestOrder = (ordersQ.data as { data?: Array<{ status?: string }> } | undefined)
     ?.data?.[0];
   const latestRepair = (repairsQ.data as { data?: Array<{ status?: string }> } | undefined)
     ?.data?.[0];
@@ -164,6 +172,22 @@ export default function ProfileScreen(): React.JSX.Element {
           }
           tone="blue"
           onPress={() => router.push("/rent/my-bookings")}
+        />
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.duration(430).delay(210)}>
+        <ActivityCard
+          icon="bag-outline"
+          title="My orders"
+          subtitle={
+            ordersCount === 0
+              ? "No purchases yet"
+              : latestOrder?.status
+                ? `${ordersCount} total · latest: ${latestOrder.status}`
+                : `${ordersCount} total`
+          }
+          tone="pink"
+          onPress={() => router.push("/buy/my-orders")}
         />
       </Animated.View>
 

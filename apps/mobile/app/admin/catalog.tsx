@@ -41,6 +41,13 @@ const TOOLS: Tool[] = [
     tint: colors.brand.trendyPink,
   },
   {
+    icon: "bag-handle-outline",
+    label: "Orders",
+    sub: "Customer purchases + fulfillment",
+    route: "/admin/orders",
+    tint: colors.brand.ecoLimelight,
+  },
+  {
     icon: "settings-outline",
     label: "System config",
     sub: "Company, tax, hours",

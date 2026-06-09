@@ -105,6 +105,10 @@ export async function assignLeadRoundRobin(
   const agents = await prisma.user.findMany({
     where: {
       status: "active",
+      // Staff accounts can have staffRole=null transitionally (e.g. mid-edit).
+      // Gating on accountType first guarantees we never silently skip a sales
+      // agent because their role hasn't been written yet.
+      accountType: { in: ["admin", "staff"] },
       OR: [{ staffRole: "sales" }, { staffRole: "admin" }],
       id: { notIn: excludeAgentIds },
     },
