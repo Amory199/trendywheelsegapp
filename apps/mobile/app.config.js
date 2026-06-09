@@ -24,6 +24,13 @@ module.exports = {
         ITSAppUsesNonExemptEncryption: false,
         NSPhotoLibraryUsageDescription:
           "TrendyWheels uses your photo library so you can upload pictures of vehicles for trade-in, repair requests, and your profile.",
+        // Required for Firebase Phone Auth silent-push device verification.
+        // Without this, iOS drops Firebase's silent verification push and the
+        // SDK falls back to a reCAPTCHA webview (which then network-errors
+        // on some carriers). APNs key upload to Firebase is necessary but
+        // not sufficient — the app must be allowed to receive remote pushes
+        // in the background or the silent verification message never arrives.
+        UIBackgroundModes: ["remote-notification"],
       },
     },
     android: {
