@@ -82,7 +82,7 @@ export default function PhoneScreen(): JSX.Element {
             I agree to the{" "}
             <Text
               style={styles.consentLink}
-              onPress={() => void Linking.openURL("https://trendywheelseg.com/privacy")}
+              onPress={() => void Linking.openURL("https://app.trendywheelseg.com/legal/privacy")}
             >
               Privacy Policy
             </Text>{" "}
