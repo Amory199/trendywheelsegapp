@@ -167,6 +167,8 @@ function CreateStaffDrawer({
   });
   const [error, setError] = useState<string | null>(null);
 
+  const isAdminRole = form.staffRole === "admin";
+
   const create = useMutation({
     mutationFn: () => {
       // Non-admin staff log in via phone+OTP, so omit email/password entirely
@@ -180,7 +182,6 @@ function CreateStaffDrawer({
     onError: (e: Error) => setError(e.message),
   });
 
-  const isAdminRole = form.staffRole === "admin";
   const valid =
     form.name.trim().length > 0 &&
     form.phone.length >= 6 &&
