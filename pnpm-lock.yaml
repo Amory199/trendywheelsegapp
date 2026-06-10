@@ -460,6 +460,9 @@ importers:
       '@react-native-firebase/app':
         specifier: ^24.1.0
         version: 24.1.0(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      '@react-native-firebase/app-check':
+        specifier: ^24.1.0
+        version: 24.1.1(@react-native-firebase/app@24.1.0(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(expo@54.0.35)
       '@react-native-firebase/auth':
         specifier: ^24.1.0
         version: 24.1.0(@react-native-firebase/app@24.1.0(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(expo@54.0.35)
@@ -3578,6 +3581,15 @@ packages:
     resolution: {integrity: sha512-k3+si3kSUNw2Er7vv9XJ4enEzZSGu1d1N1pD885vXIf6d1wn0gLqAzwnMJ0/O8OHrAYiHtUErtbLd0NwJ4+XMQ==}
     peerDependencies:
       '@react-native-firebase/app': 24.1.0
+      expo: '>=47.0.0'
+    peerDependenciesMeta:
+      expo:
+        optional: true
+
+  '@react-native-firebase/app-check@24.1.1':
+    resolution: {integrity: sha512-2keZYpURmuYDVAL/s66sISvG5O+gj1IsxbX3Him/UKGP0oIozbtTWA4gtCI+H0hGOchpVtoyhMshwmN15j+DUw==}
+    peerDependencies:
+      '@react-native-firebase/app': 24.1.1
       expo: '>=47.0.0'
     peerDependenciesMeta:
       expo:
@@ -13938,6 +13950,12 @@ snapshots:
     dependencies:
       '@react-native-firebase/app': 24.1.0(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       superstruct: 2.0.2
+    optionalDependencies:
+      expo: 54.0.35(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(graphql@15.8.0)(react-native@0.81.5(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+
+  '@react-native-firebase/app-check@24.1.1(@react-native-firebase/app@24.1.0(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(expo@54.0.35)':
+    dependencies:
+      '@react-native-firebase/app': 24.1.0(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
     optionalDependencies:
       expo: 54.0.35(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(graphql@15.8.0)(react-native@0.81.5(@babel/core@7.29.0)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
 

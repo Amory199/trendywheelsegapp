@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { initAppCheck } from "../lib/app-check";
 import { useAuth } from "../lib/auth-store";
 import { installMobileErrorReporter } from "../lib/error-reporter";
 import { routeNotification } from "../lib/notification-router";
@@ -16,6 +17,10 @@ try {
 } catch {
   // never let error reporting break boot
 }
+
+// Kick off App Check attestation as early as possible so a token is ready
+// before the first phone-auth call. Fire-and-forget; it self-guards.
+void initAppCheck();
 
 const queryClient = new QueryClient({
   defaultOptions: {
