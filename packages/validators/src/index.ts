@@ -567,13 +567,21 @@ export const updateTransportRequestSchema = z.object({
 
 // ─── Staff CRUD (admin → users) ──────────────────────────────
 
-export const createStaffSchema = z.object({
-  name: z.string().min(1).max(100),
-  email: z.string().email(),
-  phone: z.string().min(6).max(40),
-  password: z.string().min(8).max(72),
-  staffRole: z.enum(["admin", "sales", "support", "inventory", "mechanic"]),
-});
+// Staff login via phone+OTP like everyone else, so name+phone is enough.
+// Email+password are only required when role=admin (admin web login still
+// uses email+password — phone OTP isn't wired into the admin dashboard).
+export const createStaffSchema = z
+  .object({
+    name: z.string().min(1).max(100),
+    phone: z.string().min(6).max(40),
+    email: z.string().email().optional(),
+    password: z.string().min(8).max(72).optional(),
+    staffRole: z.enum(["admin", "sales", "support", "inventory", "mechanic"]),
+  })
+  .refine((data) => data.staffRole !== "admin" || (data.email && data.password), {
+    message: "Admins require email and password (used for web login).",
+    path: ["password"],
+  });
 
 export const requestAccountDeletionSchema = z.object({
   email: z.string().email(),

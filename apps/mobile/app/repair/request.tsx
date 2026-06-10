@@ -138,19 +138,25 @@ export default function RepairRequestScreen(): JSX.Element {
         <Animated.View entering={FadeInDown.delay(150).springify()}>
           <Text style={styles.label}>Priority</Text>
           <View style={styles.priorityRow}>
-            {PRIORITIES.map((p) => (
-              <Pressable
-                key={p.key}
-                style={[
-                  styles.priorityBtn,
-                  { borderColor: p.color },
-                  priority === p.key && { backgroundColor: `${p.color}22` },
-                ]}
-                onPress={() => setPriority(p.key)}
-              >
-                <Text style={[styles.priorityLabel, { color: p.color }]}>{p.label}</Text>
-              </Pressable>
-            ))}
+            {PRIORITIES.map((p) => {
+              const selected = priority === p.key;
+              return (
+                <Pressable
+                  key={p.key}
+                  style={[
+                    styles.priorityBtn,
+                    selected
+                      ? { backgroundColor: p.color, borderColor: p.color }
+                      : { backgroundColor: colors.dark.card, borderColor: `${p.color}55` },
+                  ]}
+                  onPress={() => setPriority(p.key)}
+                >
+                  <Text style={[styles.priorityLabel, { color: selected ? "#fff" : p.color }]}>
+                    {p.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </Animated.View>
 

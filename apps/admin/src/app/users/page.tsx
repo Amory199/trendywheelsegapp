@@ -168,16 +168,23 @@ function CreateStaffDrawer({
   const [error, setError] = useState<string | null>(null);
 
   const create = useMutation({
-    mutationFn: () => authedFetch("/api/users", { method: "POST", body: JSON.stringify(form) }),
+    mutationFn: () => {
+      // Non-admin staff log in via phone+OTP, so omit email/password entirely
+      // — sending empty strings would trip the backend's email-validation gate.
+      const payload = isAdminRole
+        ? form
+        : { name: form.name, phone: form.phone, staffRole: form.staffRole };
+      return authedFetch("/api/users", { method: "POST", body: JSON.stringify(payload) });
+    },
     onSuccess: onCreated,
     onError: (e: Error) => setError(e.message),
   });
 
+  const isAdminRole = form.staffRole === "admin";
   const valid =
     form.name.trim().length > 0 &&
-    /\S+@\S+/.test(form.email) &&
     form.phone.length >= 6 &&
-    form.password.length >= 8;
+    (!isAdminRole || (/\S+@\S+/.test(form.email) && form.password.length >= 8));
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
@@ -189,7 +196,9 @@ function CreateStaffDrawer({
           <div>
             <h2 className="text-xl font-bold">New staff member</h2>
             <p className="text-xs text-gray-500 mt-1">
-              Sales / support / inventory / mechanic / admin.
+              Staff = sales + inventory + support + repairs in one. Admin = full superadmin (also
+              gets the web dashboard). Both log in by phone+OTP; admin also keeps an email+password
+              for the web.
             </p>
           </div>
           <button
@@ -207,24 +216,28 @@ function CreateStaffDrawer({
             onChange={(v) => setForm({ ...form, name: v })}
           />
           <Field
-            label="Email"
-            type="email"
-            value={form.email}
-            onChange={(v) => setForm({ ...form, email: v })}
-          />
-          <Field
             label="Phone"
             value={form.phone}
             onChange={(v) => setForm({ ...form, phone: v })}
             placeholder="+201234567890"
           />
-          <Field
-            label="Temporary password"
-            type="password"
-            value={form.password}
-            onChange={(v) => setForm({ ...form, password: v })}
-            placeholder="≥ 8 characters"
-          />
+          {isAdminRole && (
+            <>
+              <Field
+                label="Email (admin web login)"
+                type="email"
+                value={form.email}
+                onChange={(v) => setForm({ ...form, email: v })}
+              />
+              <Field
+                label="Temporary password (admin web login)"
+                type="password"
+                value={form.password}
+                onChange={(v) => setForm({ ...form, password: v })}
+                placeholder="≥ 8 characters"
+              />
+            </>
+          )}
           <div>
             <label className="text-xs font-medium text-gray-500 block mb-1">Role</label>
             <select
@@ -234,11 +247,8 @@ function CreateStaffDrawer({
               }
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
             >
-              <option value="sales">Sales agent</option>
-              <option value="support">Support agent</option>
-              <option value="inventory">Inventory / fleet</option>
-              <option value="mechanic">Mechanic</option>
-              <option value="admin">Admin (full access)</option>
+              <option value="sales">Staff (sales + inventory + support + repairs)</option>
+              <option value="admin">Admin (full access + web dashboard)</option>
             </select>
           </div>
         </div>

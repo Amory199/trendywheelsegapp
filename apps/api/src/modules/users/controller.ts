@@ -271,21 +271,28 @@ export async function enable(req: Request, res: Response): Promise<void> {
 
 export async function createStaff(req: Request, res: Response): Promise<void> {
   const input = createStaffSchema.parse(req.body);
+  const conflictFilters: { email?: string; phone?: string }[] = [{ phone: input.phone }];
+  if (input.email) conflictFilters.push({ email: input.email });
   const existing = await prisma.user.findFirst({
-    where: { OR: [{ email: input.email }, { phone: input.phone }] },
+    where: { OR: conflictFilters },
     select: { id: true, email: true, phone: true },
   });
   if (existing) {
     throw AppError.conflict(
-      existing.email === input.email ? "Email already in use" : "Phone already in use",
+      input.email && existing.email === input.email
+        ? "Email already in use"
+        : "Phone already in use",
       "USER_EXISTS",
     );
   }
-  const passwordHash = await bcrypt.hash(input.password, 12);
+  // Non-admin staff log in via phone+OTP, so a password hash isn't needed.
+  // Admin web login still uses email+password — schema enforces both present
+  // when staffRole === "admin".
+  const passwordHash = input.password ? await bcrypt.hash(input.password, 12) : null;
   const user = await prisma.user.create({
     data: {
       name: input.name,
-      email: input.email,
+      email: input.email ?? null,
       phone: input.phone,
       passwordHash,
       accountType: input.staffRole === "admin" ? "admin" : "staff",
