@@ -114,6 +114,8 @@ export default function AdminLayout(): JSX.Element {
       <Tabs.Screen name="leads/inactive" options={{ href: null }} />
       <Tabs.Screen name="leads/[id]" options={{ href: null }} />
       <Tabs.Screen name="orders/index" options={{ href: null }} />
+      <Tabs.Screen name="sales-team/index" options={{ href: null }} />
+      <Tabs.Screen name="sales-team/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

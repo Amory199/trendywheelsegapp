@@ -544,7 +544,12 @@ class ApiClient {
     return this.request("GET", "/api/crm/pipeline");
   }
 
-  async crmLeads(params?: { status?: string; q?: string }): Promise<{ data: unknown[] }> {
+  // ownerId filters to one agent's leads; pass "unassigned" for the pool.
+  async crmLeads(params?: {
+    status?: string;
+    q?: string;
+    ownerId?: string;
+  }): Promise<{ data: unknown[] }> {
     return this.request("GET", "/api/crm/leads", {
       params: { limit: 100, ...params } as Record<string, string | number | boolean | undefined>,
     });
@@ -609,6 +614,17 @@ class ApiClient {
 
   async crmTeam(): Promise<{ data: unknown[] }> {
     return this.request("GET", "/api/crm/team");
+  }
+
+  // Admin-only: set an agent's monthly sales target (EGP). Mirrors to
+  // user.salesTargetMonthly when month is the current month.
+  async adminSetSalesTarget(payload: {
+    agentId: string;
+    targetMonthly: number;
+    month: string;
+    commissionPct?: number;
+  }): Promise<{ data: Record<string, unknown> }> {
+    return this.request("POST", "/api/admin/sales-targets", { body: payload });
   }
 
   async crmRules(): Promise<{ data: Record<string, unknown> }> {

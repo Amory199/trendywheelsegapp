@@ -74,16 +74,32 @@ export default function CrmLayout(): JSX.Element {
         }}
       />
       <Tabs.Screen
-        name="team"
+        name="repairs/index"
         options={{
-          title: "Team",
+          title: "Repairs",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "people" : "people-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "construct" : "construct-outline"} size={22} color={color} />
           ),
         }}
       />
+      <Tabs.Screen
+        name="tickets/index"
+        options={{
+          title: "Support",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "headset" : "headset-outline"} size={22} color={color} />
+          ),
+        }}
+      />
+      {/* Team management is an admin capability (the /api/crm/team endpoint is
+          admin-only) and lives in the admin console under Sales Team. Hidden
+          here so regular staff get a clean 4-tab work hub instead of a tab
+          that 403s for them. */}
+      <Tabs.Screen name="team" options={{ href: null }} />
       <Tabs.Screen name="leads/[id]" options={{ href: null }} />
       <Tabs.Screen name="leads/new" options={{ href: null }} />
+      <Tabs.Screen name="repairs/[id]" options={{ href: null }} />
+      <Tabs.Screen name="tickets/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

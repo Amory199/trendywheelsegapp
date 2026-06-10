@@ -13,6 +13,13 @@ interface Tool {
 
 const TOOLS: Tool[] = [
   {
+    icon: "people-outline",
+    label: "Sales Team",
+    sub: "Roster, progress, assign leads",
+    route: "/admin/sales-team",
+    tint: colors.brand.trendyPink,
+  },
+  {
     icon: "cube-outline",
     label: "Vehicles",
     sub: "Fleet CRUD + photos",
