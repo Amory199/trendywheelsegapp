@@ -25,6 +25,10 @@ interface ClientConfig {
   getAccessToken: TokenProvider;
   getRefreshToken: TokenProvider;
   onTokenRefresh: (tokens: AuthTokens) => Promise<void>;
+  // Called when a 401 can't be recovered (no refresh token, or refresh itself
+  // rejected — e.g. the server revoked the session after a role/status change).
+  // The app should clear tokens and return the user to the login screen.
+  onAuthError?: () => Promise<void> | void;
 }
 
 interface PaginationParams {
@@ -111,9 +115,23 @@ class ApiClient {
     if (response.status === 401) {
       const refreshToken = await this.config.getRefreshToken();
       if (refreshToken) {
-        const newTokens = await this.doRefreshTokens(refreshToken);
-        await this.config.onTokenRefresh(newTokens);
-        response = await fetchWithTimeout(`Bearer ${newTokens.token}`);
+        try {
+          const newTokens = await this.doRefreshTokens(refreshToken);
+          await this.config.onTokenRefresh(newTokens);
+          response = await fetchWithTimeout(`Bearer ${newTokens.token}`);
+        } catch (err) {
+          // Refresh rejected → the session is dead (revoked or expired). Signal
+          // the app to log out; don't retry. A network blip surfaces as a
+          // TIMEOUT ApiClientError, not a 401, so this only fires on real
+          // refresh failures.
+          await this.config.onAuthError?.();
+          throw err instanceof ApiClientError
+            ? err
+            : new ApiClientError("Session expired", 401, "SESSION_EXPIRED");
+        }
+      } else {
+        // 401 with no refresh token to fall back on — session is over.
+        await this.config.onAuthError?.();
       }
     }
 

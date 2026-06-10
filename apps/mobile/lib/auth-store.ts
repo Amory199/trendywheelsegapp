@@ -1,7 +1,7 @@
 import type { User } from "@trendywheels/types";
 import { create } from "zustand";
 
-import { api, clearTokens, getAccessToken, setTokens } from "./api";
+import { api, clearTokens, getAccessToken, registerLogoutHandler, setTokens } from "./api";
 
 interface AuthState {
   user: User | null;
@@ -81,3 +81,8 @@ export const useAuth = create<AuthState>((set) => ({
     set({ user });
   },
 }));
+
+// When a request hits an unrecoverable 401 (the server revoked this session
+// after a role/status change), the api layer clears tokens and calls this to
+// drop the in-memory user — bouncing the app straight back to the login screen.
+registerLogoutHandler(() => useAuth.setState({ user: null }));

@@ -20,9 +20,22 @@ export async function getAccessToken(): Promise<string | null> {
   return SecureStore.getItemAsync(ACCESS_KEY);
 }
 
+// The auth store registers a handler here so a dead session detected deep in a
+// request (e.g. the server revoked it after a role change) can reset in-memory
+// auth state and bounce the user to login. Kept as a registration to avoid an
+// api ⇄ auth-store import cycle.
+let onSessionDead: () => void = () => {};
+export function registerLogoutHandler(fn: () => void): void {
+  onSessionDead = fn;
+}
+
 export const api = new ApiClient({
   baseUrl,
   getAccessToken,
   getRefreshToken: () => SecureStore.getItemAsync(REFRESH_KEY),
   onTokenRefresh: async (tokens) => setTokens(tokens.token, tokens.refreshToken),
+  onAuthError: async () => {
+    await clearTokens();
+    onSessionDead();
+  },
 });
