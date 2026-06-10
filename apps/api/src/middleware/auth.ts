@@ -4,12 +4,16 @@ import jwt from "jsonwebtoken";
 
 import { env } from "../config/env.js";
 import { runWithActor } from "../lib/actor-context.js";
+import { isSessionRevoked } from "../modules/auth/session-revocation.js";
 import { AppError } from "../utils/errors.js";
 
 export interface AuthPayload {
   userId: string;
   accountType: AccountType;
   actingAs?: string;
+  // Standard JWT claim (seconds). Auto-added by jwt.sign; used to compare a
+  // token against the per-user session-revocation marker (see INC-013).
+  iat?: number;
 }
 
 declare global {
@@ -21,7 +25,11 @@ declare global {
   }
 }
 
-export function authenticate(req: Request, _res: Response, next: NextFunction): void {
+export async function authenticate(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
     throw AppError.unauthorized("Missing or invalid authorization header");
@@ -35,6 +43,13 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
     }) as AuthPayload;
   } catch {
     throw AppError.unauthorized("Invalid or expired token");
+  }
+
+  // INC-013: reject access tokens issued before the user's sessions were
+  // revoked (role/status change). Forces a stale staff token to fail closed
+  // instead of riding out its 24h expiry. Fail-open inside on Redis error.
+  if (await isSessionRevoked(payload)) {
+    throw AppError.unauthorized("Session ended — please sign in again");
   }
 
   req.user = payload;

@@ -14,6 +14,7 @@ import { PAGINATION } from "../../config/limits.js";
 import { prisma } from "../../config/database.js";
 import { requireOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
+import { revokeUserSessions } from "../auth/session-revocation.js";
 
 import { buildCustomerTimeline, mergePreferences } from "./service.js";
 
@@ -145,6 +146,20 @@ export async function update(req: Request, res: Response): Promise<void> {
     data.preferences = preferences === null ? Prisma.DbNull : preferences;
   }
 
+  // An admin changing accountType/staffRole/status must force the affected user
+  // to re-authenticate — otherwise their existing token keeps the old role for
+  // up to JWT_ACCESS_EXPIRY (INC-013). Snapshot the privilege fields first so we
+  // only revoke when something actually changed (a name/email edit shouldn't
+  // log anyone out).
+  const privilegeKeys = ["accountType", "staffRole", "status"] as const;
+  const touchesPrivilege = isAdmin && privilegeKeys.some((k) => data[k] !== undefined);
+  const before = touchesPrivilege
+    ? await prisma.user.findUnique({
+        where: { id: req.params.id },
+        select: { accountType: true, staffRole: true, status: true },
+      })
+    : null;
+
   const user = await prisma.user.update({
     where: { id: req.params.id },
     data,
@@ -160,6 +175,12 @@ export async function update(req: Request, res: Response): Promise<void> {
       loyaltyPoints: true,
     },
   });
+
+  if (before) {
+    const changed = privilegeKeys.some((k) => data[k] !== undefined && data[k] !== before[k]);
+    if (changed) await revokeUserSessions(req.params.id);
+  }
+
   res.json({ data: user });
 }
 
@@ -252,11 +273,9 @@ export async function disable(req: Request, res: Response): Promise<void> {
     data: { status: "suspended" },
     select: { id: true, status: true },
   });
-  // Revoke active refresh tokens so the user is logged out everywhere.
-  await prisma.refreshToken.updateMany({
-    where: { userId: req.params.id, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
+  // Revoke refresh AND access tokens so the user is logged out everywhere
+  // immediately — not just until their access token expires (INC-013).
+  await revokeUserSessions(req.params.id);
   res.json({ data: user });
 }
 

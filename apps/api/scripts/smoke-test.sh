@@ -379,6 +379,43 @@ curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/rental-listings/$RL_ID" -H "Authorizati
   || fail "admin DELETE /rental-listings/:id failed"
 pass "admin cleanup"
 
+# ─── 12j. Session revocation on disable (INC-013) ────────────
+# A disabled/role-changed user must lose their ACCESS token immediately, not
+# just their refresh token. Create a throwaway staff user, log in, disable them
+# as admin, and confirm the still-unexpired access token is now rejected.
+note "12j. Disable revokes the access token immediately (INC-013)"
+STAMP=$(date +%s)
+RVK_EMAIL="smoke-revoke-$STAMP@trendywheelseg.com"
+RVK_PHONE="+2015$(printf '%08d' $((STAMP % 100000000)))"
+RVK_PASS="SmokeRevoke@123"
+RVK_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/users" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"name\":\"Smoke Revoke\",\"email\":\"$RVK_EMAIL\",\"phone\":\"$RVK_PHONE\",\"password\":\"$RVK_PASS\",\"staffRole\":\"support\"}") \
+  || fail "could not create throwaway staff user"
+RVK_ID=$(echo "$RVK_CREATE" | jq -r '.data.id // .id')
+[ -n "$RVK_ID" ] && [ "$RVK_ID" != "null" ] || fail "no id for throwaway user: $RVK_CREATE"
+RVK_LOGIN=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$RVK_EMAIL\",\"password\":\"$RVK_PASS\"}") \
+  || fail "throwaway login HTTP error"
+RVK_TOKEN=$(echo "$RVK_LOGIN" | jq -r '.token // .accessToken')
+[ -n "$RVK_TOKEN" ] && [ "$RVK_TOKEN" != "null" ] || fail "throwaway token missing: $RVK_LOGIN"
+# Token works before disable
+curl -fsS -A "$SMOKE_UA" "$BASE/users/me" -H "Authorization: Bearer $RVK_TOKEN" >/dev/null \
+  || fail "fresh throwaway token rejected before disable"
+# Admin disables → revokeUserSessions stamps the Redis marker
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/users/$RVK_ID/disable" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || fail "disable call failed"
+# Same (still-unexpired) access token must now be rejected
+RVK_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
+  "$BASE/users/me" -H "Authorization: Bearer $RVK_TOKEN")
+[ "$RVK_CODE" = "401" ] \
+  || fail "disabled user's access token still valid (got $RVK_CODE) — INC-013 revocation broken"
+pass "access token revoked immediately on disable"
+# Cleanup — anonymize the throwaway user
+curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/users/$RVK_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
+pass "throwaway user cleaned up"
+
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
 # No DELETE endpoint on /crm/leads, so leave the smoke-test lead. The contact

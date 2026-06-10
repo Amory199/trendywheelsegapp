@@ -432,24 +432,25 @@ Embed `userId` in the refresh token payload at issue time. In `refreshAccessToke
 
 ### INC-013 — Access-token revocation missing (2026-05-28)
 
-**Status:** Open
+**Status:** Fixed
 **Severity:** P1
-**Touched:** `apps/api/src/middleware/auth.ts`, `apps/api/src/modules/auth/service.ts`
-**Fixed in:** open
+**Touched:** `apps/api/src/middleware/auth.ts`, `apps/api/src/modules/auth/session-revocation.ts`, `apps/api/src/modules/users/controller.ts`
+**Fixed in:** 2026-06-10 (role/status-change revocation)
 **Related:** AUDIT_FINDINGS.md finding API #4
 
 **Symptom**
-On logout, refresh tokens are revoked but access tokens stay valid until natural expiry (`JWT_ACCESS_EXPIRY=24h`). A stolen access token (Sentry crash log, MITM, screenshot) is usable for up to 24h after the victim logs out.
+On logout / role change, refresh tokens are revoked but access tokens stay valid until natural expiry (`JWT_ACCESS_EXPIRY=24h`). A just-demoted staff member kept staff access (and a stolen token kept working) for up to 24h. Reported live: "turned them back to a normal user but they were still a staff member — should be logged out automatically when their status changes."
 
 **Root cause**
 JWT validation is stateless by design — `authenticate` middleware checks signature and expiry without server-side lookup.
 
-**Fix** (planned)
-Add a Redis bloom filter `access_token_revoked:<sha256(token)>` populated on logout / password reset. Check it from `authenticate` middleware before trusting the JWT. Bloom filter is O(1) lookup with bounded memory, false positives forced into refresh path (acceptable). Token-sig hash is 32 bytes per entry → 1M revocations ≈ 32 MB.
+**Fix** (shipped)
+Per-user revocation marker in Redis instead of the planned per-token bloom filter — simpler and sufficient for the privilege-change case. `revokeUserSessions(userId)` (new `auth/session-revocation.ts`) revokes refresh tokens AND writes `auth:revoke:<userId> = now` with TTL = max access-token lifetime (so the keyspace is bounded by active users and self-expires). `authenticate` rejects any token whose `iat` predates the marker. **Fail-open**: a Redis read error returns "not revoked" so a cache blip can't lock every request out. Called on admin role/status change (`users.update` — only when a privilege field actually changes) and on `disable`. Client side: `api-client` now invokes an `onAuthError` hook when a 401 can't be refreshed; the mobile app clears tokens and resets the auth store → user lands on login. Smoke covers it (section 12j).
 
 **Pattern to follow next time**
 
 - For long-lived bearer tokens, plan revocation from day one — even if the initial impl is just "set short expiry and ignore". Lengthening the expiry without a revocation channel is an invisible regression.
+- A per-user "revoked-at" timestamp is a lighter revocation channel than per-token denylisting when you only need to invalidate on identity/role events (not arbitrary single-token kills). Keep the check fail-open so the auth hot path never hard-depends on the cache.
 
 ---
 
