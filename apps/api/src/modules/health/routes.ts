@@ -1,12 +1,27 @@
 import { Router, type Router as RouterType } from "express";
 
 import { prisma } from "../../config/database.js";
+import { env } from "../../config/env.js";
 import { redis } from "../../config/redis.js";
 
 const router: RouterType = Router();
 
 router.get("/healthz", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Public app metadata checked by the mobile app at boot. minSupportedVersion
+// lets us retire old binaries before a breaking API change ships: any app
+// below it shows a blocking "update required" screen. Bump via
+// MIN_MOBILE_APP_VERSION in .env — no mobile release needed.
+router.get("/app-config", (_req, res) => {
+  res.json({
+    data: {
+      minSupportedVersion: env.MIN_MOBILE_APP_VERSION,
+      iosStoreUrl: env.IOS_STORE_URL,
+      androidStoreUrl: env.ANDROID_STORE_URL,
+    },
+  });
 });
 
 router.get("/readyz", async (_req, res) => {

@@ -48,6 +48,15 @@ export const env = cleanEnv(process.env, {
   // SendGrid (optional)
   SENDGRID_API_KEY: str({ default: "" }),
 
+  // Mobile force-update gate (served by GET /api/app-config). Bump
+  // MIN_MOBILE_APP_VERSION past a binary's version to lock it out after a
+  // breaking API change. Store URLs power the "Update now" button.
+  MIN_MOBILE_APP_VERSION: str({ default: "1.0.0" }),
+  IOS_STORE_URL: str({ default: "https://apps.apple.com/app/id6777470914" }),
+  ANDROID_STORE_URL: str({
+    default: "https://play.google.com/store/apps/details?id=com.trendywheels.app",
+  }),
+
   // CORS
   CORS_ORIGINS: str({
     default:
