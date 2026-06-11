@@ -5,11 +5,15 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { OfflineBanner } from "../components/OfflineBanner";
+import { UpdateGate } from "../components/UpdateGate";
 import { initAppCheck } from "../lib/app-check";
 import { useAuth } from "../lib/auth-store";
 import { installMobileErrorReporter } from "../lib/error-reporter";
 import { routeNotification } from "../lib/notification-router";
 import { registerPushToken } from "../lib/push";
+import { initMobileSentry } from "../lib/sentry";
 
 // Wrap in try/catch — nothing at module-load should ever block first paint.
 try {
@@ -37,6 +41,13 @@ export default function RootLayout(): JSX.Element {
   useEffect(() => {
     if (user?.id) void registerPushToken();
   }, [user?.id]);
+
+  // Sentry init DEFERRED past first paint — the old SDK-53 native-init hang
+  // froze the splash screen; even if that ever regresses, boot stays safe.
+  useEffect(() => {
+    const timer = setTimeout(() => initMobileSentry(), 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Tap dispatch for ALL push types. Routing is centralised in
   // lib/notification-router.ts so adding a new type means one map entry there
@@ -73,17 +84,21 @@ export default function RootLayout(): JSX.Element {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <StatusBar style="auto" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        </Stack>
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <StatusBar style="auto" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          </Stack>
+          <OfflineBanner />
+          <UpdateGate />
+        </QueryClientProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }

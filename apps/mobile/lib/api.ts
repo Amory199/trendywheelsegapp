@@ -1,6 +1,8 @@
 import { ApiClient } from "@trendywheels/api-client";
 import * as SecureStore from "expo-secure-store";
 
+import { useNetwork } from "./network-store";
+
 const ACCESS_KEY = "tw_access";
 const REFRESH_KEY = "tw_refresh";
 
@@ -38,4 +40,7 @@ export const api = new ApiClient({
     await clearTokens();
     onSessionDead();
   },
+  // Every request outcome doubles as a connectivity probe — drives the
+  // offline banner without a native NetInfo module.
+  onNetworkStatus: (online) => useNetwork.getState().setOnline(online),
 });

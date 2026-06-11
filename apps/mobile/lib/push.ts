@@ -14,6 +14,14 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Last token we registered this session — passed to logout so the API can
+// unbind exactly this device's push registration.
+let lastPushToken: string | null = null;
+
+export function getLastPushToken(): string | null {
+  return lastPushToken;
+}
+
 /**
  * Register for push notifications and POST the Expo token to the API. Idempotent
  * — safe to call on every foreground. Silently no-ops on simulators / when
@@ -44,6 +52,7 @@ export async function registerPushToken(): Promise<void> {
     );
     const token = tokenResp.data;
     if (!token) return;
+    lastPushToken = token;
 
     await api.request("POST", "/api/notifications/push-tokens", {
       body: { token, platform: Platform.OS },

@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors, twEGP } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as React from "react";
-import { ActivityIndicator, Dimensions, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Dimensions, Text, View } from "react-native";
 import Animated, {
   FadeInDown,
   useAnimatedScrollHandler,
@@ -15,15 +15,16 @@ import Animated, {
   Extrapolation,
 } from "react-native-reanimated";
 
+import { TWBadge, TWButton, TWCard, TWChip, TWPressable } from "../../components/ui";
+import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
-import { TWBadge, TWButton, TWCard, TWChip, TWPressable } from "../../components/ui";
 import { useTheme } from "../../lib/use-theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HERO_HEIGHT = 320;
 
-const FEATURES = ["Air conditioning", "Bluetooth", "GPS", "USB charging", "Child seat"] as const;
+type FavoritesResponse = Awaited<ReturnType<typeof api.getFavorites>>;
 
 export default function RentDetailScreen(): React.JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,6 +35,64 @@ export default function RentDetailScreen(): React.JSX.Element {
   const q = useQuery({
     queryKey: ["vehicle", id],
     queryFn: () => api.getVehicle(id as string),
+    enabled: Boolean(id),
+  });
+
+  const user = useAuth((s) => s.user);
+  const qc = useQueryClient();
+
+  const favoritesQ = useQuery({
+    queryKey: ["favorites"],
+    queryFn: () => api.getFavorites(),
+    enabled: Boolean(user),
+  });
+  const isFavorite = (favoritesQ.data?.data ?? []).some((f) => f.vehicleId === id);
+
+  const favoriteMutation = useMutation({
+    mutationFn: async (next: boolean): Promise<unknown> =>
+      next ? api.addFavorite(id as string) : api.removeFavorite(id as string),
+    onMutate: async (next) => {
+      await qc.cancelQueries({ queryKey: ["favorites"] });
+      const prev = qc.getQueryData<FavoritesResponse>(["favorites"]);
+      qc.setQueryData<FavoritesResponse>(["favorites"], (old) => {
+        const rows = old?.data ?? [];
+        return {
+          data: next
+            ? [
+                {
+                  id: `optimistic-${String(id)}`,
+                  vehicleId: id as string,
+                  createdAt: new Date().toISOString(),
+                  vehicle: q.data?.data as FavoritesResponse["data"][number]["vehicle"],
+                },
+                ...rows,
+              ]
+            : rows.filter((f) => f.vehicleId !== id),
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _next, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["favorites"], ctx.prev);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["favorites"] });
+    },
+  });
+
+  const onToggleFavorite = (): void => {
+    if (!user) {
+      router.push("/(auth)/phone");
+      return;
+    }
+    const next = !isFavorite;
+    favoriteMutation.mutate(next);
+    logEvent(next ? "favorite_added" : "favorite_removed", { vehicle_id: id });
+  };
+
+  const reviewsQ = useQuery({
+    queryKey: ["vehicle-reviews", id],
+    queryFn: () => api.getVehicleReviews(id as string),
     enabled: Boolean(id),
   });
 
@@ -79,6 +138,9 @@ export default function RentDetailScreen(): React.JSX.Element {
 
   const rating = Number(vehicle.averageRating ?? 0) || 0;
   const reviewsCount = Number((vehicle as { reviewCount?: number }).reviewCount ?? 0);
+  const features = (vehicle.features as string[] | undefined) ?? [];
+  const reviews = reviewsQ.data?.data ?? [];
+  const reviewSummary = reviewsQ.data?.summary;
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
@@ -126,6 +188,7 @@ export default function RentDetailScreen(): React.JSX.Element {
           <Ionicons name="chevron-back" size={22} color={palette.text} />
         </TWPressable>
         <TWPressable
+          onPress={onToggleFavorite}
           style={{
             width: 42,
             height: 42,
@@ -135,7 +198,11 @@ export default function RentDetailScreen(): React.JSX.Element {
             justifyContent: "center",
           }}
         >
-          <Ionicons name="heart-outline" size={22} color={colors.brand.trendyPink} />
+          <Ionicons
+            name={isFavorite ? "heart" : "heart-outline"}
+            size={22}
+            color={colors.brand.trendyPink}
+          />
         </TWPressable>
       </View>
 
@@ -227,70 +294,140 @@ export default function RentDetailScreen(): React.JSX.Element {
             </Text>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(260).duration(420)}>
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "700",
-                color: palette.muted,
-                letterSpacing: 0.8,
-                marginBottom: 10,
-              }}
-            >
-              FEATURES
-            </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {FEATURES.map((f) => (
-                <TWChip key={f}>{f}</TWChip>
-              ))}
-            </View>
-          </Animated.View>
+          {features.length > 0 && (
+            <Animated.View entering={FadeInDown.delay(260).duration(420)}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "700",
+                  color: palette.muted,
+                  letterSpacing: 0.8,
+                  marginBottom: 10,
+                }}
+              >
+                FEATURES
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {features.map((f) => (
+                  <TWChip key={f}>{f}</TWChip>
+                ))}
+              </View>
+            </Animated.View>
+          )}
 
           <Animated.View entering={FadeInDown.delay(320).duration(420)}>
-            <Text
+            <View
               style={{
-                fontSize: 11,
-                fontWeight: "700",
-                color: palette.muted,
-                letterSpacing: 0.8,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
                 marginBottom: 10,
               }}
             >
-              RECENT REVIEWS
-            </Text>
-            <TWCard>
-              <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
-                <LinearGradient
-                  colors={[colors.brand.trendyPink, colors.brand.friendlyBlue]}
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>LH</Text>
-                </LinearGradient>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: palette.text }}>
-                      Layla H.
-                    </Text>
-                    <View style={{ flexDirection: "row", gap: 1 }}>
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Ionicons key={i} name="star" size={10} color="#F5B800" />
-                      ))}
-                    </View>
-                  </View>
-                  <Text
-                    style={{ fontSize: 13, color: palette.muted, marginTop: 4, lineHeight: 18 }}
-                  >
-                    Smooth pickup, car was spotless. Would rent again.
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "700",
+                  color: palette.muted,
+                  letterSpacing: 0.8,
+                }}
+              >
+                RECENT REVIEWS
+              </Text>
+              {reviewSummary && reviewSummary.count > 0 && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Ionicons name="star" size={12} color="#F5B800" />
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: palette.text }}>
+                    {Number(reviewSummary.average).toFixed(1)}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: palette.muted }}>
+                    · {reviewSummary.count}
                   </Text>
                 </View>
+              )}
+            </View>
+            {reviews.length === 0 ? (
+              <TWCard>
+                <Text style={{ fontSize: 13, color: palette.muted, lineHeight: 18 }}>
+                  No reviews yet — be the first after your ride!
+                </Text>
+              </TWCard>
+            ) : (
+              <View style={{ gap: 10 }}>
+                {reviews.slice(0, 3).map((r) => (
+                  <TWCard key={r.id}>
+                    <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+                      <LinearGradient
+                        colors={[colors.brand.trendyPink, colors.brand.friendlyBlue]}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
+                          {initialsOf(r.user?.name ?? null)}
+                        </Text>
+                      </LinearGradient>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              fontWeight: "700",
+                              color: palette.text,
+                              flexShrink: 1,
+                            }}
+                            numberOfLines={1}
+                          >
+                            {r.user?.name ?? "TrendyWheels rider"}
+                          </Text>
+                          <View style={{ flexDirection: "row", gap: 1 }}>
+                            {[1, 2, 3, 4, 5].map((i) => (
+                              <Ionicons
+                                key={i}
+                                name={i <= r.rating ? "star" : "star-outline"}
+                                size={10}
+                                color="#F5B800"
+                              />
+                            ))}
+                          </View>
+                          <Text style={{ fontSize: 11, color: palette.muted, marginLeft: "auto" }}>
+                            {new Date(r.createdAt).toLocaleDateString()}
+                          </Text>
+                        </View>
+                        {r.title ? (
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              fontWeight: "700",
+                              color: palette.text,
+                              marginTop: 4,
+                            }}
+                          >
+                            {r.title}
+                          </Text>
+                        ) : null}
+                        {r.body ? (
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              color: palette.muted,
+                              marginTop: r.title ? 2 : 4,
+                              lineHeight: 18,
+                            }}
+                          >
+                            {r.body}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  </TWCard>
+                ))}
               </View>
-            </TWCard>
+            )}
           </Animated.View>
         </View>
       </Animated.ScrollView>
@@ -350,6 +487,16 @@ export default function RentDetailScreen(): React.JSX.Element {
       </View>
     </View>
   );
+}
+
+function initialsOf(name: string | null): string {
+  if (!name) return "TW";
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "");
+  return parts.join("") || "TW";
 }
 
 function SpecCell({

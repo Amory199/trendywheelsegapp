@@ -1,7 +1,9 @@
 import type { User } from "@trendywheels/types";
 import { create } from "zustand";
 
+import { logEvent, setAnalyticsUser } from "./analytics";
 import { api, clearTokens, getAccessToken, registerLogoutHandler, setTokens } from "./api";
+import { getLastPushToken } from "./push";
 
 interface AuthState {
   user: User | null;
@@ -55,6 +57,8 @@ export const useAuth = create<AuthState>((set) => ({
     const res = await api.verifyOtp(phone, otp);
     await setTokens(res.token, res.refreshToken);
     set({ user: res.user });
+    setAnalyticsUser(res.user.id);
+    logEvent("login", { method: "trial_otp" });
   },
 
   async verifyFirebaseIdToken(idToken) {
@@ -65,16 +69,22 @@ export const useAuth = create<AuthState>((set) => ({
     );
     await setTokens(res.token, res.refreshToken);
     set({ user: res.user });
+    setAnalyticsUser(res.user.id);
+    logEvent("login", { method: "firebase_phone" });
   },
 
   async logout() {
     try {
-      await api.logout();
+      // Pass this device's push token so the API unbinds only this device —
+      // a shared/handed-over phone must not keep getting the old user's pushes.
+      await api.logout(getLastPushToken() ?? undefined);
     } catch {
       /* ignore */
     }
     await clearTokens();
     set({ user: null });
+    setAnalyticsUser(null);
+    logEvent("sign_out");
   },
 
   setUser(user) {

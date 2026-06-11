@@ -191,6 +191,16 @@ export default function ProfileScreen(): React.JSX.Element {
         />
       </Animated.View>
 
+      <Animated.View entering={FadeInDown.duration(435).delay(225)}>
+        <ActivityCard
+          icon="heart-outline"
+          title="Saved vehicles"
+          subtitle="Vehicles you saved for later"
+          tone="pink"
+          onPress={() => router.push("/profile/favorites")}
+        />
+      </Animated.View>
+
       <Animated.View entering={FadeInDown.duration(440).delay(240)}>
         <ActivityCard
           icon="pricetag-outline"

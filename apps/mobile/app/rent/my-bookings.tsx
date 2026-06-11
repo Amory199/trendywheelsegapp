@@ -8,10 +8,18 @@ import { useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { ReviewModal } from "../../components/ReviewModal";
 import { TWSkeletonCard } from "../../components/ui";
 import { api } from "../../lib/api";
 
 type TabKey = "pending" | "confirmed" | "completed" | "cancelled";
+
+// The bookings endpoint includes the vehicle relation (but not the review),
+// which the base Booking type doesn't carry.
+type BookingRow = Booking & {
+  vehicle?: { id: string; name: string } | null;
+  review?: { id: string } | null;
+};
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "pending", label: "Awaiting" },
@@ -31,6 +39,14 @@ export default function MyBookingsScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>("pending");
+  const [reviewTarget, setReviewTarget] = useState<{
+    bookingId: string;
+    vehicleId: string;
+    vehicleName?: string;
+  } | null>(null);
+  // Bookings the user reviewed this session (or that 409'd as already
+  // reviewed) — the list payload has no review field, so track locally.
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
 
   const { data, isLoading } = useQuery({
     queryKey: ["my-bookings", activeTab],
@@ -45,7 +61,7 @@ export default function MyBookingsScreen(): JSX.Element {
     },
   });
 
-  const bookings = (data?.data ?? []) as Booking[];
+  const bookings = (data?.data ?? []) as BookingRow[];
 
   return (
     <View style={styles.container}>
@@ -86,7 +102,7 @@ export default function MyBookingsScreen(): JSX.Element {
           </Text>
         </View>
       ) : (
-        <FlatList<Booking>
+        <FlatList<BookingRow>
           data={bookings}
           keyExtractor={(b) => b.id}
           removeClippedSubviews
@@ -149,9 +165,42 @@ export default function MyBookingsScreen(): JSX.Element {
                     <Text style={styles.cancelBtnText}>Cancel Booking</Text>
                   </Pressable>
                 )}
+
+                {item.status === "completed" && !item.review && !reviewedIds.has(item.id) && (
+                  <Pressable
+                    style={styles.rateBtn}
+                    onPress={() =>
+                      setReviewTarget({
+                        bookingId: item.id,
+                        vehicleId: item.vehicleId,
+                        vehicleName: item.vehicle?.name,
+                      })
+                    }
+                  >
+                    <Ionicons name="star" size={16} color="#F5B800" />
+                    <Text style={styles.rateBtnText}>Rate your rental</Text>
+                  </Pressable>
+                )}
               </View>
             </Animated.View>
           )}
+        />
+      )}
+
+      {reviewTarget && (
+        <ReviewModal
+          visible
+          bookingId={reviewTarget.bookingId}
+          vehicleId={reviewTarget.vehicleId}
+          vehicleName={reviewTarget.vehicleName}
+          onClose={() => setReviewTarget(null)}
+          onReviewed={(bookingId) =>
+            setReviewedIds((prev) => {
+              const next = new Set(prev);
+              next.add(bookingId);
+              return next;
+            })
+          }
         />
       )}
     </View>
@@ -225,6 +274,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   cancelBtnText: { color: colors.error, fontWeight: "600", fontSize: 14 },
+  rateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#F5B800",
+    borderRadius: 10,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  rateBtnText: { color: "#F5B800", fontWeight: "600", fontSize: 14 },
   empty: { flex: 1, justifyContent: "center", alignItems: "center", gap: spacing.md },
   emptyText: { color: colors.text.secondary, fontSize: 16 },
 });

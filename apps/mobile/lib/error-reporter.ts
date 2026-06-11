@@ -1,5 +1,5 @@
 import { api } from "./api";
-import { initMobileSentry, reportError } from "./sentry";
+import { reportError } from "./sentry";
 
 interface ReportPayload {
   level: "error" | "warn" | "fatal";
@@ -24,7 +24,10 @@ export function installMobileErrorReporter(): void {
   if (installed) return;
   installed = true;
 
-  initMobileSentry();
+  // NOTE: Sentry is NOT initialized here — this runs at module load and a
+  // native init hang here would block first paint (the original SDK-53 bug).
+  // The root layout calls initMobileSentry() deferred after mount instead;
+  // reportError() below no-ops until then.
 
   const ErrorUtils = (
     global as unknown as {
