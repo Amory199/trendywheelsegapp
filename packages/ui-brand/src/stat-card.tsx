@@ -39,6 +39,9 @@ export function StatCard({
   return (
     <Component
       onClick={onClick}
+      // Hover/press styling is opt-in per app: define .tw-stat-card in the
+      // host's globals.css (admin does); apps without it render unchanged.
+      className="tw-stat-card"
       style={{
         display: "flex",
         flexDirection: "column",

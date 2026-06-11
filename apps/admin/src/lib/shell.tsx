@@ -419,7 +419,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
                   <Link
                     key={n.href}
                     href={n.href}
-                    className="tw-press"
+                    className="tw-press tw-nav-item"
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -514,7 +514,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
               void logout();
               router.replace("/login");
             }}
-            className="tw-press"
+            className="tw-press tw-nav-item"
             aria-label="Sign out"
             style={{
               width: 28,
@@ -635,7 +635,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
             </kbd>
           </div>
           <button
-            className="tw-press"
+            className="tw-press tw-nav-item"
             aria-label="Notifications"
             style={{
               width: 36,
@@ -667,7 +667,9 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
         </header>
 
         {/* Content */}
-        <div style={{ flex: 1, overflow: "auto" }}>{children}</div>
+        <div className="tw-page-enter" key={path} style={{ flex: 1, overflow: "auto" }}>
+          {children}
+        </div>
       </main>
 
       <MobileNavDrawer open={navOpen} onClose={() => setNavOpen(false)} side="left" width={300}>

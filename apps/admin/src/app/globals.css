@@ -697,3 +697,60 @@ textarea,
     transform: none;
   }
 }
+
+/* ─── Dynamic touches (2026-06-11) ─────────────────────────── */
+
+/* Content area: soft rise-in on every route change (keyed by pathname) */
+@keyframes tw-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.tw-page-enter {
+  animation: tw-page-enter 240ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* Sidebar items: smooth hover slide + tint (inline styles own the active state) */
+.tw-nav-item {
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+.tw-nav-item:hover {
+  background: rgba(43, 15, 248, 0.06);
+  transform: translateX(2px);
+}
+
+/* KPI tiles: lift on hover, settle on press */
+.tw-stat-card {
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.tw-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -12px rgba(2, 1, 31, 0.25);
+}
+.tw-stat-card:active {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-page-enter {
+    animation: none;
+  }
+  .tw-nav-item,
+  .tw-stat-card {
+    transition: none;
+  }
+  .tw-nav-item:hover,
+  .tw-stat-card:hover {
+    transform: none;
+  }
+}
