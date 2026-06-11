@@ -67,6 +67,7 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 | 027 | 2026-06-08 | Customer storage prefix allowlist missed sell/sales/rental flows      | Fixed      | P0  |
 | 028 | 2026-06-08 | Customer mutations silently fail with no Alert on error               | Fixed      | P1  |
 | 029 | 2026-06-08 | WhatsApp CRM button fire-and-forget mutation (Call awaits, WA didn't) | Fixed      | P2  |
+| 030 | 2026-06-11 | Every OTA baked localhost:4000 as API URL — recurring network errors  | Fixed      | P0  |
 
 ---
 
@@ -888,6 +889,30 @@ Added per-mutation:
 - **No customer-facing mutation ships without an `onError` Alert.** Add ESLint rule or PR-template item enforcing this.
 - Don't auto-route on `onSuccess` without confirmation — Apple's reviewers and confused users interpret instant-redirects as crashes.
 - Same pattern likely missing in other screens (repair submit, trade-in submit, license upload). Audit in v1.1.
+
+---
+
+### INC-030 — OTA bundles shipped with localhost API URL (recurring "Network request failed") (2026-06-11)
+
+**Status:** Fixed
+**Severity:** P0
+**Touched:** `apps/mobile/.env.production` (new), every `eas update` published before 2026-06-11
+**Fixed in:** `.env.production` with `EXPO_PUBLIC_API_URL` + `EXPO_PUBLIC_SENTRY_DSN`; OTA group `6346474d` republished with env baked
+**Related:** every "network error" report since the first production OTA
+
+**Symptom**
+Recurring, unexplainable "Network request failed" on devices — especially right after login/OTP — while the API was provably healthy (public HTTPS 200, sub-100ms). Fresh installs worked on FIRST launch, then broke. Reported repeatedly across sessions as "network error again".
+
+**Root cause**
+`eas update` does NOT read `eas.json` build env (that block is build-only). With no `.env.production` and no exported shell vars, Babel inlined `process.env.EXPO_PUBLIC_API_URL` as `undefined`, so every published OTA bundle compiled `baseUrl` to the `http://localhost:4000` fallback. Embedded build bundles (from `eas build`, which DOES read eas.json env) had the correct URL — hence first-launch-works, breaks-after-OTA-applies. Verified by running `strings` on the published `.hbc`: zero `EXPO_PUBLIC_API_URL` refs, no standalone production URL, `http://localhost:4000` present.
+
+**Fix**
+`apps/mobile/.env.production` (committed — public URL + DSN, not secrets) is read automatically by `expo export` (NODE_ENV=production) during `eas update`. Belt-and-braces: also export the vars in the publish shell. Verify EVERY publish with: `strings dist/_expo/static/js/ios/*.hbc | grep -c "https://api.trendywheelseg.com"` (must be ≥1) and `grep -c EXPO_PUBLIC_API_URL` (must be 0).
+
+**Pattern to follow next time**
+
+- Build env and update env are SEPARATE channels in EAS. Anything inlined via `EXPO_PUBLIC_*` must exist in `.env.production` (or EAS server env with `--environment`), not just `eas.json`.
+- After any OTA publish, grep the compiled bundle for the production hostname before telling anyone "fixed".
 
 ---
 
