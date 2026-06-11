@@ -26,7 +26,11 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
 
 export async function logout(req: Request, res: Response): Promise<void> {
   const userId = req.user!.userId;
-  await authService.logout(userId);
+  // Optional: the device's Expo push token, so only THIS device stops
+  // receiving pushes. Without it we unbind all the user's tokens — the safe
+  // default for shared/handed-over devices (next login re-registers).
+  const pushToken = typeof req.body?.pushToken === "string" ? req.body.pushToken : undefined;
+  await authService.logout(userId, pushToken);
   res.json({ success: true });
 }
 

@@ -264,6 +264,11 @@ export async function deleteAccount(req: Request, res: Response): Promise<void> 
     },
   });
 
+  // Kill live sessions + push delivery — the soft-deleted row keeps audit
+  // history, but the device must not stay signed in or keep getting pushes.
+  await revokeUserSessions(userId);
+  await prisma.pushToken.deleteMany({ where: { userId } });
+
   res.json({ message: "Account deleted and personal data anonymized" });
 }
 

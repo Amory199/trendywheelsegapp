@@ -357,12 +357,21 @@ export async function refreshAccessToken(refreshToken: string): Promise<{ token:
   return { token: signAccessToken(payload) };
 }
 
-export async function logout(userId: string): Promise<void> {
+export async function logout(userId: string, pushToken?: string): Promise<void> {
   // Revoke all refresh tokens for this user
   await prisma.refreshToken.updateMany({
     where: { userId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
+  // Stop push delivery to logged-out sessions. With the device's token we
+  // delete just that row; otherwise all of the user's tokens go (shared
+  // devices must not keep receiving the previous user's notifications —
+  // re-login re-registers via registerPushToken).
+  if (pushToken) {
+    await prisma.pushToken.deleteMany({ where: { token: pushToken, userId } });
+  } else {
+    await prisma.pushToken.deleteMany({ where: { userId } });
+  }
 }
 
 export async function loginWithPassword(
