@@ -33,13 +33,17 @@ export function usePreferences(): UsePreferencesResult {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async (patch: UserPreferencesPatch): Promise<UserPreferences> => {
+    mutationFn: async (patch: UserPreferencesPatch): Promise<UserPreferences | null> => {
+      // Pre-auth pages (login) can mount preference-aware UI; without a token
+      // the PATCH can only 401, so skip the round-trip entirely.
+      const token = readToken(ACCESS_KEY);
+      if (!token) return null;
       const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
       const res = await fetch(`${baseUrl}/api/users/me/preferences`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${readToken(ACCESS_KEY) ?? ""}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(patch),
       });
@@ -59,6 +63,7 @@ export function usePreferences(): UsePreferencesResult {
       });
     },
     onSuccess(serverPrefs) {
+      if (!serverPrefs) return; // skipped (no token) — keep optimistic state
       const current = useAuth.getState().user;
       if (!current) return;
       setUser({ user: { ...current, preferences: serverPrefs } });
@@ -69,7 +74,13 @@ export function usePreferences(): UsePreferencesResult {
   return {
     preferences: user?.preferences ?? null,
     update: async (patch) => {
-      await mutation.mutateAsync(patch);
+      // Preferences are nice-to-have, not load-bearing: never let a failed
+      // sync escape as an unhandled rejection (it was polluting /logs).
+      try {
+        await mutation.mutateAsync(patch);
+      } catch {
+        /* optimistic state stays; server re-syncs on next successful save */
+      }
     },
     isUpdating: mutation.isPending,
   };
