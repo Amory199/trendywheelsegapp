@@ -90,22 +90,33 @@ MC=$(echo "$LEAD_AFTER" | jq '.data.messageCount')
 pass "counters incremented correctly"
 
 # ─── 4b. Lead-assigned push payload ──────────────────────────
-# The round-robin should have notified the picked sales agent with
-# type=lead_assigned. v1.1 spec puts the source in body + data.
+# Round-robin may assign the fresh lead to ANY active sales agent, not
+# necessarily $SALES_EMAIL — so only assert the payload when our sales user
+# was the pick; otherwise verify ownership happened and skip the payload read
+# (we can't log in as arbitrary agents from here). 12h covers the
+# notification-row pipeline deterministically via an explicit reassign.
 note "4b. lead_assigned notification fired with source in payload"
-NOTIFS=$(curl -fsS -A "$SMOKE_UA" "$BASE/notifications?limit=10" \
-  -H "Authorization: Bearer $SALES_TOKEN") \
-  || fail "GET /notifications as sales failed"
-TOP_TYPE=$(echo "$NOTIFS" | jq -r '.data[0].type // empty')
-TOP_BODY=$(echo "$NOTIFS" | jq -r '.data[0].body // empty')
-TOP_SOURCE=$(echo "$NOTIFS" | jq -r '.data[0].data.source // empty')
-TOP_LEADID=$(echo "$NOTIFS" | jq -r '.data[0].data.leadId // empty')
-[ "$TOP_TYPE" = "lead_assigned" ] || fail "top notification type=$TOP_TYPE (expected lead_assigned)"
-[ "$TOP_LEADID" = "$LEAD_ID" ] || fail "top notification leadId=$TOP_LEADID (expected $LEAD_ID)"
-[ -n "$TOP_SOURCE" ] || fail "top notification missing data.source — v1.1 payload regression"
-echo "$TOP_BODY" | grep -q "$TOP_SOURCE" \
-  || fail "notification body '$TOP_BODY' missing source ($TOP_SOURCE)"
-pass "lead_assigned push payload carries source ($TOP_SOURCE)"
+SALES_USER_ID_EARLY=$(echo "$SALES_RESP" | jq -r '.user.id')
+LEAD_OWNER=$(curl -fsS -A "$SMOKE_UA" "$BASE/crm/leads/$LEAD_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.data.ownerId // empty')
+[ -n "$LEAD_OWNER" ] || fail "lead has no owner — round-robin assignment broken"
+if [ "$LEAD_OWNER" = "$SALES_USER_ID_EARLY" ]; then
+  NOTIFS=$(curl -fsS -A "$SMOKE_UA" "$BASE/notifications?limit=10" \
+    -H "Authorization: Bearer $SALES_TOKEN") \
+    || fail "GET /notifications as sales failed"
+  TOP_TYPE=$(echo "$NOTIFS" | jq -r '.data[0].type // empty')
+  TOP_BODY=$(echo "$NOTIFS" | jq -r '.data[0].body // empty')
+  TOP_SOURCE=$(echo "$NOTIFS" | jq -r '.data[0].data.source // empty')
+  TOP_LEADID=$(echo "$NOTIFS" | jq -r '.data[0].data.leadId // empty')
+  [ "$TOP_TYPE" = "lead_assigned" ] || fail "top notification type=$TOP_TYPE (expected lead_assigned)"
+  [ "$TOP_LEADID" = "$LEAD_ID" ] || fail "top notification leadId=$TOP_LEADID (expected $LEAD_ID)"
+  [ -n "$TOP_SOURCE" ] || fail "top notification missing data.source — v1.1 payload regression"
+  echo "$TOP_BODY" | grep -q "$TOP_SOURCE" \
+    || fail "notification body '$TOP_BODY' missing source ($TOP_SOURCE)"
+  pass "lead_assigned push payload carries source ($TOP_SOURCE)"
+else
+  pass "(lead round-robined to another agent ($LEAD_OWNER) — ownership verified, payload check skipped)"
+fi
 
 # ─── 5. CRM rules surface new fields ─────────────────────────
 note "5. CRM rules (new fields + bumped defaults)"
@@ -168,7 +179,11 @@ pass "push token registered"
 note "10b. Sales inventory toggle (PATCH /vehicles/:id/status)"
 VEH_ID=$(curl -fsS -A "$SMOKE_UA" "$BASE/vehicles?limit=1" \
   -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.data[0].id // empty')
-[ -n "$VEH_ID" ] || fail "no vehicle to toggle — seed missing?"
+# Skip (not fail) on an empty catalog — production starts with zero vehicles
+# after the demo wipe; the toggle round-trip only makes sense with stock.
+if [ -z "$VEH_ID" ]; then
+  pass "(no vehicles in catalog — skipping inventory-toggle round-trip)"
+else
 ORIG_STATUS=$(curl -fsS -A "$SMOKE_UA" "$BASE/vehicles/$VEH_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.data.status')
 
@@ -196,6 +211,7 @@ curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/vehicles/$VEH_ID/status" \
   -d "{\"toStatus\":\"$ORIG_STATUS\"}" >/dev/null \
   || fail "restore PATCH /status failed"
 pass "status restored to $ORIG_STATUS"
+fi
 
 # ─── 11. CRM rules PATCH (admin-only widened auth) ───────────
 note "11. Admin can PATCH /crm/rules"
@@ -255,6 +271,10 @@ LEAD_COUNT_BEFORE=$(curl -fsS -A "$SMOKE_UA" "$BASE/crm/leads" -H "Authorization
 # works if ENABLE_TRIAL_OTP_BYPASS is set in prod .env).
 # In prod (ENABLE_TRIAL_OTP_BYPASS=false), skip this assertion.
 TRIAL_ENABLED=$(grep -c "^ENABLE_TRIAL_OTP_BYPASS=true" /opt/trendywheels/apps/api/.env 2>/dev/null || echo 0)
+# The dev-only trial codes are hard-disabled when NODE_ENV=production (only
+# the Apple review phone survives) — see auth/service.ts TRIAL_OTP_BYPASS.
+IS_PROD=$(grep -c "^NODE_ENV=production" /opt/trendywheels/apps/api/.env 2>/dev/null || echo 0)
+if [ "$IS_PROD" = "1" ]; then TRIAL_ENABLED=0; fi
 if [ "$TRIAL_ENABLED" = "1" ]; then
   # +201112223344 / 555555 is the hardcoded customer trial pair
   curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/verify-otp" -H "$JSON" \
@@ -415,6 +435,40 @@ pass "access token revoked immediately on disable"
 curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/users/$RVK_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
 pass "throwaway user cleaned up"
+
+# ─── 12j. App-config (mobile force-update gate) ─────────────
+note "12j. GET /app-config"
+MINV=$(curl -fsS -A "$SMOKE_UA" "$BASE/app-config" | jq -r '.data.minSupportedVersion // empty')
+[ -n "$MINV" ] || fail "/app-config missing minSupportedVersion"
+pass "app-config serves minSupportedVersion=$MINV"
+
+# ─── 12k. Favorites round-trip (needs >=1 vehicle, else skip) ─
+note "12k. Favorites round-trip"
+if [ -n "$VEH_ID" ]; then
+  curl -fsS -A "$SMOKE_UA" -XPUT "$BASE/favorites/$VEH_ID" \
+    -H "Authorization: Bearer $SALES_TOKEN" >/dev/null || fail "PUT /favorites/:vehicleId failed"
+  FAV_COUNT=$(curl -fsS -A "$SMOKE_UA" "$BASE/favorites" -H "Authorization: Bearer $SALES_TOKEN" \
+    | jq "[.data[] | select(.vehicleId == \"$VEH_ID\")] | length")
+  [ "$FAV_COUNT" = "1" ] || fail "favorite not listed after PUT"
+  curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/favorites/$VEH_ID" \
+    -H "Authorization: Bearer $SALES_TOKEN" >/dev/null || fail "DELETE /favorites/:vehicleId failed"
+  pass "favorite add/list/remove round-trip"
+else
+  pass "(no vehicles — skipping favorites round-trip)"
+fi
+
+# ─── 12l. CRM my-earnings (agent self-scope) ─────────────────
+note "12l. GET /crm/my-earnings"
+EARN=$(curl -fsS -A "$SMOKE_UA" "$BASE/crm/my-earnings" -H "Authorization: Bearer $SALES_TOKEN")
+echo "$EARN" | jq -e '.data | has("monthWonAmount") and has("commissionPct") and has("openLeads")' >/dev/null \
+  || fail "/crm/my-earnings missing expected fields: $EARN"
+pass "my-earnings shape ok"
+
+# ─── 12m. Loyalty me ─────────────────────────────────────────
+note "12m. GET /loyalty/me"
+curl -fsS -A "$SMOKE_UA" "$BASE/loyalty/me" -H "Authorization: Bearer $SALES_TOKEN" \
+  | jq -e '.data | has("points") and has("tier")' >/dev/null || fail "/loyalty/me shape wrong"
+pass "loyalty/me shape ok"
 
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
