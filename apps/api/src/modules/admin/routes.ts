@@ -10,6 +10,44 @@ const router: RouterType = Router();
 
 router.use(authenticate, authorize("admin", "staff"));
 
+// ─── Global search (admin ⌘K palette) ────────────────────────
+// One round-trip for the three entity types the top-bar search promises.
+// Small caps keep it snappy — the palette is a jump-to, not a report.
+router.get("/search", async (req, res) => {
+  const q = String(req.query.q ?? "").trim();
+  if (q.length < 2) {
+    res.json({ data: { users: [], vehicles: [], bookings: [] } });
+    return;
+  }
+  const contains = { contains: q, mode: "insensitive" as const };
+  const [users, vehicles, bookings] = await Promise.all([
+    prisma.user.findMany({
+      where: { OR: [{ name: contains }, { phone: { contains: q } }, { email: contains }] },
+      select: { id: true, name: true, phone: true, email: true, accountType: true },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
+    prisma.vehicle.findMany({
+      where: { name: contains },
+      select: { id: true, name: true, status: true, category: true },
+      take: 6,
+    }),
+    prisma.booking.findMany({
+      where: { OR: [{ user: { name: contains } }, { vehicle: { name: contains } }] },
+      select: {
+        id: true,
+        status: true,
+        startDate: true,
+        user: { select: { name: true } },
+        vehicle: { select: { name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
+  ]);
+  res.json({ data: { users, vehicles, bookings } });
+});
+
 // ─── System config (single-row, upsert) ──────────────────────
 router.get("/system-config", async (_req, res) => {
   const config =

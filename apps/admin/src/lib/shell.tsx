@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import type { JSX } from "react";
 
 import { useAuth } from "./auth-store";
+import { CommandPalette } from "./command-palette";
 
 // Sidebar role-gating. Superadmins (accountType === "admin") see every item;
 // staff are filtered by `allowedRoles` against their `staffRole`. Items with
@@ -301,6 +302,19 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
   const { user, initialized, hydrate, logout } = useAuth();
   const palette = twPalette(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // Global ⌘K / Ctrl+K opens the search palette from anywhere in the portal.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const navGroups = React.useMemo(() => visibleGroups(NAV_GROUPS, user), [user]);
 
   useEffect(() => {
@@ -602,8 +616,9 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
             ))}
           </div>
           <div style={{ flex: 1 }} />
-          <div
-            className="tw-desktop-only"
+          <button
+            className="tw-desktop-only tw-press tw-nav-item"
+            onClick={() => setPaletteOpen(true)}
             style={{
               width: 280,
               height: 36,
@@ -616,6 +631,8 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
               border: `1px solid ${palette.border}`,
               color: palette.muted,
               fontSize: 13,
+              cursor: "pointer",
+              font: "inherit",
             }}
           >
             <TWIcon name="search" size={15} />
@@ -633,7 +650,7 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
             >
               ⌘K
             </kbd>
-          </div>
+          </button>
           <button
             className="tw-press tw-nav-item"
             aria-label="Notifications"
@@ -671,6 +688,8 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
           {children}
         </div>
       </main>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
 
       <MobileNavDrawer open={navOpen} onClose={() => setNavOpen(false)} side="left" width={300}>
         <div

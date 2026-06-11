@@ -3,26 +3,27 @@
 import * as React from "react";
 
 // Brand intro overlay — fully code-drawn (replaced the 8s /intro.mp4 reel).
-// The animation is built from the real brand geometry (TWMonogram wedges +
-// wordmark type), so it always matches the product around it: no codec blur,
-// no buffering, instant first frame, ~3s instead of 8s. Sequence:
-//   1. a trendy-pink wheel ring draws itself + spins, lime speed streaks pass
-//   2. the monogram wedges pop in, the pink dot lands with a bounce
-//   3. TRENDY.WHEELS slides up with the BUY · RENT · SERVICE strapline
-//   4. a light shimmer sweeps the lockup, then the overlay fades out
+// Three acts, ~3.6s total:
+//   1. a trendy-pink wheel ring draws itself + spins while lime/pool speed
+//      streaks fly past, and TRENDY.WHEELS rises with the strapline
+//   2. act one exits (ring shrinks away, type slips down)
+//   3. finale — the REAL brand mark (/brand-logo.png, provided by the host
+//      app's public dir) blooms in from a blur with a glow, and a light sheen
+//      sweeps across it, masked to the logo's own alpha so the shine lives
+//      inside the mark. It holds the closing frame, then the overlay fades.
 // Persistence modes (unchanged contract):
 //   mode="device"  — localStorage flag, once per device (customer surface)
 //   mode="session" — sessionStorage flag, once per browser session (staff)
-// Honors prefers-reduced-motion: static lockup, short fade, no movement.
+// Honors prefers-reduced-motion: static closing frame, short fade, no motion.
 
 const INTRO_BG = "#02011F";
-const FRIENDLY_BLUE = "#2B0FF8";
 const TRENDY_PINK = "#FF0065";
 const ECO_LIME = "#A9F453";
 const POOL_BLUE = "#00C7EA";
+const LOGO_SRC = "/brand-logo.png";
 const FADE_MS = 400;
-const REEL_MS = 3000; // auto-dismiss after the sequence completes
-const SAFETY_TIMEOUT_MS = 4500; // reel + slack, in case timers are throttled
+const REEL_MS = 3600; // auto-dismiss after the sequence completes
+const SAFETY_TIMEOUT_MS = 5200; // reel + slack, in case timers are throttled
 const STORAGE_KEY = "tw-intro-seen-v1";
 
 const FONT_DISPLAY = "Anton, Impact, 'Bebas Neue', system-ui, sans-serif";
@@ -59,7 +60,7 @@ export function IntroOverlay({ mode }: Props): React.JSX.Element | null {
     setPhase("visible");
 
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const reel = setTimeout(() => dismiss(), reduced ? 1200 : REEL_MS);
+    const reel = setTimeout(() => dismiss(), reduced ? 1400 : REEL_MS);
     const safety = setTimeout(() => dismiss(), SAFETY_TIMEOUT_MS);
     return () => {
       clearTimeout(reel);
@@ -104,7 +105,7 @@ export function IntroOverlay({ mode }: Props): React.JSX.Element | null {
     >
       <style>{KEYFRAMES}</style>
 
-      {/* ambient glow behind the lockup */}
+      {/* ambient glow behind everything */}
       <div
         className="twi-glow"
         style={{
@@ -135,64 +136,27 @@ export function IntroOverlay({ mode }: Props): React.JSX.Element | null {
         />
       ))}
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 26 }}>
-        {/* wheel ring + monogram */}
-        <div style={{ position: "relative", width: 168, height: 168 }}>
-          <svg
-            width="168"
-            height="168"
-            viewBox="0 0 168 168"
-            style={{ position: "absolute", inset: 0 }}
-          >
-            <circle
-              className="twi-ring"
-              cx="84"
-              cy="84"
-              r="76"
-              fill="none"
-              stroke={TRENDY_PINK}
-              strokeWidth="5"
-              strokeLinecap="round"
-              strokeDasharray="478"
-              strokeDashoffset="478"
-              transform="rotate(-90 84 84)"
-            />
-          </svg>
-          <svg
-            width="96"
-            height="96"
-            viewBox="0 0 64 64"
-            style={{ position: "absolute", top: 36, left: 36 }}
-          >
-            <defs>
-              <linearGradient id="twi-fade" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stopColor={FRIENDLY_BLUE} />
-                <stop offset="1" stopColor={INTRO_BG} stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            {/* same wedge geometry as TWMonogram (web.tsx) */}
-            <path
-              className="twi-wedge twi-wedge-1"
-              d="M26 8 h12 a4 4 0 0 1 4 4 v40 a4 4 0 0 1 -4 4 h-12 a4 4 0 0 1 -4 -4 v-40 a4 4 0 0 1 4 -4 z"
-              fill={FRIENDLY_BLUE}
-            />
-            <path
-              className="twi-wedge twi-wedge-2"
-              d="M10 16 h20 v12 h-12 a8 8 0 0 1 -8 -8 z"
-              fill={FRIENDLY_BLUE}
-              opacity="0.92"
-            />
-            <path
-              className="twi-wedge twi-wedge-3"
-              d="M34 16 h20 a0 0 0 0 1 0 0 v4 a8 8 0 0 1 -8 8 h-12 z"
-              fill="url(#twi-fade)"
-            />
-            <circle className="twi-dot" cx="50" cy="50" r="4" fill={TRENDY_PINK} />
-          </svg>
-        </div>
-
-        {/* wordmark + strapline */}
-        <div style={{ position: "relative", overflow: "hidden", textAlign: "center" }}>
+      {/* ACT 1 — wheel ring + wordmark; exits before the finale */}
+      <div
+        className="twi-act1"
+        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 26 }}
+      >
+        <svg width="150" height="150" viewBox="0 0 150 150">
+          <circle
+            className="twi-ring"
+            cx="75"
+            cy="75"
+            r="66"
+            fill="none"
+            stroke={TRENDY_PINK}
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeDasharray="415"
+            strokeDashoffset="415"
+          />
+          <circle className="twi-hub" cx="75" cy="75" r="7" fill={TRENDY_PINK} />
+        </svg>
+        <div style={{ textAlign: "center" }}>
           <div
             className="twi-word"
             style={{
@@ -220,15 +184,58 @@ export function IntroOverlay({ mode }: Props): React.JSX.Element | null {
           >
             Buy · Rent · Service
           </div>
-          {/* shimmer sweep across the lockup */}
+        </div>
+      </div>
+
+      {/* ACT 2 — finale: the real brand mark blooms in and holds the frame */}
+      <div
+        className="twi-act2"
+        style={{
+          position: "absolute",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {/* bloom behind the mark */}
+        <div
+          className="twi-logo-bloom"
+          style={{
+            position: "absolute",
+            width: 420,
+            height: 420,
+            borderRadius: "50%",
+            background: `radial-gradient(circle, #2B0FF826 0%, ${POOL_BLUE}10 40%, transparent 65%)`,
+          }}
+        />
+        <div style={{ position: "relative", width: 320, height: 185 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={LOGO_SRC}
+            alt="TrendyWheels"
+            width={320}
+            height={185}
+            style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }}
+          />
+          {/* sheen masked to the logo's own alpha — the shine lives inside the mark */}
           <div
-            className="twi-shimmer"
+            className="twi-logo-sheen"
             style={{
               position: "absolute",
               inset: 0,
               background:
-                "linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.35) 50%, transparent 62%)",
-              transform: "translateX(-120%)",
+                "linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.85) 50%, transparent 62%)",
+              backgroundSize: "300% 100%",
+              backgroundPosition: "120% 0",
+              backgroundRepeat: "no-repeat",
+              WebkitMaskImage: `url(${LOGO_SRC})`,
+              maskImage: `url(${LOGO_SRC})`,
+              WebkitMaskSize: "contain",
+              maskSize: "contain",
+              WebkitMaskRepeat: "no-repeat",
+              maskRepeat: "no-repeat",
+              WebkitMaskPosition: "center",
+              maskPosition: "center",
               pointerEvents: "none",
             }}
           />
@@ -261,50 +268,57 @@ export function IntroOverlay({ mode }: Props): React.JSX.Element | null {
   );
 }
 
-// Timeline (ms): ring 0–900 · streaks 100–1000 · wedges 500–1200 ·
-// dot 1250 · wordmark 1200–1800 · shimmer 1900–2500 · dismiss 3000.
+// Timeline (ms): ring 0–1000 · streaks 100–1000 · hub 950 · wordmark 800–1500
+// · act1 exits 1800–2200 · logo blooms 2150–2900 · sheen 2800–3400 · out 3600.
 const KEYFRAMES = `
 @keyframes twi-ring-draw {
-  0%   { stroke-dashoffset: 478; transform: rotate(-90deg); }
+  0%   { stroke-dashoffset: 415; transform: rotate(-90deg); }
   70%  { stroke-dashoffset: 0; }
   100% { stroke-dashoffset: 0; transform: rotate(270deg); }
 }
 .twi-ring {
-  transform-origin: 84px 84px;
-  animation: twi-ring-draw 1100ms cubic-bezier(.3,.6,.2,1) forwards;
+  transform-origin: 75px 75px;
+  animation: twi-ring-draw 1000ms cubic-bezier(.3,.6,.2,1) forwards;
 }
+@keyframes twi-pop {
+  0%   { opacity: 0; transform: scale(0.4); }
+  70%  { opacity: 1; transform: scale(1.3); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.twi-hub { opacity: 0; transform-origin: 75px 75px; animation: twi-pop 320ms cubic-bezier(.3,1.2,.4,1) 950ms forwards; }
 @keyframes twi-streak-fly {
   0%   { opacity: 0; transform: translateX(-30vw); }
   25%  { opacity: 0.9; }
   100% { opacity: 0; transform: translateX(110vw); }
 }
 .twi-streak { animation: twi-streak-fly 900ms cubic-bezier(.2,.7,.3,1) forwards; }
-@keyframes twi-pop {
-  0%   { opacity: 0; transform: scale(0.6); }
-  70%  { opacity: 1; transform: scale(1.06); }
-  100% { opacity: 1; transform: scale(1); }
-}
-.twi-wedge { opacity: 0; transform-origin: 32px 32px; animation: twi-pop 360ms cubic-bezier(.2,.8,.3,1.2) forwards; }
-.twi-wedge-1 { animation-delay: 500ms; }
-.twi-wedge-2 { animation-delay: 640ms; }
-.twi-wedge-3 { animation-delay: 780ms; }
-@keyframes twi-dot-land {
-  0%   { opacity: 0; transform: translateY(-14px) scale(0.4); }
-  60%  { opacity: 1; transform: translateY(2px) scale(1.25); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-.twi-dot { opacity: 0; transform-origin: 50px 50px; animation: twi-dot-land 420ms cubic-bezier(.3,1.2,.4,1) 1250ms forwards; }
 @keyframes twi-rise {
   from { opacity: 0; transform: translateY(26px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.twi-word  { opacity: 0; animation: twi-rise 520ms cubic-bezier(.2,.8,.3,1) 1200ms forwards; }
-.twi-strap { opacity: 0; animation: twi-rise 520ms cubic-bezier(.2,.8,.3,1) 1420ms forwards; }
-@keyframes twi-sweep {
-  from { transform: translateX(-120%); }
-  to   { transform: translateX(120%); }
+.twi-word  { opacity: 0; animation: twi-rise 520ms cubic-bezier(.2,.8,.3,1) 800ms forwards; }
+.twi-strap { opacity: 0; animation: twi-rise 520ms cubic-bezier(.2,.8,.3,1) 1020ms forwards; }
+@keyframes twi-act1-exit {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.9); }
 }
-.twi-shimmer { animation: twi-sweep 600ms cubic-bezier(.4,.2,.3,1) 1900ms forwards; }
+.twi-act1 { animation: twi-act1-exit 400ms cubic-bezier(.4,.2,.6,1) 1800ms forwards; }
+@keyframes twi-logo-bloom-in {
+  0%   { opacity: 0; transform: scale(1.18); filter: blur(16px); }
+  60%  { opacity: 1; filter: blur(2px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+.twi-act2 { opacity: 0; animation: twi-logo-bloom-in 750ms cubic-bezier(.2,.7,.3,1) 2150ms forwards; }
+@keyframes twi-bloom-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50%      { transform: scale(1.1); opacity: 1; }
+}
+.twi-logo-bloom { animation: twi-bloom-pulse 1800ms ease-in-out 2150ms infinite; }
+@keyframes twi-sheen-sweep {
+  from { background-position: 120% 0; }
+  to   { background-position: -120% 0; }
+}
+.twi-logo-sheen { animation: twi-sheen-sweep 650ms cubic-bezier(.4,.2,.3,1) 2800ms forwards; }
 @keyframes twi-breathe {
   0%, 100% { transform: scale(1); opacity: 0.8; }
   50%      { transform: scale(1.12); opacity: 1; }
@@ -312,8 +326,11 @@ const KEYFRAMES = `
 .twi-glow { animation: twi-breathe 2600ms ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
   .twi-ring { animation: none; stroke-dashoffset: 0; }
-  .twi-streak, .twi-shimmer { animation: none; opacity: 0; }
-  .twi-glow { animation: none; }
-  .twi-wedge, .twi-dot, .twi-word, .twi-strap { animation: none; opacity: 1; transform: none; }
+  .twi-hub { animation: none; opacity: 1; }
+  .twi-streak { animation: none; opacity: 0; }
+  .twi-glow, .twi-logo-bloom, .twi-logo-sheen { animation: none; }
+  .twi-act1 { animation: none; opacity: 0; }
+  .twi-act2 { animation: none; opacity: 1; }
+  .twi-word, .twi-strap { animation: none; opacity: 1; transform: none; }
 }
 `;
