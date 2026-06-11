@@ -98,6 +98,9 @@ const NAV_GROUPS: NavGroup[] = [
         icon: "users",
         allowedRoles: ["sales", "support", "admin"],
       },
+      // Also listed under System; duplicated here because "where do I manage
+      // users?" is a Customers-section instinct, not a System one.
+      { href: "/users", label: "All users", icon: "user", allowedRoles: ["admin"] },
       {
         href: "/bookings",
         label: "Bookings",
