@@ -117,6 +117,55 @@ router.delete("/reviews/:id", async (req, res) => {
   res.json({ success: true });
 });
 
+// ─── Favorites (saved vehicles) ──────────────────────────────
+router.get("/favorites", async (req, res) => {
+  const favorites = await prisma.favorite.findMany({
+    where: { userId: req.user!.userId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      vehicle: {
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          type: true,
+          dailyRate: true,
+          salePrice: true,
+          listingType: true,
+          status: true,
+          averageRating: true,
+          reviewCount: true,
+          images: { take: 1, orderBy: { sortOrder: "asc" }, select: { url: true } },
+        },
+      },
+    },
+  });
+  res.json({ data: favorites });
+});
+
+// PUT (not POST) — saving twice is a no-op, so the route is idempotent.
+router.put("/favorites/:vehicleId", async (req, res) => {
+  const vehicleId = req.params.vehicleId;
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    select: { id: true },
+  });
+  if (!vehicle) throw AppError.notFound("Vehicle not found");
+  const favorite = await prisma.favorite.upsert({
+    where: { userId_vehicleId: { userId: req.user!.userId, vehicleId } },
+    create: { userId: req.user!.userId, vehicleId },
+    update: {},
+  });
+  res.status(201).json({ data: favorite });
+});
+
+router.delete("/favorites/:vehicleId", async (req, res) => {
+  await prisma.favorite.deleteMany({
+    where: { userId: req.user!.userId, vehicleId: req.params.vehicleId },
+  });
+  res.json({ success: true });
+});
+
 // ─── Referral codes ──────────────────────────────────────────
 router.get("/referrals/me", async (req, res) => {
   const userId = req.user!.userId;

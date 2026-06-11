@@ -4,6 +4,7 @@
 // functions without going through the HTTP layer.
 
 import { prisma } from "../../config/database.js";
+import { maybePromoteLoyaltyTier } from "../customer-features/loyalty-tiers.js";
 
 // Awarded points = floor(totalCost / 10). Matches the brand promise of
 // "10 points for every EGP 100 spent on rentals".
@@ -80,6 +81,12 @@ export async function onBookingCompleted(
           data: { loyaltyPoints: { increment: REFERRAL_BONUS_POINTS } },
         }),
       ]);
+      // Referrer also earned points — they may have crossed a tier too.
+      await maybePromoteLoyaltyTier(referral.referrerId);
     }
   }
+
+  // 3. Tier check AFTER all earns committed. Never demotes; pushes a
+  //    celebration notification when a threshold is crossed.
+  await maybePromoteLoyaltyTier(userId);
 }

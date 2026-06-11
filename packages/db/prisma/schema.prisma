@@ -102,6 +102,7 @@ model User {
   customerLead             Lead?                     @relation("LeadCustomer")
   leadActivities           LeadActivity[]            @relation("LeadActivityActor")
   reviews                  Review[]
+  favorites                Favorite[]
   referralCode             ReferralCode?
   referralsMade            Referral[]                @relation("ReferralReferrer")
   referralReceived         Referral?                 @relation("ReferralReferee")
@@ -279,6 +280,7 @@ model Vehicle {
   conditionReports VehicleConditionReport[]
   alertEvents      AlertEvent[]
   reviews          Review[]
+  favorites        Favorite[]
   products         Product[]
   rentalListings   RentalListing[]
   statusChanges    VehicleStatusChange[]
@@ -928,6 +930,22 @@ model SalesTarget {
 }
 
 // ─── Customer features: reviews, referrals ───────────────────────────────────
+
+// Saved vehicles ("heart" on rental/buy detail screens). One row per
+// user+vehicle; toggling off deletes the row.
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  vehicleId String   @map("vehicle_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vehicleId])
+  @@index([userId])
+  @@map("favorites")
+}
 
 model Review {
   id            String   @id @default(uuid()) @db.Uuid

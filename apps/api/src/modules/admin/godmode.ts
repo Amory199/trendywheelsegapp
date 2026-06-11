@@ -7,6 +7,7 @@ import { alertEvaluatorQueue, leadSweeperQueue, remindersQueue } from "../../que
 import { isAdmin } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 import { signAccessToken } from "../auth/service.js";
+import { maybePromoteLoyaltyTier } from "../customer-features/loyalty-tiers.js";
 
 import { writeAudit } from "./audit.js";
 import { godModeContentRoutes } from "./godmode-content.js";
@@ -109,6 +110,8 @@ router.post("/users/:id/loyalty-adjust", async (req, res) => {
     });
   });
   await writeAudit(req.user!.userId, null, "loyalty.manual-adjust", "user", user.id, body);
+  // Positive grants can cross a tier threshold; demotion never happens here.
+  if (body.points > 0) await maybePromoteLoyaltyTier(user.id);
   res.json({ success: true });
 });
 
