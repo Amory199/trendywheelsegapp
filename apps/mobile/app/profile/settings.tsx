@@ -8,7 +8,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  I18nManager,
   Linking,
   Pressable,
   ScrollView,
@@ -19,8 +18,10 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { applyLanguage } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
 type Theme = "dark" | "light" | "system";
@@ -78,23 +79,27 @@ export default function SettingsScreen(): JSX.Element {
     },
   });
 
-  const handleLanguageChange = (lang: Language): void => {
+  const handleLanguageChange = async (lang: Language): Promise<void> => {
     if (lang === language) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLanguage(lang);
-    if (lang === "ar" && !I18nManager.isRTL) {
-      Alert.alert(
-        "Language Changed",
-        "The app will switch to Arabic (RTL layout). Please restart the app for the change to take full effect.",
-        [{ text: "OK" }],
-      );
-    } else if (lang === "en" && I18nManager.isRTL) {
-      Alert.alert(
-        "Language Changed",
-        "The app will switch to English. Please restart the app for the change to take full effect.",
-        [{ text: "OK" }],
-      );
+    logEvent("language_changed", { language: lang });
+    // Save the preference to the API BEFORE applyLanguage — an en↔ar switch
+    // flips layout direction and reloads the app, which would otherwise lose
+    // the server-side save. Best-effort: an offline save still applies the
+    // language locally (SecureStore persists it).
+    if (user) {
+      try {
+        await api.updateUser(user.id, {
+          preferences: { ...(prefs ?? {}), language: lang } as UserPreferences,
+        });
+      } catch {
+        /* offline — local persistence still wins */
+      }
     }
+    // Persists the locale and, when the layout direction flips, reloads the
+    // app (dev builds fall back to a restart prompt inside applyLanguage).
+    await applyLanguage(lang);
   };
 
   return (
@@ -166,7 +171,7 @@ export default function SettingsScreen(): JSX.Element {
           <View style={styles.settingsCard}>
             <Pressable
               style={[styles.langOption, language === "en" && styles.langOptionActive]}
-              onPress={() => handleLanguageChange("en")}
+              onPress={() => void handleLanguageChange("en")}
             >
               <Text style={styles.langFlag}>🇬🇧</Text>
               <View style={styles.langInfo}>
@@ -184,7 +189,7 @@ export default function SettingsScreen(): JSX.Element {
 
             <Pressable
               style={[styles.langOption, language === "ar" && styles.langOptionActive]}
-              onPress={() => handleLanguageChange("ar")}
+              onPress={() => void handleLanguageChange("ar")}
             >
               <Text style={styles.langFlag}>🇪🇬</Text>
               <View style={styles.langInfo}>

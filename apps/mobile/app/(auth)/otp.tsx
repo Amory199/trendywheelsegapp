@@ -5,6 +5,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "reac
 
 import { useAuth } from "../../lib/auth-store";
 import { confirmFirebaseOtp } from "../../lib/firebase-phone-auth";
+import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
 export default function OtpScreen(): JSX.Element {
@@ -12,6 +13,7 @@ export default function OtpScreen(): JSX.Element {
   const { phone, mode } = useLocalSearchParams<{ phone: string; mode?: string }>();
   const verifyOtp = useAuth((s) => s.verifyOtp);
   const verifyFirebaseIdToken = useAuth((s) => s.verifyFirebaseIdToken);
+  const t = useT();
   const { palette: p } = useTheme();
   const styles = useMemo(() => makeStyles(p), [p]);
   const [otp, setOtp] = useState("");
@@ -46,7 +48,10 @@ export default function OtpScreen(): JSX.Element {
       }
       router.replace("/(tabs)");
     } catch (err) {
-      Alert.alert("Verification failed", err instanceof Error ? err.message : "Try again");
+      Alert.alert(
+        t("auth.verificationFailed"),
+        err instanceof Error ? err.message : t("common.tryAgain"),
+      );
     } finally {
       setLoading(false);
     }
@@ -55,8 +60,10 @@ export default function OtpScreen(): JSX.Element {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Verify Your Number</Text>
-        <Text style={styles.subtitle}>Enter the code sent to {phone}</Text>
+        <Text style={styles.title}>{t("auth.verifyTitle")}</Text>
+        <Text style={styles.subtitle}>
+          {t("auth.otpSentTo")} {phone}
+        </Text>
 
         <TextInput
           style={styles.input}
@@ -75,7 +82,9 @@ export default function OtpScreen(): JSX.Element {
           disabled={otp.length !== 6 || loading}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>{loading ? "Verifying…" : "Verify"}</Text>
+          <Text style={styles.buttonText}>
+            {loading ? t("auth.verifying") : t("auth.verifyOtp")}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { EarningsCard } from "../../components/crm/EarningsCard";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { initialGreeting } from "../../lib/lead-templates";
@@ -171,7 +172,9 @@ export default function CrmPipeline(): React.JSX.Element {
         </Pressable>
       </View>
 
-      <View style={styles.heroCard}>
+      <EarningsCard />
+
+      <View style={[styles.heroCard, { marginTop: 10 }]}>
         <View>
           <Text style={styles.heroLabel}>Total pipeline</Text>
           <Text style={styles.heroValue}>EGP {Math.round(totalValue).toLocaleString()}</Text>

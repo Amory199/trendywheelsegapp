@@ -5,6 +5,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Linking } f
 
 import { useAuth } from "../../lib/auth-store";
 import { isTrialPhone, sendFirebaseOtp } from "../../lib/firebase-phone-auth";
+import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
 const EGYPT_DIAL_CODE = "+20";
@@ -12,6 +13,7 @@ const EGYPT_DIAL_CODE = "+20";
 export default function PhoneScreen(): JSX.Element {
   const router = useRouter();
   const sendOtp = useAuth((s) => s.sendOtp);
+  const t = useT();
   const { palette: p } = useTheme();
   const styles = useMemo(() => makeStyles(p), [p]);
   const [localPhone, setLocalPhone] = useState("");
@@ -23,11 +25,11 @@ export default function PhoneScreen(): JSX.Element {
 
   const handleSendOtp = async (): Promise<void> => {
     if (!consented) {
-      Alert.alert("Required", "Please accept the Privacy Policy to continue.");
+      Alert.alert(t("auth.requiredTitle"), t("auth.privacyRequired"));
       return;
     }
     if (!localValid) {
-      Alert.alert("Invalid number", "Enter a 10-digit Egyptian mobile starting with 1.");
+      Alert.alert(t("auth.invalidNumberTitle"), t("auth.invalidNumberMessage"));
       return;
     }
     setLoading(true);
@@ -43,7 +45,10 @@ export default function PhoneScreen(): JSX.Element {
         params: { phone: fullPhone, mode: useFirebase ? "firebase" : "trial" },
       });
     } catch (err) {
-      Alert.alert("Could not send OTP", err instanceof Error ? err.message : "Try again");
+      Alert.alert(
+        t("auth.otpSendFailed"),
+        err instanceof Error ? err.message : t("common.tryAgain"),
+      );
     } finally {
       setLoading(false);
     }
@@ -52,8 +57,8 @@ export default function PhoneScreen(): JSX.Element {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome to TrendyWheels</Text>
-        <Text style={styles.subtitle}>Enter your phone number to get started</Text>
+        <Text style={styles.title}>{t("auth.welcome")}</Text>
+        <Text style={styles.subtitle}>{t("auth.phoneSubtitle")}</Text>
 
         <View style={styles.phoneRow}>
           <View style={styles.dialChip}>
@@ -79,14 +84,14 @@ export default function PhoneScreen(): JSX.Element {
             {consented && <Text style={styles.checkmark}>✓</Text>}
           </View>
           <Text style={styles.consentText}>
-            I agree to the{" "}
+            {t("auth.privacyAgreePrefix")}{" "}
             <Text
               style={styles.consentLink}
               onPress={() => void Linking.openURL("https://app.trendywheelseg.com/legal/privacy")}
             >
-              Privacy Policy
+              {t("auth.privacyPolicy")}
             </Text>{" "}
-            and consent to processing my personal data.
+            {t("auth.privacyAgreeSuffix")}
           </Text>
         </TouchableOpacity>
 
@@ -96,7 +101,7 @@ export default function PhoneScreen(): JSX.Element {
           disabled={!localValid || loading || !consented}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>{loading ? "Sending…" : "Send OTP"}</Text>
+          <Text style={styles.buttonText}>{loading ? t("auth.sending") : t("auth.sendOtp")}</Text>
         </TouchableOpacity>
       </View>
     </View>

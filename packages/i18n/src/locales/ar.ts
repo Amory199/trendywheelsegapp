@@ -17,6 +17,7 @@ const ar: TranslationKeys = {
     sort: "ترتيب",
     noResults: "لا توجد نتائج",
     viewAll: "عرض الكل",
+    tryAgain: "حاول مرة أخرى",
   },
   auth: {
     enterPhone: "أدخل رقم هاتفك",
@@ -27,11 +28,27 @@ const ar: TranslationKeys = {
     invalidOtp: "رمز التحقق غير صالح",
     logout: "تسجيل الخروج",
     welcome: "مرحباً بك في تريندي ويلز",
+    phoneSubtitle: "أدخل رقم هاتفك للبدء",
+    privacyAgreePrefix: "أوافق على",
+    privacyPolicy: "سياسة الخصوصية",
+    privacyAgreeSuffix: "وأقرّ بموافقتي على معالجة بياناتي الشخصية.",
+    sending: "جاري الإرسال…",
+    requiredTitle: "مطلوب",
+    privacyRequired: "يرجى الموافقة على سياسة الخصوصية للمتابعة.",
+    invalidNumberTitle: "رقم غير صحيح",
+    invalidNumberMessage: "أدخل رقم موبايل مصري مكوّناً من 10 أرقام يبدأ بـ 1.",
+    otpSendFailed: "تعذر إرسال رمز التحقق",
+    verifyTitle: "تأكيد رقم هاتفك",
+    otpSentTo: "أدخل الرمز المرسل إلى",
+    verifying: "جاري التحقق…",
+    verificationFailed: "فشل التحقق",
   },
   tabs: {
+    home: "الرئيسية",
+    buy: "شراء",
     rent: "إيجار",
     sell: "بيع",
-    repair: "صيانة",
+    repair: "الصيانة",
     profile: "حسابي",
   },
   rent: {
@@ -82,6 +99,10 @@ const ar: TranslationKeys = {
     communicationCenter: "الرسائل",
     interactionHistory: "السجل",
     settings: "الإعدادات",
+  },
+  settings: {
+    languageChanged: "تم تغيير اللغة",
+    restartToApply: "يرجى إعادة تشغيل التطبيق لتطبيق اللغة واتجاه الواجهة الجديدين.",
   },
 } as const;
 

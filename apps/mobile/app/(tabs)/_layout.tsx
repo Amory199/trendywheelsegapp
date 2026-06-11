@@ -6,6 +6,7 @@ import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
+import { useT } from "../../lib/locale";
 import { TabBarScrollProvider, useTabBarTranslate } from "../../lib/tab-bar-scroll";
 import { useTheme } from "../../lib/use-theme";
 
@@ -58,6 +59,7 @@ function AutoHidingTabBar(props: BottomTabBarProps): JSX.Element {
 
 export default function TabLayout(): JSX.Element {
   const { palette, isDark } = useTheme();
+  const t = useT();
 
   return (
     <TabBarScrollProvider>
@@ -83,7 +85,7 @@ export default function TabLayout(): JSX.Element {
         <Tabs.Screen
           name="index"
           options={{
-            title: "Home",
+            title: t("tabs.home"),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
             ),
@@ -92,7 +94,7 @@ export default function TabLayout(): JSX.Element {
         <Tabs.Screen
           name="buy"
           options={{
-            title: "Buy",
+            title: t("tabs.buy"),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? "bag" : "bag-outline"} size={24} color={color} />
             ),
@@ -101,7 +103,7 @@ export default function TabLayout(): JSX.Element {
         <Tabs.Screen
           name="rent"
           options={{
-            title: "Rent",
+            title: t("tabs.rent"),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? "car" : "car-outline"} size={24} color={color} />
             ),
@@ -110,7 +112,7 @@ export default function TabLayout(): JSX.Element {
         <Tabs.Screen
           name="sell"
           options={{
-            title: "Sell",
+            title: t("tabs.sell"),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? "pricetag" : "pricetag-outline"} size={24} color={color} />
             ),
@@ -119,7 +121,7 @@ export default function TabLayout(): JSX.Element {
         <Tabs.Screen
           name="repair"
           options={{
-            title: "Service",
+            title: t("tabs.repair"),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "construct" : "construct-outline"}
@@ -132,7 +134,7 @@ export default function TabLayout(): JSX.Element {
         <Tabs.Screen
           name="profile"
           options={{
-            title: "Profile",
+            title: t("tabs.profile"),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
             ),

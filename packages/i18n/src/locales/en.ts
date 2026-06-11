@@ -15,6 +15,7 @@ const en = {
     sort: "Sort",
     noResults: "No results found",
     viewAll: "View All",
+    tryAgain: "Try again",
   },
   auth: {
     enterPhone: "Enter your phone number",
@@ -25,11 +26,27 @@ const en = {
     invalidOtp: "Invalid verification code",
     logout: "Log Out",
     welcome: "Welcome to TrendyWheels",
+    phoneSubtitle: "Enter your phone number to get started",
+    privacyAgreePrefix: "I agree to the",
+    privacyPolicy: "Privacy Policy",
+    privacyAgreeSuffix: "and consent to processing my personal data.",
+    sending: "Sending…",
+    requiredTitle: "Required",
+    privacyRequired: "Please accept the Privacy Policy to continue.",
+    invalidNumberTitle: "Invalid number",
+    invalidNumberMessage: "Enter a 10-digit Egyptian mobile starting with 1.",
+    otpSendFailed: "Could not send OTP",
+    verifyTitle: "Verify Your Number",
+    otpSentTo: "Enter the code sent to",
+    verifying: "Verifying…",
+    verificationFailed: "Verification failed",
   },
   tabs: {
+    home: "Home",
+    buy: "Buy",
     rent: "Rent",
     sell: "Sell",
-    repair: "Repair",
+    repair: "Service",
     profile: "Profile",
   },
   rent: {
@@ -80,6 +97,10 @@ const en = {
     communicationCenter: "Messages",
     interactionHistory: "History",
     settings: "Settings",
+  },
+  settings: {
+    languageChanged: "Language Changed",
+    restartToApply: "Please restart the app to apply the new language and layout.",
   },
 } as const;
 
