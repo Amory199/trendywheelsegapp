@@ -29,6 +29,11 @@ interface ClientConfig {
   // rejected — e.g. the server revoked the session after a role/status change).
   // The app should clear tokens and return the user to the login screen.
   onAuthError?: () => Promise<void> | void;
+  // Connectivity signal: false when a request dies at the network layer
+  // (timeout / DNS / no route), true again on the next response — any HTTP
+  // status counts, a 500 still proves the network works. Drives the offline
+  // banner without needing a native NetInfo module.
+  onNetworkStatus?: (online: boolean) => void;
 }
 
 interface PaginationParams {
@@ -91,13 +96,16 @@ class ApiClient {
       const reqHeaders = { ...headers };
       if (auth) reqHeaders["Authorization"] = auth;
       try {
-        return await fetch(url.toString(), {
+        const resp = await fetch(url.toString(), {
           method,
           headers: reqHeaders,
           body: options?.body ? JSON.stringify(options.body) : undefined,
           signal: controller.signal,
         });
+        this.config.onNetworkStatus?.(true);
+        return resp;
       } catch (err) {
+        this.config.onNetworkStatus?.(false);
         // Detect abort by name — `DOMException` isn't always a global on Hermes,
         // so referencing it directly throws ReferenceError on some RN builds.
         const e = err as { name?: string } | null;
@@ -173,8 +181,19 @@ class ApiClient {
     return this.request("POST", "/api/auth/refresh-token", { body: { refreshToken } });
   }
 
-  async logout(): Promise<{ success: boolean }> {
-    return this.request("POST", "/api/auth/logout");
+  // pushToken (optional) lets the API unbind only THIS device's push
+  // registration; omitted → all the user's tokens are unbound server-side.
+  async logout(pushToken?: string): Promise<{ success: boolean }> {
+    return this.request("POST", "/api/auth/logout", {
+      body: pushToken ? { pushToken } : undefined,
+    });
+  }
+
+  // Public boot-time metadata: force-update gate + store URLs.
+  async getAppConfig(): Promise<{
+    data: { minSupportedVersion: string; iosStoreUrl: string; androidStoreUrl: string };
+  }> {
+    return this.request("GET", "/api/app-config");
   }
 
   // ─── Vehicles ────────────────────────────────────────────
@@ -722,6 +741,73 @@ class ApiClient {
 
   async deleteFile(key: string): Promise<{ success: boolean }> {
     return this.request("DELETE", `/api/storage/${encodeURIComponent(key)}`);
+  }
+
+  // ─── Reviews ─────────────────────────────────────────────
+
+  async getVehicleReviews(vehicleId: string): Promise<{
+    data: Array<{
+      id: string;
+      rating: number;
+      title: string | null;
+      body: string | null;
+      createdAt: string;
+      user: { id: string; name: string | null; avatarUrl: string | null };
+    }>;
+    summary: { average: number; count: number };
+  }> {
+    return this.request("GET", `/api/vehicles/${encodeURIComponent(vehicleId)}/reviews`);
+  }
+
+  async submitBookingReview(
+    bookingId: string,
+    review: { rating: number; title?: string; body?: string; photos?: string[] },
+  ): Promise<{ data: { id: string } }> {
+    return this.request("POST", `/api/bookings/${encodeURIComponent(bookingId)}/review`, {
+      body: review,
+    });
+  }
+
+  // ─── Favorites (saved vehicles) ──────────────────────────
+
+  async getFavorites(): Promise<{
+    data: Array<{ id: string; vehicleId: string; createdAt: string; vehicle: Vehicle }>;
+  }> {
+    return this.request("GET", "/api/favorites");
+  }
+
+  async addFavorite(vehicleId: string): Promise<{ data: { id: string } }> {
+    return this.request("PUT", `/api/favorites/${encodeURIComponent(vehicleId)}`);
+  }
+
+  async removeFavorite(vehicleId: string): Promise<{ success: boolean }> {
+    return this.request("DELETE", `/api/favorites/${encodeURIComponent(vehicleId)}`);
+  }
+
+  // ─── Loyalty ─────────────────────────────────────────────
+
+  async getLoyaltyMe(): Promise<{
+    data: { points: number; tier: string; transactions: unknown[] };
+  }> {
+    return this.request("GET", "/api/loyalty/me");
+  }
+
+  // ─── CRM: my earnings (agent-self commission visibility) ──
+
+  async crmMyEarnings(): Promise<{
+    data: {
+      month: string;
+      targetMonthly: number;
+      commissionPct: number;
+      monthWonAmount: number;
+      monthWonCount: number;
+      estimatedCommission: number;
+      progressPct: number | null;
+      openLeads: number;
+      pipelineValue: number;
+    };
+  }> {
+    return this.request("GET", "/api/crm/my-earnings");
   }
 
   // ─── Referrals ───────────────────────────────────────────

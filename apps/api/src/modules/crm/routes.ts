@@ -190,6 +190,62 @@ router.get("/team", async (req, res) => {
   res.json({ data: enriched });
 });
 
+// ─── My earnings (any sales/staff member — self-scoped) ──────
+// Commission visibility for agents: this month's target + commission rate
+// (from SalesTarget, falling back to user.salesTargetMonthly), won amount,
+// and the estimated commission those wins translate to.
+router.get("/my-earnings", async (req, res) => {
+  const userId = req.user!.userId;
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  const [me, target, stats] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { salesTargetMonthly: true },
+    }),
+    prisma.salesTarget.findUnique({
+      where: { agentId_month: { agentId: userId, month: monthStart } },
+    }),
+    prisma.lead.groupBy({
+      by: ["status"],
+      where: { ownerId: userId, updatedAt: { gte: monthStart } },
+      _count: { _all: true },
+      _sum: { estimatedValue: true },
+    }),
+  ]);
+
+  type Stat = { status: string; _count: { _all: number }; _sum: { estimatedValue: unknown } };
+  const statsTyped = stats as unknown as Stat[];
+  const won = statsTyped.find((s) => s.status === "won");
+  const wonAmount = Number(won?._sum.estimatedValue ?? 0);
+  const wonCount = won?._count._all ?? 0;
+  const openLeads = statsTyped
+    .filter((s) => !["won", "lost"].includes(s.status))
+    .reduce((acc, s) => acc + s._count._all, 0);
+  const pipelineValue = statsTyped
+    .filter((s) => !["won", "lost"].includes(s.status))
+    .reduce((acc, s) => acc + Number(s._sum.estimatedValue ?? 0), 0);
+
+  const targetMonthly = Number(target?.targetMonthly ?? me?.salesTargetMonthly ?? 0);
+  const commissionPct = Number(target?.commissionPct ?? 0);
+
+  res.json({
+    data: {
+      month: monthStart.toISOString().slice(0, 7),
+      targetMonthly,
+      commissionPct,
+      monthWonAmount: wonAmount,
+      monthWonCount: wonCount,
+      estimatedCommission: Math.round(wonAmount * (commissionPct / 100) * 100) / 100,
+      progressPct: targetMonthly
+        ? Math.min(100, Math.round((wonAmount / targetMonthly) * 100))
+        : null,
+      openLeads,
+      pipelineValue,
+    },
+  });
+});
+
 // ─── Get one lead (role-aware) ───────────────────────────────
 router.get("/leads/:id", async (req, res) => {
   const userId = req.user!.userId;
