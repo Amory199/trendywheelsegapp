@@ -20,6 +20,7 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { StepBar } from "../../../components/sell/StepBar";
+import { logEvent } from "../../../lib/analytics";
 import { api } from "../../../lib/api";
 import { uploadImages } from "../../../lib/upload";
 import { useTheme } from "../../../lib/use-theme";
@@ -53,6 +54,7 @@ export default function TradeInScreen(): JSX.Element {
       });
     },
     onSuccess: () => {
+      logEvent("listing_submitted", { kind: "trade_in" });
       Alert.alert(
         "Trade-in submitted",
         "We'll get back to you with a quote within 24 hours. Quotes are valid for 7 days.",

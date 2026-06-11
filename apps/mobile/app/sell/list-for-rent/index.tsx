@@ -20,6 +20,7 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { StepBar } from "../../../components/sell/StepBar";
+import { logEvent } from "../../../lib/analytics";
 import { api } from "../../../lib/api";
 import { uploadImages } from "../../../lib/upload";
 import { useTheme } from "../../../lib/use-theme";
@@ -68,6 +69,7 @@ export default function ListForRentScreen(): JSX.Element {
       });
     },
     onSuccess: () => {
+      logEvent("listing_submitted", { kind: "rent" });
       Alert.alert(
         "Listing submitted",
         "We'll review your listing within 48 hours and reach out to confirm terms.",

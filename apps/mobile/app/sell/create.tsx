@@ -21,6 +21,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
+import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { playSound } from "../../lib/sounds";
 import { uploadImages } from "../../lib/upload";
@@ -103,6 +104,7 @@ export default function SellCreateScreen(): JSX.Element {
       return api.createSalesListing(payload);
     },
     onSuccess: () => {
+      logEvent("listing_submitted", { kind: "sell" });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       playSound("celebrate");
       void qc.invalidateQueries({ queryKey: ["sales-listings"] });

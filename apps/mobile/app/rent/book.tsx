@@ -30,6 +30,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { TWSkiaConfetti } from "../../components/skia/confetti";
+import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { playSound } from "../../lib/sounds";
@@ -112,6 +113,7 @@ export default function BookScreen(): JSX.Element {
     onSuccess: (res) => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       playSound("celebrate");
+      logEvent("booking_created", { vehicle_id: vehicleId, total_egp: totalCost, days });
       setBookingRef(res.data?.id ?? "");
       setBooked(true);
     },

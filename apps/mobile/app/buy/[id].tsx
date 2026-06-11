@@ -6,6 +6,7 @@ import * as React from "react";
 import { useState } from "react";
 import { Alert, Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 
+import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 
 interface Product {
@@ -46,6 +47,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["my-orders"] });
       const orderId = data?.data?.id;
+      logEvent("order_created", { order_id: orderId ?? "unknown" });
       Alert.alert(
         "Order placed",
         orderId

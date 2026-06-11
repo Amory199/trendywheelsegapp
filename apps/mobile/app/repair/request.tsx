@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { playSound } from "../../lib/sounds";
 
@@ -68,6 +69,7 @@ export default function RepairRequestScreen(): JSX.Element {
     onSuccess: () => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       playSound("success");
+      logEvent("repair_requested", { category });
       void qc.invalidateQueries({ queryKey: ["repair-requests"] });
       router.back();
     },
