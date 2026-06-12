@@ -97,9 +97,15 @@ export default function RentDetailScreen(): React.JSX.Element {
   });
 
   const vehicle = q.data?.data;
-  const images = (vehicle?.images as string[] | undefined) ?? [
-    "https://placehold.co/800x600/2B0FF8/FFFFFF?text=TrendyWheels",
-  ];
+  // API returns image rows ({ url, sortOrder }); tolerate legacy string[]
+  // payloads from older caches so the hero never silently falls back.
+  const rawImages = (vehicle?.images ?? []) as Array<string | { url: string }>;
+  const imageUrls = rawImages
+    .map((img) => (typeof img === "string" ? img : img?.url))
+    .filter((u): u is string => Boolean(u));
+  const images = imageUrls.length
+    ? imageUrls
+    : ["https://placehold.co/800x600/2B0FF8/FFFFFF?text=TrendyWheels"];
 
   const scrollHandler = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;

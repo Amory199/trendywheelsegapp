@@ -274,6 +274,7 @@ export interface LoginResponse extends AuthTokens {
 export interface VehicleFilters {
   type?: VehicleType;
   category?: VehicleCategory;
+  listingType?: ListingType;
   priceMin?: number;
   priceMax?: number;
   available?: boolean;

@@ -36,38 +36,39 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 
 ## Index
 
-| INC | Date       | Symptom                                                               | Status     | Sev |
-| --- | ---------- | --------------------------------------------------------------------- | ---------- | --- |
-| 001 | 2026-05-21 | EAS project re-init silently replaced the Android signing keystore    | Fixed      | P0  |
-| 002 | 2026-05-21 | AU-11 lockfile bumped but four app `package.json` files were not      | Fixed      | P1  |
-| 003 | 2026-05-21 | React 19 removed global JSX namespace — 102 .tsx files broke          | Fixed      | P1  |
-| 004 | 2026-05-23 | Web login forms prefilled non-existent users (401 on first submit)    | Fixed      | P2  |
-| 005 | 2026-05-24 | `VehicleCategory` enum casing mismatch — validator (kebab) vs Prisma  | Workaround | P2  |
-| 006 | 2026-05-24 | Customer rent page filter chips used car-template enums (sedan/van)   | Fixed      | P2  |
-| 007 | 2026-05-24 | Smoke-test 4xx assertions polluted Sentry every run                   | Fixed      | P3  |
-| 008 | 2026-05-24 | Play Console rejected AAB — upload-key fingerprint mismatch           | Fixed      | P0  |
-| 009 | 2026-05-24 | `/api/health` returns 401 for unauthenticated probes                  | Fixed      | P3  |
-| 010 | 2026-05-24 | Customer web has no phone+OTP login (staff-only portal)               | Open       | P2  |
-| 011 | 2026-05-24 | 4 mobile screens use `as unknown as <Type>` instead of runtime parse  | Open       | P3  |
-| 012 | 2026-05-28 | Refresh-token lookup scans every active token (CPU DoS at scale)      | Open       | P0  |
-| 013 | 2026-05-28 | Access-token revocation missing (stolen token usable up to 24h)       | Open       | P1  |
-| 014 | 2026-05-28 | Cascade delete on `User → Booking/Notification` destroys records      | Open       | P1  |
-| 015 | 2026-05-28 | No soft-delete on `User` (GDPR / Play Store deletion)                 | Open       | P1  |
-| 016 | 2026-05-28 | Composite indexes missing on hot query paths                          | Open       | P1  |
-| 017 | 2026-05-28 | BullMQ workers lack retry/concurrency/idempotency/DLQ                 | Open       | P1  |
-| 018 | 2026-05-28 | Mass-assignment in `sales`, `repairs`, `kb` controllers               | Open       | P1  |
-| 019 | 2026-05-28 | Web tokens in localStorage (XSS escalation path)                      | Open       | P1  |
-| 020 | 2026-05-28 | Prod infra SPOFs + no uptime monitor + no secret-rotation runbook     | Open       | P1  |
-| 021 | 2026-05-28 | No certificate pinning on mobile API calls                            | Open       | P2  |
-| 022 | 2026-06-08 | EAS iOS Distribution Cert can't be set up non-interactively (CLI bug) | Workaround | P1  |
-| 023 | 2026-06-08 | `GoogleService-Info.plist` gitignored → EAS Cloud build fails         | Fixed      | P0  |
-| 024 | 2026-06-08 | RN 0.79.x bundled fmt 11.0.2 + Xcode 16.2+/26.x consteval error       | Workaround | P0  |
-| 025 | 2026-06-08 | Apple requires Xcode 26+ as of 2026-04-28 (policy, not technical)     | Fixed      | P0  |
-| 026 | 2026-06-08 | Mobile app had zero Jest tests + pnpm node_modules pattern trap       | Fixed      | P1  |
-| 027 | 2026-06-08 | Customer storage prefix allowlist missed sell/sales/rental flows      | Fixed      | P0  |
-| 028 | 2026-06-08 | Customer mutations silently fail with no Alert on error               | Fixed      | P1  |
-| 029 | 2026-06-08 | WhatsApp CRM button fire-and-forget mutation (Call awaits, WA didn't) | Fixed      | P2  |
-| 030 | 2026-06-11 | Every OTA baked localhost:4000 as API URL — recurring network errors  | Fixed      | P0  |
+| INC | Date       | Symptom                                                                 | Status     | Sev |
+| --- | ---------- | ----------------------------------------------------------------------- | ---------- | --- |
+| 001 | 2026-05-21 | EAS project re-init silently replaced the Android signing keystore      | Fixed      | P0  |
+| 002 | 2026-05-21 | AU-11 lockfile bumped but four app `package.json` files were not        | Fixed      | P1  |
+| 003 | 2026-05-21 | React 19 removed global JSX namespace — 102 .tsx files broke            | Fixed      | P1  |
+| 004 | 2026-05-23 | Web login forms prefilled non-existent users (401 on first submit)      | Fixed      | P2  |
+| 005 | 2026-05-24 | `VehicleCategory` enum casing mismatch — validator (kebab) vs Prisma    | Workaround | P2  |
+| 006 | 2026-05-24 | Customer rent page filter chips used car-template enums (sedan/van)     | Fixed      | P2  |
+| 007 | 2026-05-24 | Smoke-test 4xx assertions polluted Sentry every run                     | Fixed      | P3  |
+| 008 | 2026-05-24 | Play Console rejected AAB — upload-key fingerprint mismatch             | Fixed      | P0  |
+| 009 | 2026-05-24 | `/api/health` returns 401 for unauthenticated probes                    | Fixed      | P3  |
+| 010 | 2026-05-24 | Customer web has no phone+OTP login (staff-only portal)                 | Open       | P2  |
+| 011 | 2026-05-24 | 4 mobile screens use `as unknown as <Type>` instead of runtime parse    | Open       | P3  |
+| 012 | 2026-05-28 | Refresh-token lookup scans every active token (CPU DoS at scale)        | Open       | P0  |
+| 013 | 2026-05-28 | Access-token revocation missing (stolen token usable up to 24h)         | Open       | P1  |
+| 014 | 2026-05-28 | Cascade delete on `User → Booking/Notification` destroys records        | Open       | P1  |
+| 015 | 2026-05-28 | No soft-delete on `User` (GDPR / Play Store deletion)                   | Open       | P1  |
+| 016 | 2026-05-28 | Composite indexes missing on hot query paths                            | Open       | P1  |
+| 017 | 2026-05-28 | BullMQ workers lack retry/concurrency/idempotency/DLQ                   | Open       | P1  |
+| 018 | 2026-05-28 | Mass-assignment in `sales`, `repairs`, `kb` controllers                 | Open       | P1  |
+| 019 | 2026-05-28 | Web tokens in localStorage (XSS escalation path)                        | Open       | P1  |
+| 020 | 2026-05-28 | Prod infra SPOFs + no uptime monitor + no secret-rotation runbook       | Open       | P1  |
+| 021 | 2026-05-28 | No certificate pinning on mobile API calls                              | Open       | P2  |
+| 022 | 2026-06-08 | EAS iOS Distribution Cert can't be set up non-interactively (CLI bug)   | Workaround | P1  |
+| 023 | 2026-06-08 | `GoogleService-Info.plist` gitignored → EAS Cloud build fails           | Fixed      | P0  |
+| 024 | 2026-06-08 | RN 0.79.x bundled fmt 11.0.2 + Xcode 16.2+/26.x consteval error         | Workaround | P0  |
+| 025 | 2026-06-08 | Apple requires Xcode 26+ as of 2026-04-28 (policy, not technical)       | Fixed      | P0  |
+| 026 | 2026-06-08 | Mobile app had zero Jest tests + pnpm node_modules pattern trap         | Fixed      | P1  |
+| 027 | 2026-06-08 | Customer storage prefix allowlist missed sell/sales/rental flows        | Fixed      | P0  |
+| 028 | 2026-06-08 | Customer mutations silently fail with no Alert on error                 | Fixed      | P1  |
+| 029 | 2026-06-08 | WhatsApp CRM button fire-and-forget mutation (Call awaits, WA didn't)   | Fixed      | P2  |
+| 030 | 2026-06-11 | Every OTA baked localhost:4000 as API URL — recurring network errors    | Fixed      | P0  |
+| 031 | 2026-06-12 | Sale cars leaked into Rent; photos never rendered; catalog double-entry | Fixed      | P1  |
 
 ---
 
@@ -889,6 +890,32 @@ Added per-mutation:
 - **No customer-facing mutation ships without an `onError` Alert.** Add ESLint rule or PR-template item enforcing this.
 - Don't auto-route on `onSuccess` without confirmation — Apple's reviewers and confused users interpret instant-redirects as crashes.
 - Same pattern likely missing in other screens (repair submit, trade-in submit, license upload). Audit in v1.1.
+
+---
+
+### INC-031 — Sale vehicles leaked into Rent; vehicle photos never rendered; double-entry catalog (2026-06-12)
+
+**Status:** Fixed
+**Severity:** P1
+**Touched:** `packages/validators/src/index.ts`, `packages/types/src/index.ts`, `apps/mobile/app/rent/category/[key].tsx`, `apps/mobile/app/rent/[id].tsx`, `apps/api/src/modules/vehicles/product-sync.ts` (new), `apps/api/src/modules/vehicles/controller.ts`
+**Fixed in:** OTA group `559fc930`; API deploy same day
+
+**Symptom**
+Owner added a sale-only vehicle ("Classic ecar - 2+2"); it appeared in the mobile RENT browse, with placeholder images despite 5 uploaded photos, and the Buy section still showed 36 demo products.
+
+**Root causes (three stacked)**
+
+1. Mobile rent browse called `GET /vehicles` without `listingType=rent` — AND `vehicleFiltersSchema` didn't whitelist `listingType`, so even a passed filter was silently stripped by the validate middleware. Strict-strip validators hide missing-param bugs: the API "supported" the filter but no client could reach it.
+2. Mobile read `vehicle.images` as `string[]`, but the API returns VehicleImage rows (`{url, sortOrder}`) — `images[0]` was an object, Image got a garbage URI, fell back to placeholder.
+3. Buy is products-table-driven; the demo wipe deliberately preserved the catalog, and there was no vehicle→product link, forcing double entry (owner's manual product had stock 0 + no images = invisible).
+
+**Fix**
+listingType added to validator+types+mobile call; image reads tolerate both shapes; `syncVehicleProduct()` keeps a product row in lockstep with every sale/both vehicle (create/update/status/remove hooks) — vehicles are now the single inventory source, catalog is parts/accessories only. Demo products purged (backup: /root/db-backups/catalog_purge_backup_20260612.sql).
+
+**Pattern to follow next time**
+
+- When a validator whitelists query params, adding an API filter REQUIRES touching the validator — grep for the schema before assuming the controller change is enough.
+- When a Prisma `include` shape reaches a client, type the client payload from the API response, not from convenience casts (`as string[]` hid this for weeks).
 
 ---
 

@@ -5,6 +5,8 @@ import { prisma } from "../../config/database.js";
 import { redis } from "../../config/redis.js";
 import { AppError } from "../../utils/errors.js";
 
+import { syncVehicleProduct } from "./product-sync.js";
+
 type Tx = Prisma.TransactionClient;
 
 const VEHICLES_CACHE_TTL = 5 * 60; // 5 minutes
@@ -127,6 +129,10 @@ export async function create(req: Request, res: Response): Promise<void> {
   const keys = await redis.keys(`${VEHICLES_CACHE_PREFIX}*`);
   if (keys.length > 0) await redis.del(...keys);
 
+  // Vehicles are the single inventory source — sale/both listings keep a
+  // Buy-section product in sync automatically.
+  await syncVehicleProduct(vehicle!.id);
+
   res.status(201).json({ data: vehicle, id: vehicle!.id });
 }
 
@@ -164,6 +170,8 @@ export async function update(req: Request, res: Response): Promise<void> {
   const updateKeys = await redis.keys(`${VEHICLES_CACHE_PREFIX}*`);
   if (updateKeys.length > 0) await redis.del(...updateKeys);
 
+  await syncVehicleProduct(req.params.id);
+
   res.json({ data: vehicle });
 }
 
@@ -179,6 +187,8 @@ export async function remove(req: Request, res: Response): Promise<void> {
   // Invalidate all vehicle list caches
   const removeKeys = await redis.keys(`${VEHICLES_CACHE_PREFIX}*`);
   if (removeKeys.length > 0) await redis.del(...removeKeys);
+
+  await syncVehicleProduct(req.params.id); // hides the linked Buy product
 
   res.json({ success: true });
 }
@@ -218,6 +228,9 @@ export async function setStatus(req: Request, res: Response): Promise<void> {
 
   const keys = await redis.keys(`${VEHICLES_CACHE_PREFIX}*`);
   if (keys.length > 0) await redis.del(...keys);
+
+  // sold/reserved hides the linked Buy product; back to available re-lists it
+  await syncVehicleProduct(id);
 
   res.json({ data: updated });
 }

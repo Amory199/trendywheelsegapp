@@ -86,6 +86,7 @@ export const updateVehicleSchema = z.object({
 export const vehicleFiltersSchema = z.object({
   type: vehicleTypeEnum.optional(),
   category: vehicleCategoryEnum.optional(),
+  listingType: z.enum(["rent", "sale", "both"]).optional(),
   priceMin: z.coerce.number().positive().optional(),
   priceMax: z.coerce.number().positive().optional(),
   available: z.coerce.boolean().optional(),

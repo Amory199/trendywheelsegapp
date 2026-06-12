@@ -20,6 +20,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CategoryVideoHero } from "../../../components/CategoryVideoHero";
 import { api } from "../../../lib/api";
 
+// The API returns vehicle images as rows ({ url, sortOrder }); older cached
+// payloads were plain strings. Accept both so covers never silently break.
+function vehicleImageUrl(img: unknown): string | undefined {
+  if (typeof img === "string") return img;
+  if (img && typeof img === "object" && "url" in img) return (img as { url: string }).url;
+  return undefined;
+}
+
 const PAGE_SIZE = 20;
 const palette = twPalette(false);
 
@@ -42,6 +50,8 @@ export default function RentCategoryScreen(): JSX.Element {
       api.getVehicles({
         page: pageParam,
         limit: PAGE_SIZE,
+        // Rent browse must never surface sale-only inventory.
+        listingType: "rent",
         ...(!isAll && key ? { category: key as VehicleCategory } : {}),
       }),
     getNextPageParam: (last, all) => (last.data.length === PAGE_SIZE ? all.length + 1 : undefined),
@@ -68,8 +78,7 @@ export default function RentCategoryScreen(): JSX.Element {
           <Image
             source={{
               uri:
-                (item.images as string[] | undefined)?.[0] ??
-                "https://placehold.co/400x225/2B0FF8/FFFFFF",
+                vehicleImageUrl(item.images?.[0]) ?? "https://placehold.co/400x225/2B0FF8/FFFFFF",
             }}
             style={styles.cardImage}
             contentFit="cover"
