@@ -15,6 +15,7 @@ import Animated, {
   Extrapolation,
 } from "react-native-reanimated";
 
+import { ImageCarousel } from "../../components/ImageCarousel";
 import { TWBadge, TWButton, TWCard, TWChip, TWPressable } from "../../components/ui";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
@@ -103,21 +104,21 @@ export default function RentDetailScreen(): React.JSX.Element {
   const imageUrls = rawImages
     .map((img) => (typeof img === "string" ? img : img?.url))
     .filter((u): u is string => Boolean(u));
-  const images = imageUrls.length
-    ? imageUrls
-    : ["https://placehold.co/800x600/2B0FF8/FFFFFF?text=TrendyWheels"];
 
   const scrollHandler = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
 
+  // Hero lives INSIDE the scroll content (it must own horizontal swipes for
+  // the photo carousel — an absolute hero under the ScrollView never receives
+  // touches). Parallax: drift down at half scroll speed; stretch on pull-down.
   const heroStyle = useAnimatedStyle(() => ({
     transform: [
       {
         translateY: interpolate(
           scrollY.value,
           [0, HERO_HEIGHT],
-          [0, -HERO_HEIGHT / 2],
+          [0, HERO_HEIGHT / 2],
           Extrapolation.CLAMP,
         ),
       },
@@ -150,25 +151,6 @@ export default function RentDetailScreen(): React.JSX.Element {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
-      <Animated.View
-        style={[
-          { height: HERO_HEIGHT, position: "absolute", top: 0, left: 0, right: 0 },
-          heroStyle,
-        ]}
-      >
-        <Image
-          source={{ uri: images[0] }}
-          style={{ width: SCREEN_WIDTH, height: HERO_HEIGHT }}
-          contentFit="cover"
-          transition={300}
-        />
-        <LinearGradient
-          colors={["rgba(0,0,0,0.3)", "transparent", "rgba(2,1,31,0.6)"]}
-          locations={[0, 0.4, 1]}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-        />
-      </Animated.View>
-
       <View
         style={{
           position: "absolute",
@@ -215,9 +197,19 @@ export default function RentDetailScreen(): React.JSX.Element {
       <Animated.ScrollView
         onScroll={scrollHandler}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: HERO_HEIGHT - 30, paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
         showsVerticalScrollIndicator={false}
       >
+        <Animated.View style={[{ height: HERO_HEIGHT, marginBottom: -30 }, heroStyle]}>
+          <ImageCarousel urls={imageUrls} width={SCREEN_WIDTH} height={HERO_HEIGHT} />
+          {/* pointerEvents none — the gradient must not swallow carousel swipes */}
+          <LinearGradient
+            colors={["rgba(0,0,0,0.3)", "transparent", "rgba(2,1,31,0.6)"]}
+            locations={[0, 0.4, 1]}
+            pointerEvents="none"
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+          />
+        </Animated.View>
         <View
           style={{
             backgroundColor: palette.bg,

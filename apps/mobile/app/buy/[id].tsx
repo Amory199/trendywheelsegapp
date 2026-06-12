@@ -6,6 +6,7 @@ import * as React from "react";
 import { useState } from "react";
 import { Alert, Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 
+import { ImageCarousel } from "../../components/ImageCarousel";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 
@@ -29,7 +30,6 @@ export default function ProductDetailScreen(): React.JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
-  const [imgIdx, setImgIdx] = useState(0);
   const [showSpecs, setShowSpecs] = useState(false);
 
   const q = useQuery({
@@ -88,47 +88,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
         <View
           style={{ width: W, height: HERO_H, backgroundColor: "#EAEAF0", position: "relative" }}
         >
-          {p.images.map((src, i) => (
-            <View
-              key={i}
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                opacity: i === imgIdx ? 1 : 0,
-              }}
-            >
-              <Image source={src} style={{ flex: 1 }} contentFit="cover" transition={400} />
-            </View>
-          ))}
-          {p.images.length > 1 ? (
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: 18,
-                flexDirection: "row",
-                justifyContent: "center",
-                gap: 6,
-              }}
-            >
-              {p.images.map((_, i) => (
-                <Pressable
-                  key={i}
-                  onPress={() => setImgIdx(i)}
-                  style={{
-                    width: i === imgIdx ? 26 : 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: i === imgIdx ? "#fff" : "rgba(255,255,255,0.55)",
-                  }}
-                />
-              ))}
-            </View>
-          ) : null}
+          <ImageCarousel urls={p.images} width={W} height={HERO_H} />
           <Pressable
             onPress={() => router.back()}
             style={{
