@@ -35,6 +35,24 @@ const home: Stringify<typeof enNs> = {
     "jet-ski": "جت سكي",
     "hover-board": "هوفر بورد",
   },
+
+  // Discovery home (header, search, promo, rails)
+  welcome: "أهلاً بك",
+  tagline: "اعثر على مركبتك",
+  searchPlaceholder: "ابحث عن عربات، قطع غيار، إيجارات…",
+  searchHint: "ابحث في العربات وقطع الغيار والإيجارات والمزيد",
+  searchNoResults: "لا نتائج لـ",
+  browse: "تصفّح",
+  seeAll: "عرض الكل",
+  railForRent: "للإيجار",
+  railForSale: "عربات للبيع",
+  railShop: "قطع غيار وإكسسوارات",
+  badgeForRent: "إيجار",
+  badgeForSale: "بيع",
+  promoTitle: "عربات فاخرة، جاهزة للانطلاق",
+  promoCta: "تسوّق الآن",
+  egp: "ج.م",
+  perDay: "/يوم",
 };
 
 export default home;

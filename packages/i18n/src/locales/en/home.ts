@@ -32,4 +32,22 @@ export default {
     "jet-ski": "Jet Skis",
     "hover-board": "Hover Boards",
   },
+
+  // Discovery home (header, search, promo, rails)
+  welcome: "WELCOME",
+  tagline: "Find your ride",
+  searchPlaceholder: "Search carts, parts, rentals…",
+  searchHint: "Search across carts, parts, rentals and more",
+  searchNoResults: "No results for",
+  browse: "Browse",
+  seeAll: "See all",
+  railForRent: "For rent",
+  railForSale: "Carts for sale",
+  railShop: "Parts & accessories",
+  badgeForRent: "Rent",
+  badgeForSale: "Sale",
+  promoTitle: "Premium carts, ready to roll",
+  promoCta: "Shop now",
+  egp: "EGP",
+  perDay: "/day",
 } as const;
