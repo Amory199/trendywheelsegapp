@@ -4,6 +4,7 @@ import { colors } from "@trendywheels/ui-tokens";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 
@@ -11,6 +12,7 @@ const CATEGORIES = ["golf-cart", "scooter", "jet-ski", "buggy", "utv", "hover-bo
 const TYPES = ["electric", "petrol", "manual", "automatic"];
 
 export default function AdminVehicleNew(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const qc = useQueryClient();
   const [form, setForm] = useState<{
@@ -60,7 +62,14 @@ export default function AdminVehicleNew(): React.JSX.Element {
         }}
       />
       <View style={styles.root}>
-        <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
+        <ScrollView
+          contentContainerStyle={{
+            padding: 14,
+            paddingTop: insets.top + 14,
+            paddingBottom: 200,
+            gap: 12,
+          }}
+        >
           <Field
             label="Name"
             value={form.name}

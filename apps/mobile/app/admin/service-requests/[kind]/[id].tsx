@@ -13,6 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../../lib/api";
 
@@ -36,6 +37,7 @@ interface ServiceItem {
 const STATUSES = ["submitted", "assigned", "in-progress", "completed", "cancelled"];
 
 export default function AdminServiceRequestDetail(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const { kind, id } = useLocalSearchParams<{ kind: Kind; id: string }>();
   const [notes, setNotes] = useState<string>("");
@@ -75,7 +77,14 @@ export default function AdminServiceRequestDetail(): React.JSX.Element {
         {q.isLoading || !item ? (
           <ActivityIndicator color={colors.brand.poolBlue} style={{ marginTop: 40 }} />
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
+          <ScrollView
+            contentContainerStyle={{
+              padding: 14,
+              paddingTop: insets.top + 14,
+              paddingBottom: 200,
+              gap: 12,
+            }}
+          >
             <View style={styles.card}>
               <Text style={styles.tt}>
                 {item.serviceType ?? item.kind ?? (item.fromAddress ? "Transport" : "Request")}

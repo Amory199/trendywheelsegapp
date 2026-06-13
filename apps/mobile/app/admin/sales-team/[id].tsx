@@ -20,6 +20,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 
@@ -43,6 +44,7 @@ interface Lead {
 }
 
 export default function AgentDetail(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const qc = useQueryClient();
   const isPool = id === "unassigned";
@@ -118,7 +120,7 @@ export default function AgentDetail(): React.JSX.Element {
           headerTintColor: "#fff",
         }}
       />
-      <View style={styles.root}>
+      <View style={[styles.root, { paddingTop: insets.top }]}>
         {!isPool && agent ? (
           <View style={styles.agentHeader}>
             <View style={styles.statsRow}>

@@ -15,6 +15,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 import { playSound } from "../../../lib/sounds";
@@ -31,6 +32,7 @@ interface Listing {
 const STATUSES = ["active", "sold", "paused"];
 
 export default function AdminSaleEdit(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [form, setForm] = useState<Partial<Listing>>({});
@@ -109,7 +111,14 @@ export default function AdminSaleEdit(): React.JSX.Element {
         {q.isLoading ? (
           <ActivityIndicator color={colors.brand.trendyPink} style={{ marginTop: 40 }} />
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
+          <ScrollView
+            contentContainerStyle={{
+              padding: 14,
+              paddingTop: insets.top + 14,
+              paddingBottom: 200,
+              gap: 12,
+            }}
+          >
             <View style={styles.card}>
               <Text style={styles.label}>Title</Text>
               <TextInput

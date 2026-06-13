@@ -13,6 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 
@@ -32,6 +33,7 @@ interface Vehicle {
 const VEHICLE_STATUSES = ["available", "rented", "maintenance", "inactive"];
 
 export default function AdminVehicleEdit(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const qc = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -85,7 +87,14 @@ export default function AdminVehicleEdit(): React.JSX.Element {
         {q.isLoading ? (
           <ActivityIndicator color={colors.brand.friendlyBlue} style={{ marginTop: 40 }} />
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
+          <ScrollView
+            contentContainerStyle={{
+              padding: 14,
+              paddingTop: insets.top + 14,
+              paddingBottom: 200,
+              gap: 12,
+            }}
+          >
             <Field label="Name" value={form.name} onChange={(v) => update("name", v)} />
             <Field label="Type" value={form.type} onChange={(v) => update("type", v)} />
             <Field label="Location" value={form.location} onChange={(v) => update("location", v)} />

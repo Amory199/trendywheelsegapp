@@ -14,6 +14,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 
@@ -36,6 +37,7 @@ interface Repair {
 }
 
 export default function AdminRepairDetail(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [mechanicPickerOpen, setMechanicPickerOpen] = useState(false);
@@ -91,7 +93,14 @@ export default function AdminRepairDetail(): React.JSX.Element {
         {q.isLoading || !repair ? (
           <ActivityIndicator color="#F5B800" style={{ marginTop: 40 }} />
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
+          <ScrollView
+            contentContainerStyle={{
+              padding: 14,
+              paddingTop: insets.top + 14,
+              paddingBottom: 200,
+              gap: 12,
+            }}
+          >
             <View style={styles.card}>
               <Text style={styles.cat}>{repair.category}</Text>
               <Text style={styles.desc}>{repair.description ?? "—"}</Text>

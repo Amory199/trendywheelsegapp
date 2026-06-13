@@ -13,6 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../lib/api";
 
@@ -29,6 +30,7 @@ interface SystemConfig {
 const CURRENCIES = ["EGP", "USD", "EUR"];
 
 export default function AdminSystemConfig(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const [form, setForm] = useState<SystemConfig>({});
 
@@ -66,7 +68,14 @@ export default function AdminSystemConfig(): React.JSX.Element {
         {q.isLoading ? (
           <ActivityIndicator color={colors.brand.friendlyBlue} style={{ marginTop: 40 }} />
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
+          <ScrollView
+            contentContainerStyle={{
+              padding: 14,
+              paddingTop: insets.top + 14,
+              paddingBottom: 200,
+              gap: 12,
+            }}
+          >
             <Field
               label="Company name"
               value={form.companyName ?? ""}

@@ -17,6 +17,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 
@@ -41,6 +42,7 @@ const STATUS_TONE: Record<string, string> = {
 
 export default function StaffRepairDetail(): React.JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
 
   const q = useQuery({
@@ -91,7 +93,10 @@ export default function StaffRepairDetail(): React.JSX.Element {
           <ActivityIndicator color="#F5B800" />
         </View>
       ) : (
-        <ScrollView style={styles.root} contentContainerStyle={{ padding: 16, gap: 14 }}>
+        <ScrollView
+          style={styles.root}
+          contentContainerStyle={{ padding: 16, paddingTop: insets.top + 16, gap: 14 }}
+        >
           <View style={styles.statusPill}>
             <View style={[styles.dot, { backgroundColor: STATUS_TONE[r.status] }]} />
             <Text style={[styles.statusText, { color: STATUS_TONE[r.status] }]}>{r.status}</Text>

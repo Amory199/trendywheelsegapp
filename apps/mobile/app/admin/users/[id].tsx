@@ -13,6 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-store";
@@ -32,6 +33,7 @@ const STAFF_ROLES = ["sales", "support", "inventory", "mechanic", "admin"];
 const STATUSES = ["active", "inactive", "suspended"];
 
 export default function AdminUserEdit(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const me = useAuth((s) => s.user);
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -85,7 +87,14 @@ export default function AdminUserEdit(): React.JSX.Element {
         {q.isLoading || !user ? (
           <ActivityIndicator color={colors.brand.friendlyBlue} style={{ marginTop: 40 }} />
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
+          <ScrollView
+            contentContainerStyle={{
+              padding: 14,
+              paddingTop: insets.top + 14,
+              paddingBottom: 200,
+              gap: 12,
+            }}
+          >
             <View style={styles.card}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarTxt}>

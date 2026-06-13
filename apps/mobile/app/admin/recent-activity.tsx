@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../lib/api";
 
@@ -42,6 +43,7 @@ interface ApiData {
 }
 
 export default function AdminRecentActivity(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const q = useQuery({
     queryKey: ["admin", "recent-activity"],
     queryFn: async () => {
@@ -109,7 +111,12 @@ export default function AdminRecentActivity(): React.JSX.Element {
           <ActivityIndicator color={colors.brand.poolBlue} style={{ marginTop: 40 }} size="large" />
         ) : (
           <ScrollView
-            contentContainerStyle={{ padding: 14, paddingBottom: 120, gap: 10 }}
+            contentContainerStyle={{
+              padding: 14,
+              paddingTop: insets.top + 14,
+              paddingBottom: 120,
+              gap: 10,
+            }}
             refreshControl={
               <RefreshControl
                 refreshing={q.isFetching}

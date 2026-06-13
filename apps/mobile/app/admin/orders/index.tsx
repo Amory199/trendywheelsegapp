@@ -14,6 +14,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 
@@ -35,6 +36,7 @@ const STATUS_TINT: Record<string, string> = {
 };
 
 export default function AdminOrders(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const q = useQuery({
@@ -64,7 +66,7 @@ export default function AdminOrders(): React.JSX.Element {
           style={styles.root}
           data={q.data ?? []}
           keyExtractor={(o) => o.id}
-          contentContainerStyle={{ padding: 14, gap: 10 }}
+          contentContainerStyle={{ padding: 14, paddingTop: insets.top + 14, gap: 10 }}
           refreshControl={
             <RefreshControl
               refreshing={q.isFetching}
