@@ -33,18 +33,20 @@ import { TWSkiaConfetti } from "../../components/skia/confetti";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useT } from "../../lib/locale";
 import { playSound } from "../../lib/sounds";
 import { useTheme } from "../../lib/use-theme";
 
-const STEPS = ["Dates", "Your Info", "Payment"];
+const STEP_KEYS = ["rent.stepDates", "rent.stepYourInfo", "rent.stepPayment"] as const;
 
 function StepIndicator({ current }: { current: number }): JSX.Element {
   const { palette } = useTheme();
+  const t = useT();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   return (
     <View style={styles.steps}>
-      {STEPS.map((label, i) => (
-        <View key={label} style={styles.stepItem}>
+      {STEP_KEYS.map((labelKey, i) => (
+        <View key={labelKey} style={styles.stepItem}>
           <View style={[styles.stepCircle, i <= current && styles.stepCircleActive]}>
             {i < current ? (
               <Ionicons name="checkmark" size={14} color="#000" />
@@ -52,8 +54,10 @@ function StepIndicator({ current }: { current: number }): JSX.Element {
               <Text style={[styles.stepNum, i === current && styles.stepNumActive]}>{i + 1}</Text>
             )}
           </View>
-          <Text style={[styles.stepLabel, i === current && styles.stepLabelActive]}>{label}</Text>
-          {i < STEPS.length - 1 && (
+          <Text style={[styles.stepLabel, i === current && styles.stepLabelActive]}>
+            {t(labelKey)}
+          </Text>
+          {i < STEP_KEYS.length - 1 && (
             <View style={[styles.stepLine, i < current && styles.stepLineActive]} />
           )}
         </View>
@@ -64,6 +68,7 @@ function StepIndicator({ current }: { current: number }): JSX.Element {
 
 export default function BookScreen(): JSX.Element {
   const { palette } = useTheme();
+  const t = useT();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const { vehicleId } = useLocalSearchParams<{ vehicleId: string }>();
   const router = useRouter();
@@ -122,10 +127,8 @@ export default function BookScreen(): JSX.Element {
       playSound("error");
       if (__DEV__) console.log("[book] POST /bookings failed:", err);
       Alert.alert(
-        "Booking failed",
-        err instanceof Error
-          ? err.message
-          : "We couldn't complete your booking. Check your details and try again.",
+        t("rent.bookingFailedTitle"),
+        err instanceof Error ? err.message : t("rent.bookingFailedMessage"),
       );
     },
   });
@@ -140,7 +143,7 @@ export default function BookScreen(): JSX.Element {
         <Pressable onPress={() => (step > 0 ? setStep((s) => s - 1) : router.back())}>
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>{vehicle?.name ?? "Book Vehicle"}</Text>
+        <Text style={styles.headerTitle}>{vehicle?.name ?? t("rent.bookVehicle")}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -149,10 +152,10 @@ export default function BookScreen(): JSX.Element {
       <ScrollView contentContainerStyle={styles.body}>
         {step === 0 && (
           <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
-            <Text style={styles.stepHeading}>Select Dates</Text>
-            <DateField label="Pickup Date" value={startDate} onChange={setStartDate} />
+            <Text style={styles.stepHeading}>{t("rent.selectDates")}</Text>
+            <DateField label={t("rent.pickupDate")} value={startDate} onChange={setStartDate} />
             <DateField
-              label="Return Date"
+              label={t("rent.returnDate")}
               value={endDate}
               onChange={setEndDate}
               minimumDate={startDate ? new Date(startDate) : undefined}
@@ -160,8 +163,10 @@ export default function BookScreen(): JSX.Element {
             {days > 0 && (
               <View style={styles.summaryCard}>
                 <Text style={styles.summaryText}>
-                  {days} day{days !== 1 ? "s" : ""} ·{" "}
-                  <Text style={styles.summaryPrice}>{totalCost.toLocaleString()} EGP total</Text>
+                  {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} ·{" "}
+                  <Text style={styles.summaryPrice}>
+                    {totalCost.toLocaleString()} {t("rent.currency")} {t("rent.summaryTotalSuffix")}
+                  </Text>
                 </Text>
               </View>
             )}
@@ -170,57 +175,60 @@ export default function BookScreen(): JSX.Element {
 
         {step === 1 && (
           <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
-            <Text style={styles.stepHeading}>Your Information</Text>
+            <Text style={styles.stepHeading}>{t("rent.yourInformation")}</Text>
             <LabeledInput
-              label="Full Name"
+              label={t("rent.fullName")}
               value={name}
               onChangeText={setName}
-              placeholder="Ahmed Mohamed"
+              placeholder={t("rent.fullNamePlaceholder")}
             />
             <LabeledInput
-              label="Email"
+              label={t("rent.email")}
               value={email}
               onChangeText={setEmail}
-              placeholder="you@email.com"
+              placeholder={t("rent.emailPlaceholder")}
               keyboardType="email-address"
             />
             <LabeledInput
-              label="Phone"
+              label={t("rent.phone")}
               value={phone}
               onChangeText={setPhone}
-              placeholder="+20 1xx xxx xxxx"
+              placeholder={t("rent.phonePlaceholder")}
               keyboardType="phone-pad"
             />
             <LabeledInput
-              label="Driver's License #"
+              label={t("rent.driversLicense")}
               value={licenseNum}
               onChangeText={setLicenseNum}
-              placeholder="License number"
+              placeholder={t("rent.licensePlaceholder")}
             />
           </Animated.View>
         )}
 
         {step === 2 && (
           <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
-            <Text style={styles.stepHeading}>Payment Method</Text>
+            <Text style={styles.stepHeading}>{t("rent.paymentMethod")}</Text>
             <PaymentOption
-              label="Cash on Pickup"
+              label={t("rent.cashOnPickup")}
               icon="cash-outline"
               selected={paymentMethod === "cash"}
               onPress={() => setPaymentMethod("cash")}
             />
             <PaymentOption
-              label="Credit / Debit Card"
+              label={t("rent.creditDebitCard")}
               icon="card-outline"
               selected={paymentMethod === "card"}
               onPress={() => setPaymentMethod("card")}
             />
             <View style={styles.totalCard}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>{totalCost.toLocaleString()} EGP</Text>
+              <Text style={styles.totalLabel}>{t("rent.total")}</Text>
+              <Text style={styles.totalValue}>
+                {totalCost.toLocaleString()} {t("rent.currency")}
+              </Text>
               <Text style={styles.totalDays}>
-                {days} day{days !== 1 ? "s" : ""} @ {Number(vehicle?.dailyRate).toLocaleString()}{" "}
-                EGP/day
+                {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} @{" "}
+                {Number(vehicle?.dailyRate).toLocaleString()} {t("rent.currency")}
+                {t("rent.perDayPaymentSuffix")}
               </Text>
             </View>
           </Animated.View>
@@ -241,7 +249,7 @@ export default function BookScreen(): JSX.Element {
               setStep((s) => s + 1);
             }}
           >
-            <Text style={styles.nextBtnText}>Continue</Text>
+            <Text style={styles.nextBtnText}>{t("rent.continue")}</Text>
             <Ionicons name="arrow-forward" size={18} color="#000" />
           </Pressable>
         ) : (
@@ -253,13 +261,11 @@ export default function BookScreen(): JSX.Element {
             {mutation.isPending ? (
               <ActivityIndicator color="#000" />
             ) : (
-              <Text style={styles.confirmBtnText}>Confirm Booking</Text>
+              <Text style={styles.confirmBtnText}>{t("rent.confirmBooking")}</Text>
             )}
           </Pressable>
         )}
-        {mutation.isError && (
-          <Text style={styles.errorText}>Booking failed. Please try again.</Text>
-        )}
+        {mutation.isError && <Text style={styles.errorText}>{t("rent.bookingFailedInline")}</Text>}
       </View>
     </View>
   );
@@ -298,6 +304,7 @@ function DateField({
   minimumDate?: Date;
 }): JSX.Element {
   const { palette } = useTheme();
+  const t = useT();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const [show, setShow] = useState(false);
   const dateValue = value ? new Date(value) : new Date();
@@ -308,7 +315,7 @@ function DateField({
         day: "numeric",
         year: "numeric",
       })
-    : "Tap to choose";
+    : t("rent.tapToChoose");
 
   return (
     <View style={styles.inputGroup}>
@@ -335,7 +342,7 @@ function DateField({
       )}
       {show && Platform.OS === "ios" && (
         <Pressable onPress={() => setShow(false)} style={styles.pickerDoneBtn}>
-          <Text style={styles.pickerDoneBtnText}>Done</Text>
+          <Text style={styles.pickerDoneBtnText}>{t("rent.done")}</Text>
         </Pressable>
       )}
     </View>
@@ -584,6 +591,7 @@ function SuccessScreen({
   router: ReturnType<typeof useRouter>;
 }): JSX.Element {
   const { palette } = useTheme();
+  const t = useT();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const checkScale = useSharedValue(0);
   const refPulse = useSharedValue(1);
@@ -610,22 +618,25 @@ function SuccessScreen({
         <Animated.View style={[styles.successIcon, checkAnim]}>
           <Ionicons name="checkmark-circle" size={88} color={colors.success} />
         </Animated.View>
-        <Text style={styles.successTitle}>Booking Confirmed!</Text>
+        <Text style={styles.successTitle}>{t("rent.bookingConfirmed")}</Text>
         <Animated.View style={refAnim}>
-          <Text style={styles.successRef}>Ref: {bookingRef}</Text>
+          <Text style={styles.successRef}>
+            {t("rent.refPrefix")} {bookingRef}
+          </Text>
         </Animated.View>
         <Text style={styles.successMsg}>
-          Present this reference at pickup. We sent a confirmation to {email || "your inbox"}.
+          {t("rent.successMessagePrefix")} {email || t("rent.successMessageFallbackInbox")}
+          {t("rent.successMessageSuffix")}
         </Text>
         {/* Both buttons route explicitly — fall-through to /(tabs)/ would land
             an admin/sales user on their dashboard since they don't have a Rent
             tab in their nav. /rent/my-bookings works for every authenticated
             account. */}
         <Pressable style={styles.doneBtn} onPress={() => router.replace("/rent/my-bookings")}>
-          <Text style={styles.doneBtnText}>View My Bookings</Text>
+          <Text style={styles.doneBtnText}>{t("rent.viewMyBookings")}</Text>
         </Pressable>
         <Pressable style={styles.myBookingsBtn} onPress={() => router.replace("/(tabs)/rent")}>
-          <Text style={styles.myBookingsBtnText}>Back to Browse</Text>
+          <Text style={styles.myBookingsBtnText}>{t("rent.backToBrowse")}</Text>
         </Pressable>
       </Animated.View>
     </View>

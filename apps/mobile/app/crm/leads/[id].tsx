@@ -19,16 +19,16 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { api } from "../../../lib/api";
-import { useAuth } from "../../../lib/auth-store";
-import { followUpAfterNoAnswer, initialGreeting } from "../../../lib/lead-templates";
-import { playSound } from "../../../lib/sounds";
-import { useTheme } from "../../../lib/use-theme";
-
 import { CadenceStrip, type CrmRules } from "../../../components/crm-leads/CadenceStrip";
 import { DetailField } from "../../../components/crm-leads/DetailField";
 import { LeadActionsBar } from "../../../components/crm-leads/LeadActionsBar";
 import { makeStyles } from "../../../components/crm-leads/styles";
+import { api } from "../../../lib/api";
+import { useAuth } from "../../../lib/auth-store";
+import { followUpAfterNoAnswer, initialGreeting } from "../../../lib/lead-templates";
+import { useT } from "../../../lib/locale";
+import { playSound } from "../../../lib/sounds";
+import { useTheme } from "../../../lib/use-theme";
 
 type ActivityType =
   | "note"
@@ -90,10 +90,33 @@ interface Agent {
 // "lost" removed (2026-05-20 round-3) — see app/crm/pipeline.tsx for rationale.
 // Sales rotates leads they can't progress; admin sees inactive pool separately.
 const STATUSES = ["new", "contacted", "qualified", "proposal", "won"];
+const STAGE_LABEL_KEY: Record<string, string> = {
+  new: "crm.pipeline.stageNew",
+  contacted: "crm.pipeline.stageContacted",
+  qualified: "crm.pipeline.stageQualified",
+  proposal: "crm.pipeline.stageProposal",
+  won: "crm.pipeline.stageWon",
+};
 type Tab = "activity" | "details" | "vehicles";
+const TAB_LABEL_KEY: Record<Tab, string> = {
+  activity: "crm.lead.tabActivity",
+  details: "crm.lead.tabDetails",
+  vehicles: "crm.lead.tabVehicles",
+};
+const ACTIVITY_TYPE_KEY: Record<string, string> = {
+  note: "crm.lead.activityTypeNote",
+  call: "crm.lead.activityTypeCall",
+  email: "crm.lead.activityTypeEmail",
+  call_attempted: "crm.lead.activityTypeCallAttempted",
+  call_answered: "crm.lead.activityTypeCallAnswered",
+  call_no_answer: "crm.lead.activityTypeCallNoAnswer",
+  whatsapp_sent: "crm.lead.activityTypeWhatsAppSent",
+  matched: "crm.lead.activityTypeMatched",
+};
 
 export default function LeadDetail(): React.JSX.Element {
   const { palette } = useTheme();
+  const t = useT();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const qc = useQueryClient();
   const router = useRouter();
@@ -159,7 +182,11 @@ export default function LeadDetail(): React.JSX.Element {
       setNote("");
       await qc.invalidateQueries({ queryKey: ["crm"] });
     },
-    onError: (e) => Alert.alert("Couldn't update", e instanceof Error ? e.message : "Try again"),
+    onError: (e) =>
+      Alert.alert(
+        t("crm.lead.alerts.updateFailedTitle"),
+        e instanceof Error ? e.message : t("crm.lead.alerts.tryAgain"),
+      ),
   });
 
   // CRM cadence rules — admin can tune live via /crm/rules. Fall back to the
@@ -190,7 +217,10 @@ export default function LeadDetail(): React.JSX.Element {
     },
     onError: (e) => {
       playSound("error");
-      Alert.alert("Couldn't move stage", e instanceof Error ? e.message : "Try again");
+      Alert.alert(
+        t("crm.lead.alerts.moveStageFailedTitle"),
+        e instanceof Error ? e.message : t("crm.lead.alerts.tryAgain"),
+      );
     },
   });
 
@@ -198,9 +228,13 @@ export default function LeadDetail(): React.JSX.Element {
     mutationFn: async () => api.crmUpdateLead(id!, form as Record<string, unknown>),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["crm"] });
-      Alert.alert("Saved", "Lead updated.");
+      Alert.alert(t("crm.lead.alerts.savedTitle"), t("crm.lead.alerts.savedBody"));
     },
-    onError: (e) => Alert.alert("Save failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) =>
+      Alert.alert(
+        t("crm.lead.alerts.saveFailedTitle"),
+        e instanceof Error ? e.message : t("crm.lead.alerts.tryAgain"),
+      ),
   });
 
   // Replaces the old "Mark Lost" / Claim affordances. Sales presses "Pass to
@@ -212,14 +246,21 @@ export default function LeadDetail(): React.JSX.Element {
     onSuccess: async (resp) => {
       await qc.invalidateQueries({ queryKey: ["crm"] });
       if (resp.data.status === "inactive") {
-        Alert.alert("Moved to inactive", "All agents have tried this lead — admin can review it.");
+        Alert.alert(
+          t("crm.lead.alerts.movedInactiveTitle"),
+          t("crm.lead.alerts.movedInactiveBody"),
+        );
         router.back();
       } else {
-        Alert.alert("Passed on", "Lead has been reassigned to another agent.");
+        Alert.alert(t("crm.lead.alerts.passedOnTitle"), t("crm.lead.alerts.passedOnBody"));
         router.back();
       }
     },
-    onError: (e) => Alert.alert("Rotate failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) =>
+      Alert.alert(
+        t("crm.lead.alerts.rotateFailedTitle"),
+        e instanceof Error ? e.message : t("crm.lead.alerts.tryAgain"),
+      ),
   });
 
   const reassign = useMutation({
@@ -228,7 +269,11 @@ export default function LeadDetail(): React.JSX.Element {
       setReassignModal(false);
       await qc.invalidateQueries({ queryKey: ["crm"] });
     },
-    onError: (e) => Alert.alert("Reassign failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) =>
+      Alert.alert(
+        t("crm.lead.alerts.reassignFailedTitle"),
+        e instanceof Error ? e.message : t("crm.lead.alerts.tryAgain"),
+      ),
   });
 
   const attach = useMutation({
@@ -238,11 +283,14 @@ export default function LeadDetail(): React.JSX.Element {
       setVehicleModal(false);
       setVehicleSearch("");
       await qc.invalidateQueries({ queryKey: ["crm"] });
-      Alert.alert("Attached", "Vehicle matched to this lead.");
+      Alert.alert(t("crm.lead.alerts.attachedTitle"), t("crm.lead.alerts.attachedBody"));
     },
     onError: (e) => {
       playSound("error");
-      Alert.alert("Attach failed", e instanceof Error ? e.message : "Try again");
+      Alert.alert(
+        t("crm.lead.alerts.attachFailedTitle"),
+        e instanceof Error ? e.message : t("crm.lead.alerts.tryAgain"),
+      );
     },
   });
 
@@ -254,16 +302,16 @@ export default function LeadDetail(): React.JSX.Element {
   // CrmRules and decide whether the next call is allowed. Returns a reason
   // string when blocked so the alert can explain WHY the agent has to wait.
   function callBlockedReason(): string | null {
-    if (!lead) return "Lead not loaded yet";
+    if (!lead) return t("crm.lead.alerts.leadNotLoaded");
     if ((lead.callCount ?? 0) >= rules.maxCallsBeforeReassign) {
-      return `You've hit ${rules.maxCallsBeforeReassign} call attempts on this lead. It will rotate to another agent automatically.`;
+      return `${t("crm.lead.alerts.maxCallsPrefix")} ${rules.maxCallsBeforeReassign} ${t("crm.lead.alerts.maxCallsSuffix")}`;
     }
     if (lead.lastCallAt) {
       const elapsedMs = Date.now() - new Date(lead.lastCallAt).getTime();
       const gapMs = rules.followUpCallWithinHours * 3600_000;
       if (elapsedMs < gapMs) {
         const next = new Date(new Date(lead.lastCallAt).getTime() + gapMs);
-        return `Wait until ${next.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — calls must be ${rules.followUpCallWithinHours}h apart.`;
+        return `${t("crm.lead.alerts.waitUntilPrefix")} ${next.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} ${t("crm.lead.alerts.waitUntilMid")} ${rules.followUpCallWithinHours}${t("crm.lead.alerts.waitUntilSuffix")}`;
       }
     }
     return null;
@@ -274,16 +322,16 @@ export default function LeadDetail(): React.JSX.Element {
     const wa = phone.replace(/[^0-9]/g, "");
     const msg = encodeURIComponent(followUpAfterNoAnswer(name));
     Alert.alert(
-      "Send WhatsApp follow-up?",
-      "After a no-answer the rule is to send a quick WhatsApp.",
+      t("crm.lead.alerts.whatsAppFollowUpTitle"),
+      t("crm.lead.alerts.whatsAppFollowUpBody"),
       [
         {
-          text: "Skip",
+          text: t("crm.lead.alerts.skip"),
           style: "cancel",
           onPress: () => setPendingCall(null),
         },
         {
-          text: "Open WhatsApp",
+          text: t("crm.lead.alerts.openWhatsApp"),
           onPress: () => {
             setPendingCall((prev) =>
               prev ? { ...prev, awaiting: "whatsapp", startedAt: Date.now() } : prev,
@@ -296,16 +344,16 @@ export default function LeadDetail(): React.JSX.Element {
   }
 
   function confirmWhatsAppSent(): void {
-    Alert.alert("Message sent?", "Confirm you sent the WhatsApp follow-up.", [
+    Alert.alert(t("crm.lead.alerts.messageSentTitle"), t("crm.lead.alerts.messageSentBody"), [
       {
-        text: "Not yet",
+        text: t("crm.lead.alerts.notYet"),
         style: "cancel",
         onPress: () => setPendingCall(null),
       },
       {
-        text: "Yes, sent",
+        text: t("crm.lead.alerts.yesSent"),
         onPress: () => {
-          logActivity.mutate({ type: "whatsapp_sent", body: "WhatsApp follow-up sent" });
+          logActivity.mutate({ type: "whatsapp_sent", body: t("crm.lead.activityWhatsAppSent") });
           playSound("success");
           setPendingCall(null);
         },
@@ -315,49 +363,59 @@ export default function LeadDetail(): React.JSX.Element {
 
   function askCallOutcome(): void {
     if (!lead) return;
-    Alert.alert("Did they answer?", `${lead.contactName} — log the outcome.`, [
-      {
-        text: "No answer",
-        onPress: () => {
-          logActivity.mutate({ type: "call_no_answer", body: "No answer on call" });
-          if (rules.requireMessageAfterCall && lead.contactPhone) {
-            askWhatsAppFollowUp(lead.contactPhone, lead.contactName);
-          } else {
+    Alert.alert(
+      t("crm.lead.alerts.didTheyAnswerTitle"),
+      `${lead.contactName} ${t("crm.lead.alerts.logTheOutcomeSuffix")}`,
+      [
+        {
+          text: t("crm.lead.alerts.noAnswer"),
+          onPress: () => {
+            logActivity.mutate({ type: "call_no_answer", body: t("crm.lead.activityNoAnswer") });
+            if (rules.requireMessageAfterCall && lead.contactPhone) {
+              askWhatsAppFollowUp(lead.contactPhone, lead.contactName);
+            } else {
+              setPendingCall(null);
+            }
+          },
+        },
+        {
+          text: t("crm.lead.alerts.yesAnswered"),
+          onPress: () => {
+            logActivity.mutate({ type: "call_answered", body: t("crm.lead.activityAnswered") });
+            playSound("success");
             setPendingCall(null);
-          }
+            // Soft nudge to advance the pipeline — sales typically moves to
+            // Contacted or Qualified right after a successful first call.
+            setTimeout(() => {
+              Alert.alert(t("crm.lead.alerts.moveStageTitle"), t("crm.lead.alerts.moveStageBody"), [
+                { text: t("crm.lead.alerts.leaveAsIs"), style: "cancel" },
+                {
+                  text: t("crm.lead.alerts.contacted"),
+                  onPress: () => moveStage.mutate("contacted"),
+                },
+                {
+                  text: t("crm.lead.alerts.qualified"),
+                  onPress: () => moveStage.mutate("qualified"),
+                },
+              ]);
+            }, 400);
+          },
         },
-      },
-      {
-        text: "Yes, answered",
-        onPress: () => {
-          logActivity.mutate({ type: "call_answered", body: "Customer answered" });
-          playSound("success");
-          setPendingCall(null);
-          // Soft nudge to advance the pipeline — sales typically moves to
-          // Contacted or Qualified right after a successful first call.
-          setTimeout(() => {
-            Alert.alert("Move stage?", "Where does the lead sit now?", [
-              { text: "Leave as is", style: "cancel" },
-              { text: "Contacted", onPress: () => moveStage.mutate("contacted") },
-              { text: "Qualified", onPress: () => moveStage.mutate("qualified") },
-            ]);
-          }, 400);
-        },
-      },
-    ]);
+      ],
+    );
   }
 
   async function onCallPressed(): Promise<void> {
     if (!lead?.contactPhone) return;
     const blocked = callBlockedReason();
     if (blocked) {
-      Alert.alert("Hold on", blocked);
+      Alert.alert(t("crm.lead.alerts.holdOnTitle"), blocked);
       return;
     }
     try {
       await logActivity.mutateAsync({
         type: "call_attempted",
-        body: `Dialing ${lead.contactPhone}`,
+        body: `${t("crm.lead.dialingPrefix")} ${lead.contactPhone}`,
       });
     } catch {
       // Swallow — if the activity write fails we still let the agent place
@@ -413,7 +471,7 @@ export default function LeadDetail(): React.JSX.Element {
       if (map.has(vid)) continue;
       map.set(vid, {
         vehicleId: vid,
-        label: a.body ?? "Vehicle",
+        label: a.body ?? t("crm.lead.vehicleFallback"),
         intent: a.metadata?.intent,
         when: a.createdAt,
       });
@@ -435,7 +493,7 @@ export default function LeadDetail(): React.JSX.Element {
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
         <Text style={styles.topBarTitle} numberOfLines={1}>
-          {lead?.contactName ?? "Lead"}
+          {lead?.contactName ?? t("crm.lead.fallbackTitle")}
         </Text>
         <View style={{ width: 24 }} />
       </View>
@@ -447,17 +505,21 @@ export default function LeadDetail(): React.JSX.Element {
             <View style={styles.heroTop}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{lead.contactName}</Text>
-                <Text style={styles.subline}>{lead.contactPhone ?? "No phone"}</Text>
+                <Text style={styles.subline}>{lead.contactPhone ?? t("crm.lead.noPhone")}</Text>
                 {lead.assignedAgent?.name ? (
-                  <Text style={styles.assigned}>Owned by {lead.assignedAgent.name}</Text>
+                  <Text style={styles.assigned}>
+                    {t("crm.lead.ownedByPrefix")} {lead.assignedAgent.name}
+                  </Text>
                 ) : (
-                  <Text style={styles.unassigned}>Unassigned</Text>
+                  <Text style={styles.unassigned}>{t("crm.lead.unassigned")}</Text>
                 )}
               </View>
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={styles.value}>EGP {Number(lead.estimatedValue).toLocaleString()}</Text>
                 <View style={styles.stageChip}>
-                  <Text style={styles.stageChipText}>{lead.status}</Text>
+                  <Text style={styles.stageChipText}>
+                    {STAGE_LABEL_KEY[lead.status] ? t(STAGE_LABEL_KEY[lead.status]) : lead.status}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -479,7 +541,7 @@ export default function LeadDetail(): React.JSX.Element {
                 try {
                   await logActivity.mutateAsync({
                     type: "whatsapp_sent",
-                    body: "Opened WhatsApp",
+                    body: t("crm.lead.activityOpenedWhatsApp"),
                   });
                 } catch {
                   // Swallow like the Call path — log failure shouldn't block.
@@ -501,12 +563,12 @@ export default function LeadDetail(): React.JSX.Element {
           </View>
 
           <View style={styles.tabRow}>
-            {(["activity", "details", "vehicles"] as Tab[]).map((t) => (
+            {(["activity", "details", "vehicles"] as Tab[]).map((tabKey) => (
               <Pressable
-                key={t}
+                key={tabKey}
                 onPress={() => {
-                  setTab(t);
-                  if (t === "details" && lead) {
+                  setTab(tabKey);
+                  if (tabKey === "details" && lead) {
                     setForm({
                       contactName: lead.contactName,
                       contactPhone: lead.contactPhone,
@@ -516,9 +578,11 @@ export default function LeadDetail(): React.JSX.Element {
                     });
                   }
                 }}
-                style={[styles.tab, tab === t && styles.tabActive]}
+                style={[styles.tab, tab === tabKey && styles.tabActive]}
               >
-                <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>{t}</Text>
+                <Text style={[styles.tabText, tab === tabKey && styles.tabTextActive]}>
+                  {t(TAB_LABEL_KEY[tabKey])}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -527,7 +591,7 @@ export default function LeadDetail(): React.JSX.Element {
             {tab === "activity" && (
               <>
                 <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>Move stage</Text>
+                  <Text style={styles.sectionTitle}>{t("crm.lead.moveStage")}</Text>
                   <View style={styles.stageRow}>
                     {STATUSES.map((s) => (
                       <Pressable
@@ -543,7 +607,7 @@ export default function LeadDetail(): React.JSX.Element {
                         ]}
                       >
                         <Text style={[styles.stageText, lead.status === s && { color: "#fff" }]}>
-                          {s}
+                          {STAGE_LABEL_KEY[s] ? t(STAGE_LABEL_KEY[s]) : s}
                         </Text>
                       </Pressable>
                     ))}
@@ -551,12 +615,12 @@ export default function LeadDetail(): React.JSX.Element {
                 </View>
 
                 <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>Log activity</Text>
+                  <Text style={styles.sectionTitle}>{t("crm.lead.logActivity")}</Text>
                   <TextInput
                     value={note}
                     onChangeText={setNote}
                     multiline
-                    placeholder="What happened?"
+                    placeholder={t("crm.lead.notePlaceholder")}
                     placeholderTextColor={palette.muted}
                     style={styles.noteInput}
                   />
@@ -566,19 +630,23 @@ export default function LeadDetail(): React.JSX.Element {
                     onPress={() => logActivity.mutate({ type: "note", body: note.trim() })}
                   >
                     <Text style={styles.logBtnText}>
-                      {logActivity.isPending ? "Saving…" : "Save note"}
+                      {logActivity.isPending ? t("crm.lead.saving") : t("crm.lead.saveNote")}
                     </Text>
                   </Pressable>
                 </View>
 
                 {(lead.activities ?? []).length > 0 && (
                   <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Timeline</Text>
+                    <Text style={styles.sectionTitle}>{t("crm.lead.timeline")}</Text>
                     {(lead.activities ?? []).slice(0, 20).map((a) => (
                       <View key={a.id} style={styles.activityRow}>
                         <View style={styles.activityDot} />
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.activityType}>{a.type.replace(/_/g, " ")}</Text>
+                          <Text style={styles.activityType}>
+                            {ACTIVITY_TYPE_KEY[a.type]
+                              ? t(ACTIVITY_TYPE_KEY[a.type])
+                              : a.type.replace(/_/g, " ")}
+                          </Text>
                           {a.note && <Text style={styles.activityNote}>{a.note}</Text>}
                           <Text style={styles.activityDate}>
                             {new Date(a.createdAt).toLocaleString()}
@@ -594,30 +662,30 @@ export default function LeadDetail(): React.JSX.Element {
             {tab === "details" && (
               <>
                 <DetailField
-                  label="Contact name"
+                  label={t("crm.lead.contactName")}
                   value={form.contactName ?? ""}
                   onChange={(v) => setForm((s) => ({ ...s, contactName: v }))}
                 />
                 <DetailField
-                  label="Phone"
+                  label={t("crm.lead.phone")}
                   value={form.contactPhone ?? ""}
                   onChange={(v) => setForm((s) => ({ ...s, contactPhone: v }))}
                   keyboardType="phone-pad"
                 />
                 <DetailField
-                  label="Email"
+                  label={t("crm.lead.email")}
                   value={form.contactEmail ?? ""}
                   onChange={(v) => setForm((s) => ({ ...s, contactEmail: v }))}
                   keyboardType="email-address"
                 />
                 <DetailField
-                  label="Estimated value (EGP)"
+                  label={t("crm.lead.estimatedValue")}
                   value={form.estimatedValue?.toString() ?? ""}
                   onChange={(v) => setForm((s) => ({ ...s, estimatedValue: Number(v) as never }))}
                   keyboardType="numeric"
                 />
                 <DetailField
-                  label="Notes"
+                  label={t("crm.lead.notes")}
                   value={form.notes ?? ""}
                   onChange={(v) => setForm((s) => ({ ...s, notes: v }))}
                   multiline
@@ -628,7 +696,7 @@ export default function LeadDetail(): React.JSX.Element {
                   onPress={() => updateLead.mutate()}
                 >
                   <Text style={styles.logBtnText}>
-                    {updateLead.isPending ? "Saving…" : "Save changes"}
+                    {updateLead.isPending ? t("crm.lead.saving") : t("crm.lead.saveChanges")}
                   </Text>
                 </Pressable>
               </>
@@ -639,7 +707,7 @@ export default function LeadDetail(): React.JSX.Element {
                 {attachedFromActivities.length === 0 ? (
                   <View style={styles.empty}>
                     <Ionicons name="car-outline" size={36} color={palette.muted} />
-                    <Text style={styles.emptyText}>No vehicles attached yet</Text>
+                    <Text style={styles.emptyText}>{t("crm.lead.noVehiclesAttached")}</Text>
                   </View>
                 ) : (
                   attachedFromActivities.map((v) => (
@@ -649,7 +717,7 @@ export default function LeadDetail(): React.JSX.Element {
                         <Text style={styles.vehicleName}>{v.label}</Text>
                         {v.intent ? (
                           <Text style={{ color: palette.muted, fontSize: 11 }}>
-                            {v.intent === "sell" ? "For sale" : "For rent"}
+                            {v.intent === "sell" ? t("crm.lead.forSale") : t("crm.lead.forRent")}
                           </Text>
                         ) : null}
                       </View>
@@ -658,7 +726,7 @@ export default function LeadDetail(): React.JSX.Element {
                 )}
                 <Pressable style={styles.attachBtn} onPress={() => setVehicleModal(true)}>
                   <Ionicons name="add-circle" size={18} color="#fff" />
-                  <Text style={styles.attachBtnText}>Attach vehicle</Text>
+                  <Text style={styles.attachBtnText}>{t("crm.lead.attachVehicle")}</Text>
                 </Pressable>
               </>
             )}
@@ -674,12 +742,12 @@ export default function LeadDetail(): React.JSX.Element {
       >
         <Pressable style={styles.modalBg} onPress={() => setVehicleModal(false)}>
           <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Attach vehicle</Text>
+            <Text style={styles.modalTitle}>{t("crm.lead.attachVehicleTitle")}</Text>
             <View style={styles.modalSearch}>
               <Ionicons name="search" size={16} color={palette.muted} />
               <TextInput
                 style={styles.modalSearchInput}
-                placeholder="Search by name or category…"
+                placeholder={t("crm.lead.vehicleSearchPlaceholder")}
                 placeholderTextColor={palette.muted}
                 value={vehicleSearch}
                 onChangeText={setVehicleSearch}
@@ -701,7 +769,7 @@ export default function LeadDetail(): React.JSX.Element {
                 keyboardShouldPersistTaps="handled"
                 ListEmptyComponent={
                   <View style={{ padding: 24, alignItems: "center" }}>
-                    <Text style={{ color: palette.muted }}>No matches</Text>
+                    <Text style={{ color: palette.muted }}>{t("crm.lead.noMatches")}</Text>
                   </View>
                 }
                 renderItem={({ item }) => (
@@ -714,7 +782,8 @@ export default function LeadDetail(): React.JSX.Element {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.vName}>{item.name}</Text>
                       <Text style={styles.vMeta}>
-                        {item.category ?? "—"} · EGP {item.dailyRate ?? "—"}/day
+                        {item.category ?? "—"} · EGP {item.dailyRate ?? "—"}
+                        {t("crm.lead.perDay")}
                       </Text>
                     </View>
                   </Pressable>
@@ -733,7 +802,7 @@ export default function LeadDetail(): React.JSX.Element {
       >
         <Pressable style={styles.modalBg} onPress={() => setReassignModal(false)}>
           <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Reassign to</Text>
+            <Text style={styles.modalTitle}>{t("crm.lead.reassignTo")}</Text>
             {agentsQ.isLoading ? (
               <ActivityIndicator color={colors.brand.trendyPink} />
             ) : (
@@ -746,7 +815,7 @@ export default function LeadDetail(): React.JSX.Element {
                     onPress={() => reassign.mutate(item.id)}
                   >
                     <Ionicons name="person-circle" size={24} color={colors.brand.trendyPink} />
-                    <Text style={styles.vName}>{item.name ?? "Agent"}</Text>
+                    <Text style={styles.vName}>{item.name ?? t("crm.lead.agentFallback")}</Text>
                   </Pressable>
                 )}
               />

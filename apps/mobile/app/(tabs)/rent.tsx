@@ -4,12 +4,14 @@ import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
 import { CategoryStrip } from "../../components/CategoryStrip";
+import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useTheme } from "../../lib/use-theme";
 
 export default function RentScreen(): JSX.Element {
   const router = useRouter();
   const { palette } = useTheme();
+  const t = useT();
   const scrollHandler = useTabBarScrollHandler();
 
   return (
@@ -23,12 +25,10 @@ export default function RentScreen(): JSX.Element {
         <Text style={[styles.eyebrow, { color: palette.muted }]}>
           TRENDY<Text style={styles.eyebrowDot}>.</Text>WHEELS
         </Text>
-        <Text style={[styles.title, { color: palette.text }]}>Find your ride</Text>
+        <Text style={[styles.title, { color: palette.text }]}>{t("rent.findYourRide")}</Text>
         <View style={styles.subtitleRow}>
           <Ionicons name="hand-left-outline" size={14} color={palette.muted} />
-          <Text style={[styles.subtitle, { color: palette.muted }]}>
-            Pick a category to see vehicles
-          </Text>
+          <Text style={[styles.subtitle, { color: palette.muted }]}>{t("rent.pickCategory")}</Text>
         </View>
       </View>
 

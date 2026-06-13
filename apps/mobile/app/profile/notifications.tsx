@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 interface NotificationItem {
   id: string;
@@ -26,6 +27,7 @@ interface NotificationItem {
 
 export default function NotificationsScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: ["notifications"],
@@ -49,7 +51,7 @@ export default function NotificationsScreen(): JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: "Notifications",
+          title: t("profile.notifications.title"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
           headerRight: () => (
@@ -59,7 +61,7 @@ export default function NotificationsScreen(): JSX.Element {
               style={{ paddingHorizontal: 8 }}
             >
               <Text style={{ color: colors.brand.friendlyBlue, fontWeight: "700", fontSize: 13 }}>
-                Mark all
+                {t("profile.notifications.markAll")}
               </Text>
             </Pressable>
           ),
@@ -73,7 +75,7 @@ export default function NotificationsScreen(): JSX.Element {
         ) : (query.data ?? []).length === 0 ? (
           <View style={styles.center}>
             <Ionicons name="notifications-outline" size={64} color={colors.text.secondary} />
-            <Text style={styles.emptyText}>No notifications yet</Text>
+            <Text style={styles.emptyText}>{t("profile.notifications.empty")}</Text>
           </View>
         ) : (
           <FlatList

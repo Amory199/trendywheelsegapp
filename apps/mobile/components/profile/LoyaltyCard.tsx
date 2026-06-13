@@ -14,6 +14,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 import { TWLoyaltyBadge } from "../skia/loyalty-badge";
 
@@ -24,6 +25,7 @@ interface Props {
 
 export function LoyaltyCard({ tier, points }: Props): React.JSX.Element {
   const { palette } = useTheme();
+  const t = useT();
   const next = nextTier(tier);
   const progress = tierProgress(tier, points);
   const remaining = pointsToNext(tier, points);
@@ -64,7 +66,7 @@ export function LoyaltyCard({ tier, points }: Props): React.JSX.Element {
             marginTop: -2,
           }}
         >
-          Loyalty points
+          {t("profile.loyaltyPoints")}
         </Text>
         <View
           style={{
@@ -80,7 +82,9 @@ export function LoyaltyCard({ tier, points }: Props): React.JSX.Element {
           />
         </View>
         <Text style={{ color: palette.muted, fontSize: 12, marginTop: 6 }}>
-          {next ? `${remaining.toLocaleString()} pts to ${next}` : "Top tier — you've maxed out 🏆"}
+          {next
+            ? `${remaining.toLocaleString()} ${t("profile.ptsToNext")} ${next}`
+            : t("profile.topTier")}
         </Text>
       </View>
     </View>

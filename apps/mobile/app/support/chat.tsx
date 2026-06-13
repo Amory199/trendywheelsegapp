@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 interface Conversation {
   id: string;
@@ -23,6 +24,7 @@ interface Conversation {
 
 export default function SupportChat(): JSX.Element {
   const router = useRouter();
+  const t = useT();
 
   const convQ = useQuery({
     queryKey: ["support", "conversations"],
@@ -35,7 +37,7 @@ export default function SupportChat(): JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.title}>Live chat</Text>
+        <Text style={styles.title}>{t("support.chatTitle")}</Text>
       </View>
 
       {convQ.isLoading ? (
@@ -55,13 +57,13 @@ export default function SupportChat(): JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="chatbubbles-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No active conversations</Text>
+              <Text style={styles.emptyText}>{t("support.chatEmpty")}</Text>
             </View>
           }
           renderItem={({ item }) => {
             const last = item.messages[0];
             const other = item.participants[0];
-            const name = other?.user?.name ?? other?.user?.phone ?? "Customer";
+            const name = other?.user?.name ?? other?.user?.phone ?? t("support.chatCustomer");
             return (
               <Pressable style={styles.row} onPress={() => router.push(`/messages/${item.id}`)}>
                 <View style={styles.avatar}>
@@ -72,7 +74,7 @@ export default function SupportChat(): JSX.Element {
                     {name}
                   </Text>
                   <Text style={styles.preview} numberOfLines={1}>
-                    {last?.message ?? "No messages"}
+                    {last?.message ?? t("support.chatNoMessages")}
                   </Text>
                 </View>
                 <Text style={styles.time}>{new Date(item.lastMessageAt).toLocaleDateString()}</Text>

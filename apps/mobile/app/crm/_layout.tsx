@@ -4,6 +4,8 @@ import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 
+import { useT } from "../../lib/locale";
+
 function GlassTabBar(): JSX.Element {
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -32,6 +34,7 @@ function GlassTabBar(): JSX.Element {
 }
 
 export default function CrmLayout(): JSX.Element {
+  const t = useT();
   return (
     <Tabs
       screenOptions={{
@@ -54,7 +57,7 @@ export default function CrmLayout(): JSX.Element {
       <Tabs.Screen
         name="pipeline"
         options={{
-          title: "Pipeline",
+          title: t("crm.tabs.pipeline"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "git-network" : "git-network-outline"}
@@ -67,7 +70,7 @@ export default function CrmLayout(): JSX.Element {
       <Tabs.Screen
         name="inventory"
         options={{
-          title: "Inventory",
+          title: t("crm.tabs.inventory"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "car-sport" : "car-sport-outline"} size={22} color={color} />
           ),
@@ -76,7 +79,7 @@ export default function CrmLayout(): JSX.Element {
       <Tabs.Screen
         name="repairs/index"
         options={{
-          title: "Repairs",
+          title: t("crm.tabs.repairs"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "construct" : "construct-outline"} size={22} color={color} />
           ),
@@ -85,7 +88,7 @@ export default function CrmLayout(): JSX.Element {
       <Tabs.Screen
         name="tickets/index"
         options={{
-          title: "Support",
+          title: t("crm.tabs.support"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "headset" : "headset-outline"} size={22} color={color} />
           ),

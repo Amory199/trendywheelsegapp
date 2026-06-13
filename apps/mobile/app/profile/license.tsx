@@ -1,9 +1,9 @@
-import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useMutation } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
-import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -21,9 +21,11 @@ import {
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useT } from "../../lib/locale";
 
 export default function LicenseCaptureScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const params = useLocalSearchParams() as { next?: string; [k: string]: string | undefined };
   const { user, setUser } = useAuth();
   const [number, setNumber] = useState(user?.licenseNumber ?? "");
@@ -65,7 +67,10 @@ export default function LicenseCaptureScreen(): JSX.Element {
       }
     },
     onError: (err) =>
-      Alert.alert("Couldn't save", err instanceof Error ? err.message : "Try again"),
+      Alert.alert(
+        t("profile.license.saveErrorTitle"),
+        err instanceof Error ? err.message : t("profile.license.saveErrorBody"),
+      ),
   });
 
   async function pickPhoto(): Promise<void> {
@@ -86,7 +91,7 @@ export default function LicenseCaptureScreen(): JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: "Driver's License",
+          title: t("profile.license.title"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -98,24 +103,21 @@ export default function LicenseCaptureScreen(): JSX.Element {
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.intro}>
             <Ionicons name="card-outline" size={32} color={colors.brand.poolBlue} />
-            <Text style={styles.title}>One step before you ride</Text>
-            <Text style={styles.subtitle}>
-              We need a valid driver's license on file to confirm rentals. Stored encrypted, shared
-              only with the team that handles your booking.
-            </Text>
+            <Text style={styles.title}>{t("profile.license.heading")}</Text>
+            <Text style={styles.subtitle}>{t("profile.license.subtitle")}</Text>
           </View>
 
-          <Text style={styles.label}>License number</Text>
+          <Text style={styles.label}>{t("profile.license.numberLabel")}</Text>
           <TextInput
             value={number}
             onChangeText={setNumber}
-            placeholder="e.g. 12345678"
+            placeholder={t("profile.license.numberPlaceholder")}
             placeholderTextColor={colors.text.secondary}
             autoCapitalize="characters"
             style={styles.input}
           />
 
-          <Text style={styles.label}>Expiry date</Text>
+          <Text style={styles.label}>{t("profile.license.expiryLabel")}</Text>
           <Pressable style={styles.input} onPress={() => setShowExpiryPicker(true)}>
             <Text
               style={{
@@ -124,7 +126,7 @@ export default function LicenseCaptureScreen(): JSX.Element {
                 lineHeight: 48,
               }}
             >
-              {expiry ? new Date(expiry).toLocaleDateString() : "Tap to pick a date"}
+              {expiry ? new Date(expiry).toLocaleDateString() : t("profile.license.pickDate")}
             </Text>
             <Ionicons
               name="calendar-outline"
@@ -146,14 +148,14 @@ export default function LicenseCaptureScreen(): JSX.Element {
             />
           ) : null}
 
-          <Text style={styles.label}>Photo of your license</Text>
+          <Text style={styles.label}>{t("profile.license.photoLabel")}</Text>
           <Pressable onPress={pickPhoto} style={styles.photoBtn}>
             {photoUri ? (
               <Image source={{ uri: photoUri }} style={styles.photo} contentFit="cover" />
             ) : (
               <View style={styles.photoEmpty}>
                 <Ionicons name="camera-outline" size={32} color={colors.text.secondary} />
-                <Text style={styles.photoEmptyText}>Tap to upload</Text>
+                <Text style={styles.photoEmptyText}>{t("profile.license.tapToUpload")}</Text>
               </View>
             )}
           </Pressable>
@@ -168,13 +170,13 @@ export default function LicenseCaptureScreen(): JSX.Element {
             ) : (
               <>
                 <Ionicons name="checkmark" size={16} color="#000" />
-                <Text style={styles.saveBtnText}>Save and continue</Text>
+                <Text style={styles.saveBtnText}>{t("profile.license.saveContinue")}</Text>
               </>
             )}
           </Pressable>
 
           <Pressable onPress={() => router.back()} hitSlop={12} style={{ alignSelf: "center" }}>
-            <Text style={styles.skip}>Not now</Text>
+            <Text style={styles.skip}>{t("profile.license.notNow")}</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

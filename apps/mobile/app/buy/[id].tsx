@@ -9,6 +9,7 @@ import { Alert, Dimensions, Pressable, ScrollView, Text, View } from "react-nati
 import { ImageCarousel } from "../../components/ImageCarousel";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 interface Product {
   id: string;
@@ -29,6 +30,7 @@ const HERO_H = Math.min(540, Dimensions.get("window").height * 0.55);
 export default function ProductDetailScreen(): React.JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const t = useT();
   const qc = useQueryClient();
   const [showSpecs, setShowSpecs] = useState(false);
 
@@ -49,17 +51,17 @@ export default function ProductDetailScreen(): React.JSX.Element {
       const orderId = data?.data?.id;
       logEvent("order_created", { order_id: orderId ?? "unknown" });
       Alert.alert(
-        "Order placed",
+        t("buy.orderPlacedTitle"),
         orderId
-          ? `Your order #${orderId.slice(0, 8)} is confirmed. You'll get updates via push and SMS.`
-          : "Your order is confirmed. You'll get updates via push and SMS.",
-        [{ text: "View my orders", onPress: () => router.push("/buy/my-orders") }],
+          ? `${t("buy.orderPlacedWithIdPrefix")}${orderId.slice(0, 8)}${t("buy.orderPlacedWithIdSuffix")}`
+          : t("buy.orderPlacedNoId"),
+        [{ text: t("buy.viewMyOrders"), onPress: () => router.push("/buy/my-orders") }],
       );
     },
     onError: (err) => {
       Alert.alert(
-        "Could not place order",
-        err instanceof Error ? err.message : "Please try again in a moment.",
+        t("buy.couldNotPlaceTitle"),
+        err instanceof Error ? err.message : t("buy.couldNotPlaceMessage"),
       );
     },
   });
@@ -74,12 +76,23 @@ export default function ProductDetailScreen(): React.JSX.Element {
           backgroundColor: "#F7F7FB",
         }}
       >
-        <Text style={{ color: "rgba(2,1,31,0.6)" }}>{q.isLoading ? "Loading…" : "Not found."}</Text>
+        <Text style={{ color: "rgba(2,1,31,0.6)" }}>
+          {q.isLoading ? t("common.loading") : t("buy.notFound")}
+        </Text>
       </View>
     );
   }
 
   const isCart = p.category === "cart_new" || p.category === "cart_used";
+  const categoryKeys: Record<string, string> = {
+    cart_new: "buy.categoryCartNew",
+    cart_used: "buy.categoryCartUsed",
+    parts: "buy.categoryParts",
+    accessory: "buy.categoryAccessory",
+  };
+  const categoryLabel = categoryKeys[p.category]
+    ? t(categoryKeys[p.category])
+    : p.category.replace("_", " ");
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F7F7FB" }}>
@@ -118,7 +131,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
               marginBottom: 6,
             }}
           >
-            {p.category.replace("_", " ")}
+            {categoryLabel}
             {p.brand ? ` · ${p.brand}` : ""}
           </Text>
           <Text style={{ fontFamily: "Anton", fontSize: 30, color: "#02011F", lineHeight: 32 }}>
@@ -133,7 +146,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
               letterSpacing: 0.3,
             }}
           >
-            EGP {Number(p.priceEgp).toLocaleString()}
+            {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
           </Text>
 
           {p.description ? (
@@ -146,7 +159,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
             <View style={{ marginTop: 18 }}>
               <Pressable onPress={() => setShowSpecs((s) => !s)}>
                 <Text style={{ color: colors.brand.friendlyBlue, fontWeight: "700", fontSize: 13 }}>
-                  {showSpecs ? "Hide details ▴" : "Show details ▾"}
+                  {showSpecs ? t("buy.hideDetails") : t("buy.showDetails")}
                 </Text>
               </Pressable>
               {showSpecs ? (
@@ -161,9 +174,9 @@ export default function ProductDetailScreen(): React.JSX.Element {
                     gap: 8,
                   }}
                 >
-                  {p.brand ? <Spec label="Brand" value={p.brand} /> : null}
-                  {p.model ? <Spec label="Model" value={p.model} /> : null}
-                  {p.year ? <Spec label="Year" value={String(p.year)} /> : null}
+                  {p.brand ? <Spec label={t("buy.specBrand")} value={p.brand} /> : null}
+                  {p.model ? <Spec label={t("buy.specModel")} value={p.model} /> : null}
+                  {p.year ? <Spec label={t("buy.specYear")} value={String(p.year)} /> : null}
                 </View>
               ) : null}
             </View>
@@ -190,9 +203,9 @@ export default function ProductDetailScreen(): React.JSX.Element {
         }}
       >
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 11, color: "rgba(2,1,31,0.55)" }}>Total</Text>
+          <Text style={{ fontSize: 11, color: "rgba(2,1,31,0.55)" }}>{t("buy.total")}</Text>
           <Text style={{ fontFamily: "Anton", fontSize: 22, color: colors.brand.trendyPink }}>
-            EGP {Number(p.priceEgp).toLocaleString()}
+            {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
           </Text>
         </View>
         <Pressable
@@ -208,12 +221,12 @@ export default function ProductDetailScreen(): React.JSX.Element {
         >
           <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
             {buy.isPending
-              ? "Placing…"
+              ? t("buy.placing")
               : !p.inStock
-                ? "Unavailable"
+                ? t("buy.unavailable")
                 : isCart
-                  ? "Reserve now"
-                  : "Buy now"}
+                  ? t("buy.reserveNow")
+                  : t("buy.buyNow")}
           </Text>
         </Pressable>
       </View>

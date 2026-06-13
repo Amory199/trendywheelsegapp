@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Vehicle {
   id: string;
@@ -31,11 +32,24 @@ interface Vehicle {
 }
 
 const VEHICLE_STATUSES = ["available", "rented", "maintenance", "inactive"];
+const VEHICLE_STATUS_KEY: Record<
+  string,
+  | "admin.vehicleStatusAvailable"
+  | "admin.vehicleStatusRented"
+  | "admin.vehicleStatusMaintenance"
+  | "admin.vehicleStatusInactive"
+> = {
+  available: "admin.vehicleStatusAvailable",
+  rented: "admin.vehicleStatusRented",
+  maintenance: "admin.vehicleStatusMaintenance",
+  inactive: "admin.vehicleStatusInactive",
+};
 
 export default function AdminVehicleEdit(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const qc = useQueryClient();
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [form, setForm] = useState<Partial<Vehicle>>({});
@@ -57,9 +71,10 @@ export default function AdminVehicleEdit(): React.JSX.Element {
     mutationFn: async () => api.updateVehicle(id!, form as never),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["admin"] });
-      Alert.alert("Saved", "Vehicle updated.");
+      Alert.alert(t("admin.vehicleSavedTitle"), t("admin.vehicleSavedMessage"));
     },
-    onError: (e) => Alert.alert("Save failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) =>
+      Alert.alert(t("admin.saveFailed"), e instanceof Error ? e.message : t("admin.tryAgain")),
   });
 
   const del = useMutation({
@@ -68,7 +83,8 @@ export default function AdminVehicleEdit(): React.JSX.Element {
       await qc.invalidateQueries({ queryKey: ["admin"] });
       router.back();
     },
-    onError: (e) => Alert.alert("Delete failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) =>
+      Alert.alert(t("admin.deleteFailed"), e instanceof Error ? e.message : t("admin.tryAgain")),
   });
 
   const update = <K extends keyof Vehicle>(key: K, value: Vehicle[K]) =>
@@ -78,7 +94,7 @@ export default function AdminVehicleEdit(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: form.name ?? "Vehicle",
+          title: form.name ?? t("admin.vehicleTitleFallback"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -95,24 +111,36 @@ export default function AdminVehicleEdit(): React.JSX.Element {
               gap: 12,
             }}
           >
-            <Field label="Name" value={form.name} onChange={(v) => update("name", v)} />
-            <Field label="Type" value={form.type} onChange={(v) => update("type", v)} />
-            <Field label="Location" value={form.location} onChange={(v) => update("location", v)} />
             <Field
-              label="Daily rate (EGP)"
+              label={t("admin.vehicleFieldName")}
+              value={form.name}
+              onChange={(v) => update("name", v)}
+            />
+            <Field
+              label={t("admin.vehicleFieldType")}
+              value={form.type}
+              onChange={(v) => update("type", v)}
+            />
+            <Field
+              label={t("admin.vehicleFieldLocation")}
+              value={form.location}
+              onChange={(v) => update("location", v)}
+            />
+            <Field
+              label={t("admin.vehicleFieldDailyRate")}
               value={form.dailyRate?.toString()}
               keyboardType="numeric"
               onChange={(v) => update("dailyRate", Number(v) as never)}
             />
             <Field
-              label="Seating"
+              label={t("admin.vehicleFieldSeating")}
               value={form.seating?.toString()}
               keyboardType="numeric"
               onChange={(v) => update("seating", Number(v) as never)}
             />
 
             <View style={styles.card}>
-              <Text style={styles.label}>Status</Text>
+              <Text style={styles.label}>{t("admin.vehicleFieldStatus")}</Text>
               <View style={styles.statusRow}>
                 {VEHICLE_STATUSES.map((s) => (
                   <Pressable
@@ -126,7 +154,7 @@ export default function AdminVehicleEdit(): React.JSX.Element {
                         form.status === s && styles.statusChipTextActive,
                       ]}
                     >
-                      {s}
+                      {VEHICLE_STATUS_KEY[s] ? t(VEHICLE_STATUS_KEY[s]) : s}
                     </Text>
                   </Pressable>
                 ))}
@@ -139,20 +167,26 @@ export default function AdminVehicleEdit(): React.JSX.Element {
               onPress={() => save.mutate()}
             >
               <Ionicons name="checkmark-circle" size={18} color="#fff" />
-              <Text style={styles.saveBtnText}>{save.isPending ? "Saving…" : "Save changes"}</Text>
+              <Text style={styles.saveBtnText}>
+                {save.isPending ? t("admin.vehicleSaving") : t("admin.vehicleSaveChanges")}
+              </Text>
             </Pressable>
 
             <Pressable
               style={styles.deleteBtn}
               onPress={() =>
-                Alert.alert("Delete vehicle?", "This cannot be undone.", [
-                  { text: "Cancel", style: "cancel" },
-                  { text: "Delete", style: "destructive", onPress: () => del.mutate() },
+                Alert.alert(t("admin.vehicleDeleteTitle"), t("admin.vehicleDeleteMessage"), [
+                  { text: t("common.cancel"), style: "cancel" },
+                  {
+                    text: t("admin.vehicleDelete"),
+                    style: "destructive",
+                    onPress: () => del.mutate(),
+                  },
                 ])
               }
             >
               <Ionicons name="trash" size={16} color="#FF5577" />
-              <Text style={styles.deleteBtnText}>Delete vehicle</Text>
+              <Text style={styles.deleteBtnText}>{t("admin.vehicleDeleteVehicle")}</Text>
             </Pressable>
           </ScrollView>
         )}

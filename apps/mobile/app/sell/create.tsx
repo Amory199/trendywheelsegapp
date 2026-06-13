@@ -23,6 +23,7 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 import { playSound } from "../../lib/sounds";
 import { uploadImages } from "../../lib/upload";
 import { useTheme } from "../../lib/use-theme";
@@ -45,13 +46,36 @@ interface FormData {
   images: string[]; // local URIs during creation
 }
 
-const STEPS = ["Basic Info", "Vehicle Details", "Photos", "Review"];
+const STEP_KEYS = [
+  "sell.create.stepBasic",
+  "sell.create.stepDetails",
+  "sell.create.stepPhotos",
+  "sell.create.stepReview",
+] as const;
 
 const TRANSMISSIONS: Transmission[] = ["automatic", "manual"];
 const FUEL_TYPES: FuelType[] = ["gasoline", "electric", "hybrid"];
 
+const TRANSMISSION_LABEL_KEY: Record<
+  Transmission,
+  "sell.transmission.automatic" | "sell.transmission.manual"
+> = {
+  automatic: "sell.transmission.automatic",
+  manual: "sell.transmission.manual",
+};
+
+const FUEL_LABEL_KEY: Record<
+  FuelType,
+  "sell.fuel.gasoline" | "sell.fuel.electric" | "sell.fuel.hybrid"
+> = {
+  gasoline: "sell.fuel.gasoline",
+  electric: "sell.fuel.electric",
+  hybrid: "sell.fuel.hybrid",
+};
+
 export default function SellCreateScreen(): JSX.Element {
   const { palette } = useTheme();
+  const t = useT();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const router = useRouter();
   const qc = useQueryClient();
@@ -156,14 +180,14 @@ export default function SellCreateScreen(): JSX.Element {
         <Pressable onPress={() => (step > 0 ? setStep(step - 1) : router.back())}>
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>List a Car</Text>
+        <Text style={styles.headerTitle}>{t("sell.create.headerTitle")}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {/* Step indicator */}
       <View style={styles.stepBar}>
-        {STEPS.map((label, i) => (
-          <View key={label} style={styles.stepItem}>
+        {STEP_KEYS.map((labelKey, i) => (
+          <View key={labelKey} style={styles.stepItem}>
             <View
               style={[
                 styles.stepCircle,
@@ -177,13 +201,13 @@ export default function SellCreateScreen(): JSX.Element {
                 <Text style={[styles.stepNum, i === step && styles.stepNumActive]}>{i + 1}</Text>
               )}
             </View>
-            {i < STEPS.length - 1 && (
+            {i < STEP_KEYS.length - 1 && (
               <View style={[styles.stepLine, i < step && styles.stepLineDone]} />
             )}
           </View>
         ))}
       </View>
-      <Text style={styles.stepLabel}>{STEPS[step]}</Text>
+      <Text style={styles.stepLabel}>{t(STEP_KEYS[step])}</Text>
 
       <ScrollView
         contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120, gap: spacing.md }}
@@ -194,12 +218,12 @@ export default function SellCreateScreen(): JSX.Element {
         {step === 0 && (
           <Animated.View entering={FadeInRight.springify()} style={{ gap: spacing.md }}>
             <Field
-              label="Listing Title *"
-              placeholder="e.g. 2021 Toyota Camry — Low Mileage"
+              label={t("sell.create.listingTitle")}
+              placeholder={t("sell.create.listingTitlePlaceholder")}
               value={form.title}
               onChangeText={(v) => set("title", v)}
             />
-            <Text style={styles.fieldLabel}>Category *</Text>
+            <Text style={styles.fieldLabel}>{t("sell.create.categoryLabel")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {VEHICLE_CATEGORIES.map((c) => {
                 const active = form.category === c.key;
@@ -232,7 +256,7 @@ export default function SellCreateScreen(): JSX.Element {
                         fontSize: 12,
                       }}
                     >
-                      {c.label}
+                      {t(`home.categories.${c.key}`)}
                     </Text>
                   </Pressable>
                 );
@@ -241,23 +265,23 @@ export default function SellCreateScreen(): JSX.Element {
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Field
-                  label="Make *"
-                  placeholder="Toyota"
+                  label={t("sell.create.make")}
+                  placeholder={t("sell.create.makePlaceholder")}
                   value={form.make}
                   onChangeText={(v) => set("make", v)}
                 />
               </View>
               <View style={{ flex: 1 }}>
                 <Field
-                  label="Model *"
-                  placeholder="Camry"
+                  label={t("sell.create.model")}
+                  placeholder={t("sell.create.modelPlaceholder")}
                   value={form.model}
                   onChangeText={(v) => set("model", v)}
                 />
               </View>
             </View>
             <View>
-              <Text style={styles.fieldLabel}>Year *</Text>
+              <Text style={styles.fieldLabel}>{t("sell.create.yearLabel")}</Text>
               <Pressable style={styles.input} onPress={() => setShowYearPicker(true)}>
                 <Text
                   style={{
@@ -265,7 +289,7 @@ export default function SellCreateScreen(): JSX.Element {
                     fontSize: 15,
                   }}
                 >
-                  {form.year || "Tap to pick"}
+                  {form.year || t("sell.create.yearPlaceholder")}
                 </Text>
                 <Ionicons
                   name="calendar-outline"
@@ -294,8 +318,8 @@ export default function SellCreateScreen(): JSX.Element {
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Field
-                  label="Price (EGP) *"
-                  placeholder="250000"
+                  label={t("sell.create.price")}
+                  placeholder={t("sell.create.pricePlaceholder")}
                   value={form.price}
                   onChangeText={(v) => set("price", v)}
                   keyboardType="numeric"
@@ -303,8 +327,8 @@ export default function SellCreateScreen(): JSX.Element {
               </View>
               <View style={{ flex: 1 }}>
                 <Field
-                  label="Mileage (km) *"
-                  placeholder="45000"
+                  label={t("sell.create.mileage")}
+                  placeholder={t("sell.create.mileagePlaceholder")}
                   value={form.mileage}
                   onChangeText={(v) => set("mileage", v)}
                   keyboardType="numeric"
@@ -313,33 +337,35 @@ export default function SellCreateScreen(): JSX.Element {
             </View>
 
             <SegmentField
-              label="Transmission *"
+              label={t("sell.create.transmissionLabel")}
               options={TRANSMISSIONS}
               value={form.transmission}
               onChange={(v) => set("transmission", v as Transmission)}
+              labelFor={(opt) => t(TRANSMISSION_LABEL_KEY[opt as Transmission])}
             />
 
             <SegmentField
-              label="Fuel Type *"
+              label={t("sell.create.fuelTypeLabel")}
               options={FUEL_TYPES}
               value={form.fuelType}
               onChange={(v) => set("fuelType", v as FuelType)}
+              labelFor={(opt) => t(FUEL_LABEL_KEY[opt as FuelType])}
             />
 
             <Field
-              label="Color *"
-              placeholder="White"
+              label={t("sell.create.colorLabel")}
+              placeholder={t("sell.create.colorPlaceholder")}
               value={form.color}
               onChangeText={(v) => set("color", v)}
             />
 
             <View>
-              <Text style={styles.fieldLabel}>Description</Text>
+              <Text style={styles.fieldLabel}>{t("sell.create.descriptionLabel")}</Text>
               <TextInput
                 style={[styles.input, styles.textarea]}
                 value={form.description}
                 onChangeText={(v) => set("description", v)}
-                placeholder="Describe your vehicle's condition, features, history…"
+                placeholder={t("sell.create.descriptionPlaceholder")}
                 placeholderTextColor={palette.muted}
                 multiline
                 numberOfLines={5}
@@ -355,9 +381,7 @@ export default function SellCreateScreen(): JSX.Element {
           <Animated.View entering={FadeInRight.springify()} style={{ gap: spacing.md }}>
             <View style={styles.photosHint}>
               <Ionicons name="images-outline" size={20} color={palette.muted} />
-              <Text style={styles.photosHintText}>
-                Add up to 10 photos. First photo will be the cover image.
-              </Text>
+              <Text style={styles.photosHintText}>{t("sell.create.photosHint")}</Text>
             </View>
 
             <View style={styles.photosGrid}>
@@ -366,7 +390,7 @@ export default function SellCreateScreen(): JSX.Element {
                   <Image source={{ uri }} style={styles.thumbImage} contentFit="cover" />
                   {i === 0 && (
                     <View style={styles.coverBadge}>
-                      <Text style={styles.coverBadgeText}>Cover</Text>
+                      <Text style={styles.coverBadgeText}>{t("sell.create.cover")}</Text>
                     </View>
                   )}
                   <Pressable style={styles.removeBtn} onPress={() => removeImage(i)}>
@@ -378,7 +402,7 @@ export default function SellCreateScreen(): JSX.Element {
               {form.images.length < 10 && (
                 <Pressable style={styles.addPhotoBtn} onPress={() => void pickImage()}>
                   <Ionicons name="camera-outline" size={28} color={palette.muted} />
-                  <Text style={styles.addPhotoText}>Add Photo</Text>
+                  <Text style={styles.addPhotoText}>{t("sell.create.addPhoto")}</Text>
                 </Pressable>
               )}
             </View>
@@ -388,20 +412,38 @@ export default function SellCreateScreen(): JSX.Element {
         {/* Step 3 — Review */}
         {step === 3 && (
           <Animated.View entering={FadeInRight.springify()} style={{ gap: spacing.md }}>
-            <ReviewRow label="Title" value={form.title} />
-            <ReviewRow label="Make / Model" value={`${form.make} ${form.model}`} />
-            <ReviewRow label="Year" value={form.year} />
-            <ReviewRow label="Price" value={`${Number(form.price).toLocaleString()} EGP`} />
-            <ReviewRow label="Mileage" value={`${Number(form.mileage).toLocaleString()} km`} />
-            <ReviewRow label="Transmission" value={form.transmission} />
-            <ReviewRow label="Fuel" value={form.fuelType} />
-            <ReviewRow label="Color" value={form.color} />
-            <ReviewRow label="Photos" value={`${form.images.length} photo(s)`} />
+            <ReviewRow label={t("sell.create.reviewTitle")} value={form.title} />
+            <ReviewRow
+              label={t("sell.create.reviewMakeModel")}
+              value={`${form.make} ${form.model}`}
+            />
+            <ReviewRow label={t("sell.create.reviewYear")} value={form.year} />
+            <ReviewRow
+              label={t("sell.create.reviewPrice")}
+              value={`${Number(form.price).toLocaleString()} ${t("sell.egp")}`}
+            />
+            <ReviewRow
+              label={t("sell.create.reviewMileage")}
+              value={`${Number(form.mileage).toLocaleString()} km`}
+            />
+            <ReviewRow
+              label={t("sell.create.reviewTransmission")}
+              value={t(TRANSMISSION_LABEL_KEY[form.transmission])}
+            />
+            <ReviewRow
+              label={t("sell.create.reviewFuel")}
+              value={t(FUEL_LABEL_KEY[form.fuelType])}
+            />
+            <ReviewRow label={t("sell.create.reviewColor")} value={form.color} />
+            <ReviewRow
+              label={t("sell.create.reviewPhotos")}
+              value={`${form.images.length} ${t("sell.create.photoCountSuffix")}`}
+            />
 
             {mutation.isError && (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>
-                  {(mutation.error as Error).message || "Failed to create listing"}
+                  {(mutation.error as Error).message || t("sell.create.createFailed")}
                 </Text>
               </View>
             )}
@@ -411,7 +453,7 @@ export default function SellCreateScreen(): JSX.Element {
 
       {/* Bottom CTA */}
       <View style={styles.bottomBar}>
-        {step < STEPS.length - 1 ? (
+        {step < STEP_KEYS.length - 1 ? (
           <Pressable
             style={[styles.nextBtn, !canProceed() && styles.btnDisabled]}
             disabled={!canProceed()}
@@ -420,7 +462,7 @@ export default function SellCreateScreen(): JSX.Element {
               setStep(step + 1);
             }}
           >
-            <Text style={styles.nextBtnText}>Continue</Text>
+            <Text style={styles.nextBtnText}>{t("sell.create.continue")}</Text>
             <Ionicons name="arrow-forward" size={18} color="#000" />
           </Pressable>
         ) : (
@@ -433,7 +475,7 @@ export default function SellCreateScreen(): JSX.Element {
               <ActivityIndicator size="small" color="#000" />
             ) : (
               <>
-                <Text style={styles.nextBtnText}>Publish Listing</Text>
+                <Text style={styles.nextBtnText}>{t("sell.create.publish")}</Text>
                 <Ionicons name="checkmark-circle-outline" size={18} color="#000" />
               </>
             )}
@@ -465,11 +507,13 @@ function SegmentField({
   options,
   value,
   onChange,
+  labelFor,
 }: {
   label: string;
   options: string[];
   value: string;
   onChange: (v: string) => void;
+  labelFor?: (opt: string) => string;
 }): JSX.Element {
   const { palette } = useTheme();
   const styles = useMemo(() => makeStyles(palette), [palette]);
@@ -484,7 +528,7 @@ function SegmentField({
             onPress={() => onChange(opt)}
           >
             <Text style={[styles.segmentText, opt === value && styles.segmentTextActive]}>
-              {opt.charAt(0).toUpperCase() + opt.slice(1)}
+              {labelFor ? labelFor(opt) : opt.charAt(0).toUpperCase() + opt.slice(1)}
             </Text>
           </Pressable>
         ))}

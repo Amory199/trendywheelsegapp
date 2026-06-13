@@ -8,8 +8,6 @@ import * as React from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-const REPAIR_VIDEO = require("../../assets/category/repair.mp4");
-
 const SCREEN_W = Dimensions.get("window").width;
 const SERVICE_H_PADDING = 20;
 const SERVICE_GAP = 12;
@@ -47,17 +45,20 @@ function RepairHero(): React.JSX.Element {
 
 import { TWBadge, TWButton, TWCard, TWPressable, TWSkeletonCard } from "../../components/ui";
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useTheme } from "../../lib/use-theme";
+
+const REPAIR_VIDEO = require("../../assets/category/repair.mp4");
 
 const STATUS_ORDER = ["submitted", "assigned", "in-progress", "completed"] as const;
 type RepairStatus = (typeof STATUS_ORDER)[number];
 
-const STATUS_LABEL: Record<RepairStatus, string> = {
-  submitted: "Requested",
-  assigned: "Scheduled",
-  "in-progress": "In progress",
-  completed: "Completed",
+const STATUS_LABEL_KEY: Record<RepairStatus, string> = {
+  submitted: "service.status.submitted",
+  assigned: "service.status.assigned",
+  "in-progress": "service.status.inProgress",
+  completed: "service.status.completed",
 };
 
 const STATUS_TONE: Record<RepairStatus, "muted" | "blue" | "amber" | "lime"> = {
@@ -76,6 +77,7 @@ export default function RepairScreen(): React.JSX.Element {
   const router = useRouter();
   const scrollHandler = useTabBarScrollHandler();
   const { palette } = useTheme();
+  const t = useT();
 
   const q = useQuery({
     queryKey: ["repair-requests"],
@@ -103,7 +105,7 @@ export default function RepairScreen(): React.JSX.Element {
           <Text
             style={{ fontSize: 11, color: palette.muted, fontWeight: "700", letterSpacing: 0.8 }}
           >
-            BOOK REPAIRS IN MINUTES
+            {t("service.tab.eyebrow")}
           </Text>
           <Text
             style={{
@@ -115,11 +117,11 @@ export default function RepairScreen(): React.JSX.Element {
               marginTop: 4,
             }}
           >
-            Service
+            {t("service.tab.title")}
           </Text>
         </View>
         <TWButton kind="pink" size="sm" icon="add" onPress={() => router.push("/repair/request")}>
-          New
+          {t("service.tab.new")}
         </TWButton>
       </View>
 
@@ -131,22 +133,27 @@ export default function RepairScreen(): React.JSX.Element {
       <View style={{ marginBottom: 16 }}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
           {[
-            { key: "repair", label: "Repair", icon: "construct", route: "/repair/request" },
+            {
+              key: "repair",
+              labelKey: "service.tab.tileRepair",
+              icon: "construct",
+              route: "/repair/request",
+            },
             {
               key: "maintenance",
-              label: "Maintenance",
+              labelKey: "service.tab.tileMaintenance",
               icon: "build",
               route: "/service/maintenance",
             },
             {
               key: "pickup",
-              label: "Pickup & Delivery",
+              labelKey: "service.tab.tilePickup",
               icon: "cube",
               route: "/service/pickup-delivery",
             },
             {
               key: "customize",
-              label: "Customization",
+              labelKey: "service.tab.tileCustomize",
               icon: "color-palette",
               route: "/service/customization",
             },
@@ -174,7 +181,7 @@ export default function RepairScreen(): React.JSX.Element {
                 style={{ color: palette.text, fontSize: 14, fontWeight: "700" }}
                 numberOfLines={1}
               >
-                {s.label}
+                {t(s.labelKey)}
               </Text>
             </TWPressable>
           ))}
@@ -190,7 +197,7 @@ export default function RepairScreen(): React.JSX.Element {
               marginTop: 18,
             }}
           >
-            My repairs
+            {t("service.tab.myRepairs")}
           </Text>
         ) : null}
       </View>
@@ -237,13 +244,13 @@ export default function RepairScreen(): React.JSX.Element {
           letterSpacing: 0.3,
         }}
       >
-        No repairs yet
+        {t("service.tab.emptyTitle")}
       </Text>
       <Text style={{ fontSize: 14, color: palette.muted, textAlign: "center", lineHeight: 20 }}>
-        Certified mechanics come to you. Track every step in real-time.
+        {t("service.tab.emptyBody")}
       </Text>
       <TWButton kind="pink" size="lg" onPress={() => router.push("/repair/request")}>
-        Book a repair
+        {t("service.tab.bookRepair")}
       </TWButton>
     </View>
   );
@@ -289,7 +296,9 @@ export default function RepairScreen(): React.JSX.Element {
                       </Text>
                     </View>
                     <TWBadge tone={STATUS_TONE[item.status as RepairStatus] ?? "muted"}>
-                      {STATUS_LABEL[item.status as RepairStatus] ?? item.status}
+                      {STATUS_LABEL_KEY[item.status as RepairStatus]
+                        ? t(STATUS_LABEL_KEY[item.status as RepairStatus])
+                        : item.status}
                     </TWBadge>
                   </View>
 

@@ -4,32 +4,34 @@ import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { HubCard } from "../../components/HubCard";
+import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useTheme } from "../../lib/use-theme";
 
 const HUB_PATHS = [
   {
     href: "/sell/create",
-    label: "Sell my cart outright",
-    sub: "List your golf cart for sale. We handle the buyers.",
+    labelKey: "sell.hub.sellOutright",
+    subKey: "sell.hub.sellOutrightSub",
     image: "https://picsum.photos/seed/sell-outright/1200/700",
   },
   {
     href: "/sell/list-for-rent",
-    label: "List my cart for rent",
-    sub: "Earn passive income — we manage the rentals end-to-end.",
+    labelKey: "sell.hub.listForRent",
+    subKey: "sell.hub.listForRentSub",
     image: "https://picsum.photos/seed/sell-list-rent/1200/700",
   },
   {
     href: "/sell/trade-in",
-    label: "Trade in for a new one",
-    sub: "Get a quote on yours, apply credit toward a fresh model.",
+    labelKey: "sell.hub.tradeIn",
+    subKey: "sell.hub.tradeInSub",
     image: "https://picsum.photos/seed/sell-trade-in/1200/700",
   },
 ] as const;
 
 export default function SellScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const { palette } = useTheme();
   const scrollHandler = useTabBarScrollHandler();
 
@@ -42,10 +44,8 @@ export default function SellScreen(): JSX.Element {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <Text style={[styles.title, { color: palette.text }]}>Got a cart?</Text>
-        <Text style={[styles.subtitle, { color: palette.muted }]}>
-          Three ways to turn it into something else.
-        </Text>
+        <Text style={[styles.title, { color: palette.text }]}>{t("sell.hub.title")}</Text>
+        <Text style={[styles.subtitle, { color: palette.muted }]}>{t("sell.hub.subtitle")}</Text>
       </View>
 
       <View style={styles.cards}>
@@ -53,8 +53,8 @@ export default function SellScreen(): JSX.Element {
           <Animated.View key={p.href} entering={FadeInDown.delay(i * 60).duration(360)}>
             <HubCard
               imageUri={p.image}
-              label={p.label}
-              sub={p.sub}
+              label={t(p.labelKey)}
+              sub={t(p.subKey)}
               onPress={() => router.push(p.href as never)}
             />
           </Animated.View>
@@ -66,7 +66,7 @@ export default function SellScreen(): JSX.Element {
           style={[styles.footerLink, { color: colors.brand.friendlyBlue }]}
           onPress={() => router.push("/sell/category/all" as never)}
         >
-          Browse marketplace →
+          {t("sell.hub.browseMarketplace")}
         </Text>
       </View>
     </Animated.ScrollView>

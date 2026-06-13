@@ -5,6 +5,7 @@ import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 
+import { useT } from "../../lib/locale";
 import { useAdminLeadRealtime } from "../../lib/realtime";
 
 // Admin workspace — bottom tabs for the role's daily-driver flows.
@@ -42,6 +43,7 @@ export default function AdminLayout(): JSX.Element {
   // the "admin sees sales activity right away" requirement via Socket.IO.
   const qc = useQueryClient();
   useAdminLeadRealtime(qc);
+  const t = useT();
 
   return (
     <Tabs
@@ -65,7 +67,7 @@ export default function AdminLayout(): JSX.Element {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: "Dashboard",
+          title: t("admin.tabDashboard"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "grid" : "grid-outline"} size={22} color={color} />
           ),
@@ -74,7 +76,7 @@ export default function AdminLayout(): JSX.Element {
       <Tabs.Screen
         name="bookings"
         options={{
-          title: "Bookings",
+          title: t("admin.tabBookings"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "calendar" : "calendar-outline"} size={22} color={color} />
           ),
@@ -83,7 +85,7 @@ export default function AdminLayout(): JSX.Element {
       <Tabs.Screen
         name="users"
         options={{
-          title: "Users",
+          title: t("admin.tabUsers"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "people" : "people-outline"} size={22} color={color} />
           ),
@@ -92,7 +94,7 @@ export default function AdminLayout(): JSX.Element {
       <Tabs.Screen
         name="catalog"
         options={{
-          title: "Catalog",
+          title: t("admin.tabCatalog"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "apps" : "apps-outline"} size={22} color={color} />
           ),

@@ -18,6 +18,7 @@ import {
 } from "react-native";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 interface OrderItem {
   productId: string;
@@ -41,8 +42,16 @@ const STATUS_TINT: Record<string, string> = {
   cancelled: "#888",
 };
 
+const STATUS_LABEL_KEY: Record<string, string> = {
+  pending: "buy.orderStatusPending",
+  confirmed: "buy.orderStatusConfirmed",
+  delivered: "buy.orderStatusDelivered",
+  cancelled: "buy.orderStatusCancelled",
+};
+
 export default function MyOrders(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
 
   // Shape must match the profile screen's ["my-orders"] query EXACTLY — both
   // share this cache key, so a divergent shape made one screen misread the
@@ -58,7 +67,7 @@ export default function MyOrders(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: "My Orders",
+          title: t("buy.myOrdersTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTitleStyle: { color: "#fff" },
           headerTintColor: "#fff",
@@ -84,17 +93,23 @@ export default function MyOrders(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="bag-outline" size={48} color="#666" />
-              <Text style={styles.emptyText}>You haven't placed any orders yet</Text>
+              <Text style={styles.emptyText}>{t("buy.noOrdersYet")}</Text>
               <Pressable style={styles.cta} onPress={() => router.push("/(tabs)/buy")}>
-                <Text style={styles.ctaText}>Browse cars</Text>
+                <Text style={styles.ctaText}>{t("buy.browseCars")}</Text>
               </Pressable>
             </View>
           }
           renderItem={({ item }) => {
             const tint = STATUS_TINT[item.status] ?? "#888";
             const firstItem = item.items?.[0];
-            const itemName = firstItem?.product?.name ?? "Order";
-            const extra = (item.items?.length ?? 0) > 1 ? ` + ${item.items!.length - 1} more` : "";
+            const itemName = firstItem?.product?.name ?? t("buy.fallbackOrder");
+            const extra =
+              (item.items?.length ?? 0) > 1
+                ? `${t("buy.moreSuffixPrefix")}${item.items!.length - 1}${t("buy.moreSuffix")}`
+                : "";
+            const statusLabel = STATUS_LABEL_KEY[item.status]
+              ? t(STATUS_LABEL_KEY[item.status])
+              : item.status;
             return (
               <Pressable
                 style={styles.card}
@@ -108,12 +123,15 @@ export default function MyOrders(): React.JSX.Element {
                     {extra}
                   </Text>
                   <Text style={styles.meta}>
-                    Order #{item.id.slice(0, 8)} · {new Date(item.createdAt).toLocaleDateString()}
+                    {t("buy.orderNumberPrefix")}
+                    {item.id.slice(0, 8)} · {new Date(item.createdAt).toLocaleDateString()}
                   </Text>
-                  <Text style={styles.amount}>EGP {Number(item.totalEgp).toLocaleString()}</Text>
+                  <Text style={styles.amount}>
+                    {t("buy.egp")} {Number(item.totalEgp).toLocaleString()}
+                  </Text>
                 </View>
                 <View style={[styles.statusChip, { backgroundColor: tint }]}>
-                  <Text style={styles.statusText}>{item.status}</Text>
+                  <Text style={styles.statusText}>{statusLabel}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="#888" />
               </Pressable>

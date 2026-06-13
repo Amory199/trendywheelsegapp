@@ -20,6 +20,7 @@ import { TWBadge, TWButton, TWCard, TWChip, TWPressable } from "../../components
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -32,6 +33,7 @@ export default function RentDetailScreen(): React.JSX.Element {
   const router = useRouter();
   const scrollY = useSharedValue(0);
   const { palette } = useTheme();
+  const t = useT();
 
   const q = useQuery({
     queryKey: ["vehicle", id],
@@ -221,7 +223,7 @@ export default function RentDetailScreen(): React.JSX.Element {
         >
           <Animated.View entering={FadeInDown.delay(80).duration(420)}>
             <TWBadge tone={vehicle.status === "available" ? "lime" : "muted"}>
-              {vehicle.status === "available" ? "Available now" : vehicle.status}
+              {vehicle.status === "available" ? t("rent.availableNow") : vehicle.status}
             </TWBadge>
             <View
               style={{
@@ -250,7 +252,7 @@ export default function RentDetailScreen(): React.JSX.Element {
                     {rating}
                   </Text>
                   <Text style={{ fontSize: 13, color: palette.muted }}>
-                    ({reviewsCount} reviews)
+                    ({reviewsCount} {t("rent.reviewsCountSuffix")})
                   </Text>
                 </View>
               </View>
@@ -258,7 +260,7 @@ export default function RentDetailScreen(): React.JSX.Element {
                 <Text style={{ fontSize: 20, color: colors.brand.trendyPink, fontWeight: "800" }}>
                   {twEGP(Number(vehicle.dailyRate))}
                 </Text>
-                <Text style={{ fontSize: 12, color: palette.muted }}>per day</Text>
+                <Text style={{ fontSize: 12, color: palette.muted }}>{t("rent.perDay")}</Text>
               </View>
             </View>
           </Animated.View>
@@ -266,10 +268,27 @@ export default function RentDetailScreen(): React.JSX.Element {
           <Animated.View entering={FadeInDown.delay(140).duration(420)}>
             <TWCard padded={false}>
               <View style={{ flexDirection: "row", padding: 14 }}>
-                <SpecCell icon="person" label="Seats" value={String(vehicle.seating)} />
-                <SpecCell icon="cog-outline" label="Drive" value={vehicle.transmission} />
-                <SpecCell icon="water-outline" label="Fuel" value={vehicle.fuelType ?? "Petrol"} />
-                <SpecCell icon="location-outline" label="City" value={vehicle.location} last />
+                <SpecCell
+                  icon="person"
+                  label={t("rent.specSeats")}
+                  value={String(vehicle.seating)}
+                />
+                <SpecCell
+                  icon="cog-outline"
+                  label={t("rent.specDrive")}
+                  value={vehicle.transmission}
+                />
+                <SpecCell
+                  icon="water-outline"
+                  label={t("rent.specFuel")}
+                  value={vehicle.fuelType ?? t("rent.fuelPetrol")}
+                />
+                <SpecCell
+                  icon="location-outline"
+                  label={t("rent.specCity")}
+                  value={vehicle.location}
+                  last
+                />
               </View>
             </TWCard>
           </Animated.View>
@@ -284,11 +303,10 @@ export default function RentDetailScreen(): React.JSX.Element {
                 marginBottom: 8,
               }}
             >
-              ABOUT THIS VEHICLE
+              {t("rent.aboutVehicle").toUpperCase()}
             </Text>
             <Text style={{ fontSize: 14, lineHeight: 22, color: palette.text }}>
-              Premium vehicle in perfect condition. Ideal for city driving and long trips. Insurance
-              included, delivery available within 24 hours.
+              {t("rent.aboutVehicleBody")}
             </Text>
           </Animated.View>
 
@@ -303,7 +321,7 @@ export default function RentDetailScreen(): React.JSX.Element {
                   marginBottom: 10,
                 }}
               >
-                FEATURES
+                {t("rent.features").toUpperCase()}
               </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {features.map((f) => (
@@ -330,7 +348,7 @@ export default function RentDetailScreen(): React.JSX.Element {
                   letterSpacing: 0.8,
                 }}
               >
-                RECENT REVIEWS
+                {t("rent.recentReviews").toUpperCase()}
               </Text>
               {reviewSummary && reviewSummary.count > 0 && (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
@@ -347,7 +365,7 @@ export default function RentDetailScreen(): React.JSX.Element {
             {reviews.length === 0 ? (
               <TWCard>
                 <Text style={{ fontSize: 13, color: palette.muted, lineHeight: 18 }}>
-                  No reviews yet — be the first after your ride!
+                  {t("rent.noReviewsYet")}
                 </Text>
               </TWCard>
             ) : (
@@ -380,7 +398,7 @@ export default function RentDetailScreen(): React.JSX.Element {
                             }}
                             numberOfLines={1}
                           >
-                            {r.user?.name ?? "TrendyWheels rider"}
+                            {r.user?.name ?? t("rent.defaultRiderName")}
                           </Text>
                           <View style={{ flexDirection: "row", gap: 1 }}>
                             {[1, 2, 3, 4, 5].map((i) => (
@@ -450,11 +468,14 @@ export default function RentDetailScreen(): React.JSX.Element {
           <Text
             style={{ fontSize: 11, color: palette.muted, fontWeight: "700", letterSpacing: 0.5 }}
           >
-            TOTAL
+            {t("rent.total").toUpperCase()}
           </Text>
           <Text style={{ fontSize: 18, color: colors.brand.trendyPink, fontWeight: "800" }}>
             {twEGP(Number(vehicle.dailyRate))}
-            <Text style={{ fontSize: 12, color: palette.muted, fontWeight: "500" }}> / day</Text>
+            <Text style={{ fontSize: 12, color: palette.muted, fontWeight: "500" }}>
+              {" "}
+              {t("rent.perDayShort")}
+            </Text>
           </Text>
         </View>
         <TWButton
@@ -480,7 +501,7 @@ export default function RentDetailScreen(): React.JSX.Element {
           }}
           style={{ paddingHorizontal: 28 }}
         >
-          Book now
+          {t("rent.bookNow")}
         </TWButton>
       </View>
     </View>

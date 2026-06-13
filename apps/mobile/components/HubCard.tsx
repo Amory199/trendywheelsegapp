@@ -7,6 +7,8 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { useT } from "../lib/locale";
+
 interface HubCardProps {
   imageUri: string;
   label: string;
@@ -15,6 +17,7 @@ interface HubCardProps {
 }
 
 export function HubCard({ imageUri, label, sub, onPress }: HubCardProps): JSX.Element {
+  const t = useT();
   return (
     <Pressable onPress={onPress} style={styles.card}>
       <Image source={{ uri: imageUri }} style={styles.bg} contentFit="cover" />
@@ -27,7 +30,7 @@ export function HubCard({ imageUri, label, sub, onPress }: HubCardProps): JSX.El
       <View style={styles.content}>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.sub}>{sub}</Text>
-        <Text style={styles.start}>START →</Text>
+        <Text style={styles.start}>{t("home.start")}</Text>
       </View>
     </Pressable>
   );

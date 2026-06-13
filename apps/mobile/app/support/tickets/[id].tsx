@@ -19,6 +19,7 @@ import {
 } from "react-native";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Ticket {
   id: string;
@@ -48,9 +49,22 @@ const PRIORITY_COLOR: Record<string, string> = {
   medium: "#F5B800",
   low: colors.brand.poolBlue,
 };
+const STATUS_KEY = {
+  open: "support.statusOpen",
+  "in-progress": "support.statusInProgress",
+  resolved: "support.statusResolved",
+  closed: "support.statusClosed",
+} as const;
+const PRIORITY_KEY = {
+  low: "support.priorityLow",
+  medium: "support.priorityMedium",
+  high: "support.priorityHigh",
+  urgent: "support.priorityUrgent",
+} as const;
 
 export default function SupportTicketDetail(): React.JSX.Element {
   const qc = useQueryClient();
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [reply, setReply] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
@@ -77,16 +91,19 @@ export default function SupportTicketDetail(): React.JSX.Element {
     mutationFn: async (patch: Record<string, unknown>) => api.updateTicket(id!, patch as never),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["support"] }),
     onError: (err) =>
-      Alert.alert("Update failed", err instanceof Error ? err.message : "Try again"),
+      Alert.alert(
+        t("support.updateFailed"),
+        err instanceof Error ? err.message : t("common.tryAgain"),
+      ),
   });
 
-  const t = ticketQ.data;
+  const ticket = ticketQ.data;
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: t ? `#${t.id.slice(0, 6)}` : "Ticket",
+          title: ticket ? `#${ticket.id.slice(0, 6)}` : t("support.detailFallbackTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -95,44 +112,54 @@ export default function SupportTicketDetail(): React.JSX.Element {
         style={styles.root}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {ticketQ.isLoading || !t ? (
+        {ticketQ.isLoading || !ticket ? (
           <ActivityIndicator color={colors.brand.poolBlue} style={{ marginTop: 24 }} />
         ) : (
           <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 200, gap: 12 }}>
             <View style={styles.heroCard}>
               <View style={styles.heroTop}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.subject}>{t.subject}</Text>
+                  <Text style={styles.subject}>{ticket.subject}</Text>
                   <Text style={styles.meta}>
-                    {t.user?.name ?? t.user?.phone ?? "Customer"} · {t.category ?? "general"}
+                    {ticket.user?.name ?? ticket.user?.phone ?? t("support.detailCustomer")} ·{" "}
+                    {ticket.category ?? t("support.generalCategory")}
                   </Text>
-                  <Text style={styles.date}>{new Date(t.createdAt).toLocaleString()}</Text>
+                  <Text style={styles.date}>{new Date(ticket.createdAt).toLocaleString()}</Text>
                 </View>
-                <View style={[styles.priorityChip, { borderColor: PRIORITY_COLOR[t.priority] }]}>
+                <View
+                  style={[styles.priorityChip, { borderColor: PRIORITY_COLOR[ticket.priority] }]}
+                >
                   <View
-                    style={[styles.priorityDot, { backgroundColor: PRIORITY_COLOR[t.priority] }]}
+                    style={[
+                      styles.priorityDot,
+                      { backgroundColor: PRIORITY_COLOR[ticket.priority] },
+                    ]}
                   />
-                  <Text style={[styles.priorityText, { color: PRIORITY_COLOR[t.priority] }]}>
-                    {t.priority}
+                  <Text style={[styles.priorityText, { color: PRIORITY_COLOR[ticket.priority] }]}>
+                    {PRIORITY_KEY[ticket.priority as keyof typeof PRIORITY_KEY]
+                      ? t(PRIORITY_KEY[ticket.priority as keyof typeof PRIORITY_KEY])
+                      : ticket.priority}
                   </Text>
                 </View>
               </View>
-              {t.agent?.name ? (
-                <Text style={styles.assigned}>Assigned to {t.agent.name}</Text>
+              {ticket.agent?.name ? (
+                <Text style={styles.assigned}>
+                  {t("support.assignedTo")} {ticket.agent.name}
+                </Text>
               ) : (
-                <Text style={styles.unassigned}>Unassigned</Text>
+                <Text style={styles.unassigned}>{t("support.unassigned")}</Text>
               )}
             </View>
 
-            {t.message && (
+            {ticket.message && (
               <View style={styles.card}>
-                <Text style={styles.sectionTitle}>Customer message</Text>
-                <Text style={styles.body}>{t.message}</Text>
+                <Text style={styles.sectionTitle}>{t("support.customerMessage")}</Text>
+                <Text style={styles.body}>{ticket.message}</Text>
               </View>
             )}
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Priority</Text>
+              <Text style={styles.sectionTitle}>{t("support.priority")}</Text>
               <View style={styles.chipRow}>
                 {PRIORITIES.map((p) => (
                   <Pressable
@@ -140,14 +167,16 @@ export default function SupportTicketDetail(): React.JSX.Element {
                     onPress={() => update.mutate({ priority: p })}
                     style={[
                       styles.chip,
-                      t.priority === p && {
+                      ticket.priority === p && {
                         backgroundColor: PRIORITY_COLOR[p],
                         borderColor: PRIORITY_COLOR[p],
                       },
                     ]}
                   >
-                    <Text style={[styles.chipText, t.priority === p && { color: "#fff" }]}>
-                      {p}
+                    <Text style={[styles.chipText, ticket.priority === p && { color: "#fff" }]}>
+                      {PRIORITY_KEY[p as keyof typeof PRIORITY_KEY]
+                        ? t(PRIORITY_KEY[p as keyof typeof PRIORITY_KEY])
+                        : p}
                     </Text>
                   </Pressable>
                 ))}
@@ -155,7 +184,7 @@ export default function SupportTicketDetail(): React.JSX.Element {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Status</Text>
+              <Text style={styles.sectionTitle}>{t("support.status")}</Text>
               <View style={styles.chipRow}>
                 {STATUSES.map((s) => (
                   <Pressable
@@ -163,14 +192,16 @@ export default function SupportTicketDetail(): React.JSX.Element {
                     onPress={() => update.mutate({ status: s })}
                     style={[
                       styles.chip,
-                      t.status === s && {
+                      ticket.status === s && {
                         backgroundColor: colors.brand.poolBlue,
                         borderColor: colors.brand.poolBlue,
                       },
                     ]}
                   >
-                    <Text style={[styles.chipText, t.status === s && { color: "#000" }]}>
-                      {s.replace("_", " ").replace("-", " ")}
+                    <Text style={[styles.chipText, ticket.status === s && { color: "#000" }]}>
+                      {STATUS_KEY[s as keyof typeof STATUS_KEY]
+                        ? t(STATUS_KEY[s as keyof typeof STATUS_KEY])
+                        : s.replace("_", " ").replace("-", " ")}
                     </Text>
                   </Pressable>
                 ))}
@@ -183,29 +214,34 @@ export default function SupportTicketDetail(): React.JSX.Element {
                 onPress={() => setAssignOpen(true)}
               >
                 <Ionicons name="person-add" size={14} color="#fff" />
-                <Text style={styles.assignText}>{t.agent?.name ? "Reassign" : "Assign"}</Text>
+                <Text style={styles.assignText}>
+                  {ticket.agent?.name ? t("support.reassign") : t("support.assign")}
+                </Text>
               </Pressable>
               <Pressable
                 style={[styles.closeBtn, { flex: 1 }]}
                 onPress={() =>
-                  Alert.alert("Close ticket?", "Mark this ticket as closed?", [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Close", onPress: () => update.mutate({ status: "closed" }) },
+                  Alert.alert(t("support.closeTitle"), t("support.closeMessage"), [
+                    { text: t("common.cancel"), style: "cancel" },
+                    {
+                      text: t("support.close"),
+                      onPress: () => update.mutate({ status: "closed" }),
+                    },
                   ])
                 }
               >
                 <Ionicons name="checkmark-done" size={14} color="#000" />
-                <Text style={styles.closeText}>Close</Text>
+                <Text style={styles.closeText}>{t("support.close")}</Text>
               </Pressable>
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Reply to customer</Text>
+              <Text style={styles.sectionTitle}>{t("support.replyTitle")}</Text>
               <TextInput
                 value={reply}
                 onChangeText={setReply}
                 multiline
-                placeholder="Type a reply…"
+                placeholder={t("support.replyPlaceholder")}
                 placeholderTextColor={colors.text.secondary}
                 style={styles.replyInput}
               />
@@ -213,24 +249,27 @@ export default function SupportTicketDetail(): React.JSX.Element {
                 style={[styles.sendBtn, !reply.trim() && { opacity: 0.4 }]}
                 disabled={!reply.trim()}
                 onPress={() => {
-                  const userId = t.user?.id ?? t.userId;
+                  const userId = ticket.user?.id ?? ticket.userId;
                   if (!userId) {
-                    Alert.alert("No recipient");
+                    Alert.alert(t("support.noRecipient"));
                     return;
                   }
                   api
                     .sendMessage(userId, reply.trim())
                     .then(() => {
                       setReply("");
-                      Alert.alert("Sent", "Reply delivered to customer.");
+                      Alert.alert(t("support.sentTitle"), t("support.sentMessage"));
                     })
                     .catch((err) =>
-                      Alert.alert("Send failed", err instanceof Error ? err.message : "Try again"),
+                      Alert.alert(
+                        t("support.sendFailed"),
+                        err instanceof Error ? err.message : t("common.tryAgain"),
+                      ),
                     );
                 }}
               >
                 <Ionicons name="send" size={14} color="#000" />
-                <Text style={styles.sendBtnText}>Send reply</Text>
+                <Text style={styles.sendBtnText}>{t("support.sendReply")}</Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -244,16 +283,14 @@ export default function SupportTicketDetail(): React.JSX.Element {
         >
           <Pressable style={styles.modalBg} onPress={() => setAssignOpen(false)}>
             <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
-              <Text style={styles.modalTitle}>Pick support agent</Text>
+              <Text style={styles.modalTitle}>{t("support.pickAgent")}</Text>
               {agentsQ.isLoading ? (
                 <ActivityIndicator color={colors.brand.poolBlue} />
               ) : (
                 <FlatList
                   data={agentsQ.data ?? []}
                   keyExtractor={(a) => a.id}
-                  ListEmptyComponent={
-                    <Text style={styles.emptyText}>No support agents found.</Text>
-                  }
+                  ListEmptyComponent={<Text style={styles.emptyText}>{t("support.noAgents")}</Text>}
                   renderItem={({ item }) => (
                     <Pressable
                       style={styles.agentRow}
@@ -264,7 +301,9 @@ export default function SupportTicketDetail(): React.JSX.Element {
                     >
                       <Ionicons name="person-circle" size={28} color={colors.brand.poolBlue} />
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.agentName}>{item.name ?? "Agent"}</Text>
+                        <Text style={styles.agentName}>
+                          {item.name ?? t("support.ticketsAgent")}
+                        </Text>
                         <Text style={styles.agentPhone}>{item.phone ?? ""}</Text>
                       </View>
                     </Pressable>

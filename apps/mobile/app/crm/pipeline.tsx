@@ -21,6 +21,7 @@ import { EarningsCard } from "../../components/crm/EarningsCard";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { initialGreeting } from "../../lib/lead-templates";
+import { translate, useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
 interface Lead {
@@ -36,11 +37,11 @@ interface Lead {
 
 type FilterKey = "all" | "mine" | "unclaimed" | "stale";
 
-const FILTERS: { key: FilterKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: "all", label: "All", icon: "layers-outline" },
-  { key: "mine", label: "Mine", icon: "person-outline" },
-  { key: "unclaimed", label: "Open", icon: "flag-outline" },
-  { key: "stale", label: "Stale", icon: "alarm-outline" },
+const FILTERS: { key: FilterKey; labelKey: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: "all", labelKey: "crm.pipeline.filterAll", icon: "layers-outline" },
+  { key: "mine", labelKey: "crm.pipeline.filterMine", icon: "person-outline" },
+  { key: "unclaimed", labelKey: "crm.pipeline.filterUnclaimed", icon: "flag-outline" },
+  { key: "stale", labelKey: "crm.pipeline.filterStale", icon: "alarm-outline" },
 ];
 
 // "lost" was removed (2026-05-20 round-3). The terminal state for an
@@ -51,12 +52,12 @@ const FILTERS: { key: FilterKey; label: string; icon: keyof typeof Ionicons.glyp
 const STAGES = ["new", "contacted", "qualified", "proposal", "won"] as const;
 type Stage = (typeof STAGES)[number];
 
-const STAGE_LABEL: Record<Stage, string> = {
-  new: "New",
-  contacted: "Contacted",
-  qualified: "Qualified",
-  proposal: "Proposal",
-  won: "Won",
+const STAGE_LABEL_KEY: Record<Stage, string> = {
+  new: "crm.pipeline.stageNew",
+  contacted: "crm.pipeline.stageContacted",
+  qualified: "crm.pipeline.stageQualified",
+  proposal: "crm.pipeline.stageProposal",
+  won: "crm.pipeline.stageWon",
 };
 
 const STAGE_ICON: Record<Stage, keyof typeof Ionicons.glyphMap> = {
@@ -71,16 +72,17 @@ function relativeTime(iso: string | undefined): string {
   if (!iso) return "—";
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return `${m}${translate("crm.pipeline.minutesAgoSuffix")}`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return `${h}${translate("crm.pipeline.hoursAgoSuffix")}`;
   const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
+  if (d < 7) return `${d}${translate("crm.pipeline.daysAgoSuffix")}`;
   return new Date(iso).toLocaleDateString();
 }
 
 export default function CrmPipeline(): React.JSX.Element {
   const { palette } = useTheme();
+  const t = useT();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const router = useRouter();
   const user = useAuth((s) => s.user);
@@ -153,12 +155,15 @@ export default function CrmPipeline(): React.JSX.Element {
     <View style={styles.root}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.kicker}>SALES · PIPELINE</Text>
-          <Text style={styles.title}>Hi, {user?.name?.split(" ")[0] ?? "Sales"}</Text>
+          <Text style={styles.kicker}>{t("crm.pipeline.kicker")}</Text>
+          <Text style={styles.title}>
+            {t("crm.pipeline.greeting")},{" "}
+            {user?.name?.split(" ")[0] ?? t("crm.pipeline.fallbackName")}
+          </Text>
         </View>
         <Pressable style={styles.fab} onPress={() => router.push("/crm/leads/new")}>
           <Ionicons name="add" size={18} color="#fff" />
-          <Text style={styles.fabText}>New lead</Text>
+          <Text style={styles.fabText}>{t("crm.pipeline.newLead")}</Text>
         </Pressable>
         <Pressable
           hitSlop={12}
@@ -176,11 +181,11 @@ export default function CrmPipeline(): React.JSX.Element {
 
       <View style={[styles.heroCard, { marginTop: 10 }]}>
         <View>
-          <Text style={styles.heroLabel}>Total pipeline</Text>
+          <Text style={styles.heroLabel}>{t("crm.pipeline.totalPipeline")}</Text>
           <Text style={styles.heroValue}>EGP {Math.round(totalValue).toLocaleString()}</Text>
         </View>
         <View style={{ alignItems: "flex-end" }}>
-          <Text style={styles.heroLabel}>Won this month</Text>
+          <Text style={styles.heroLabel}>{t("crm.pipeline.wonThisMonth")}</Text>
           <View style={styles.wonChip}>
             <Ionicons name="trophy" size={14} color={colors.brand.ecoLimelight ?? "#A9F453"} />
             <Text style={styles.wonText}>{counts.won}</Text>
@@ -192,7 +197,7 @@ export default function CrmPipeline(): React.JSX.Element {
         <Ionicons name="search" size={16} color={palette.muted} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name or phone…"
+          placeholder={t("crm.pipeline.searchPlaceholder")}
           placeholderTextColor={palette.muted}
           value={search}
           onChangeText={setSearch}
@@ -221,7 +226,9 @@ export default function CrmPipeline(): React.JSX.Element {
                 style={[styles.filterChip, active && styles.filterChipActive]}
               >
                 <Ionicons name={f.icon} size={12} color={active ? "#fff" : palette.muted} />
-                <Text style={[styles.filterChipText, active && { color: "#fff" }]}>{f.label}</Text>
+                <Text style={[styles.filterChipText, active && { color: "#fff" }]}>
+                  {t(f.labelKey)}
+                </Text>
               </Pressable>
             );
           })}
@@ -242,7 +249,7 @@ export default function CrmPipeline(): React.JSX.Element {
             <Ionicons name={STAGE_ICON[s]} size={14} color={stage === s ? "#fff" : palette.muted} />
             <View>
               <Text style={[styles.stageLabel, stage === s && styles.stageLabelActive]}>
-                {STAGE_LABEL[s]}
+                {t(STAGE_LABEL_KEY[s])}
               </Text>
               <Text style={[styles.stageMeta, stage === s && { color: "rgba(255,255,255,0.85)" }]}>
                 {counts[s]} · EGP {Math.round(stageValue[s] / 1000)}k
@@ -269,7 +276,9 @@ export default function CrmPipeline(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="leaf-outline" size={48} color={palette.muted} />
-              <Text style={styles.emptyText}>No leads in {STAGE_LABEL[stage]}</Text>
+              <Text style={styles.emptyText}>
+                {t("crm.pipeline.emptyPrefix")} {t(STAGE_LABEL_KEY[stage])}
+              </Text>
             </View>
           }
           renderItem={({ item, index }) => (
@@ -286,7 +295,7 @@ export default function CrmPipeline(): React.JSX.Element {
                     {item.contactName}
                   </Text>
                   <Text style={styles.leadPhone} numberOfLines={1}>
-                    {item.contactPhone ?? "No phone"}
+                    {item.contactPhone ?? t("crm.pipeline.noPhone")}
                   </Text>
                   <View style={styles.leadFooter}>
                     {item.source ? (

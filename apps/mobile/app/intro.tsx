@@ -1,7 +1,9 @@
-import { useVideoPlayer, VideoView } from "expo-video";
 import { useRouter } from "expo-router";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+
+import { useT } from "../lib/locale";
 
 // Brand intro reel played once on cold launch. Falls through to /(tabs) or
 // /(auth)/phone via the index route after the video ends, the user taps Skip,
@@ -12,6 +14,7 @@ const SAFETY_TIMEOUT_MS = 9500;
 
 export default function Intro(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const dismissedRef = useRef(false);
 
   const player = useVideoPlayer(INTRO_SRC, (p) => {
@@ -46,7 +49,7 @@ export default function Intro(): JSX.Element {
         surfaceType="textureView"
       />
       <Pressable onPress={dismiss} style={styles.skip} hitSlop={12}>
-        <Text style={styles.skipText}>Skip ▸</Text>
+        <Text style={styles.skipText}>{t("home.skip")}</Text>
       </Pressable>
     </View>
   );

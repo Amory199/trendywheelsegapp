@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 interface SystemConfig {
   companyName?: string;
@@ -32,6 +33,7 @@ const CURRENCIES = ["EGP", "USD", "EUR"];
 export default function AdminSystemConfig(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
+  const t = useT();
   const [form, setForm] = useState<SystemConfig>({});
 
   const q = useQuery({
@@ -50,16 +52,17 @@ export default function AdminSystemConfig(): React.JSX.Element {
     mutationFn: async () => api.adminUpdateSystemConfig(form as Record<string, unknown>),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["admin", "system-config"] });
-      Alert.alert("Saved", "Company settings updated.");
+      Alert.alert(t("admin.configSavedTitle"), t("admin.configSavedMessage"));
     },
-    onError: (e) => Alert.alert("Save failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) =>
+      Alert.alert(t("admin.saveFailed"), e instanceof Error ? e.message : t("admin.tryAgain")),
   });
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: "System config",
+          title: t("admin.configTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -77,42 +80,42 @@ export default function AdminSystemConfig(): React.JSX.Element {
             }}
           >
             <Field
-              label="Company name"
+              label={t("admin.configCompanyName")}
               value={form.companyName ?? ""}
               onChange={(v) => setForm((s) => ({ ...s, companyName: v }))}
             />
             <Field
-              label="Email"
+              label={t("admin.configEmail")}
               value={form.companyEmail ?? ""}
               onChange={(v) => setForm((s) => ({ ...s, companyEmail: v }))}
               keyboardType="email-address"
             />
             <Field
-              label="Phone"
+              label={t("admin.configPhone")}
               value={form.companyPhone ?? ""}
               onChange={(v) => setForm((s) => ({ ...s, companyPhone: v }))}
               keyboardType="phone-pad"
             />
             <Field
-              label="Address"
+              label={t("admin.configAddress")}
               value={form.companyAddress ?? ""}
               onChange={(v) => setForm((s) => ({ ...s, companyAddress: v }))}
               multiline
             />
             <Field
-              label="Business hours"
+              label={t("admin.configBusinessHours")}
               value={form.companyHours ?? ""}
               onChange={(v) => setForm((s) => ({ ...s, companyHours: v }))}
             />
             <Field
-              label="Tax rate (%)"
+              label={t("admin.configTaxRate")}
               value={form.taxRatePct?.toString() ?? ""}
               onChange={(v) => setForm((s) => ({ ...s, taxRatePct: Number(v) }))}
               keyboardType="numeric"
             />
 
             <View style={styles.card}>
-              <Text style={styles.label}>Currency</Text>
+              <Text style={styles.label}>{t("admin.configCurrency")}</Text>
               <View style={styles.chipRow}>
                 {CURRENCIES.map((c) => (
                   <Pressable
@@ -134,7 +137,9 @@ export default function AdminSystemConfig(): React.JSX.Element {
               onPress={() => save.mutate()}
             >
               <Ionicons name="checkmark-circle" size={18} color="#fff" />
-              <Text style={styles.saveBtnText}>{save.isPending ? "Saving…" : "Save changes"}</Text>
+              <Text style={styles.saveBtnText}>
+                {save.isPending ? t("admin.configSaving") : t("admin.configSaveChanges")}
+              </Text>
             </Pressable>
           </ScrollView>
         )}

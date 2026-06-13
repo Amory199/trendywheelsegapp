@@ -21,6 +21,7 @@ import Animated, { FadeInUp } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useT } from "../../lib/locale";
 
 export default function ChatScreen(): JSX.Element {
   // peerId = the other participant's userId, passed in when the chat is opened.
@@ -28,6 +29,7 @@ export default function ChatScreen(): JSX.Element {
   // derive the recipient from the thread, so without this the send no-ops.
   const { id, peerId } = useLocalSearchParams<{ id: string; peerId?: string }>();
   const router = useRouter();
+  const t = useT();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -49,7 +51,7 @@ export default function ChatScreen(): JSX.Element {
       // an empty recipient and silently failed).
       const other = messages.find((m) => m.senderId !== user?.id);
       const recipientId = other?.senderId ?? peerId ?? "";
-      if (!recipientId) throw new Error("No recipient for this conversation");
+      if (!recipientId) throw new Error(t("messages.noRecipient"));
       return api.sendMessage(recipientId, msg);
     },
     onSuccess: () => {
@@ -59,7 +61,10 @@ export default function ChatScreen(): JSX.Element {
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     },
     onError: (err) =>
-      Alert.alert("Message not sent", err instanceof Error ? err.message : "Try again"),
+      Alert.alert(
+        t("messages.sendFailedTitle"),
+        err instanceof Error ? err.message : t("common.tryAgain"),
+      ),
   });
 
   const send = (): void => {
@@ -78,7 +83,7 @@ export default function ChatScreen(): JSX.Element {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
-        <Text style={styles.headerTitle}>Chat</Text>
+        <Text style={styles.headerTitle}>{t("messages.chatTitle")}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -127,7 +132,7 @@ export default function ChatScreen(): JSX.Element {
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder="Type a message…"
+          placeholder={t("messages.inputPlaceholder")}
           placeholderTextColor={colors.text.secondary}
           multiline
           maxLength={2000}

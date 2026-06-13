@@ -11,6 +11,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { ReviewModal } from "../../components/ReviewModal";
 import { TWSkeletonCard } from "../../components/ui";
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 type TabKey = "pending" | "confirmed" | "completed" | "cancelled";
 
@@ -21,12 +22,19 @@ type BookingRow = Booking & {
   review?: { id: string } | null;
 };
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "pending", label: "Awaiting" },
-  { key: "confirmed", label: "Active" },
-  { key: "completed", label: "Completed" },
-  { key: "cancelled", label: "Cancelled" },
+const TABS: { key: TabKey; labelKey: string }[] = [
+  { key: "pending", labelKey: "rent.tabAwaiting" },
+  { key: "confirmed", labelKey: "rent.tabActive" },
+  { key: "completed", labelKey: "rent.tabCompleted" },
+  { key: "cancelled", labelKey: "rent.tabCancelled" },
 ];
+
+const STATUS_LABEL_KEYS: Record<TabKey, string> = {
+  pending: "rent.statusPending",
+  confirmed: "rent.statusConfirmed",
+  completed: "rent.statusCompleted",
+  cancelled: "rent.statusCancelled",
+};
 
 const STATUS_COLORS: Record<TabKey, string> = {
   pending: colors.warning,
@@ -37,6 +45,7 @@ const STATUS_COLORS: Record<TabKey, string> = {
 
 export default function MyBookingsScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>("pending");
   const [reviewTarget, setReviewTarget] = useState<{
@@ -69,20 +78,20 @@ export default function MyBookingsScreen(): JSX.Element {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
-        <Text style={styles.title}>My Bookings</Text>
+        <Text style={styles.title}>{t("rent.myBookings")}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {/* Tabs */}
       <View style={styles.tabs}>
-        {TABS.map((t) => (
+        {TABS.map((tab) => (
           <Pressable
-            key={t.key}
-            style={[styles.tab, activeTab === t.key && styles.tabActive]}
-            onPress={() => setActiveTab(t.key)}
+            key={tab.key}
+            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+            onPress={() => setActiveTab(tab.key)}
           >
-            <Text style={[styles.tabText, activeTab === t.key && styles.tabTextActive]}>
-              {t.label}
+            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+              {t(tab.labelKey)}
             </Text>
           </Pressable>
         ))}
@@ -98,7 +107,12 @@ export default function MyBookingsScreen(): JSX.Element {
         <View style={styles.empty}>
           <Ionicons name="calendar-outline" size={64} color={colors.text.secondary} />
           <Text style={styles.emptyText}>
-            No {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()} bookings
+            {t("rent.emptyBookingsPrefix")}{" "}
+            {(TABS.find((tab) => tab.key === activeTab)
+              ? t(TABS.find((tab) => tab.key === activeTab)!.labelKey)
+              : ""
+            ).toLowerCase()}{" "}
+            {t("rent.emptyBookingsSuffix")}
           </Text>
         </View>
       ) : (
@@ -113,7 +127,8 @@ export default function MyBookingsScreen(): JSX.Element {
               <View style={styles.card}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.vehicleId} numberOfLines={1}>
-                    Booking #{item.id.slice(-8).toUpperCase()}
+                    {t("rent.bookingNumberPrefix")}
+                    {item.id.slice(-8).toUpperCase()}
                   </Text>
                   <View
                     style={[
@@ -129,29 +144,31 @@ export default function MyBookingsScreen(): JSX.Element {
                         { color: STATUS_COLORS[item.status as TabKey] ?? colors.text.secondary },
                       ]}
                     >
-                      {item.status}
+                      {STATUS_LABEL_KEYS[item.status as TabKey]
+                        ? t(STATUS_LABEL_KEYS[item.status as TabKey])
+                        : item.status}
                     </Text>
                   </View>
                 </View>
 
                 <View style={styles.dateRow}>
                   <View style={styles.dateItem}>
-                    <Text style={styles.dateLabel}>Pickup</Text>
+                    <Text style={styles.dateLabel}>{t("rent.pickup")}</Text>
                     <Text style={styles.dateValue}>
                       {new Date(item.startDate).toLocaleDateString()}
                     </Text>
                   </View>
                   <Ionicons name="arrow-forward" size={16} color={colors.text.secondary} />
                   <View style={styles.dateItem}>
-                    <Text style={styles.dateLabel}>Return</Text>
+                    <Text style={styles.dateLabel}>{t("rent.returnLabel")}</Text>
                     <Text style={styles.dateValue}>
                       {new Date(item.endDate).toLocaleDateString()}
                     </Text>
                   </View>
                   <View style={styles.costItem}>
-                    <Text style={styles.dateLabel}>Total</Text>
+                    <Text style={styles.dateLabel}>{t("rent.total")}</Text>
                     <Text style={styles.costValue}>
-                      {Number(item.totalCost).toLocaleString()} EGP
+                      {Number(item.totalCost).toLocaleString()} {t("rent.currency")}
                     </Text>
                   </View>
                 </View>
@@ -162,7 +179,7 @@ export default function MyBookingsScreen(): JSX.Element {
                     onPress={() => cancelMutation.mutate(item.id)}
                     disabled={cancelMutation.isPending}
                   >
-                    <Text style={styles.cancelBtnText}>Cancel Booking</Text>
+                    <Text style={styles.cancelBtnText}>{t("rent.cancelBooking")}</Text>
                   </Pressable>
                 )}
 
@@ -178,7 +195,7 @@ export default function MyBookingsScreen(): JSX.Element {
                     }
                   >
                     <Ionicons name="star" size={16} color="#F5B800" />
-                    <Text style={styles.rateBtnText}>Rate your rental</Text>
+                    <Text style={styles.rateBtnText}>{t("rent.rateYourRental")}</Text>
                   </Pressable>
                 )}
               </View>

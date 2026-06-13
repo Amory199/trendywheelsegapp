@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,9 +12,9 @@ import {
   Text,
   View,
 } from "react-native";
-import { useState } from "react";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 interface AdminBooking {
   id: string;
@@ -25,16 +26,24 @@ interface AdminBooking {
   user?: { name?: string; phone?: string };
 }
 
-const FILTERS: Array<{ key: string; label: string }> = [
-  { key: "pending", label: "Pending" },
-  { key: "confirmed", label: "Confirmed" },
-  { key: "completed", label: "Completed" },
-  { key: "cancelled", label: "Cancelled" },
+const FILTERS: Array<{
+  key: string;
+  labelKey:
+    | "admin.bookingFilterPending"
+    | "admin.bookingFilterConfirmed"
+    | "admin.bookingFilterCompleted"
+    | "admin.bookingFilterCancelled";
+}> = [
+  { key: "pending", labelKey: "admin.bookingFilterPending" },
+  { key: "confirmed", labelKey: "admin.bookingFilterConfirmed" },
+  { key: "completed", labelKey: "admin.bookingFilterCompleted" },
+  { key: "cancelled", labelKey: "admin.bookingFilterCancelled" },
 ];
 
 export default function AdminBookings(): JSX.Element {
   const [status, setStatus] = useState("pending");
   const qc = useQueryClient();
+  const t = useT();
 
   const listQ = useQuery({
     queryKey: ["admin", "bookings", status],
@@ -48,20 +57,31 @@ export default function AdminBookings(): JSX.Element {
     mutationFn: async (id: string) => api.approveBooking(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "bookings"] }),
     onError: (err) =>
-      Alert.alert("Approve failed", err instanceof Error ? err.message : "Try again"),
+      Alert.alert(
+        t("admin.approveFailed"),
+        err instanceof Error ? err.message : t("admin.tryAgain"),
+      ),
   });
 
   const reject = useMutation({
     mutationFn: async (id: string) => api.rejectBooking(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "bookings"] }),
     onError: (err) =>
-      Alert.alert("Reject failed", err instanceof Error ? err.message : "Try again"),
+      Alert.alert(
+        t("admin.rejectFailed"),
+        err instanceof Error ? err.message : t("admin.tryAgain"),
+      ),
   });
+
+  const filterLabel = (key: string): string => {
+    const f = FILTERS.find((x) => x.key === key);
+    return f ? t(f.labelKey) : key;
+  };
 
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.title}>Bookings</Text>
+        <Text style={styles.title}>{t("admin.bookingsTitle")}</Text>
       </View>
 
       <View style={styles.filterRow}>
@@ -72,7 +92,7 @@ export default function AdminBookings(): JSX.Element {
             style={[styles.filter, status === f.key && styles.filterActive]}
           >
             <Text style={[styles.filterText, status === f.key && styles.filterTextActive]}>
-              {f.label}
+              {t(f.labelKey)}
             </Text>
           </Pressable>
         ))}
@@ -95,21 +115,29 @@ export default function AdminBookings(): JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="checkmark-circle-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No {status} bookings</Text>
+              <Text style={styles.emptyText}>
+                {t("admin.bookingsEmptyPrefix")}
+                {filterLabel(status)}
+                {t("admin.bookingsEmptySuffix")}
+              </Text>
             </View>
           }
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={{ flex: 1, gap: 4 }}>
-                <Text style={styles.cardTitle}>{item.vehicle?.name ?? "Vehicle"}</Text>
+                <Text style={styles.cardTitle}>
+                  {item.vehicle?.name ?? t("admin.bookingVehicleFallback")}
+                </Text>
                 <Text style={styles.cardCustomer}>
-                  {item.user?.name ?? item.user?.phone ?? "Customer"}
+                  {item.user?.name ?? item.user?.phone ?? t("admin.bookingCustomerFallback")}
                 </Text>
                 <Text style={styles.cardDates}>
                   {new Date(item.startDate).toLocaleDateString()} →{" "}
                   {new Date(item.endDate).toLocaleDateString()}
                 </Text>
-                <Text style={styles.cardCost}>EGP {Number(item.totalCost).toLocaleString()}</Text>
+                <Text style={styles.cardCost}>
+                  {t("admin.egp")} {Number(item.totalCost).toLocaleString()}
+                </Text>
               </View>
               {status === "pending" && (
                 <View style={{ gap: 6 }}>
@@ -119,28 +147,24 @@ export default function AdminBookings(): JSX.Element {
                     disabled={approve.isPending}
                   >
                     <Ionicons name="checkmark" size={16} color="#000" />
-                    <Text style={styles.btnApproveText}>Approve</Text>
+                    <Text style={styles.btnApproveText}>{t("admin.approve")}</Text>
                   </Pressable>
                   <Pressable
                     onPress={() =>
-                      Alert.alert(
-                        "Reject booking?",
-                        "Customer will be notified the booking was declined.",
-                        [
-                          { text: "Cancel" },
-                          {
-                            text: "Reject",
-                            style: "destructive",
-                            onPress: () => reject.mutate(item.id),
-                          },
-                        ],
-                      )
+                      Alert.alert(t("admin.rejectBookingTitle"), t("admin.rejectBookingMessage"), [
+                        { text: t("common.cancel") },
+                        {
+                          text: t("admin.reject"),
+                          style: "destructive",
+                          onPress: () => reject.mutate(item.id),
+                        },
+                      ])
                     }
                     style={[styles.btn, styles.btnReject]}
                     disabled={reject.isPending}
                   >
                     <Ionicons name="close" size={16} color="#fff" />
-                    <Text style={styles.btnRejectText}>Reject</Text>
+                    <Text style={styles.btnRejectText}>{t("admin.reject")}</Text>
                   </Pressable>
                 </View>
               )}

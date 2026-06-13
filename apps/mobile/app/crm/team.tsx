@@ -4,6 +4,7 @@ import { colors } from "@trendywheels/ui-tokens";
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 interface Agent {
   id: string;
@@ -16,6 +17,7 @@ interface Agent {
 }
 
 export default function CrmTeam(): React.JSX.Element {
+  const t = useT();
   const q = useQuery({
     queryKey: ["crm", "team"],
     queryFn: async (): Promise<Agent[]> => {
@@ -27,8 +29,8 @@ export default function CrmTeam(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>SALES TEAM</Text>
-        <Text style={styles.title}>Targets</Text>
+        <Text style={styles.kicker}>{t("crm.team.kicker")}</Text>
+        <Text style={styles.title}>{t("crm.team.title")}</Text>
       </View>
 
       {q.isLoading ? (
@@ -48,7 +50,7 @@ export default function CrmTeam(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="people-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No sales agents yet</Text>
+              <Text style={styles.emptyText}>{t("crm.team.empty")}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -59,19 +61,23 @@ export default function CrmTeam(): React.JSX.Element {
                 </Text>
               </View>
               <View style={{ flex: 1, gap: 4 }}>
-                <Text style={styles.name}>{item.name ?? "Agent"}</Text>
+                <Text style={styles.name}>{item.name ?? t("crm.team.agentFallback")}</Text>
                 <Text style={styles.meta}>
-                  {item.staffRole ?? "sales"} · {item.phone ?? ""}
+                  {item.staffRole ?? t("crm.team.defaultRole")} · {item.phone ?? ""}
                 </Text>
                 <View style={styles.statsRow}>
-                  <Stat label="Open" value={item.openLeadCount ?? 0} tint={colors.brand.poolBlue} />
                   <Stat
-                    label="Won (mo)"
+                    label={t("crm.team.statOpen")}
+                    value={item.openLeadCount ?? 0}
+                    tint={colors.brand.poolBlue}
+                  />
+                  <Stat
+                    label={t("crm.team.statWon")}
                     value={item.wonThisMonth ?? 0}
                     tint={colors.brand.ecoLimelight ?? "#A9F453"}
                   />
                   <Stat
-                    label="Target"
+                    label={t("crm.team.statTarget")}
                     value={Math.round(Number(item.salesTargetMonthly ?? 0) / 1000)}
                     tint={colors.brand.trendyPink}
                     suffix="k"

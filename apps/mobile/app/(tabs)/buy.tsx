@@ -8,6 +8,7 @@ import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 
 type Category = "cart_new" | "cart_used" | "parts" | "accessory";
@@ -22,12 +23,12 @@ interface Product {
   brand?: string | null;
 }
 
-const TABS: { id: Category | "all"; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "cart_new", label: "New" },
-  { id: "cart_used", label: "Used" },
-  { id: "parts", label: "Parts" },
-  { id: "accessory", label: "Access." },
+const TABS: { id: Category | "all"; labelKey: string }[] = [
+  { id: "all", labelKey: "buy.tabAll" },
+  { id: "cart_new", labelKey: "buy.tabNew" },
+  { id: "cart_used", labelKey: "buy.tabUsed" },
+  { id: "parts", labelKey: "buy.tabParts" },
+  { id: "accessory", labelKey: "buy.tabAccessory" },
 ];
 
 const CARD_GAP = 12;
@@ -36,6 +37,7 @@ const W = (Dimensions.get("window").width - PADDING * 2 - CARD_GAP) / 2;
 
 export default function BuyScreen(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
   const [tab, setTab] = useState<Category | "all">("all");
   const scrollHandler = useTabBarScrollHandler();
 
@@ -53,21 +55,21 @@ export default function BuyScreen(): React.JSX.Element {
     <View style={{ flex: 1, backgroundColor: "#F7F7FB" }}>
       <View style={{ paddingTop: 60, paddingHorizontal: PADDING, paddingBottom: 12 }}>
         <Text style={{ fontFamily: "Anton", fontSize: 38, color: "#02011F", letterSpacing: 0.4 }}>
-          Catalog
+          {t("buy.catalogTitle")}
         </Text>
         <Text style={{ fontSize: 13, color: "rgba(2,1,31,0.55)", marginTop: 2 }}>
-          Carts, parts, and accessories.
+          {t("buy.catalogSubtitle")}
         </Text>
       </View>
 
       <View style={{ paddingHorizontal: PADDING, marginBottom: 12 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {TABS.map((t) => {
-            const active = tab === t.id;
+          {TABS.map((tabItem) => {
+            const active = tab === tabItem.id;
             return (
               <Pressable
-                key={t.id}
-                onPress={() => setTab(t.id)}
+                key={tabItem.id}
+                onPress={() => setTab(tabItem.id)}
                 style={{
                   paddingHorizontal: 16,
                   paddingVertical: 9,
@@ -81,7 +83,7 @@ export default function BuyScreen(): React.JSX.Element {
                 <Text
                   style={{ color: active ? "#fff" : "#02011F", fontWeight: "700", fontSize: 13 }}
                 >
-                  {t.label}
+                  {t(tabItem.labelKey)}
                 </Text>
               </Pressable>
             );
@@ -101,9 +103,9 @@ export default function BuyScreen(): React.JSX.Element {
         }}
       >
         {q.isLoading ? (
-          <Text style={{ padding: 40, color: "rgba(2,1,31,0.5)" }}>Loading…</Text>
+          <Text style={{ padding: 40, color: "rgba(2,1,31,0.5)" }}>{t("common.loading")}</Text>
         ) : items.length === 0 ? (
-          <Text style={{ padding: 40, color: "rgba(2,1,31,0.5)" }}>Nothing here yet.</Text>
+          <Text style={{ padding: 40, color: "rgba(2,1,31,0.5)" }}>{t("buy.emptyCatalog")}</Text>
         ) : (
           items.map((p, i) => (
             <Animated.View key={p.id} entering={FadeInDown.duration(280).delay(i * 30)}>
@@ -152,7 +154,7 @@ export default function BuyScreen(): React.JSX.Element {
                           fontSize: 11,
                         }}
                       >
-                        OUT OF STOCK
+                        {t("buy.outOfStock")}
                       </Text>
                     </View>
                   ) : null}
@@ -172,7 +174,7 @@ export default function BuyScreen(): React.JSX.Element {
                     letterSpacing: 0.3,
                   }}
                 >
-                  EGP {Number(p.priceEgp).toLocaleString()}
+                  {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
                 </Text>
               </Pressable>
             </Animated.View>

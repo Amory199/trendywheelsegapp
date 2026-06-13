@@ -2,12 +2,15 @@ import { colors, spacing, typography } from "@trendywheels/ui-tokens";
 import { Link } from "expo-router";
 import { View, Text, StyleSheet } from "react-native";
 
+import { useT } from "../lib/locale";
+
 export default function NotFoundScreen(): JSX.Element {
+  const t = useT();
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Page Not Found</Text>
+      <Text style={styles.title}>{t("components.notFound.title")}</Text>
       <Link href="/" style={styles.link}>
-        Go Home
+        {t("components.notFound.goHome")}
       </Link>
     </View>
   );

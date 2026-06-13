@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 interface ActivityItem {
   id: string;
@@ -44,6 +45,7 @@ interface ApiData {
 
 export default function AdminRecentActivity(): React.JSX.Element {
   const insets = useSafeAreaInsets();
+  const t = useT();
   const q = useQuery({
     queryKey: ["admin", "recent-activity"],
     queryFn: async () => {
@@ -59,8 +61,8 @@ export default function AdminRecentActivity(): React.JSX.Element {
       items.push({
         id: `b-${b.id}`,
         kind: "booking",
-        title: `Booking · ${b.vehicle?.name ?? "Vehicle"}`,
-        subtitle: `${b.user?.name ?? "Customer"} · ${b.status}`,
+        title: `${t("admin.recentBookingPrefix")}${b.vehicle?.name ?? t("admin.recentVehicleFallback")}`,
+        subtitle: `${b.user?.name ?? t("admin.recentCustomerFallback")} · ${b.status}`,
         createdAt: b.createdAt,
       }),
     );
@@ -68,8 +70,8 @@ export default function AdminRecentActivity(): React.JSX.Element {
       items.push({
         id: `r-${r.id}`,
         kind: "repair",
-        title: `Repair · ${r.category ?? "general"}`,
-        subtitle: `${r.user?.name ?? "Customer"} · ${r.status}`,
+        title: `${t("admin.recentRepairPrefix")}${r.category ?? t("admin.recentRepairCategoryFallback")}`,
+        subtitle: `${r.user?.name ?? t("admin.recentCustomerFallback")} · ${r.status}`,
         createdAt: r.createdAt,
       }),
     );
@@ -77,13 +79,13 @@ export default function AdminRecentActivity(): React.JSX.Element {
       items.push({
         id: `l-${l.id}`,
         kind: "listing",
-        title: `Listing · ${l.title}`,
+        title: `${t("admin.recentListingPrefix")}${l.title}`,
         subtitle: l.status,
         createdAt: l.createdAt,
       }),
     );
     return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [q.data]);
+  }, [q.data, t]);
 
   const iconFor = (kind: ActivityItem["kind"]): keyof typeof Ionicons.glyphMap => {
     if (kind === "booking") return "calendar";
@@ -101,7 +103,7 @@ export default function AdminRecentActivity(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: "Recent activity",
+          title: t("admin.recentTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -128,7 +130,7 @@ export default function AdminRecentActivity(): React.JSX.Element {
             {items.length === 0 ? (
               <View style={styles.empty}>
                 <Ionicons name="time-outline" size={48} color={colors.text.secondary} />
-                <Text style={styles.emptyText}>No recent activity</Text>
+                <Text style={styles.emptyText}>{t("admin.recentEmpty")}</Text>
               </View>
             ) : (
               items.map((it) => (

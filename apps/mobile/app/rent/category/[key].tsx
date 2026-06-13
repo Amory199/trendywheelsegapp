@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CategoryVideoHero } from "../../../components/CategoryVideoHero";
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 // The API returns vehicle images as rows ({ url, sortOrder }); older cached
 // payloads were plain strings. Accept both so covers never silently break.
@@ -34,15 +35,18 @@ const palette = twPalette(false);
 export default function RentCategoryScreen(): JSX.Element {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const t = useT();
   const { key } = useLocalSearchParams<{ key: string }>();
   const [search, setSearch] = useState("");
 
   const isAll = key === "all";
   const categoryMeta = useMemo(() => VEHICLE_CATEGORIES.find((c) => c.key === key) ?? null, [key]);
   const categoryLabel = useMemo(() => {
-    if (isAll) return "All categories";
-    return categoryMeta?.label ?? "Vehicles";
-  }, [categoryMeta, isAll]);
+    if (isAll) return t("rent.allCategories");
+    // home.categories.* is the shared, parity-complete localized label source
+    // for VehicleCategory (the English labels in @trendywheels/types are data).
+    return categoryMeta ? t(`home.categories.${categoryMeta.key}`) : t("rent.vehiclesFallback");
+  }, [categoryMeta, isAll, t]);
 
   const q = useInfiniteQuery({
     queryKey: ["vehicles", "by-category", key],
@@ -90,10 +94,13 @@ export default function RentCategoryScreen(): JSX.Element {
               {item.name}
             </Text>
             <Text style={styles.cardMeta} numberOfLines={1}>
-              {item.type} · {item.seating} seats · {item.transmission}
+              {item.type} · {item.seating} {t("rent.seatsSuffix")} · {item.transmission}
             </Text>
             <View style={styles.cardFooter}>
-              <Text style={styles.cardPrice}>{twEGP(Number(item.dailyRate))}/day</Text>
+              <Text style={styles.cardPrice}>
+                {twEGP(Number(item.dailyRate))}
+                {t("rent.perDaySlash")}
+              </Text>
               <View style={styles.locationRow}>
                 <Ionicons name="location-outline" size={12} color={palette.muted} />
                 <Text style={styles.cardLocation} numberOfLines={1}>
@@ -105,7 +112,7 @@ export default function RentCategoryScreen(): JSX.Element {
         </Pressable>
       </Animated.View>
     ),
-    [router],
+    [router, t],
   );
 
   return (
@@ -114,7 +121,7 @@ export default function RentCategoryScreen(): JSX.Element {
         <View>
           <CategoryVideoHero
             categoryKey={categoryMeta.key}
-            label={categoryMeta.label}
+            label={t(`home.categories.${categoryMeta.key}`)}
             icon={categoryMeta.icon as never}
             height={220}
           />
@@ -151,7 +158,7 @@ export default function RentCategoryScreen(): JSX.Element {
         <Ionicons name="search-outline" size={18} color={palette.muted} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name, location, or type…"
+          placeholder={t("rent.searchPlaceholder")}
           placeholderTextColor={palette.muted}
           value={search}
           onChangeText={setSearch}
@@ -175,7 +182,7 @@ export default function RentCategoryScreen(): JSX.Element {
         <View style={styles.empty}>
           <Ionicons name="car-outline" size={64} color={palette.muted} />
           <Text style={styles.emptyText}>
-            {search ? "No matches" : "No vehicles in this category"}
+            {search ? t("rent.noMatches") : t("rent.noVehiclesInCategory")}
           </Text>
         </View>
       ) : (

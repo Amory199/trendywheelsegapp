@@ -3,10 +3,22 @@ import { colors } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { useT } from "../../lib/locale";
+
+type ToolKey =
+  | "SalesTeam"
+  | "Vehicles"
+  | "Repairs"
+  | "ServiceRequests"
+  | "SalesListings"
+  | "Orders"
+  | "SystemConfig"
+  | "RecentActivity";
+
 interface Tool {
   icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  sub: string;
+  labelKey: `admin.tool${ToolKey}Label`;
+  subKey: `admin.tool${ToolKey}Sub`;
   route: string;
   tint?: string;
 }
@@ -14,57 +26,57 @@ interface Tool {
 const TOOLS: Tool[] = [
   {
     icon: "people-outline",
-    label: "Sales Team",
-    sub: "Roster, progress, assign leads",
+    labelKey: "admin.toolSalesTeamLabel",
+    subKey: "admin.toolSalesTeamSub",
     route: "/admin/sales-team",
     tint: colors.brand.trendyPink,
   },
   {
     icon: "cube-outline",
-    label: "Vehicles",
-    sub: "Fleet CRUD + photos",
+    labelKey: "admin.toolVehiclesLabel",
+    subKey: "admin.toolVehiclesSub",
     route: "/admin/vehicles",
     tint: colors.brand.friendlyBlue,
   },
   {
     icon: "construct-outline",
-    label: "Repairs",
-    sub: "Assign mechanics, start/complete",
+    labelKey: "admin.toolRepairsLabel",
+    subKey: "admin.toolRepairsSub",
     route: "/admin/repairs",
     tint: "#F5B800",
   },
   {
     icon: "build-outline",
-    label: "Service requests",
-    sub: "Maintenance, customization, transport",
+    labelKey: "admin.toolServiceRequestsLabel",
+    subKey: "admin.toolServiceRequestsSub",
     route: "/admin/service-requests",
     tint: colors.brand.poolBlue,
   },
   {
     icon: "pricetags-outline",
-    label: "Sales listings",
-    sub: "Marketplace inventory",
+    labelKey: "admin.toolSalesListingsLabel",
+    subKey: "admin.toolSalesListingsSub",
     route: "/admin/sales",
     tint: colors.brand.trendyPink,
   },
   {
     icon: "bag-handle-outline",
-    label: "Orders",
-    sub: "Customer purchases + fulfillment",
+    labelKey: "admin.toolOrdersLabel",
+    subKey: "admin.toolOrdersSub",
     route: "/admin/orders",
     tint: colors.brand.ecoLimelight,
   },
   {
     icon: "settings-outline",
-    label: "System config",
-    sub: "Company, tax, hours",
+    labelKey: "admin.toolSystemConfigLabel",
+    subKey: "admin.toolSystemConfigSub",
     route: "/admin/system-config",
     tint: colors.brand.friendlyBlue,
   },
   {
     icon: "document-text-outline",
-    label: "Recent activity",
-    sub: "Platform-wide audit feed",
+    labelKey: "admin.toolRecentActivityLabel",
+    subKey: "admin.toolRecentActivitySub",
     route: "/admin/recent-activity",
     tint: colors.brand.poolBlue,
   },
@@ -72,32 +84,33 @@ const TOOLS: Tool[] = [
 
 export default function AdminCatalog(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>ADMIN CONSOLE</Text>
-        <Text style={styles.title}>Catalog</Text>
-        <Text style={styles.subtitle}>Everything you can manage from the phone.</Text>
+        <Text style={styles.kicker}>{t("admin.catalogKicker")}</Text>
+        <Text style={styles.title}>{t("admin.catalogTitle")}</Text>
+        <Text style={styles.subtitle}>{t("admin.catalogSubtitle")}</Text>
       </View>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {TOOLS.map((t) => (
+        {TOOLS.map((tool) => (
           <TouchableOpacity
-            key={t.route}
+            key={tool.route}
             style={styles.row}
-            onPress={() => router.push(t.route as never)}
+            onPress={() => router.push(tool.route as never)}
             activeOpacity={0.85}
           >
             <View
               style={[
                 styles.icon,
-                { backgroundColor: (t.tint ?? colors.brand.friendlyBlue) + "22" },
+                { backgroundColor: (tool.tint ?? colors.brand.friendlyBlue) + "22" },
               ]}
             >
-              <Ionicons name={t.icon} size={22} color={t.tint ?? colors.brand.friendlyBlue} />
+              <Ionicons name={tool.icon} size={22} color={tool.tint ?? colors.brand.friendlyBlue} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>{t.label}</Text>
-              <Text style={styles.sub}>{t.sub}</Text>
+              <Text style={styles.label}>{t(tool.labelKey)}</Text>
+              <Text style={styles.sub}>{t(tool.subKey)}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
           </TouchableOpacity>

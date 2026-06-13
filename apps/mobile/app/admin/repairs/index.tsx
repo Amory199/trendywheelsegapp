@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Repair {
   id: string;
@@ -26,11 +27,17 @@ interface Repair {
 }
 
 const STATUSES = ["submitted", "scheduled", "in_progress", "completed"] as const;
-const STATUS_LABEL: Record<string, string> = {
-  submitted: "Requested",
-  scheduled: "Scheduled",
-  in_progress: "In progress",
-  completed: "Completed",
+const STATUS_LABEL_KEY: Record<
+  string,
+  | "admin.repairStatusSubmitted"
+  | "admin.repairStatusScheduled"
+  | "admin.repairStatusInProgress"
+  | "admin.repairStatusCompleted"
+> = {
+  submitted: "admin.repairStatusSubmitted",
+  scheduled: "admin.repairStatusScheduled",
+  in_progress: "admin.repairStatusInProgress",
+  completed: "admin.repairStatusCompleted",
 };
 const STATUS_TONE: Record<string, string> = {
   submitted: colors.text.secondary,
@@ -41,7 +48,11 @@ const STATUS_TONE: Record<string, string> = {
 
 export default function AdminRepairs(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
   const [status, setStatus] = useState<string>("submitted");
+
+  const statusLabel = (key: string): string =>
+    STATUS_LABEL_KEY[key] ? t(STATUS_LABEL_KEY[key]) : key;
 
   const q = useQuery({
     queryKey: ["admin", "repairs", status],
@@ -54,8 +65,8 @@ export default function AdminRepairs(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>WORK ORDERS</Text>
-        <Text style={styles.title}>Repairs</Text>
+        <Text style={styles.kicker}>{t("admin.repairsKicker")}</Text>
+        <Text style={styles.title}>{t("admin.repairsTitle")}</Text>
       </View>
 
       <View style={styles.filterRow}>
@@ -66,7 +77,7 @@ export default function AdminRepairs(): React.JSX.Element {
             style={[styles.filter, status === s && styles.filterActive]}
           >
             <Text style={[styles.filterText, status === s && styles.filterTextActive]}>
-              {STATUS_LABEL[s]}
+              {statusLabel(s)}
             </Text>
           </Pressable>
         ))}
@@ -91,25 +102,34 @@ export default function AdminRepairs(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="construct-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No {STATUS_LABEL[status]} repairs</Text>
+              <Text style={styles.emptyText}>
+                {t("admin.repairsEmptyPrefix")}
+                {statusLabel(status)}
+                {t("admin.repairsEmptySuffix")}
+              </Text>
             </View>
           }
           renderItem={({ item }) => (
             <Pressable style={styles.card} onPress={() => router.push(`/admin/repairs/${item.id}`)}>
               <View style={{ flex: 1, gap: 4 }}>
                 <View style={styles.row}>
-                  <Text style={styles.cat}>{item.category ?? "Repair"}</Text>
+                  <Text style={styles.cat}>
+                    {item.category ?? t("admin.repairCategoryFallback")}
+                  </Text>
                   <View style={[styles.dot, { backgroundColor: STATUS_TONE[item.status] }]} />
                   <Text style={[styles.statusText, { color: STATUS_TONE[item.status] }]}>
-                    {STATUS_LABEL[item.status] ?? item.status}
+                    {statusLabel(item.status)}
                   </Text>
                 </View>
                 <Text style={styles.desc} numberOfLines={2}>
-                  {item.description ?? "—"}
+                  {item.description ?? t("admin.dash")}
                 </Text>
                 <Text style={styles.meta}>
-                  {item.user?.name ?? "Customer"} · {new Date(item.createdAt).toLocaleDateString()}
-                  {item.assignedMechanicId ? " · Assigned" : " · Unassigned"}
+                  {item.user?.name ?? t("admin.repairCustomerFallback")} ·{" "}
+                  {new Date(item.createdAt).toLocaleDateString()}
+                  {item.assignedMechanicId
+                    ? t("admin.repairAssigned")
+                    : t("admin.repairUnassigned")}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />

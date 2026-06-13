@@ -18,13 +18,14 @@ import {
 } from "react-native";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 const TYPES = [
-  { key: "oil", label: "Oil change" },
-  { key: "battery", label: "Battery" },
-  { key: "tire", label: "Tire / wheel" },
-  { key: "inspection", label: "Inspection" },
-  { key: "full", label: "Full service" },
+  { key: "oil", labelKey: "service.maintenance.typeOil" },
+  { key: "battery", labelKey: "service.maintenance.typeBattery" },
+  { key: "tire", labelKey: "service.maintenance.typeTire" },
+  { key: "inspection", labelKey: "service.maintenance.typeInspection" },
+  { key: "full", labelKey: "service.maintenance.typeFull" },
 ] as const;
 
 type ServiceType = (typeof TYPES)[number]["key"];
@@ -32,6 +33,7 @@ type ServiceType = (typeof TYPES)[number]["key"];
 export default function MaintenanceScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
+  const t = useT();
   const [serviceType, setServiceType] = useState<ServiceType>("oil");
   const [preferredDate, setPreferredDate] = useState<Date>(new Date(Date.now() + 86400000));
   const [showPicker, setShowPicker] = useState(false);
@@ -48,19 +50,22 @@ export default function MaintenanceScreen(): JSX.Element {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["service", "maintenance"] });
-      Alert.alert("Request received", "We'll be in touch within 24 hours.", [
-        { text: "OK", onPress: () => router.back() },
+      Alert.alert(t("service.maintenance.successTitle"), t("service.maintenance.successBody"), [
+        { text: t("common.confirm"), onPress: () => router.back() },
       ]);
     },
     onError: (err) =>
-      Alert.alert("Couldn't submit", err instanceof Error ? err.message : "Try again"),
+      Alert.alert(
+        t("service.submitErrorTitle"),
+        err instanceof Error ? err.message : t("service.submitErrorFallback"),
+      ),
   });
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: "Maintenance",
+          title: t("service.maintenance.headerTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -72,30 +77,29 @@ export default function MaintenanceScreen(): JSX.Element {
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.intro}>
             <Ionicons name="build" size={32} color={colors.brand.poolBlue} />
-            <Text style={styles.title}>Book a maintenance visit</Text>
-            <Text style={styles.subtitle}>
-              Certified mechanics come to you. Pick a service and a date — we'll confirm by tomorrow
-              morning.
-            </Text>
+            <Text style={styles.title}>{t("service.maintenance.intro")}</Text>
+            <Text style={styles.subtitle}>{t("service.maintenance.subtitle")}</Text>
           </View>
 
-          <Text style={styles.label}>Service</Text>
+          <Text style={styles.label}>{t("service.maintenance.serviceLabel")}</Text>
           <View style={styles.chipRow}>
-            {TYPES.map((t) => {
-              const active = serviceType === t.key;
+            {TYPES.map((item) => {
+              const active = serviceType === item.key;
               return (
                 <Pressable
-                  key={t.key}
-                  onPress={() => setServiceType(t.key)}
+                  key={item.key}
+                  onPress={() => setServiceType(item.key)}
                   style={[styles.chip, active && styles.chipActive]}
                 >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{t.label}</Text>
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {t(item.labelKey)}
+                  </Text>
                 </Pressable>
               );
             })}
           </View>
 
-          <Text style={styles.label}>Preferred date</Text>
+          <Text style={styles.label}>{t("service.maintenance.preferredDate")}</Text>
           <Pressable onPress={() => setShowPicker(true)} style={styles.input}>
             <Text style={styles.inputText}>{preferredDate.toLocaleDateString()}</Text>
           </Pressable>
@@ -111,11 +115,11 @@ export default function MaintenanceScreen(): JSX.Element {
             />
           )}
 
-          <Text style={styles.label}>Notes (optional)</Text>
+          <Text style={styles.label}>{t("service.maintenance.notesLabel")}</Text>
           <TextInput
             value={notes}
             onChangeText={setNotes}
-            placeholder="Anything we should know?"
+            placeholder={t("service.maintenance.notesPlaceholder")}
             placeholderTextColor={colors.text.secondary}
             multiline
             style={[styles.input, styles.textarea]}
@@ -131,7 +135,7 @@ export default function MaintenanceScreen(): JSX.Element {
             ) : (
               <>
                 <Ionicons name="checkmark" size={16} color="#000" />
-                <Text style={styles.submitBtnText}>Submit request</Text>
+                <Text style={styles.submitBtnText}>{t("service.maintenance.submit")}</Text>
               </>
             )}
           </Pressable>

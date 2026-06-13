@@ -2,8 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { borderRadius, colors, spacing } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
-import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -21,9 +21,11 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useT } from "../../lib/locale";
 
 export default function ProfileEditScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const { user, hydrate } = useAuth();
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
@@ -84,9 +86,7 @@ export default function ProfileEditScreen(): JSX.Element {
   };
 
   const hasChanges =
-    name.trim() !== (user?.name ?? "") ||
-    (email.trim() || null) !== user?.email ||
-    avatarChanged;
+    name.trim() !== (user?.name ?? "") || (email.trim() || null) !== user?.email || avatarChanged;
 
   const initials = (user?.name ?? user?.phone ?? "?")[0].toUpperCase();
 
@@ -100,7 +100,7 @@ export default function ProfileEditScreen(): JSX.Element {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={styles.headerTitle}>{t("profile.edit.title")}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -113,11 +113,7 @@ export default function ProfileEditScreen(): JSX.Element {
         <Animated.View entering={FadeInDown.springify()} style={styles.avatarSection}>
           <Pressable style={styles.avatarWrap} onPress={() => void pickAvatar()}>
             {avatarUri ? (
-              <Image
-                source={{ uri: avatarUri }}
-                style={styles.avatarImage}
-                contentFit="cover"
-              />
+              <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="cover" />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarInitial}>{initials}</Text>
@@ -127,18 +123,18 @@ export default function ProfileEditScreen(): JSX.Element {
               <Ionicons name="camera" size={14} color="#000" />
             </View>
           </Pressable>
-          <Text style={styles.avatarHint}>Tap to change photo</Text>
+          <Text style={styles.avatarHint}>{t("profile.edit.tapToChangePhoto")}</Text>
         </Animated.View>
 
         {/* Form fields */}
         <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.formCard}>
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Full Name</Text>
+            <Text style={styles.fieldLabel}>{t("profile.edit.fullName")}</Text>
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="Your full name"
+              placeholder={t("profile.edit.fullNamePlaceholder")}
               placeholderTextColor={colors.text.secondary}
               autoCapitalize="words"
               returnKeyType="next"
@@ -149,12 +145,12 @@ export default function ProfileEditScreen(): JSX.Element {
           <View style={styles.fieldDivider} />
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Email Address</Text>
+            <Text style={styles.fieldLabel}>{t("profile.edit.emailAddress")}</Text>
             <TextInput
               style={styles.input}
               value={email}
               onChangeText={setEmail}
-              placeholder="Optional"
+              placeholder={t("profile.edit.emailPlaceholder")}
               placeholderTextColor={colors.text.secondary}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -167,12 +163,12 @@ export default function ProfileEditScreen(): JSX.Element {
 
           {/* Phone — read only */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Phone Number</Text>
+            <Text style={styles.fieldLabel}>{t("profile.edit.phoneNumber")}</Text>
             <View style={styles.readOnlyField}>
               <Text style={styles.readOnlyText}>{user?.phone ?? "—"}</Text>
               <Ionicons name="lock-closed-outline" size={14} color={colors.text.secondary} />
             </View>
-            <Text style={styles.fieldHint}>Phone number cannot be changed</Text>
+            <Text style={styles.fieldHint}>{t("profile.edit.phoneCannotChange")}</Text>
           </View>
         </Animated.View>
 
@@ -183,10 +179,10 @@ export default function ProfileEditScreen(): JSX.Element {
             <Text style={styles.tierTitle}>
               {(user?.loyaltyTier ?? "bronze").charAt(0).toUpperCase() +
                 (user?.loyaltyTier ?? "bronze").slice(1)}{" "}
-              Member
+              {t("profile.edit.member")}
             </Text>
             <Text style={styles.tierPoints}>
-              {(user?.loyaltyPoints ?? 0).toLocaleString()} points
+              {(user?.loyaltyPoints ?? 0).toLocaleString()} {t("profile.edit.points")}
             </Text>
           </View>
         </Animated.View>
@@ -195,7 +191,7 @@ export default function ProfileEditScreen(): JSX.Element {
           <View style={styles.errorBox}>
             <Ionicons name="alert-circle-outline" size={18} color={colors.error} />
             <Text style={styles.errorText}>
-              {(mutation.error as Error).message || "Failed to save changes"}
+              {(mutation.error as Error).message || t("profile.edit.saveFailed")}
             </Text>
           </View>
         )}
@@ -217,12 +213,12 @@ export default function ProfileEditScreen(): JSX.Element {
           ) : saveSuccess ? (
             <>
               <Ionicons name="checkmark-circle" size={20} color="#000" />
-              <Text style={styles.saveBtnText}>Saved!</Text>
+              <Text style={styles.saveBtnText}>{t("profile.edit.saved")}</Text>
             </>
           ) : (
             <>
               <Ionicons name="save-outline" size={20} color="#000" />
-              <Text style={styles.saveBtnText}>Save Changes</Text>
+              <Text style={styles.saveBtnText}>{t("profile.edit.saveChanges")}</Text>
             </>
           )}
         </Pressable>
@@ -284,7 +280,13 @@ const styles = StyleSheet.create({
   },
   fieldGroup: { padding: spacing.md, gap: 6 },
   fieldDivider: { height: 1, backgroundColor: colors.dark.border },
-  fieldLabel: { color: colors.text.secondary, fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
+  fieldLabel: {
+    color: colors.text.secondary,
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   input: {
     color: colors.text.light,
     fontSize: 15,

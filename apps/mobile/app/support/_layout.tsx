@@ -4,6 +4,8 @@ import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 
+import { useT } from "../../lib/locale";
+
 function GlassTabBar(): JSX.Element {
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -32,6 +34,7 @@ function GlassTabBar(): JSX.Element {
 }
 
 export default function SupportLayout(): JSX.Element {
+  const t = useT();
   return (
     <Tabs
       screenOptions={{
@@ -54,7 +57,7 @@ export default function SupportLayout(): JSX.Element {
       <Tabs.Screen
         name="tickets"
         options={{
-          title: "Tickets",
+          title: t("support.tabTickets"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "headset" : "headset-outline"} size={22} color={color} />
           ),
@@ -63,7 +66,7 @@ export default function SupportLayout(): JSX.Element {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "Chat",
+          title: t("support.tabChat"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "chatbubbles" : "chatbubbles-outline"}

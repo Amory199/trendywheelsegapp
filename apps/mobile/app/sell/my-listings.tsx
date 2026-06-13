@@ -21,6 +21,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { TWSkeletonCard } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useT } from "../../lib/locale";
 
 const STATUS_COLOR: Record<string, string> = {
   active: colors.success,
@@ -28,8 +29,18 @@ const STATUS_COLOR: Record<string, string> = {
   pending: colors.warning,
 };
 
+const STATUS_KEY: Record<
+  string,
+  "sell.status.active" | "sell.status.sold" | "sell.status.pending"
+> = {
+  active: "sell.status.active",
+  sold: "sell.status.sold",
+  pending: "sell.status.pending",
+};
+
 export default function MyListingsScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [menuId, setMenuId] = useState<string | null>(null);
@@ -62,10 +73,10 @@ export default function MyListingsScreen(): JSX.Element {
   });
 
   const confirmDelete = (id: string): void => {
-    Alert.alert("Delete Listing", "This listing will be permanently removed. Are you sure?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("sell.myListings.deleteTitle"), t("sell.myListings.deleteMessage"), [
+      { text: t("sell.myListings.cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("sell.myListings.delete"),
         style: "destructive",
         onPress: () => deleteMutation.mutate(id),
       },
@@ -78,7 +89,7 @@ export default function MyListingsScreen(): JSX.Element {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
-        <Text style={styles.title}>My Listings</Text>
+        <Text style={styles.title}>{t("sell.myListings.title")}</Text>
         <Pressable style={styles.addBtn} onPress={() => router.push("/sell/create")}>
           <Ionicons name="add" size={20} color="#000" />
         </Pressable>
@@ -93,10 +104,10 @@ export default function MyListingsScreen(): JSX.Element {
       ) : listings.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="pricetag-outline" size={64} color={colors.text.secondary} />
-          <Text style={styles.emptyTitle}>No listings yet</Text>
-          <Text style={styles.emptySubtitle}>List your car and reach thousands of buyers</Text>
+          <Text style={styles.emptyTitle}>{t("sell.myListings.emptyTitle")}</Text>
+          <Text style={styles.emptySubtitle}>{t("sell.myListings.emptySubtitle")}</Text>
           <Pressable style={styles.emptyBtn} onPress={() => router.push("/sell/create")}>
-            <Text style={styles.emptyBtnText}>List a Car</Text>
+            <Text style={styles.emptyBtnText}>{t("sell.myListings.listACar")}</Text>
           </Pressable>
         </View>
       ) : (
@@ -148,12 +159,16 @@ export default function MyListingsScreen(): JSX.Element {
                           { color: STATUS_COLOR[item.status] ?? colors.text.secondary },
                         ]}
                       >
-                        {item.status.toUpperCase()}
+                        {STATUS_KEY[item.status]
+                          ? t(STATUS_KEY[item.status])
+                          : item.status.toUpperCase()}
                       </Text>
                     </View>
                   </View>
 
-                  <Text style={styles.cardPrice}>{Number(item.price).toLocaleString()} EGP</Text>
+                  <Text style={styles.cardPrice}>
+                    {Number(item.price).toLocaleString()} {t("sell.egp")}
+                  </Text>
 
                   <View style={styles.cardMeta}>
                     <Text style={styles.metaText}>
@@ -194,7 +209,7 @@ export default function MyListingsScreen(): JSX.Element {
         <Pressable style={styles.modalOverlay} onPress={() => setMenuId(null)}>
           <Animated.View entering={FadeInDown.springify()} style={styles.actionSheet}>
             <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Listing Actions</Text>
+            <Text style={styles.sheetTitle}>{t("sell.myListings.actionsTitle")}</Text>
 
             <Pressable
               style={styles.sheetOption}
@@ -204,7 +219,7 @@ export default function MyListingsScreen(): JSX.Element {
               }}
             >
               <Ionicons name="eye-outline" size={20} color={colors.text.light} />
-              <Text style={styles.sheetOptionText}>View Listing</Text>
+              <Text style={styles.sheetOptionText}>{t("sell.myListings.viewListing")}</Text>
             </Pressable>
 
             <Pressable
@@ -214,7 +229,9 @@ export default function MyListingsScreen(): JSX.Element {
               }}
             >
               <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
-              <Text style={[styles.sheetOptionText, { color: colors.success }]}>Mark as Sold</Text>
+              <Text style={[styles.sheetOptionText, { color: colors.success }]}>
+                {t("sell.myListings.markSold")}
+              </Text>
             </Pressable>
 
             <Pressable
@@ -228,11 +245,13 @@ export default function MyListingsScreen(): JSX.Element {
               ) : (
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
               )}
-              <Text style={[styles.sheetOptionText, { color: colors.error }]}>Delete Listing</Text>
+              <Text style={[styles.sheetOptionText, { color: colors.error }]}>
+                {t("sell.myListings.deleteListing")}
+              </Text>
             </Pressable>
 
             <Pressable style={styles.sheetCancel} onPress={() => setMenuId(null)}>
-              <Text style={styles.sheetCancelText}>Cancel</Text>
+              <Text style={styles.sheetCancelText}>{t("sell.myListings.cancel")}</Text>
             </Pressable>
           </Animated.View>
         </Pressable>

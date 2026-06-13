@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useT } from "../lib/locale";
 import { useNetwork } from "../lib/network-store";
 
 const PING_INTERVAL_MS = 6000;
@@ -14,6 +15,7 @@ export function OfflineBanner(): React.JSX.Element | null {
   const online = useNetwork((s) => s.online);
   const setOnline = useNetwork((s) => s.setOnline);
   const insets = useSafeAreaInsets();
+  const t = useT();
 
   useEffect(() => {
     if (online) return;
@@ -33,7 +35,7 @@ export function OfflineBanner(): React.JSX.Element | null {
   if (online) return null;
   return (
     <View style={[styles.banner, { top: insets.top }]} pointerEvents="none">
-      <Text style={styles.text}>No connection — retrying…</Text>
+      <Text style={styles.text}>{t("components.offline.banner")}</Text>
     </View>
   );
 }

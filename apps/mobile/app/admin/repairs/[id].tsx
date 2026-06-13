@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Mechanic {
   id: string;
@@ -39,6 +40,7 @@ interface Repair {
 export default function AdminRepairDetail(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [mechanicPickerOpen, setMechanicPickerOpen] = useState(false);
 
@@ -65,7 +67,8 @@ export default function AdminRepairDetail(): React.JSX.Element {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["admin"] });
     },
-    onError: (e) => Alert.alert("Update failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) =>
+      Alert.alert(t("admin.updateFailed"), e instanceof Error ? e.message : t("admin.tryAgain")),
   });
 
   const start = useMutation({
@@ -84,7 +87,7 @@ export default function AdminRepairDetail(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: repair?.category ?? "Repair",
+          title: repair?.category ?? t("admin.repairDetailTitleFallback"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -103,19 +106,19 @@ export default function AdminRepairDetail(): React.JSX.Element {
           >
             <View style={styles.card}>
               <Text style={styles.cat}>{repair.category}</Text>
-              <Text style={styles.desc}>{repair.description ?? "—"}</Text>
+              <Text style={styles.desc}>{repair.description ?? t("admin.dash")}</Text>
               <Text style={styles.meta}>
-                {repair.user?.name ?? "—"} · {repair.user?.phone ?? ""}
+                {repair.user?.name ?? t("admin.dash")} · {repair.user?.phone ?? ""}
               </Text>
               <Text style={styles.meta}>{new Date(repair.createdAt).toLocaleString()}</Text>
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.label}>Mechanic</Text>
+              <Text style={styles.label}>{t("admin.repairMechanic")}</Text>
               <Pressable style={styles.picker} onPress={() => setMechanicPickerOpen(true)}>
                 <Ionicons name="person-outline" size={16} color={colors.text.light} />
                 <Text style={styles.pickerText}>
-                  {repair.assignedMechanic?.name ?? "Assign mechanic"}
+                  {repair.assignedMechanic?.name ?? t("admin.repairAssignMechanic")}
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
               </Pressable>
@@ -128,7 +131,7 @@ export default function AdminRepairDetail(): React.JSX.Element {
                 onPress={() => start.mutate()}
               >
                 <Ionicons name="play" size={14} color="#fff" />
-                <Text style={styles.actionText}>Start</Text>
+                <Text style={styles.actionText}>{t("admin.repairStart")}</Text>
               </Pressable>
               <Pressable
                 style={[
@@ -139,7 +142,9 @@ export default function AdminRepairDetail(): React.JSX.Element {
                 onPress={() => complete.mutate()}
               >
                 <Ionicons name="checkmark" size={14} color="#000" />
-                <Text style={[styles.actionText, { color: "#000" }]}>Complete</Text>
+                <Text style={[styles.actionText, { color: "#000" }]}>
+                  {t("admin.repairComplete")}
+                </Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -153,14 +158,16 @@ export default function AdminRepairDetail(): React.JSX.Element {
         >
           <Pressable style={styles.modalBg} onPress={() => setMechanicPickerOpen(false)}>
             <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
-              <Text style={styles.modalTitle}>Pick mechanic</Text>
+              <Text style={styles.modalTitle}>{t("admin.repairPickMechanic")}</Text>
               {mechanicsQ.isLoading ? (
                 <ActivityIndicator color={colors.brand.friendlyBlue} />
               ) : (
                 <FlatList
                   data={mechanicsQ.data ?? []}
                   keyExtractor={(m) => m.id}
-                  ListEmptyComponent={<Text style={styles.emptyText}>No mechanics found.</Text>}
+                  ListEmptyComponent={
+                    <Text style={styles.emptyText}>{t("admin.repairNoMechanics")}</Text>
+                  }
                   renderItem={({ item }) => (
                     <Pressable
                       style={styles.mechanicRow}
@@ -171,7 +178,9 @@ export default function AdminRepairDetail(): React.JSX.Element {
                     >
                       <Ionicons name="person-circle" size={28} color={colors.brand.friendlyBlue} />
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.mechName}>{item.name ?? "Mechanic"}</Text>
+                        <Text style={styles.mechName}>
+                          {item.name ?? t("admin.repairMechanicFallback")}
+                        </Text>
                         <Text style={styles.mechPhone}>{item.phone ?? ""}</Text>
                       </View>
                     </Pressable>

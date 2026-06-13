@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Listing {
   id: string;
@@ -25,8 +26,23 @@ interface Listing {
   category?: string;
 }
 
+const SALE_STATUS_KEY: Record<
+  string,
+  "admin.saleStatusActive" | "admin.saleStatusSold" | "admin.saleStatusPaused"
+> = {
+  active: "admin.saleStatusActive",
+  sold: "admin.saleStatusSold",
+  paused: "admin.saleStatusPaused",
+};
+
 export default function AdminSales(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
+
+  const saleStatus = (s?: string): string => {
+    const key = s ?? "active";
+    return SALE_STATUS_KEY[key] ? t(SALE_STATUS_KEY[key]) : key;
+  };
 
   const q = useQuery({
     queryKey: ["admin", "sales"],
@@ -39,8 +55,8 @@ export default function AdminSales(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>MARKETPLACE</Text>
-        <Text style={styles.title}>Sales listings</Text>
+        <Text style={styles.kicker}>{t("admin.salesKicker")}</Text>
+        <Text style={styles.title}>{t("admin.salesTitle")}</Text>
       </View>
 
       {q.isLoading ? (
@@ -62,7 +78,7 @@ export default function AdminSales(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="pricetags-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No listings yet</Text>
+              <Text style={styles.emptyText}>{t("admin.salesEmpty")}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -72,9 +88,12 @@ export default function AdminSales(): React.JSX.Element {
                   {item.title}
                 </Text>
                 <Text style={styles.meta}>
-                  {item.make ?? "—"} {item.model ?? ""} {item.year ? `· ${item.year}` : ""}
+                  {item.make ?? t("admin.dash")} {item.model ?? ""}{" "}
+                  {item.year ? `· ${item.year}` : ""}
                 </Text>
-                <Text style={styles.price}>EGP {Number(item.price).toLocaleString()}</Text>
+                <Text style={styles.price}>
+                  {t("admin.egp")} {Number(item.price).toLocaleString()}
+                </Text>
               </View>
               <View
                 style={[
@@ -83,7 +102,7 @@ export default function AdminSales(): React.JSX.Element {
                 ]}
               >
                 <Text style={[styles.statusText, item.status === "sold" && { color: "#000" }]}>
-                  {item.status ?? "active"}
+                  {saleStatus(item.status)}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />

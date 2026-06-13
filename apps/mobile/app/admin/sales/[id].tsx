@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 import { playSound } from "../../../lib/sounds";
 
 interface Listing {
@@ -30,10 +31,19 @@ interface Listing {
 }
 
 const STATUSES = ["active", "sold", "paused"];
+const SALE_STATUS_KEY: Record<
+  string,
+  "admin.saleStatusActive" | "admin.saleStatusSold" | "admin.saleStatusPaused"
+> = {
+  active: "admin.saleStatusActive",
+  sold: "admin.saleStatusSold",
+  paused: "admin.saleStatusPaused",
+};
 
 export default function AdminSaleEdit(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [form, setForm] = useState<Partial<Listing>>({});
   const [uploading, setUploading] = useState(false);
@@ -56,11 +66,11 @@ export default function AdminSaleEdit(): React.JSX.Element {
     onSuccess: async () => {
       playSound("success");
       await qc.invalidateQueries({ queryKey: ["admin"] });
-      Alert.alert("Saved", "Listing updated.");
+      Alert.alert(t("admin.saleSavedTitle"), t("admin.saleSavedMessage"));
     },
     onError: (e) => {
       playSound("error");
-      Alert.alert("Save failed", e instanceof Error ? e.message : "Try again");
+      Alert.alert(t("admin.saveFailed"), e instanceof Error ? e.message : t("admin.tryAgain"));
     },
   });
 
@@ -88,7 +98,7 @@ export default function AdminSaleEdit(): React.JSX.Element {
       }
       setForm((s) => ({ ...s, images: [...(s.images ?? []), ...uploadedUrls] }));
     } catch (e) {
-      Alert.alert("Upload failed", e instanceof Error ? e.message : "Try again");
+      Alert.alert(t("admin.uploadFailed"), e instanceof Error ? e.message : t("admin.tryAgain"));
     } finally {
       setUploading(false);
     }
@@ -102,7 +112,7 @@ export default function AdminSaleEdit(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: form.title ?? "Listing",
+          title: form.title ?? t("admin.saleTitleFallback"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -120,7 +130,7 @@ export default function AdminSaleEdit(): React.JSX.Element {
             }}
           >
             <View style={styles.card}>
-              <Text style={styles.label}>Title</Text>
+              <Text style={styles.label}>{t("admin.saleFieldTitle")}</Text>
               <TextInput
                 value={form.title ?? ""}
                 onChangeText={(v) => setForm((s) => ({ ...s, title: v }))}
@@ -128,7 +138,7 @@ export default function AdminSaleEdit(): React.JSX.Element {
               />
             </View>
             <View style={styles.card}>
-              <Text style={styles.label}>Price (EGP)</Text>
+              <Text style={styles.label}>{t("admin.saleFieldPrice")}</Text>
               <TextInput
                 value={form.price?.toString() ?? ""}
                 onChangeText={(v) => setForm((s) => ({ ...s, price: Number(v) as never }))}
@@ -137,7 +147,7 @@ export default function AdminSaleEdit(): React.JSX.Element {
               />
             </View>
             <View style={styles.card}>
-              <Text style={styles.label}>Description</Text>
+              <Text style={styles.label}>{t("admin.saleFieldDescription")}</Text>
               <TextInput
                 value={form.description ?? ""}
                 onChangeText={(v) => setForm((s) => ({ ...s, description: v }))}
@@ -147,7 +157,11 @@ export default function AdminSaleEdit(): React.JSX.Element {
             </View>
             <View style={styles.card}>
               <View style={styles.imagesHeader}>
-                <Text style={styles.label}>Images ({form.images?.length ?? 0}/10)</Text>
+                <Text style={styles.label}>
+                  {t("admin.saleImagesPrefix")}
+                  {form.images?.length ?? 0}
+                  {t("admin.saleImagesSuffix")}
+                </Text>
                 <Pressable
                   onPress={() => void pickAndUpload()}
                   disabled={uploading || (form.images?.length ?? 0) >= 10}
@@ -161,11 +175,13 @@ export default function AdminSaleEdit(): React.JSX.Element {
                   ) : (
                     <Ionicons name="add" size={16} color="#fff" />
                   )}
-                  <Text style={styles.addBtnText}>{uploading ? "Uploading…" : "Add"}</Text>
+                  <Text style={styles.addBtnText}>
+                    {uploading ? t("admin.saleUploading") : t("admin.saleAdd")}
+                  </Text>
                 </Pressable>
               </View>
               {(form.images?.length ?? 0) === 0 ? (
-                <Text style={styles.imagesHint}>No images yet — tap Add to upload up to 10.</Text>
+                <Text style={styles.imagesHint}>{t("admin.saleImagesHint")}</Text>
               ) : (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={{ flexDirection: "row", gap: 8 }}>
@@ -186,7 +202,7 @@ export default function AdminSaleEdit(): React.JSX.Element {
               )}
             </View>
             <View style={styles.card}>
-              <Text style={styles.label}>Status</Text>
+              <Text style={styles.label}>{t("admin.saleFieldStatus")}</Text>
               <View style={styles.chipRow}>
                 {STATUSES.map((s) => (
                   <Pressable
@@ -195,7 +211,7 @@ export default function AdminSaleEdit(): React.JSX.Element {
                     style={[styles.chip, form.status === s && styles.chipActive]}
                   >
                     <Text style={[styles.chipText, form.status === s && styles.chipTextActive]}>
-                      {s}
+                      {SALE_STATUS_KEY[s] ? t(SALE_STATUS_KEY[s]) : s}
                     </Text>
                   </Pressable>
                 ))}
@@ -207,7 +223,9 @@ export default function AdminSaleEdit(): React.JSX.Element {
               onPress={() => save.mutate()}
             >
               <Ionicons name="checkmark-circle" size={18} color="#fff" />
-              <Text style={styles.saveBtnText}>{save.isPending ? "Saving…" : "Save"}</Text>
+              <Text style={styles.saveBtnText}>
+                {save.isPending ? t("admin.saleSaving") : t("admin.saleSave")}
+              </Text>
             </Pressable>
           </ScrollView>
         )}

@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 import { useTheme } from "../../../lib/use-theme";
 
 interface InactiveLead {
@@ -32,6 +33,7 @@ export default function AdminInactiveLeads(): React.JSX.Element {
   const router = useRouter();
   const { palette } = useTheme();
   const styles = useMemo(() => makeStyles(palette), [palette]);
+  const t = useT();
 
   const q = useQuery({
     queryKey: ["admin", "leads", "inactive"],
@@ -48,11 +50,9 @@ export default function AdminInactiveLeads(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>ROTATION EXHAUSTED</Text>
-        <Text style={styles.title}>Inactive leads</Text>
-        <Text style={styles.sub}>
-          Leads 5+ agents have tried without progress. Reassign or archive from each row.
-        </Text>
+        <Text style={styles.kicker}>{t("admin.inactiveKicker")}</Text>
+        <Text style={styles.title}>{t("admin.inactiveTitle")}</Text>
+        <Text style={styles.sub}>{t("admin.inactiveSubtitle")}</Text>
       </View>
 
       {q.isLoading ? (
@@ -78,10 +78,8 @@ export default function AdminInactiveLeads(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="moon-outline" size={48} color={palette.muted} />
-              <Text style={styles.emptyText}>Inactive pool is empty</Text>
-              <Text style={styles.emptyHint}>
-                Leads land here automatically after 5 rotations with no engagement.
-              </Text>
+              <Text style={styles.emptyText}>{t("admin.inactiveEmptyTitle")}</Text>
+              <Text style={styles.emptyHint}>{t("admin.inactiveEmptyHint")}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -102,7 +100,8 @@ export default function AdminInactiveLeads(): React.JSX.Element {
                   </Text>
                 ) : null}
                 <Text style={styles.meta}>
-                  {item.reassignmentCount}× rotated · parked{" "}
+                  {item.reassignmentCount}
+                  {t("admin.inactiveRotatedSuffix")}
                   {new Date(item.updatedAt).toLocaleDateString()}
                 </Text>
               </View>

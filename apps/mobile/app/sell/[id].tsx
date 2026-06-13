@@ -20,12 +20,23 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 const { width: W } = Dimensions.get("window");
+
+const STATUS_KEY: Record<
+  string,
+  "sell.status.active" | "sell.status.sold" | "sell.status.pending"
+> = {
+  active: "sell.status.active",
+  sold: "sell.status.sold",
+  pending: "sell.status.pending",
+};
 
 export default function SellDetailScreen(): JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const t = useT();
   const [activeImg, setActiveImg] = useState(0);
   const carouselRef = useRef<ScrollView>(null);
 
@@ -54,7 +65,7 @@ export default function SellDetailScreen(): JSX.Element {
     return (
       <View style={styles.center}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.text.secondary} />
-        <Text style={styles.emptyText}>Listing not found</Text>
+        <Text style={styles.emptyText}>{t("sell.detail.notFound")}</Text>
       </View>
     );
   }
@@ -135,50 +146,73 @@ export default function SellDetailScreen(): JSX.Element {
                   { color: STATUS_COLOR[listing.status] ?? colors.text.secondary },
                 ]}
               >
-                {listing.status.toUpperCase()}
+                {STATUS_KEY[listing.status]
+                  ? t(STATUS_KEY[listing.status])
+                  : listing.status.toUpperCase()}
               </Text>
             </View>
           </View>
-          <Text style={styles.price}>{Number(listing.price).toLocaleString()} EGP</Text>
+          <Text style={styles.price}>
+            {Number(listing.price).toLocaleString()} {t("sell.egp")}
+          </Text>
         </Animated.View>
 
         {/* Specs grid */}
         <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.section}>
-          <Text style={styles.sectionTitle}>Details</Text>
+          <Text style={styles.sectionTitle}>{t("sell.detail.details")}</Text>
           <View style={styles.specsGrid}>
-            <SpecCell icon="calendar-outline" label="Year" value={String(listing.year)} />
+            <SpecCell
+              icon="calendar-outline"
+              label={t("sell.detail.year")}
+              value={String(listing.year)}
+            />
             <SpecCell
               icon="speedometer-outline"
-              label="Mileage"
+              label={t("sell.detail.mileage")}
               value={`${Number(listing.mileage).toLocaleString()} km`}
             />
-            <SpecCell icon="cog-outline" label="Transmission" value={listing.transmission} />
-            <SpecCell icon="flame-outline" label="Fuel" value={listing.fuelType} />
-            <SpecCell icon="color-palette-outline" label="Color" value={listing.color} />
-            <SpecCell icon="eye-outline" label="Views" value={String(listing.viewsCount ?? 0)} />
+            <SpecCell
+              icon="cog-outline"
+              label={t("sell.detail.transmission")}
+              value={listing.transmission}
+            />
+            <SpecCell icon="flame-outline" label={t("sell.detail.fuel")} value={listing.fuelType} />
+            <SpecCell
+              icon="color-palette-outline"
+              label={t("sell.detail.color")}
+              value={listing.color}
+            />
+            <SpecCell
+              icon="eye-outline"
+              label={t("sell.detail.views")}
+              value={String(listing.viewsCount ?? 0)}
+            />
           </View>
         </Animated.View>
 
         {/* Description */}
         {listing.description ? (
           <Animated.View entering={FadeInDown.delay(140).springify()} style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
+            <Text style={styles.sectionTitle}>{t("sell.detail.description")}</Text>
             <Text style={styles.description}>{listing.description}</Text>
           </Animated.View>
         ) : null}
 
         {/* Activity stats */}
         <Animated.View entering={FadeInDown.delay(180).springify()} style={styles.statsCard}>
-          <StatItem value={String(listing.viewsCount ?? 0)} label="Views" />
+          <StatItem value={String(listing.viewsCount ?? 0)} label={t("sell.detail.views")} />
           <View style={styles.statDivider} />
-          <StatItem value={String(listing.inquiriesCount ?? 0)} label="Inquiries" />
+          <StatItem
+            value={String(listing.inquiriesCount ?? 0)}
+            label={t("sell.detail.inquiries")}
+          />
           <View style={styles.statDivider} />
           <StatItem
             value={new Date(listing.createdAt).toLocaleDateString("en-EG", {
               day: "numeric",
               month: "short",
             })}
-            label="Listed"
+            label={t("sell.detail.listed")}
           />
         </Animated.View>
       </ScrollView>
@@ -190,12 +224,12 @@ export default function SellDetailScreen(): JSX.Element {
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             void Linking.openURL(
-              `https://wa.me/?text=${encodeURIComponent(`Hi, I'm interested in your ${listing.title}`)}`,
+              `https://wa.me/?text=${encodeURIComponent(`${t("sell.detail.interestedPrefix")} ${listing.title}`)}`,
             );
           }}
         >
           <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-          <Text style={styles.waBtnText}>WhatsApp</Text>
+          <Text style={styles.waBtnText}>{t("sell.detail.whatsapp")}</Text>
         </Pressable>
 
         <Pressable
@@ -206,7 +240,7 @@ export default function SellDetailScreen(): JSX.Element {
           }}
         >
           <Ionicons name="chatbubble-ellipses-outline" size={18} color="#000" />
-          <Text style={styles.msgBtnText}>Message Seller</Text>
+          <Text style={styles.msgBtnText}>{t("sell.detail.messageSeller")}</Text>
         </Pressable>
       </View>
     </View>

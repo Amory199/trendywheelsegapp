@@ -19,6 +19,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { useT } from "../../lib/locale";
 import { TWPressable } from "../ui";
 
 interface Props {
@@ -29,6 +30,7 @@ interface Props {
 
 export function HeroStrip({ name, phone, tier }: Props): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
   const colorsPair = TIER_COLORS[tier] ?? TIER_COLORS.bronze;
   const initials = initialsOf(name);
 
@@ -69,7 +71,7 @@ export function HeroStrip({ name, phone, tier }: Props): React.JSX.Element {
             style={{ color: "#fff", fontFamily: "Anton", fontSize: 24, letterSpacing: 0.5 }}
             numberOfLines={1}
           >
-            {name || "Welcome"}
+            {name || t("profile.welcome")}
           </Text>
           <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 2 }}>
             {phone}
@@ -86,17 +88,18 @@ export function HeroStrip({ name, phone, tier }: Props): React.JSX.Element {
 
 // Subtle shimmer that sweeps left-to-right over the tier pill.
 function TierShimmerPill({ tier }: { tier: LoyaltyTier }): React.JSX.Element {
-  const t = useSharedValue(0);
+  const t = useT();
+  const sweep = useSharedValue(0);
   const [pillW, setPillW] = React.useState(0);
   useEffect(() => {
-    t.value = withRepeat(
+    sweep.value = withRepeat(
       withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.cubic) }),
       -1,
       false,
     );
-  }, [t]);
+  }, [sweep]);
   const shimmerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: interpolate(t.value, [0, 1], [-pillW, pillW]) }],
+    transform: [{ translateX: interpolate(sweep.value, [0, 1], [-pillW, pillW]) }],
   }));
   return (
     <View
@@ -132,7 +135,7 @@ function TierShimmerPill({ tier }: { tier: LoyaltyTier }): React.JSX.Element {
           textTransform: "uppercase",
         }}
       >
-        {tier} tier
+        {tier} {t("profile.tierPill")}
       </Text>
     </View>
   );

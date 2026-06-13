@@ -7,19 +7,21 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 import { useAuth } from "../../lib/auth-store";
+import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 
 const HERO_VIDEO = require("../../assets/hero/home.mp4");
 
 const CHIPS = [
-  { href: "/(tabs)/buy" as const, label: "Buy", sub: "Carts · Parts" },
-  { href: "/(tabs)/rent" as const, label: "Rent", sub: "By the day" },
-  { href: "/(tabs)/sell" as const, label: "Sell", sub: "Sell · Trade in" },
-  { href: "/(tabs)/repair" as const, label: "Service", sub: "Repair · Trip" },
+  { href: "/(tabs)/buy" as const, labelKey: "home.chipBuy", subKey: "home.chipBuySub" },
+  { href: "/(tabs)/rent" as const, labelKey: "home.chipRent", subKey: "home.chipRentSub" },
+  { href: "/(tabs)/sell" as const, labelKey: "home.chipSell", subKey: "home.chipSellSub" },
+  { href: "/(tabs)/repair" as const, labelKey: "home.chipService", subKey: "home.chipServiceSub" },
 ] as const;
 
 export default function HomeScreen(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
   const user = useAuth((s) => s.user);
   const scrollHandler = useTabBarScrollHandler();
 
@@ -72,7 +74,9 @@ export default function HomeScreen(): React.JSX.Element {
                 marginBottom: 10,
               }}
             >
-              {firstName ? `HEY, ${firstName.toUpperCase()}` : "CRUISE BOLD"}
+              {firstName
+                ? `${t("home.heroGreeting")}, ${firstName.toUpperCase()}`
+                : t("home.heroDefault")}
             </Animated.Text>
             <Animated.Text
               entering={FadeInDown.duration(450).delay(100)}
@@ -84,8 +88,9 @@ export default function HomeScreen(): React.JSX.Element {
                 letterSpacing: 0.4,
               }}
             >
-              What do you{"\n"}
-              <Text style={{ color: colors.brand.trendyPink }}>need today?</Text>
+              {t("home.heroTitleLine1")}
+              {"\n"}
+              <Text style={{ color: colors.brand.trendyPink }}>{t("home.heroTitleLine2")}</Text>
             </Animated.Text>
           </View>
         </View>
@@ -118,10 +123,10 @@ export default function HomeScreen(): React.JSX.Element {
                     letterSpacing: 0.4,
                   }}
                 >
-                  {c.label}
+                  {t(c.labelKey)}
                 </Text>
                 <Text style={{ fontSize: 13, color: "rgba(2,1,31,0.55)", marginTop: 4 }}>
-                  {c.sub}
+                  {t(c.subKey)}
                 </Text>
               </Pressable>
             </Animated.View>

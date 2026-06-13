@@ -14,6 +14,7 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 interface Conversation {
   id: string;
@@ -24,6 +25,7 @@ interface Conversation {
 
 export default function MessagesScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
 
   const { data, isLoading } = useQuery({
     queryKey: ["conversations"],
@@ -41,7 +43,10 @@ export default function MessagesScreen(): JSX.Element {
     onSuccess: ({ id, peerId }) =>
       router.push({ pathname: "/messages/[id]", params: { id, peerId } }),
     onError: (err) =>
-      Alert.alert("Couldn't open support", err instanceof Error ? err.message : "Try again"),
+      Alert.alert(
+        t("messages.supportOpenFailedTitle"),
+        err instanceof Error ? err.message : t("common.tryAgain"),
+      ),
   });
 
   return (
@@ -50,7 +55,7 @@ export default function MessagesScreen(): JSX.Element {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
-        <Text style={styles.title}>Messages</Text>
+        <Text style={styles.title}>{t("messages.title")}</Text>
         <Pressable
           onPress={() => openSupportChat.mutate()}
           disabled={openSupportChat.isPending}
@@ -69,7 +74,7 @@ export default function MessagesScreen(): JSX.Element {
       ) : conversations.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="chatbubbles-outline" size={64} color={colors.text.secondary} />
-          <Text style={styles.emptyText}>No conversations yet</Text>
+          <Text style={styles.emptyText}>{t("messages.emptyTitle")}</Text>
           <Pressable
             style={styles.cta}
             onPress={() => openSupportChat.mutate()}
@@ -80,7 +85,7 @@ export default function MessagesScreen(): JSX.Element {
             ) : (
               <>
                 <Ionicons name="headset" size={18} color="#000" />
-                <Text style={styles.ctaText}>Message support</Text>
+                <Text style={styles.ctaText}>{t("messages.messageSupport")}</Text>
               </>
             )}
           </Pressable>
@@ -96,7 +101,10 @@ export default function MessagesScreen(): JSX.Element {
             const lastMsg = item.messages[0];
             const unread = lastMsg && !lastMsg.readAt;
             const otherParticipant = item.participants[0];
-            const name = otherParticipant?.user?.name ?? otherParticipant?.user?.phone ?? "Unknown";
+            const name =
+              otherParticipant?.user?.name ??
+              otherParticipant?.user?.phone ??
+              t("messages.unknownUser");
             return (
               <Animated.View entering={FadeInDown.delay(index * 40).springify()}>
                 <Pressable
@@ -125,7 +133,7 @@ export default function MessagesScreen(): JSX.Element {
                       style={[styles.preview, unread && styles.previewUnread]}
                       numberOfLines={1}
                     >
-                      {lastMsg?.message ?? "No messages yet"}
+                      {lastMsg?.message ?? t("messages.noMessagesYet")}
                     </Text>
                   </View>
                   {unread && <View style={styles.unreadDot} />}

@@ -5,6 +5,7 @@
 import { useMemo } from "react";
 import { Text, View } from "react-native";
 
+import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
 import { makeStyles } from "./styles";
@@ -28,15 +29,16 @@ export function CadenceStrip({
   rules: CrmRules;
 }): React.JSX.Element {
   const { palette } = useTheme();
+  const t = useT();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const callsBad = calls >= rules.maxCallsBeforeReassign;
   const msgsBad = messages >= rules.maxCallsBeforeReassign;
-  let nextLabel = "Ready";
+  let nextLabel = t("crm.cadence.ready");
   let nextBad = false;
   if (lastCallAt) {
     const next = new Date(lastCallAt).getTime() + rules.followUpCallWithinHours * 3600_000;
     if (next > Date.now()) {
-      nextLabel = `Next ${new Date(next).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+      nextLabel = `${t("crm.cadence.nextPrefix")} ${new Date(next).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
       nextBad = true;
     }
   }
@@ -53,9 +55,13 @@ export function CadenceStrip({
   );
   return (
     <View style={styles.cadenceRow}>
-      {cadenceChip("Calls", `${calls}/${rules.maxCallsBeforeReassign}`, callsBad)}
-      {cadenceChip("Msgs", `${messages}/${rules.maxCallsBeforeReassign}`, msgsBad)}
-      {cadenceChip("Cadence", nextLabel, nextBad)}
+      {cadenceChip(t("crm.cadence.calls"), `${calls}/${rules.maxCallsBeforeReassign}`, callsBad)}
+      {cadenceChip(
+        t("crm.cadence.messages"),
+        `${messages}/${rules.maxCallsBeforeReassign}`,
+        msgsBad,
+      )}
+      {cadenceChip(t("crm.cadence.cadence"), nextLabel, nextBad)}
     </View>
   );
 }

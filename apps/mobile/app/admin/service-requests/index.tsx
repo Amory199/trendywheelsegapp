@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 type Kind = "maintenance" | "customization" | "transport";
 
@@ -28,19 +29,33 @@ interface ServiceRow {
   user?: { name?: string; phone?: string };
 }
 
-const KINDS: { key: Kind; label: string; icon: keyof typeof Ionicons.glyphMap; tint: string }[] = [
-  { key: "maintenance", label: "Maintenance", icon: "build", tint: "#F5B800" },
+const KINDS: {
+  key: Kind;
+  labelKey:
+    | "admin.serviceKindMaintenance"
+    | "admin.serviceKindCustomization"
+    | "admin.serviceKindTransport";
+  icon: keyof typeof Ionicons.glyphMap;
+  tint: string;
+}[] = [
+  { key: "maintenance", labelKey: "admin.serviceKindMaintenance", icon: "build", tint: "#F5B800" },
   {
     key: "customization",
-    label: "Customization",
+    labelKey: "admin.serviceKindCustomization",
     icon: "color-palette",
     tint: colors.brand.trendyPink,
   },
-  { key: "transport", label: "Pickup/Delivery", icon: "cube", tint: colors.brand.poolBlue },
+  {
+    key: "transport",
+    labelKey: "admin.serviceKindTransport",
+    icon: "cube",
+    tint: colors.brand.poolBlue,
+  },
 ];
 
 export default function AdminServiceRequests(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
   const [kind, setKind] = useState<Kind>("maintenance");
 
   const q = useQuery({
@@ -61,8 +76,8 @@ export default function AdminServiceRequests(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>SERVICE INBOX</Text>
-        <Text style={styles.title}>Requests</Text>
+        <Text style={styles.kicker}>{t("admin.serviceKicker")}</Text>
+        <Text style={styles.title}>{t("admin.serviceTitle")}</Text>
       </View>
 
       <View style={styles.filterRow}>
@@ -76,7 +91,9 @@ export default function AdminServiceRequests(): React.JSX.Element {
             ]}
           >
             <Ionicons name={k.icon} size={14} color={kind === k.key ? "#fff" : k.tint} />
-            <Text style={[styles.filterText, kind === k.key && { color: "#fff" }]}>{k.label}</Text>
+            <Text style={[styles.filterText, kind === k.key && { color: "#fff" }]}>
+              {t(k.labelKey)}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -100,7 +117,11 @@ export default function AdminServiceRequests(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name={activeKind.icon} size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No {activeKind.label.toLowerCase()} requests</Text>
+              <Text style={styles.emptyText}>
+                {t("admin.serviceEmptyPrefix")}
+                {t(activeKind.labelKey)}
+                {t("admin.serviceEmptySuffix")}
+              </Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -110,7 +131,11 @@ export default function AdminServiceRequests(): React.JSX.Element {
             >
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={styles.tt} numberOfLines={1}>
-                  {item.serviceType ?? item.kind ?? (item.fromAddress ? "Transport" : "Request")}
+                  {item.serviceType ??
+                    item.kind ??
+                    (item.fromAddress
+                      ? t("admin.serviceTransportFallback")
+                      : t("admin.serviceRequestFallback"))}
                 </Text>
                 {item.fromAddress ? (
                   <Text style={styles.meta} numberOfLines={1}>
@@ -118,7 +143,8 @@ export default function AdminServiceRequests(): React.JSX.Element {
                   </Text>
                 ) : null}
                 <Text style={styles.meta}>
-                  {item.user?.name ?? "Customer"} · {new Date(item.createdAt).toLocaleDateString()}
+                  {item.user?.name ?? t("admin.serviceCustomerFallback")} ·{" "}
+                  {new Date(item.createdAt).toLocaleDateString()}
                 </Text>
               </View>
               <View style={[styles.statusChip, { borderColor: activeKind.tint + "55" }]}>

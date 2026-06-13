@@ -7,14 +7,24 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 import { playSound } from "../../../lib/sounds";
 
-const SOURCES = ["walk-in", "phone", "whatsapp", "instagram", "facebook", "referral", "other"];
+const SOURCES: { value: string; labelKey: string }[] = [
+  { value: "walk-in", labelKey: "crm.newLead.sourceWalkIn" },
+  { value: "phone", labelKey: "crm.newLead.sourcePhone" },
+  { value: "whatsapp", labelKey: "crm.newLead.sourceWhatsApp" },
+  { value: "instagram", labelKey: "crm.newLead.sourceInstagram" },
+  { value: "facebook", labelKey: "crm.newLead.sourceFacebook" },
+  { value: "referral", labelKey: "crm.newLead.sourceReferral" },
+  { value: "other", labelKey: "crm.newLead.sourceOther" },
+];
 
 export default function NewLead(): React.JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
+  const t = useT();
   const [form, setForm] = useState({
     contactName: "",
     contactPhone: "",
@@ -43,7 +53,10 @@ export default function NewLead(): React.JSX.Element {
     },
     onError: (e) => {
       playSound("error");
-      Alert.alert("Create failed", e instanceof Error ? e.message : "Try again");
+      Alert.alert(
+        t("crm.newLead.createFailedTitle"),
+        e instanceof Error ? e.message : t("crm.newLead.tryAgain"),
+      );
     },
   });
 
@@ -55,7 +68,7 @@ export default function NewLead(): React.JSX.Element {
         <Pressable onPress={() => router.back()} hitSlop={10}>
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
-        <Text style={styles.topBarTitle}>New lead</Text>
+        <Text style={styles.topBarTitle}>{t("crm.newLead.title")}</Text>
         <View style={{ width: 24 }} />
       </View>
       <ScrollView
@@ -67,46 +80,46 @@ export default function NewLead(): React.JSX.Element {
         }}
       >
         <Field
-          label="Contact name *"
+          label={t("crm.newLead.contactNameRequired")}
           value={form.contactName}
           onChange={(v) => setForm((s) => ({ ...s, contactName: v }))}
         />
         <Field
-          label="Phone"
+          label={t("crm.newLead.phone")}
           value={form.contactPhone}
           onChange={(v) => setForm((s) => ({ ...s, contactPhone: v }))}
           keyboardType="phone-pad"
         />
         <Field
-          label="Email"
+          label={t("crm.newLead.email")}
           value={form.contactEmail}
           onChange={(v) => setForm((s) => ({ ...s, contactEmail: v }))}
           keyboardType="email-address"
         />
         <View style={styles.card}>
-          <Text style={styles.label}>Source</Text>
+          <Text style={styles.label}>{t("crm.newLead.source")}</Text>
           <View style={styles.chipRow}>
             {SOURCES.map((s) => (
               <Pressable
-                key={s}
-                onPress={() => setForm((f) => ({ ...f, source: s }))}
-                style={[styles.chip, form.source === s && styles.chipActive]}
+                key={s.value}
+                onPress={() => setForm((f) => ({ ...f, source: s.value }))}
+                style={[styles.chip, form.source === s.value && styles.chipActive]}
               >
-                <Text style={[styles.chipText, form.source === s && styles.chipTextActive]}>
-                  {s}
+                <Text style={[styles.chipText, form.source === s.value && styles.chipTextActive]}>
+                  {t(s.labelKey)}
                 </Text>
               </Pressable>
             ))}
           </View>
         </View>
         <Field
-          label="Estimated value (EGP)"
+          label={t("crm.newLead.estimatedValue")}
           value={form.estimatedValue}
           onChange={(v) => setForm((s) => ({ ...s, estimatedValue: v }))}
           keyboardType="numeric"
         />
         <Field
-          label="Notes"
+          label={t("crm.newLead.notes")}
           value={form.notes}
           onChange={(v) => setForm((s) => ({ ...s, notes: v }))}
           multiline
@@ -118,7 +131,9 @@ export default function NewLead(): React.JSX.Element {
           onPress={() => create.mutate()}
         >
           <Ionicons name="checkmark-circle" size={18} color="#fff" />
-          <Text style={styles.saveBtnText}>{create.isPending ? "Creating…" : "Create lead"}</Text>
+          <Text style={styles.saveBtnText}>
+            {create.isPending ? t("crm.newLead.creating") : t("crm.newLead.create")}
+          </Text>
         </Pressable>
       </ScrollView>
     </View>

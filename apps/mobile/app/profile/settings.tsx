@@ -21,7 +21,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
-import { applyLanguage } from "../../lib/locale";
+import { applyLanguage, useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
 type Theme = "dark" | "light" | "system";
@@ -30,6 +30,7 @@ type Language = "en" | "ar";
 export default function SettingsScreen(): JSX.Element {
   const { palette } = useTheme();
   const styles = useMemo(() => makeStyles(palette), [palette]);
+  const t = useT();
   const router = useRouter();
   const { user, hydrate } = useAuth();
   const prefs = user?.preferences;
@@ -109,7 +110,7 @@ export default function SettingsScreen(): JSX.Element {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{t("profile.settings.title")}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -119,24 +120,24 @@ export default function SettingsScreen(): JSX.Element {
       >
         {/* Appearance */}
         <Animated.View entering={FadeInDown.delay(40).springify()}>
-          <Text style={styles.sectionTitle}>Appearance</Text>
+          <Text style={styles.sectionTitle}>{t("profile.settings.appearance")}</Text>
           <View style={styles.settingsCard}>
-            {(["system", "light", "dark"] as Theme[]).map((t, i) => (
-              <View key={t}>
+            {(["system", "light", "dark"] as Theme[]).map((themeOption, i) => (
+              <View key={themeOption}>
                 {i > 0 && <View style={styles.langDivider} />}
                 <Pressable
-                  style={[styles.langOption, theme === t && styles.langOptionActive]}
+                  style={[styles.langOption, theme === themeOption && styles.langOptionActive]}
                   onPress={() => {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setTheme(t);
+                    setTheme(themeOption);
                   }}
                 >
                   <View style={styles.settingIcon}>
                     <Ionicons
                       name={
-                        t === "system"
+                        themeOption === "system"
                           ? "phone-portrait-outline"
-                          : t === "light"
+                          : themeOption === "light"
                             ? "sunny-outline"
                             : "moon-outline"
                       }
@@ -145,18 +146,24 @@ export default function SettingsScreen(): JSX.Element {
                     />
                   </View>
                   <View style={styles.langInfo}>
-                    <Text style={[styles.langLabel, theme === t && styles.langLabelActive]}>
-                      {t === "system" ? "Match system" : t === "light" ? "Light" : "Dark"}
+                    <Text
+                      style={[styles.langLabel, theme === themeOption && styles.langLabelActive]}
+                    >
+                      {themeOption === "system"
+                        ? t("profile.settings.themeSystem")
+                        : themeOption === "light"
+                          ? t("profile.settings.themeLight")
+                          : t("profile.settings.themeDark")}
                     </Text>
                     <Text style={styles.langHint}>
-                      {t === "system"
-                        ? "Follows your phone's setting"
-                        : t === "light"
-                          ? "Always light theme"
-                          : "Always dark theme"}
+                      {themeOption === "system"
+                        ? t("profile.settings.themeSystemHint")
+                        : themeOption === "light"
+                          ? t("profile.settings.themeLightHint")
+                          : t("profile.settings.themeDarkHint")}
                     </Text>
                   </View>
-                  {theme === t && (
+                  {theme === themeOption && (
                     <Ionicons name="checkmark-circle" size={20} color={colors.accent.DEFAULT} />
                   )}
                 </Pressable>
@@ -167,7 +174,7 @@ export default function SettingsScreen(): JSX.Element {
 
         {/* Language */}
         <Animated.View entering={FadeInDown.delay(80).springify()}>
-          <Text style={styles.sectionTitle}>Language</Text>
+          <Text style={styles.sectionTitle}>{t("profile.settings.language")}</Text>
           <View style={styles.settingsCard}>
             <Pressable
               style={[styles.langOption, language === "en" && styles.langOptionActive]}
@@ -176,9 +183,9 @@ export default function SettingsScreen(): JSX.Element {
               <Text style={styles.langFlag}>🇬🇧</Text>
               <View style={styles.langInfo}>
                 <Text style={[styles.langLabel, language === "en" && styles.langLabelActive]}>
-                  English
+                  {t("profile.settings.english")}
                 </Text>
-                <Text style={styles.langHint}>Left-to-right</Text>
+                <Text style={styles.langHint}>{t("profile.settings.englishHint")}</Text>
               </View>
               {language === "en" && (
                 <Ionicons name="checkmark-circle" size={20} color={colors.accent.DEFAULT} />
@@ -194,9 +201,9 @@ export default function SettingsScreen(): JSX.Element {
               <Text style={styles.langFlag}>🇪🇬</Text>
               <View style={styles.langInfo}>
                 <Text style={[styles.langLabel, language === "ar" && styles.langLabelActive]}>
-                  العربية
+                  {t("profile.settings.arabic")}
                 </Text>
-                <Text style={styles.langHint}>Right-to-left</Text>
+                <Text style={styles.langHint}>{t("profile.settings.arabicHint")}</Text>
               </View>
               {language === "ar" && (
                 <Ionicons name="checkmark-circle" size={20} color={colors.accent.DEFAULT} />
@@ -207,12 +214,12 @@ export default function SettingsScreen(): JSX.Element {
 
         {/* Notifications */}
         <Animated.View entering={FadeInDown.delay(140).springify()}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
+          <Text style={styles.sectionTitle}>{t("profile.settings.notifications")}</Text>
           <View style={styles.settingsCard}>
             <ToggleRow
               icon="notifications-outline"
-              label="Push Notifications"
-              hint="In-app alerts for bookings, messages"
+              label={t("profile.settings.pushTitle")}
+              hint={t("profile.settings.pushHint")}
               value={notifPush}
               onChange={(v) => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -222,8 +229,8 @@ export default function SettingsScreen(): JSX.Element {
             <View style={styles.rowDivider} />
             <ToggleRow
               icon="mail-outline"
-              label="Email Notifications"
-              hint="Booking confirmations, receipts"
+              label={t("profile.settings.emailTitle")}
+              hint={t("profile.settings.emailHint")}
               value={notifEmail}
               onChange={(v) => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -233,8 +240,8 @@ export default function SettingsScreen(): JSX.Element {
             <View style={styles.rowDivider} />
             <ToggleRow
               icon="chatbubble-outline"
-              label="SMS Alerts"
-              hint="OTP, urgent updates"
+              label={t("profile.settings.smsTitle")}
+              hint={t("profile.settings.smsHint")}
               value={notifSms}
               onChange={(v) => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -244,8 +251,8 @@ export default function SettingsScreen(): JSX.Element {
             <View style={styles.rowDivider} />
             <ToggleRow
               icon="logo-whatsapp"
-              label="WhatsApp Notifications"
-              hint="Updates via WhatsApp"
+              label={t("profile.settings.whatsappTitle")}
+              hint={t("profile.settings.whatsappHint")}
               value={notifWhatsapp}
               onChange={(v) => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -257,12 +264,12 @@ export default function SettingsScreen(): JSX.Element {
 
         {/* Marketing */}
         <Animated.View entering={FadeInDown.delay(200).springify()}>
-          <Text style={styles.sectionTitle}>Privacy</Text>
+          <Text style={styles.sectionTitle}>{t("profile.settings.privacy")}</Text>
           <View style={styles.settingsCard}>
             <ToggleRow
               icon="megaphone-outline"
-              label="Marketing Communications"
-              hint="Deals, promotions, and offers"
+              label={t("profile.settings.marketingTitle")}
+              hint={t("profile.settings.marketingHint")}
               value={marketingOptIn}
               onChange={(v) => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -275,8 +282,8 @@ export default function SettingsScreen(): JSX.Element {
                 <Ionicons name="document-text-outline" size={18} color={colors.primary[400]} />
               </View>
               <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Privacy Policy</Text>
-                <Text style={styles.settingHint}>How we handle your data</Text>
+                <Text style={styles.settingLabel}>{t("profile.settings.privacyPolicy")}</Text>
+                <Text style={styles.settingHint}>{t("profile.settings.privacyPolicyHint")}</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={palette.muted} />
             </Pressable>
@@ -285,24 +292,28 @@ export default function SettingsScreen(): JSX.Element {
               style={styles.settingRow}
               onPress={() => {
                 if (!user) return;
-                Alert.alert("Export My Data", "Your data will be downloaded as a JSON file.", [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Export",
-                    onPress: () =>
-                      void Linking.openURL(
-                        `https://api.trendywheelseg.com/api/users/${user.id}/export`,
-                      ),
-                  },
-                ]);
+                Alert.alert(
+                  t("profile.settings.exportConfirmTitle"),
+                  t("profile.settings.exportConfirmBody"),
+                  [
+                    { text: t("common.cancel"), style: "cancel" },
+                    {
+                      text: t("profile.settings.export"),
+                      onPress: () =>
+                        void Linking.openURL(
+                          `https://api.trendywheelseg.com/api/users/${user.id}/export`,
+                        ),
+                    },
+                  ],
+                );
               }}
             >
               <View style={styles.settingIcon}>
                 <Ionicons name="download-outline" size={18} color={colors.primary[400]} />
               </View>
               <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Export My Data</Text>
-                <Text style={styles.settingHint}>Download all your personal data</Text>
+                <Text style={styles.settingLabel}>{t("profile.settings.exportData")}</Text>
+                <Text style={styles.settingHint}>{t("profile.settings.exportDataHint")}</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={palette.muted} />
             </Pressable>
@@ -311,27 +322,27 @@ export default function SettingsScreen(): JSX.Element {
 
         {/* Danger zone */}
         <Animated.View entering={FadeInDown.delay(220).springify()}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={styles.sectionTitle}>{t("profile.settings.account")}</Text>
           <View style={styles.settingsCard}>
             <Pressable
               style={styles.settingRow}
               onPress={() => {
                 Alert.alert(
-                  "Delete Account",
-                  "This will permanently delete your account and anonymize all personal data. This cannot be undone.",
+                  t("profile.settings.deleteAccount"),
+                  t("profile.settings.deleteConfirmBody"),
                   [
-                    { text: "Cancel", style: "cancel" },
+                    { text: t("common.cancel"), style: "cancel" },
                     {
-                      text: "Delete",
+                      text: t("common.delete"),
                       style: "destructive",
                       onPress: () => {
                         Alert.alert(
-                          "Are you sure?",
-                          "Your bookings, messages, and all activity will be anonymized. You will be logged out.",
+                          t("profile.settings.deleteConfirmTitle2"),
+                          t("profile.settings.deleteConfirmBody2"),
                           [
-                            { text: "Cancel", style: "cancel" },
+                            { text: t("common.cancel"), style: "cancel" },
                             {
-                              text: "Yes, delete my account",
+                              text: t("profile.settings.deleteConfirmYes"),
                               style: "destructive",
                               onPress: () =>
                                 void Linking.openURL(
@@ -350,8 +361,10 @@ export default function SettingsScreen(): JSX.Element {
                 <Ionicons name="trash-outline" size={18} color={colors.error} />
               </View>
               <View style={styles.settingContent}>
-                <Text style={[styles.settingLabel, { color: colors.error }]}>Delete Account</Text>
-                <Text style={styles.settingHint}>Permanently remove your data</Text>
+                <Text style={[styles.settingLabel, { color: colors.error }]}>
+                  {t("profile.settings.deleteAccount")}
+                </Text>
+                <Text style={styles.settingHint}>{t("profile.settings.deleteAccountHint")}</Text>
               </View>
             </Pressable>
           </View>
@@ -360,14 +373,14 @@ export default function SettingsScreen(): JSX.Element {
         {/* App info */}
         <Animated.View entering={FadeInDown.delay(260).springify()} style={styles.appInfo}>
           <Text style={styles.appVersion}>TrendyWheels v1.0.0</Text>
-          <Text style={styles.appCopy}>© 2026 TrendyWheels Egypt</Text>
+          <Text style={styles.appCopy}>{t("profile.settings.appCopyright")}</Text>
         </Animated.View>
 
         {mutation.isError && (
           <View style={styles.errorBox}>
             <Ionicons name="alert-circle-outline" size={18} color={colors.error} />
             <Text style={styles.errorText}>
-              {(mutation.error as Error).message || "Failed to save settings"}
+              {(mutation.error as Error).message || t("profile.settings.saveFailed")}
             </Text>
           </View>
         )}
@@ -389,10 +402,10 @@ export default function SettingsScreen(): JSX.Element {
           ) : saveSuccess ? (
             <>
               <Ionicons name="checkmark-circle" size={20} color="#000" />
-              <Text style={styles.saveBtnText}>Saved!</Text>
+              <Text style={styles.saveBtnText}>{t("profile.settings.saved")}</Text>
             </>
           ) : (
-            <Text style={styles.saveBtnText}>Save Settings</Text>
+            <Text style={styles.saveBtnText}>{t("profile.settings.saveSettings")}</Text>
           )}
         </Pressable>
       </View>

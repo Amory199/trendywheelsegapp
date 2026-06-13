@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Order {
   id: string;
@@ -38,6 +39,7 @@ const STATUS_TINT: Record<string, string> = {
 export default function AdminOrders(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useT();
 
   const q = useQuery({
     queryKey: ["admin", "orders"],
@@ -51,7 +53,7 @@ export default function AdminOrders(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: "Orders",
+          title: t("admin.ordersTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTitleStyle: { color: "#fff" },
           headerTintColor: "#fff",
@@ -77,13 +79,13 @@ export default function AdminOrders(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="bag-outline" size={48} color="#666" />
-              <Text style={styles.emptyText}>No orders yet</Text>
+              <Text style={styles.emptyText}>{t("admin.ordersEmpty")}</Text>
             </View>
           }
           renderItem={({ item }) => {
             const tint = STATUS_TINT[item.status] ?? "#888";
-            const firstItem = item.items?.[0]?.product?.name ?? "Order";
-            const buyer = item.user?.name || item.user?.phone || "Unknown";
+            const firstItem = item.items?.[0]?.product?.name ?? t("admin.orderItemFallback");
+            const buyer = item.user?.name || item.user?.phone || t("admin.orderBuyerUnknown");
             return (
               <Pressable
                 style={styles.card}
@@ -99,7 +101,9 @@ export default function AdminOrders(): React.JSX.Element {
                   <Text style={styles.meta}>
                     {buyer} · #{item.id.slice(0, 8)}
                   </Text>
-                  <Text style={styles.amount}>EGP {Number(item.totalEgp).toLocaleString()}</Text>
+                  <Text style={styles.amount}>
+                    {t("admin.egp")} {Number(item.totalEgp).toLocaleString()}
+                  </Text>
                 </View>
                 <View style={[styles.statusChip, { backgroundColor: tint }]}>
                   <Text style={styles.statusText}>{item.status}</Text>

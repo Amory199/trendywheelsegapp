@@ -9,10 +9,12 @@ import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
 export function EarningsCard(): React.JSX.Element | null {
   const { palette } = useTheme();
+  const t = useT();
   const styles = useMemo(() => makeStyles(palette), [palette]);
 
   const earningsQ = useQuery({
@@ -33,12 +35,16 @@ export function EarningsCard(): React.JSX.Element | null {
     <View style={styles.card}>
       <View style={styles.topRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.label}>MY MONTH · {e.month}</Text>
+          <Text style={styles.label}>
+            {t("crm.earnings.myMonthPrefix")} · {e.month}
+          </Text>
           <Text style={styles.wonValue}>EGP {e.monthWonAmount.toLocaleString()}</Text>
         </View>
         <View style={styles.dealsChip}>
           <Ionicons name="trophy" size={12} color={colors.brand.ecoLimelight ?? "#A9F453"} />
-          <Text style={styles.dealsText}>{e.monthWonCount} deals</Text>
+          <Text style={styles.dealsText}>
+            {e.monthWonCount} {t("crm.earnings.dealsSuffix")}
+          </Text>
         </View>
       </View>
 
@@ -48,27 +54,35 @@ export function EarningsCard(): React.JSX.Element | null {
             <View style={[styles.progressFill, { width: `${fillPct}%` }]} />
           </View>
           <Text style={styles.progressText}>
-            {e.progressPct}% of EGP {e.targetMonthly.toLocaleString()}
+            {e.progressPct}
+            {t("crm.earnings.progressPctSuffix")} {t("crm.earnings.progressOf")}{" "}
+            {e.targetMonthly.toLocaleString()}
           </Text>
         </View>
       ) : (
-        <Text style={styles.noTarget}>No target set</Text>
+        <Text style={styles.noTarget}>{t("crm.earnings.noTarget")}</Text>
       )}
 
       {e.commissionPct > 0 ? (
         <Text style={styles.commission}>
-          ≈ EGP {e.estimatedCommission.toLocaleString()} commission ({e.commissionPct}%)
+          {t("crm.earnings.commissionPrefix")} {e.estimatedCommission.toLocaleString()}{" "}
+          {t("crm.earnings.commissionMid")} ({e.commissionPct}
+          {t("crm.earnings.progressPctSuffix")})
         </Text>
       ) : null}
 
       <View style={styles.secondaryRow}>
         <View style={styles.secondaryItem}>
           <Ionicons name="flag-outline" size={12} color={palette.muted} />
-          <Text style={styles.secondaryText}>{e.openLeads} open leads</Text>
+          <Text style={styles.secondaryText}>
+            {e.openLeads} {t("crm.earnings.openLeadsSuffix")}
+          </Text>
         </View>
         <View style={styles.secondaryItem}>
           <Ionicons name="cash-outline" size={12} color={palette.muted} />
-          <Text style={styles.secondaryText}>EGP {e.pipelineValue.toLocaleString()} pipeline</Text>
+          <Text style={styles.secondaryText}>
+            EGP {e.pipelineValue.toLocaleString()} {t("crm.earnings.pipelineSuffix")}
+          </Text>
         </View>
       </View>
     </View>

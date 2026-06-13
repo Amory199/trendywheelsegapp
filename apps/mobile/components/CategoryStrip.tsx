@@ -4,10 +4,24 @@ import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { memo } from "react";
-import Animated from "react-native-reanimated";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 
+import { useT } from "../lib/locale";
 import { useTheme } from "../lib/use-theme";
+
+// Maps the VehicleCategory enum (English labels live in @trendywheels/types) to
+// our localized home.categories.* keys, resolved at render so the strip reads
+// fully in the active locale.
+const CATEGORY_LABEL_KEYS: Record<VehicleCategory, string> = {
+  "golf-cart": "home.categories.golf-cart",
+  scooter: "home.categories.scooter",
+  "scooter-sidecar": "home.categories.scooter-sidecar",
+  buggy: "home.categories.buggy",
+  utv: "home.categories.utv",
+  "jet-ski": "home.categories.jet-ski",
+  "hover-board": "home.categories.hover-board",
+};
 
 // 2026-05-21 — dropped per-tile videos. 7 simultaneous useVideoPlayer mounts
 // were causing a 3s freeze on Rent/Sell tab entry on Android, plus the UTV
@@ -57,6 +71,7 @@ interface Props {
 
 function CategoryStripImpl({ value, onChange, showAll = true, onScroll }: Props): JSX.Element {
   const { palette } = useTheme();
+  const t = useT();
   return (
     <Animated.ScrollView
       contentContainerStyle={[styles.grid, { paddingBottom: TAB_BAR_SAFE_BOTTOM }]}
@@ -85,14 +100,14 @@ function CategoryStripImpl({ value, onChange, showAll = true, onScroll }: Props)
           <View style={styles.iconWrap}>
             <Ionicons name="grid" size={40} color="rgba(255,255,255,0.95)" />
           </View>
-          <BlockLabel label="All categories" active={value === "all"} />
+          <BlockLabel label={t("home.allCategories")} active={value === "all"} />
         </Pressable>
       ) : null}
       {VEHICLE_CATEGORIES.map((c) => (
         <CategoryBlock
           key={c.key}
           categoryKey={c.key}
-          label={c.label}
+          label={t(CATEGORY_LABEL_KEYS[c.key] as Parameters<typeof t>[0])}
           icon={c.icon}
           active={value === c.key}
           onPress={() => onChange(c.key)}

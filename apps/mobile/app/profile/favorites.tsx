@@ -10,6 +10,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { TWSkeletonCard } from "../../components/ui";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 // The favorites endpoint returns a trimmed vehicle (select, not the full
 // model) with images as [{ url }] — narrower than the api-client's Vehicle
@@ -43,6 +44,7 @@ function thumbOf(vehicle: FavoriteVehicle): string {
 
 export default function FavoritesScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const qc = useQueryClient();
 
   const query = useQuery({
@@ -82,7 +84,7 @@ export default function FavoritesScreen(): JSX.Element {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
-        <Text style={styles.title}>Saved Vehicles</Text>
+        <Text style={styles.title}>{t("profile.favorites.title")}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -95,10 +97,10 @@ export default function FavoritesScreen(): JSX.Element {
       ) : favorites.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="heart-outline" size={64} color={colors.text.secondary} />
-          <Text style={styles.emptyText}>Nothing saved yet</Text>
-          <Text style={styles.emptyHint}>Tap the heart on any vehicle to keep it here.</Text>
+          <Text style={styles.emptyText}>{t("profile.favorites.emptyTitle")}</Text>
+          <Text style={styles.emptyHint}>{t("profile.favorites.emptyHint")}</Text>
           <Pressable style={styles.browseBtn} onPress={() => router.push("/(tabs)/rent")}>
-            <Text style={styles.browseBtnText}>Browse vehicles</Text>
+            <Text style={styles.browseBtnText}>{t("profile.favorites.browse")}</Text>
           </Pressable>
         </View>
       ) : (
@@ -129,7 +131,7 @@ export default function FavoritesScreen(): JSX.Element {
                   <Text style={styles.price}>
                     {item.vehicle.listingType === "sale" && item.vehicle.salePrice != null
                       ? twEGP(Number(item.vehicle.salePrice))
-                      : `${twEGP(Number(item.vehicle.dailyRate))} /day`}
+                      : `${twEGP(Number(item.vehicle.dailyRate))} ${t("profile.favorites.perDay")}`}
                   </Text>
                   <View style={styles.metaRow}>
                     {item.vehicle.reviewCount > 0 && (

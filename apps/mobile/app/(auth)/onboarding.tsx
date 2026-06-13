@@ -18,6 +18,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useT } from "../../lib/locale";
 
 interface FormData {
   name: string;
@@ -27,6 +28,7 @@ interface FormData {
 
 export default function OnboardingScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const { user, hydrate } = useAuth();
   const [form, setForm] = useState<FormData>({
     name: user?.name ?? "",
@@ -65,25 +67,23 @@ export default function OnboardingScreen(): JSX.Element {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Complete your profile</Text>
+        <Text style={styles.headerTitle}>{t("components.onboarding.title")}</Text>
       </View>
 
       <Animated.View entering={FadeInDown.springify()} style={styles.body}>
-        <Text style={styles.subtitle}>
-          Almost there. We just need a couple of details to set up your account.
-        </Text>
+        <Text style={styles.subtitle}>{t("components.onboarding.subtitle")}</Text>
 
         <Field
-          label="Full name *"
-          placeholder="e.g. Mohamed Ghazaly"
+          label={t("components.onboarding.nameLabel")}
+          placeholder={t("components.onboarding.namePlaceholder")}
           value={form.name}
           onChangeText={(v) => set("name", v)}
           autoCapitalize="words"
         />
 
         <Field
-          label="Age *"
-          placeholder="e.g. 28"
+          label={t("components.onboarding.ageLabel")}
+          placeholder={t("components.onboarding.agePlaceholder")}
           value={form.age}
           onChangeText={(v) => set("age", v.replace(/[^0-9]/g, "").slice(0, 3))}
           keyboardType="number-pad"
@@ -91,8 +91,8 @@ export default function OnboardingScreen(): JSX.Element {
         />
 
         <Field
-          label="Email (optional)"
-          placeholder="you@example.com"
+          label={t("components.onboarding.emailLabel")}
+          placeholder={t("components.onboarding.emailPlaceholder")}
           value={form.email}
           onChangeText={(v) => set("email", v)}
           keyboardType="email-address"
@@ -103,7 +103,7 @@ export default function OnboardingScreen(): JSX.Element {
         {mutation.isError && (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>
-              {(mutation.error as Error).message || "Failed to save profile"}
+              {(mutation.error as Error).message || t("components.onboarding.saveError")}
             </Text>
           </View>
         )}
@@ -119,7 +119,7 @@ export default function OnboardingScreen(): JSX.Element {
             <ActivityIndicator size="small" color="#000" />
           ) : (
             <>
-              <Text style={styles.ctaText}>Get started</Text>
+              <Text style={styles.ctaText}>{t("components.onboarding.getStarted")}</Text>
               <Ionicons name="arrow-forward" size={18} color="#000" />
             </>
           )}

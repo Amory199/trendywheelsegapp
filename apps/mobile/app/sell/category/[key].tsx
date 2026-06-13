@@ -19,11 +19,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CategoryVideoHero } from "../../../components/CategoryVideoHero";
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 const PAGE_SIZE = 20;
 
 export default function SellCategoryScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const { key } = useLocalSearchParams<{ key: string }>();
   const [search, setSearch] = useState("");
@@ -31,9 +33,13 @@ export default function SellCategoryScreen(): JSX.Element {
   const isAll = key === "all";
   const categoryMeta = useMemo(() => VEHICLE_CATEGORIES.find((c) => c.key === key) ?? null, [key]);
   const categoryLabel = useMemo(() => {
-    if (isAll) return "All categories";
-    return categoryMeta?.label ?? "Listings";
-  }, [categoryMeta, isAll]);
+    if (isAll) return t("sell.category.allCategories");
+    // home.categories.* is the shared, parity-complete localized label source
+    // for VehicleCategory (the English labels in @trendywheels/types are data).
+    return categoryMeta
+      ? t(`home.categories.${categoryMeta.key}`)
+      : t("sell.category.fallbackTitle");
+  }, [categoryMeta, isAll, t]);
 
   const q = useInfiniteQuery({
     queryKey: ["sales-listings", "by-category", key],
@@ -78,7 +84,9 @@ export default function SellCategoryScreen(): JSX.Element {
             <Text style={styles.cardTitle} numberOfLines={2}>
               {item.title}
             </Text>
-            <Text style={styles.cardPrice}>{Number(item.price).toLocaleString()} EGP</Text>
+            <Text style={styles.cardPrice}>
+              {Number(item.price).toLocaleString()} {t("sell.egp")}
+            </Text>
             <Text style={styles.cardMeta}>
               {item.year} · {(item.mileage as number | undefined)?.toLocaleString()} km
             </Text>
@@ -95,7 +103,7 @@ export default function SellCategoryScreen(): JSX.Element {
         <View>
           <CategoryVideoHero
             categoryKey={categoryMeta.key}
-            label={categoryMeta.label}
+            label={t(`home.categories.${categoryMeta.key}`)}
             icon={categoryMeta.icon as never}
             height={220}
           />
@@ -132,7 +140,7 @@ export default function SellCategoryScreen(): JSX.Element {
         <Ionicons name="search-outline" size={18} color={colors.text.secondary} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search title, make, or model…"
+          placeholder={t("sell.category.searchPlaceholder")}
           placeholderTextColor={colors.text.secondary}
           value={search}
           onChangeText={setSearch}
@@ -152,7 +160,7 @@ export default function SellCategoryScreen(): JSX.Element {
         <View style={styles.empty}>
           <Ionicons name="car-sport-outline" size={64} color={colors.text.secondary} />
           <Text style={styles.emptyText}>
-            {search ? "No matches" : "No listings in this category yet"}
+            {search ? t("sell.category.noMatches") : t("sell.category.emptyCategory")}
           </Text>
         </View>
       ) : (

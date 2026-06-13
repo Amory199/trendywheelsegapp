@@ -22,14 +22,26 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { StepBar } from "../../../components/sell/StepBar";
 import { logEvent } from "../../../lib/analytics";
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 import { uploadImages } from "../../../lib/upload";
 import { useTheme } from "../../../lib/use-theme";
 
 const CONDITIONS = ["excellent", "good", "fair", "poor"] as const;
 type Condition = (typeof CONDITIONS)[number];
 
+const CONDITION_LABEL_KEY: Record<
+  Condition,
+  "sell.condition.excellent" | "sell.condition.good" | "sell.condition.fair" | "sell.condition.poor"
+> = {
+  excellent: "sell.condition.excellent",
+  good: "sell.condition.good",
+  fair: "sell.condition.fair",
+  poor: "sell.condition.poor",
+};
+
 export default function TradeInScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const { palette } = useTheme();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const [step, setStep] = useState(0); // 0/1/2 → web's 1/2/3
@@ -55,14 +67,15 @@ export default function TradeInScreen(): JSX.Element {
     },
     onSuccess: () => {
       logEvent("listing_submitted", { kind: "trade_in" });
-      Alert.alert(
-        "Trade-in submitted",
-        "We'll get back to you with a quote within 24 hours. Quotes are valid for 7 days.",
-        [{ text: "OK", onPress: () => router.replace("/(tabs)/sell") }],
-      );
+      Alert.alert(t("sell.tradeIn.submittedTitle"), t("sell.tradeIn.submittedMessage"), [
+        { text: t("sell.tradeIn.ok"), onPress: () => router.replace("/(tabs)/sell") },
+      ]);
     },
     onError: (e: unknown) => {
-      Alert.alert("Couldn't submit", e instanceof Error ? e.message : "Try again later.");
+      Alert.alert(
+        t("sell.tradeIn.submitFailedTitle"),
+        e instanceof Error ? e.message : t("sell.tradeIn.submitFailedMessage"),
+      );
     },
   });
 
@@ -106,9 +119,13 @@ export default function TradeInScreen(): JSX.Element {
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>TRADE-IN</Text>
+          <Text style={styles.eyebrow}>{t("sell.tradeIn.eyebrow")}</Text>
           <Text style={styles.title}>
-            {step === 0 ? "Tell us about your cart" : step === 1 ? "Add photos" : "Review + submit"}
+            {step === 0
+              ? t("sell.tradeIn.titleStep0")
+              : step === 1
+                ? t("sell.tradeIn.titleStep1")
+                : t("sell.tradeIn.titleStep2")}
           </Text>
         </View>
       </View>
@@ -119,21 +136,26 @@ export default function TradeInScreen(): JSX.Element {
         {step === 0 ? (
           <Animated.View entering={FadeInDown.duration(220)} style={{ gap: 14 }}>
             <Field
-              label="Brand"
+              label={t("sell.tradeIn.brand")}
               value={brand}
               onChange={setBrand}
-              placeholder="Club Car / E-Z-GO …"
+              placeholder={t("sell.tradeIn.brandPlaceholder")}
             />
-            <Field label="Model" value={model} onChange={setModel} placeholder="Onward 4P …" />
             <Field
-              label="Year"
+              label={t("sell.tradeIn.model")}
+              value={model}
+              onChange={setModel}
+              placeholder={t("sell.tradeIn.modelPlaceholder")}
+            />
+            <Field
+              label={t("sell.tradeIn.year")}
               value={year}
               onChange={(v) => setYear(v.replace(/[^0-9]/g, "").slice(0, 4))}
-              placeholder="2022"
+              placeholder={t("sell.tradeIn.yearPlaceholder")}
               keyboardType="number-pad"
             />
             <View>
-              <Label palette={palette}>Condition</Label>
+              <Label palette={palette}>{t("sell.tradeIn.conditionLabel")}</Label>
               <View style={styles.pills}>
                 {CONDITIONS.map((c) => {
                   const active = condition === c;
@@ -143,19 +165,21 @@ export default function TradeInScreen(): JSX.Element {
                       onPress={() => setCondition(c)}
                       style={[styles.pill, active && styles.pillActive]}
                     >
-                      <Text style={[styles.pillText, active && styles.pillTextActive]}>{c}</Text>
+                      <Text style={[styles.pillText, active && styles.pillTextActive]}>
+                        {t(CONDITION_LABEL_KEY[c])}
+                      </Text>
                     </Pressable>
                   );
                 })}
               </View>
             </View>
             <View>
-              <Label palette={palette}>Notes (optional)</Label>
+              <Label palette={palette}>{t("sell.tradeIn.notesLabel")}</Label>
               <TextInput
                 value={notes}
                 onChangeText={setNotes}
                 multiline
-                placeholder="Any modifications, recent service, known issues…"
+                placeholder={t("sell.tradeIn.notesPlaceholder")}
                 placeholderTextColor={palette.muted}
                 style={[styles.input, styles.textarea]}
               />
@@ -165,7 +189,7 @@ export default function TradeInScreen(): JSX.Element {
 
         {step === 1 ? (
           <Animated.View entering={FadeInDown.duration(220)} style={{ gap: 12 }}>
-            <Label palette={palette}>Upload up to 6 photos</Label>
+            <Label palette={palette}>{t("sell.tradeIn.uploadPhotos")}</Label>
             <View style={styles.photoGrid}>
               {localPhotos.map((uri, i) => (
                 <View key={i} style={styles.photoTile}>
@@ -191,18 +215,25 @@ export default function TradeInScreen(): JSX.Element {
         {step === 2 ? (
           <Animated.View entering={FadeInDown.duration(220)} style={{ gap: 14 }}>
             <View style={styles.reviewCard}>
-              <Row label="Brand" value={brand} palette={palette} />
-              <Row label="Model" value={model} palette={palette} />
-              <Row label="Year" value={year} palette={palette} />
-              <Row label="Condition" value={condition} palette={palette} capitalize />
-              {notes ? <Row label="Notes" value={notes} palette={palette} /> : null}
-              <Row label="Photos" value={`${localPhotos.length} attached`} palette={palette} />
+              <Row label={t("sell.tradeIn.reviewBrand")} value={brand} palette={palette} />
+              <Row label={t("sell.tradeIn.reviewModel")} value={model} palette={palette} />
+              <Row label={t("sell.tradeIn.reviewYear")} value={year} palette={palette} />
+              <Row
+                label={t("sell.tradeIn.reviewCondition")}
+                value={t(CONDITION_LABEL_KEY[condition])}
+                palette={palette}
+              />
+              {notes ? (
+                <Row label={t("sell.tradeIn.reviewNotes")} value={notes} palette={palette} />
+              ) : null}
+              <Row
+                label={t("sell.tradeIn.reviewPhotos")}
+                value={`${localPhotos.length} ${t("sell.tradeIn.photosAttachedSuffix")}`}
+                palette={palette}
+              />
             </View>
             <View style={styles.note}>
-              <Text style={styles.noteText}>
-                We&apos;ll get back to you with a quote within 24 hours. Quotes are valid for 7
-                days.
-              </Text>
+              <Text style={styles.noteText}>{t("sell.tradeIn.reviewNote")}</Text>
             </View>
           </Animated.View>
         ) : null}
@@ -229,7 +260,7 @@ export default function TradeInScreen(): JSX.Element {
           ) : (
             <>
               <Text style={styles.submitBtnText}>
-                {step === 2 ? "Submit trade-in" : "Continue"}
+                {step === 2 ? t("sell.tradeIn.submit") : t("sell.tradeIn.continue")}
               </Text>
               <Ionicons
                 name={step === 2 ? "checkmark-circle-outline" : "arrow-forward"}

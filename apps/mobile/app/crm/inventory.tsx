@@ -17,6 +17,7 @@ import {
 } from "react-native";
 
 import { api } from "../../lib/api";
+import { translate, useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
 interface InventoryVehicle {
@@ -34,11 +35,11 @@ interface InventoryVehicle {
 
 type StatusFilter = "all" | "available" | "rented" | "maintenance";
 
-const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "available", label: "Available" },
-  { key: "rented", label: "Rented" },
-  { key: "maintenance", label: "Maintenance" },
+const STATUS_FILTERS: { key: StatusFilter; labelKey: string }[] = [
+  { key: "all", labelKey: "crm.inventory.filterAll" },
+  { key: "available", labelKey: "crm.inventory.filterAvailable" },
+  { key: "rented", labelKey: "crm.inventory.filterRented" },
+  { key: "maintenance", labelKey: "crm.inventory.filterMaintenance" },
 ];
 
 // Vehicles can be rent-only, sale-only, or both. Rent/both show the daily
@@ -51,11 +52,12 @@ function priceLabel(v: InventoryVehicle): string {
   if (listing === "sale") {
     return sale > 0 ? `EGP ${sale.toLocaleString()}` : "—";
   }
-  return daily > 0 ? `EGP ${daily.toLocaleString()}/day` : "—";
+  return daily > 0 ? `EGP ${daily.toLocaleString()}${translate("crm.inventory.perDay")}` : "—";
 }
 
 export default function CrmInventory(): JSX.Element {
   const { palette } = useTheme();
+  const t = useT();
   const router = useRouter();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const [search, setSearch] = useState("");
@@ -82,9 +84,10 @@ export default function CrmInventory(): JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.title}>Inventory</Text>
+        <Text style={styles.title}>{t("crm.inventory.title")}</Text>
         <Text style={styles.subtitle}>
-          {filtered.length} of {listQ.data?.length ?? 0} carts
+          {filtered.length} {t("crm.inventory.countConnector")} {listQ.data?.length ?? 0}{" "}
+          {t("crm.inventory.countSuffix")}
         </Text>
       </View>
 
@@ -92,7 +95,7 @@ export default function CrmInventory(): JSX.Element {
         <Ionicons name="search" size={16} color={palette.muted} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name, location, or type…"
+          placeholder={t("crm.inventory.searchPlaceholder")}
           placeholderTextColor={palette.muted}
           value={search}
           onChangeText={setSearch}
@@ -119,7 +122,9 @@ export default function CrmInventory(): JSX.Element {
               onPress={() => setStatus(f.key)}
               style={[styles.filterChip, active && styles.filterChipActive]}
             >
-              <Text style={[styles.filterChipText, active && { color: "#fff" }]}>{f.label}</Text>
+              <Text style={[styles.filterChipText, active && { color: "#fff" }]}>
+                {t(f.labelKey)}
+              </Text>
             </Pressable>
           );
         })}
@@ -152,7 +157,9 @@ export default function CrmInventory(): JSX.Element {
             <View style={styles.empty}>
               <Ionicons name="car-sport-outline" size={48} color={palette.muted} />
               <Text style={styles.emptyText}>
-                {search || status !== "all" ? "No matches" : "No vehicles available"}
+                {search || status !== "all"
+                  ? t("crm.inventory.emptyNoMatches")
+                  : t("crm.inventory.emptyNoVehicles")}
               </Text>
             </View>
           }
@@ -176,7 +183,8 @@ export default function CrmInventory(): JSX.Element {
                 {item.name}
               </Text>
               <Text style={styles.sub} numberOfLines={1}>
-                {item.seating}-seater · {item.location}
+                {item.seating}
+                {t("crm.inventory.seaterSuffix")} · {item.location}
               </Text>
               <View style={styles.cardFooter}>
                 <Text style={styles.price}>{priceLabel(item)}</Text>

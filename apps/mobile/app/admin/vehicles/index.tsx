@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Vehicle {
   id: string;
@@ -27,10 +28,40 @@ interface Vehicle {
 }
 
 const CATEGORIES = ["all", "golf-cart", "scooter", "jet-ski", "buggy", "utv", "hover-board"];
+const CATEGORY_KEY: Record<
+  string,
+  | "admin.catAll"
+  | "admin.catGolfCart"
+  | "admin.catScooter"
+  | "admin.catJetSki"
+  | "admin.catBuggy"
+  | "admin.catUtv"
+  | "admin.catHoverBoard"
+> = {
+  all: "admin.catAll",
+  "golf-cart": "admin.catGolfCart",
+  scooter: "admin.catScooter",
+  "jet-ski": "admin.catJetSki",
+  buggy: "admin.catBuggy",
+  utv: "admin.catUtv",
+  "hover-board": "admin.catHoverBoard",
+};
 
 export default function AdminVehicles(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
   const [category, setCategory] = useState<string>("all");
+
+  const categoryLabel = (c: string): string => (CATEGORY_KEY[c] ? t(CATEGORY_KEY[c]) : c);
+
+  const statusLabel = (s?: string): string => {
+    if (!s) return t("admin.dash");
+    if (s === "available") return t("admin.vehicleStatusAvailable");
+    if (s === "rented") return t("admin.vehicleStatusRented");
+    if (s === "maintenance") return t("admin.vehicleStatusMaintenance");
+    if (s === "inactive") return t("admin.vehicleStatusInactive");
+    return s;
+  };
 
   const q = useQuery({
     queryKey: ["admin", "vehicles", category],
@@ -46,12 +77,12 @@ export default function AdminVehicles(): React.JSX.Element {
     <View style={styles.root}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.kicker}>FLEET</Text>
-          <Text style={styles.title}>Vehicles</Text>
+          <Text style={styles.kicker}>{t("admin.vehiclesKicker")}</Text>
+          <Text style={styles.title}>{t("admin.vehiclesTitle")}</Text>
         </View>
         <Pressable style={styles.fab} onPress={() => router.push("/admin/vehicles/new")}>
           <Ionicons name="add" size={20} color="#fff" />
-          <Text style={styles.fabText}>New</Text>
+          <Text style={styles.fabText}>{t("admin.vehiclesNew")}</Text>
         </Pressable>
       </View>
 
@@ -68,7 +99,7 @@ export default function AdminVehicles(): React.JSX.Element {
               style={[styles.filter, category === item && styles.filterActive]}
             >
               <Text style={[styles.filterText, category === item && styles.filterTextActive]}>
-                {item}
+                {categoryLabel(item)}
               </Text>
             </Pressable>
           )}
@@ -96,7 +127,10 @@ export default function AdminVehicles(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="car-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No vehicles in {category}</Text>
+              <Text style={styles.emptyText}>
+                {t("admin.vehiclesEmptyPrefix")}
+                {categoryLabel(category)}
+              </Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -116,7 +150,9 @@ export default function AdminVehicles(): React.JSX.Element {
                   {item.name}
                 </Text>
                 <Text style={styles.meta} numberOfLines={1}>
-                  {item.category} · {item.type ?? "—"} · EGP {Number(item.dailyRate ?? 0)}/day
+                  {categoryLabel(item.category)} · {item.type ?? t("admin.dash")} · {t("admin.egp")}{" "}
+                  {Number(item.dailyRate ?? 0)}
+                  {t("admin.perDay")}
                 </Text>
                 <View style={styles.statusRow}>
                   <View
@@ -130,7 +166,7 @@ export default function AdminVehicles(): React.JSX.Element {
                       },
                     ]}
                   />
-                  <Text style={styles.statusText}>{item.status ?? "—"}</Text>
+                  <Text style={styles.statusText}>{statusLabel(item.status)}</Text>
                 </View>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />

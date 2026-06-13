@@ -15,6 +15,7 @@ import {
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useT } from "../../lib/locale";
 
 interface Ticket {
   id: string;
@@ -26,11 +27,18 @@ interface Ticket {
   user?: { name?: string; phone?: string };
 }
 
-const FILTERS: Array<{ key: string; label: string }> = [
-  { key: "open", label: "Open" },
-  { key: "in_progress", label: "In Progress" },
-  { key: "resolved", label: "Resolved" },
-];
+const FILTERS = [
+  { key: "open", labelKey: "support.filterOpen" },
+  { key: "in_progress", labelKey: "support.filterInProgress" },
+  { key: "resolved", labelKey: "support.filterResolved" },
+] as const;
+
+const EMPTY_KEY = {
+  open: "support.emptyOpen",
+  in_progress: "support.emptyInProgress",
+  resolved: "support.emptyResolved",
+  closed: "support.emptyClosed",
+} as const;
 
 const PRIORITY_COLOR: Record<string, string> = {
   urgent: "#FF0000",
@@ -39,8 +47,16 @@ const PRIORITY_COLOR: Record<string, string> = {
   low: "#7AD2FF",
 };
 
+const PRIORITY_KEY = {
+  urgent: "support.priorityUrgent",
+  high: "support.priorityHigh",
+  medium: "support.priorityMedium",
+  low: "support.priorityLow",
+} as const;
+
 export default function SupportTickets(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
   const [status, setStatus] = useState("open");
@@ -57,8 +73,10 @@ export default function SupportTickets(): JSX.Element {
     <View style={styles.root}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.hello}>Hi, {user?.name?.split(" ")[0] ?? "Agent"}</Text>
-          <Text style={styles.role}>SUPPORT · INBOX</Text>
+          <Text style={styles.hello}>
+            {t("support.ticketsGreeting")} {user?.name?.split(" ")[0] ?? t("support.ticketsAgent")}
+          </Text>
+          <Text style={styles.role}>{t("support.ticketsRole")}</Text>
         </View>
         <Pressable
           hitSlop={12}
@@ -79,7 +97,7 @@ export default function SupportTickets(): JSX.Element {
             style={[styles.filter, status === f.key && styles.filterActive]}
           >
             <Text style={[styles.filterText, status === f.key && styles.filterTextActive]}>
-              {f.label}
+              {t(f.labelKey)}
             </Text>
           </Pressable>
         ))}
@@ -102,7 +120,9 @@ export default function SupportTickets(): JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="checkmark-done-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No {status} tickets</Text>
+              <Text style={styles.emptyText}>
+                {t(EMPTY_KEY[status as keyof typeof EMPTY_KEY] ?? "support.emptyOpen")}
+              </Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -121,8 +141,11 @@ export default function SupportTickets(): JSX.Element {
                   {item.subject}
                 </Text>
                 <Text style={styles.meta} numberOfLines={1}>
-                  {item.user?.name ?? item.user?.phone ?? "Unknown"} · {item.category ?? "general"}{" "}
-                  · {item.priority}
+                  {item.user?.name ?? item.user?.phone ?? t("support.unknownCustomer")} ·{" "}
+                  {item.category ?? t("support.generalCategory")} ·{" "}
+                  {PRIORITY_KEY[item.priority as keyof typeof PRIORITY_KEY]
+                    ? t(PRIORITY_KEY[item.priority as keyof typeof PRIORITY_KEY])
+                    : item.priority}
                 </Text>
                 <Text style={styles.age}>{new Date(item.createdAt).toLocaleString()}</Text>
               </View>

@@ -20,6 +20,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Repair {
   id: string;
@@ -40,10 +41,18 @@ const STATUS_TONE: Record<string, string> = {
   cancelled: "#EF4444",
 };
 
+const STATUS_LABEL_KEY: Record<string, string> = {
+  submitted: "crm.repairs.statusSubmitted",
+  assigned: "crm.repairs.statusAssigned",
+  in_progress: "crm.repairs.statusInProgress",
+  completed: "crm.repairs.statusCompleted",
+};
+
 export default function StaffRepairDetail(): React.JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
+  const t = useT();
 
   const q = useQuery({
     queryKey: ["staff", "repair", id],
@@ -82,7 +91,7 @@ export default function StaffRepairDetail(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: "Work order",
+          title: t("crm.repairDetail.title"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTitleStyle: { color: "#fff" },
           headerTintColor: "#fff",
@@ -99,20 +108,24 @@ export default function StaffRepairDetail(): React.JSX.Element {
         >
           <View style={styles.statusPill}>
             <View style={[styles.dot, { backgroundColor: STATUS_TONE[r.status] }]} />
-            <Text style={[styles.statusText, { color: STATUS_TONE[r.status] }]}>{r.status}</Text>
+            <Text style={[styles.statusText, { color: STATUS_TONE[r.status] }]}>
+              {STATUS_LABEL_KEY[r.status] ? t(STATUS_LABEL_KEY[r.status]) : r.status}
+            </Text>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.label}>Category</Text>
-            <Text style={styles.value}>{r.category ?? "Repair"}</Text>
+            <Text style={styles.label}>{t("crm.repairDetail.category")}</Text>
+            <Text style={styles.value}>{r.category ?? t("crm.repairDetail.fallbackCategory")}</Text>
           </View>
           <View style={styles.card}>
-            <Text style={styles.label}>Description</Text>
+            <Text style={styles.label}>{t("crm.repairDetail.description")}</Text>
             <Text style={styles.body}>{r.description ?? "—"}</Text>
           </View>
           <View style={styles.card}>
-            <Text style={styles.label}>Customer</Text>
-            <Text style={styles.value}>{r.user?.name ?? "Customer"}</Text>
+            <Text style={styles.label}>{t("crm.repairDetail.customer")}</Text>
+            <Text style={styles.value}>
+              {r.user?.name ?? t("crm.repairDetail.fallbackCustomer")}
+            </Text>
             {r.user?.phone ? (
               <Pressable
                 style={styles.callRow}
@@ -124,11 +137,12 @@ export default function StaffRepairDetail(): React.JSX.Element {
             ) : null}
           </View>
           <View style={styles.card}>
-            <Text style={styles.label}>Requested</Text>
+            <Text style={styles.label}>{t("crm.repairDetail.requested")}</Text>
             <Text style={styles.value}>{new Date(r.createdAt).toLocaleString()}</Text>
             {r.preferredDate ? (
               <Text style={styles.subtle}>
-                Preferred: {new Date(r.preferredDate).toLocaleDateString()}
+                {t("crm.repairDetail.preferredPrefix")}{" "}
+                {new Date(r.preferredDate).toLocaleDateString()}
               </Text>
             ) : null}
           </View>
@@ -141,7 +155,9 @@ export default function StaffRepairDetail(): React.JSX.Element {
             >
               <Ionicons name="play" size={18} color="#000" />
               <Text style={[styles.actionText, { color: "#000" }]}>
-                {start.isPending ? "Starting…" : "Start repair"}
+                {start.isPending
+                  ? t("crm.repairDetail.starting")
+                  : t("crm.repairDetail.startRepair")}
               </Text>
             </Pressable>
           ) : null}
@@ -153,7 +169,9 @@ export default function StaffRepairDetail(): React.JSX.Element {
             >
               <Ionicons name="checkmark-done" size={18} color="#000" />
               <Text style={[styles.actionText, { color: "#000" }]}>
-                {complete.isPending ? "Completing…" : "Mark completed"}
+                {complete.isPending
+                  ? t("crm.repairDetail.completing")
+                  : t("crm.repairDetail.markCompleted")}
               </Text>
             </Pressable>
           ) : null}
@@ -165,7 +183,7 @@ export default function StaffRepairDetail(): React.JSX.Element {
                 color={colors.brand.ecoLimelight ?? "#A9F453"}
               />
               <Text style={[styles.actionText, { color: colors.text.light }]}>
-                Repair completed
+                {t("crm.repairDetail.repairCompleted")}
               </Text>
             </View>
           ) : null}

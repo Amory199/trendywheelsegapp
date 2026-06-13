@@ -19,6 +19,7 @@ import {
 
 import { logEvent } from "../lib/analytics";
 import { api } from "../lib/api";
+import { useT } from "../lib/locale";
 
 interface ReviewModalProps {
   visible: boolean;
@@ -40,6 +41,7 @@ export function ReviewModal({
   onReviewed,
 }: ReviewModalProps): JSX.Element {
   const qc = useQueryClient();
+  const t = useT();
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -66,10 +68,13 @@ export function ReviewModal({
       if (err instanceof ApiClientError && err.statusCode === 409) {
         onReviewed(bookingId);
         onClose();
-        Alert.alert("Already reviewed", "You've already rated this rental.");
+        Alert.alert(
+          t("components.review.alreadyReviewedTitle"),
+          t("components.review.alreadyReviewedMessage"),
+        );
         return;
       }
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : t("components.review.genericError"));
     },
   });
 
@@ -84,15 +89,15 @@ export function ReviewModal({
           {submitted ? (
             <View style={styles.successWrap}>
               <Ionicons name="checkmark-circle" size={56} color={colors.success} />
-              <Text style={styles.successTitle}>Thanks for your review!</Text>
-              <Text style={styles.successHint}>It helps other riders pick the right wheels.</Text>
+              <Text style={styles.successTitle}>{t("components.review.successTitle")}</Text>
+              <Text style={styles.successHint}>{t("components.review.successHint")}</Text>
               <Pressable style={[styles.submitBtn, { alignSelf: "stretch" }]} onPress={onClose}>
-                <Text style={styles.submitBtnText}>Done</Text>
+                <Text style={styles.submitBtnText}>{t("components.review.done")}</Text>
               </Pressable>
             </View>
           ) : (
             <>
-              <Text style={styles.heading}>Rate your rental</Text>
+              <Text style={styles.heading}>{t("components.review.heading")}</Text>
               {vehicleName ? (
                 <Text style={styles.subheading} numberOfLines={1}>
                   {vehicleName}
@@ -120,7 +125,7 @@ export function ReviewModal({
 
               <TextInput
                 style={styles.input}
-                placeholder="Title (optional)"
+                placeholder={t("components.review.titlePlaceholder")}
                 placeholderTextColor={colors.text.secondary}
                 value={title}
                 onChangeText={setTitle}
@@ -128,7 +133,7 @@ export function ReviewModal({
               />
               <TextInput
                 style={[styles.input, styles.inputMultiline]}
-                placeholder="How was your ride? (optional)"
+                placeholder={t("components.review.bodyPlaceholder")}
                 placeholderTextColor={colors.text.secondary}
                 value={body}
                 onChangeText={setBody}
@@ -149,11 +154,11 @@ export function ReviewModal({
                 {mutation.isPending ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.submitBtnText}>Submit review</Text>
+                  <Text style={styles.submitBtnText}>{t("components.review.submit")}</Text>
                 )}
               </Pressable>
               <Pressable style={styles.cancelBtn} onPress={onClose}>
-                <Text style={styles.cancelBtnText}>Not now</Text>
+                <Text style={styles.cancelBtnText}>{t("components.review.notNow")}</Text>
               </Pressable>
             </>
           )}

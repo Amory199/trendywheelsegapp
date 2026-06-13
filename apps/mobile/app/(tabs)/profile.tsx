@@ -26,11 +26,13 @@ import { SettingsList } from "../../components/profile/SettingsList";
 import { TWButton } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useTheme } from "../../lib/use-theme";
 
 export default function ProfileScreen(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
   const { palette } = useTheme();
   const { user, hydrate, logout, initialized } = useAuth();
   const scrollHandler = useTabBarScrollHandler();
@@ -89,9 +91,11 @@ export default function ProfileScreen(): React.JSX.Element {
           alignItems: "center",
         }}
       >
-        <Text style={{ color: palette.muted, fontSize: 16, marginBottom: 20 }}>Not signed in</Text>
+        <Text style={{ color: palette.muted, fontSize: 16, marginBottom: 20 }}>
+          {t("profile.notSignedIn")}
+        </Text>
         <TWButton kind="pink" size="lg" onPress={() => router.replace("/(auth)/phone")}>
-          Sign in
+          {t("profile.signIn")}
         </TWButton>
       </View>
     );
@@ -142,15 +146,15 @@ export default function ProfileScreen(): React.JSX.Element {
       scrollEventThrottle={16}
     >
       <Animated.View entering={FadeInDown.duration(360)}>
-        <HeroStrip name={user.name ?? "Welcome"} phone={user.phone} tier={tier} />
+        <HeroStrip name={user.name ?? t("profile.welcome")} phone={user.phone} tier={tier} />
       </Animated.View>
 
       <Animated.View entering={FadeInDown.duration(380).delay(60)}>
         <KpiRow
           stats={[
-            { value: points.toLocaleString(), label: "Points" },
-            { value: bookingsCount, label: "Bookings" },
-            { value: listingsCount, label: "Listings" },
+            { value: points.toLocaleString(), label: t("profile.kpiPoints") },
+            { value: bookingsCount, label: t("profile.kpiBookings") },
+            { value: listingsCount, label: t("profile.kpiListings") },
           ]}
         />
       </Animated.View>
@@ -162,13 +166,13 @@ export default function ProfileScreen(): React.JSX.Element {
       <Animated.View entering={FadeInDown.duration(420).delay(180)}>
         <ActivityCard
           icon="calendar-outline"
-          title="My bookings"
+          title={t("profile.activity.bookingsTitle")}
           subtitle={
             bookingsCount === 0
-              ? "No active bookings yet"
+              ? t("profile.activity.bookingsEmpty")
               : latestBooking?.status
-                ? `${bookingsCount} total · latest: ${latestBooking.status}`
-                : `${bookingsCount} total`
+                ? `${bookingsCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestBooking.status}`
+                : `${bookingsCount} ${t("profile.activity.total")}`
           }
           tone="blue"
           onPress={() => router.push("/rent/my-bookings")}
@@ -178,13 +182,13 @@ export default function ProfileScreen(): React.JSX.Element {
       <Animated.View entering={FadeInDown.duration(430).delay(210)}>
         <ActivityCard
           icon="bag-outline"
-          title="My orders"
+          title={t("profile.activity.ordersTitle")}
           subtitle={
             ordersCount === 0
-              ? "No purchases yet"
+              ? t("profile.activity.ordersEmpty")
               : latestOrder?.status
-                ? `${ordersCount} total · latest: ${latestOrder.status}`
-                : `${ordersCount} total`
+                ? `${ordersCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestOrder.status}`
+                : `${ordersCount} ${t("profile.activity.total")}`
           }
           tone="pink"
           onPress={() => router.push("/buy/my-orders")}
@@ -194,8 +198,8 @@ export default function ProfileScreen(): React.JSX.Element {
       <Animated.View entering={FadeInDown.duration(435).delay(225)}>
         <ActivityCard
           icon="heart-outline"
-          title="Saved vehicles"
-          subtitle="Vehicles you saved for later"
+          title={t("profile.activity.savedTitle")}
+          subtitle={t("profile.activity.savedSubtitle")}
           tone="pink"
           onPress={() => router.push("/profile/favorites")}
         />
@@ -204,13 +208,13 @@ export default function ProfileScreen(): React.JSX.Element {
       <Animated.View entering={FadeInDown.duration(440).delay(240)}>
         <ActivityCard
           icon="pricetag-outline"
-          title="My listings"
+          title={t("profile.activity.listingsTitle")}
           subtitle={
             listingsCount === 0
-              ? "Post your first listing"
+              ? t("profile.activity.listingsEmpty")
               : latestListing?.title
-                ? `${listingsCount} total · ${latestListing.title}`
-                : `${listingsCount} total`
+                ? `${listingsCount} ${t("profile.activity.total")} · ${latestListing.title}`
+                : `${listingsCount} ${t("profile.activity.total")}`
           }
           tone="pink"
           onPress={() => router.push("/sell/my-listings")}
@@ -220,13 +224,13 @@ export default function ProfileScreen(): React.JSX.Element {
       <Animated.View entering={FadeInDown.duration(460).delay(300)}>
         <ActivityCard
           icon="construct-outline"
-          title="My repairs"
+          title={t("profile.activity.repairsTitle")}
           subtitle={
             repairsCount === 0
-              ? "No repair requests"
+              ? t("profile.activity.repairsEmpty")
               : latestRepair?.status
-                ? `${repairsCount} total · latest: ${latestRepair.status}`
-                : `${repairsCount} total`
+                ? `${repairsCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestRepair.status}`
+                : `${repairsCount} ${t("profile.activity.total")}`
           }
           tone="amber"
           onPress={() => router.push("/(tabs)/repair")}
@@ -236,13 +240,13 @@ export default function ProfileScreen(): React.JSX.Element {
       <Animated.View entering={FadeInDown.duration(470).delay(330)}>
         <ActivityCard
           icon="car-sport-outline"
-          title="Rental listings"
+          title={t("profile.activity.rentalsTitle")}
           subtitle={
             rentalsCount === 0
-              ? "List your cart for managed rental"
+              ? t("profile.activity.rentalsEmpty")
               : latestRental?.status
-                ? `${rentalsCount} total · latest: ${latestRental.status}`
-                : `${rentalsCount} total`
+                ? `${rentalsCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestRental.status}`
+                : `${rentalsCount} ${t("profile.activity.total")}`
           }
           tone="purple"
           onPress={() => router.push("/sell/list-for-rent")}
@@ -252,8 +256,12 @@ export default function ProfileScreen(): React.JSX.Element {
       <Animated.View entering={FadeInDown.duration(480).delay(360)}>
         <ActivityCard
           icon="chatbubbles-outline"
-          title="Messages"
-          subtitle={unreadCount > 0 ? `${unreadCount} unread` : "No new messages"}
+          title={t("profile.activity.messagesTitle")}
+          subtitle={
+            unreadCount > 0
+              ? `${unreadCount} ${t("profile.activity.unread")}`
+              : t("profile.activity.messagesEmpty")
+          }
           badge={unreadCount > 0 ? String(unreadCount) : undefined}
           tone="pool"
           onPress={() => router.push("/messages")}

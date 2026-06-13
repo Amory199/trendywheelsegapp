@@ -1,5 +1,5 @@
-import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { borderRadius, colors, spacing, typography } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
@@ -19,6 +19,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 import { playSound } from "../../lib/sounds";
 
 type Category = "mechanical" | "electrical" | "cosmetic" | "other";
@@ -27,24 +28,25 @@ type Priority = "low" | "medium" | "high" | "urgent";
 const CATEGORIES: {
   key: Category;
   icon: React.ComponentProps<typeof Ionicons>["name"];
-  label: string;
+  labelKey: string;
 }[] = [
-  { key: "mechanical", icon: "settings-outline", label: "Mechanical" },
-  { key: "electrical", icon: "flash-outline", label: "Electrical" },
-  { key: "cosmetic", icon: "color-palette-outline", label: "Cosmetic" },
-  { key: "other", icon: "construct-outline", label: "Other" },
+  { key: "mechanical", icon: "settings-outline", labelKey: "service.request.catMechanical" },
+  { key: "electrical", icon: "flash-outline", labelKey: "service.request.catElectrical" },
+  { key: "cosmetic", icon: "color-palette-outline", labelKey: "service.request.catCosmetic" },
+  { key: "other", icon: "construct-outline", labelKey: "service.request.catOther" },
 ];
 
-const PRIORITIES: { key: Priority; label: string; color: string }[] = [
-  { key: "low", label: "Low", color: colors.success },
-  { key: "medium", label: "Medium", color: colors.warning },
-  { key: "high", label: "High", color: "#F97316" },
-  { key: "urgent", label: "Urgent", color: "#EF4444" },
+const PRIORITIES: { key: Priority; labelKey: string; color: string }[] = [
+  { key: "low", labelKey: "service.request.prioLow", color: colors.success },
+  { key: "medium", labelKey: "service.request.prioMedium", color: colors.warning },
+  { key: "high", labelKey: "service.request.prioHigh", color: "#F97316" },
+  { key: "urgent", labelKey: "service.request.prioUrgent", color: "#EF4444" },
 ];
 
 export default function RepairRequestScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
+  const t = useT();
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("mechanical");
   const [priority, setPriority] = useState<Priority>("medium");
@@ -87,7 +89,7 @@ export default function RepairRequestScreen(): JSX.Element {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
-        <Text style={styles.title}>New Repair Request</Text>
+        <Text style={styles.title}>{t("service.request.title")}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -96,7 +98,7 @@ export default function RepairRequestScreen(): JSX.Element {
       >
         {/* Category */}
         <Animated.View entering={FadeInDown.delay(50).springify()}>
-          <Text style={styles.label}>Issue Category</Text>
+          <Text style={styles.label}>{t("service.request.issueCategory")}</Text>
           <View style={styles.categoryGrid}>
             {CATEGORIES.map((c) => (
               <Pressable
@@ -113,7 +115,7 @@ export default function RepairRequestScreen(): JSX.Element {
                   numberOfLines={1}
                   style={[styles.categoryLabel, category === c.key && styles.categoryLabelActive]}
                 >
-                  {c.label}
+                  {t(c.labelKey)}
                 </Text>
               </Pressable>
             ))}
@@ -122,12 +124,12 @@ export default function RepairRequestScreen(): JSX.Element {
 
         {/* Description */}
         <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <Text style={styles.label}>Describe the Issue</Text>
+          <Text style={styles.label}>{t("service.request.describeIssue")}</Text>
           <TextInput
             style={styles.textarea}
             multiline
             numberOfLines={5}
-            placeholder="Describe what's wrong in detail (min 10 characters)…"
+            placeholder={t("service.request.descriptionPlaceholder")}
             placeholderTextColor={colors.text.secondary}
             value={description}
             onChangeText={setDescription}
@@ -138,7 +140,7 @@ export default function RepairRequestScreen(): JSX.Element {
 
         {/* Priority */}
         <Animated.View entering={FadeInDown.delay(150).springify()}>
-          <Text style={styles.label}>Priority</Text>
+          <Text style={styles.label}>{t("service.request.priority")}</Text>
           <View style={styles.priorityRow}>
             {PRIORITIES.map((p) => {
               const selected = priority === p.key;
@@ -154,7 +156,7 @@ export default function RepairRequestScreen(): JSX.Element {
                   onPress={() => setPriority(p.key)}
                 >
                   <Text style={[styles.priorityLabel, { color: selected ? "#fff" : p.color }]}>
-                    {p.label}
+                    {t(p.labelKey)}
                   </Text>
                 </Pressable>
               );
@@ -164,7 +166,7 @@ export default function RepairRequestScreen(): JSX.Element {
 
         {/* Preferred Date (optional) — calendar picker, never free text */}
         <Animated.View entering={FadeInDown.delay(200).springify()}>
-          <Text style={styles.label}>Preferred Date (optional)</Text>
+          <Text style={styles.label}>{t("service.request.preferredDate")}</Text>
           <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
             <Text
               style={{
@@ -173,7 +175,7 @@ export default function RepairRequestScreen(): JSX.Element {
                 lineHeight: 48,
               }}
             >
-              {preferredDate ? preferredDate.toLocaleDateString() : "Tap to pick a date"}
+              {preferredDate ? preferredDate.toLocaleDateString() : t("service.request.pickDate")}
             </Text>
             <Ionicons
               name="calendar-outline"
@@ -205,12 +207,12 @@ export default function RepairRequestScreen(): JSX.Element {
           ) : (
             <>
               <Ionicons name="send-outline" size={18} color="#000" />
-              <Text style={styles.submitBtnText}>Submit Request</Text>
+              <Text style={styles.submitBtnText}>{t("service.request.submit")}</Text>
             </>
           )}
         </Pressable>
         {mutation.isError && (
-          <Text style={styles.errorText}>Submission failed. Please try again.</Text>
+          <Text style={styles.errorText}>{t("service.request.submissionFailed")}</Text>
         )}
       </View>
     </View>

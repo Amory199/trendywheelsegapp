@@ -18,6 +18,7 @@ import {
 } from "react-native";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Agent {
   id: string;
@@ -33,6 +34,7 @@ interface Agent {
 
 export default function AdminSalesTeam(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
 
   const teamQ = useQuery({
     queryKey: ["admin", "sales-team"],
@@ -62,11 +64,15 @@ export default function AdminSalesTeam(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>SALES CONSOLE</Text>
-        <Text style={styles.title}>Sales Team</Text>
+        <Text style={styles.kicker}>{t("admin.salesTeamKicker")}</Text>
+        <Text style={styles.title}>{t("admin.salesTeamTitle")}</Text>
         <Text style={styles.subtitle}>
-          {agents.length} agents · {totalOpen} open leads · EGP{" "}
-          {Math.round(totalWon).toLocaleString()} won this month
+          {agents.length}
+          {t("admin.salesTeamSummaryAgents")}
+          {totalOpen}
+          {t("admin.salesTeamSummaryOpenLeads")}
+          {Math.round(totalWon).toLocaleString()}
+          {t("admin.salesTeamSummaryWon")}
         </Text>
       </View>
 
@@ -96,11 +102,11 @@ export default function AdminSalesTeam(): React.JSX.Element {
                 <Ionicons name="flag" size={20} color="#F5B800" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.poolTitle}>Unassigned pool</Text>
+                <Text style={styles.poolTitle}>{t("admin.salesTeamPoolTitle")}</Text>
                 <Text style={styles.poolMeta}>
                   {poolCount === 0
-                    ? "All leads are assigned"
-                    : `${poolCount} waiting to be handed out`}
+                    ? t("admin.salesTeamPoolAllAssigned")
+                    : `${poolCount}${t("admin.salesTeamPoolWaitingSuffix")}`}
                 </Text>
               </View>
               {poolCount > 0 ? (
@@ -114,7 +120,7 @@ export default function AdminSalesTeam(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="people-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No sales agents yet</Text>
+              <Text style={styles.emptyText}>{t("admin.salesTeamEmpty")}</Text>
             </View>
           }
           renderItem={({ item }) => {
@@ -132,21 +138,29 @@ export default function AdminSalesTeam(): React.JSX.Element {
                     </Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{item.name ?? "Agent"}</Text>
-                    <Text style={styles.meta}>{item.staffRole ?? "staff"}</Text>
+                    <Text style={styles.name}>
+                      {item.name ?? t("admin.salesTeamAgentFallback")}
+                    </Text>
+                    <Text style={styles.meta}>
+                      {item.staffRole ?? t("admin.salesTeamStaffFallback")}
+                    </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
                 </View>
 
                 <View style={styles.statsRow}>
-                  <Stat label="Open" value={item.openLeads ?? 0} tint={colors.brand.poolBlue} />
                   <Stat
-                    label="Won (mo)"
+                    label={t("admin.statOpen")}
+                    value={item.openLeads ?? 0}
+                    tint={colors.brand.poolBlue}
+                  />
+                  <Stat
+                    label={t("admin.statWonMonth")}
                     value={item.monthWonCount ?? 0}
                     tint={colors.brand.ecoLimelight ?? "#A9F453"}
                   />
                   <Stat
-                    label="Revenue"
+                    label={t("admin.statRevenue")}
                     value={Math.round((item.monthWonAmount ?? 0) / 1000)}
                     suffix="k"
                     tint={colors.brand.trendyPink}
@@ -170,11 +184,14 @@ export default function AdminSalesTeam(): React.JSX.Element {
                       />
                     </View>
                     <Text style={styles.targetText}>
-                      {pct ?? 0}% of EGP {Math.round(target).toLocaleString()} target
+                      {pct ?? 0}
+                      {t("admin.salesTeamTargetSuffix")}
+                      {Math.round(target).toLocaleString()}
+                      {t("admin.salesTeamTargetSuffix2")}
                     </Text>
                   </View>
                 ) : (
-                  <Text style={styles.noTarget}>No monthly target set — tap to set one</Text>
+                  <Text style={styles.noTarget}>{t("admin.salesTeamNoTarget")}</Text>
                 )}
               </Pressable>
             );

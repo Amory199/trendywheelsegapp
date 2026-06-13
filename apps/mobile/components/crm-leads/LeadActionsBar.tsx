@@ -7,6 +7,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@trendywheels/ui-tokens";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { useT } from "../../lib/locale";
+
 export interface LeadActionsBarProps {
   contactPhone: string | null | undefined;
   isAdmin: boolean;
@@ -19,15 +21,12 @@ export interface LeadActionsBarProps {
 }
 
 export function LeadActionsBar(p: LeadActionsBarProps): React.ReactElement {
+  const t = useT();
   const confirmPass = (): void => {
-    Alert.alert(
-      "Pass to next agent?",
-      "This lead will be reassigned to another sales agent and removed from your pipeline.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Pass on", style: "destructive", onPress: p.onPass },
-      ],
-    );
+    Alert.alert(t("crm.actions.passConfirmTitle"), t("crm.actions.passConfirmBody"), [
+      { text: t("crm.actions.cancel"), style: "cancel" },
+      { text: t("crm.actions.passOn"), style: "destructive", onPress: p.onPass },
+    ]);
   };
 
   return (
@@ -38,14 +37,14 @@ export function LeadActionsBar(p: LeadActionsBarProps): React.ReactElement {
           onPress={p.onCall}
         >
           <Ionicons name="call" size={14} color="#fff" />
-          <Text style={styles.btnText}>Call</Text>
+          <Text style={styles.btnText}>{t("crm.actions.call")}</Text>
         </Pressable>
       ) : null}
 
       {p.contactPhone ? (
         <Pressable style={[styles.btn, { backgroundColor: "#25D366" }]} onPress={p.onWhatsApp}>
           <Ionicons name="logo-whatsapp" size={14} color="#fff" />
-          <Text style={styles.btnText}>WA</Text>
+          <Text style={styles.btnText}>{t("crm.actions.whatsApp")}</Text>
         </Pressable>
       ) : null}
 
@@ -55,7 +54,7 @@ export function LeadActionsBar(p: LeadActionsBarProps): React.ReactElement {
           onPress={confirmPass}
         >
           <Ionicons name="swap-horizontal" size={14} color="#fff" />
-          <Text style={styles.btnText}>Pass</Text>
+          <Text style={styles.btnText}>{t("crm.actions.pass")}</Text>
         </Pressable>
       ) : null}
 
@@ -65,7 +64,7 @@ export function LeadActionsBar(p: LeadActionsBarProps): React.ReactElement {
           onPress={p.onReassign}
         >
           <Ionicons name="swap-horizontal" size={14} color="#fff" />
-          <Text style={styles.btnText}>Reassign</Text>
+          <Text style={styles.btnText}>{t("crm.actions.reassign")}</Text>
         </Pressable>
       ) : null}
     </View>

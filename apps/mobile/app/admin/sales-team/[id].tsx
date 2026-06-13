@@ -23,6 +23,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Agent {
   id: string;
@@ -45,6 +46,7 @@ interface Lead {
 
 export default function AgentDetail(): React.JSX.Element {
   const insets = useSafeAreaInsets();
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const qc = useQueryClient();
   const isPool = id === "unassigned";
@@ -89,7 +91,7 @@ export default function AgentDetail(): React.JSX.Element {
       setPickFor(null);
       invalidate();
     },
-    onError: (e: Error) => Alert.alert("Reassign failed", e.message),
+    onError: (e: Error) => Alert.alert(t("admin.agentReassignFailed"), e.message),
   });
 
   const setTarget = useMutation({
@@ -105,10 +107,10 @@ export default function AgentDetail(): React.JSX.Element {
       setTargetInput("");
       invalidate();
     },
-    onError: (e: Error) => Alert.alert("Could not set target", e.message),
+    onError: (e: Error) => Alert.alert(t("admin.agentSetTargetFailed"), e.message),
   });
 
-  const title = isPool ? "Unassigned pool" : (agent?.name ?? "Agent");
+  const title = isPool ? t("admin.agentPoolTitle") : (agent?.name ?? t("admin.agentFallback"));
 
   return (
     <>
@@ -124,14 +126,18 @@ export default function AgentDetail(): React.JSX.Element {
         {!isPool && agent ? (
           <View style={styles.agentHeader}>
             <View style={styles.statsRow}>
-              <Stat label="Open" value={agent.openLeads ?? 0} tint={colors.brand.poolBlue} />
               <Stat
-                label="Won (mo)"
+                label={t("admin.statOpen")}
+                value={agent.openLeads ?? 0}
+                tint={colors.brand.poolBlue}
+              />
+              <Stat
+                label={t("admin.statWonMonth")}
                 value={agent.monthWonCount ?? 0}
                 tint={colors.brand.ecoLimelight ?? "#A9F453"}
               />
               <Stat
-                label="Revenue"
+                label={t("admin.statRevenue")}
                 value={Math.round((agent.monthWonAmount ?? 0) / 1000)}
                 suffix="k"
                 tint={colors.brand.trendyPink}
@@ -141,8 +147,8 @@ export default function AgentDetail(): React.JSX.Element {
               <Ionicons name="flag-outline" size={15} color="#fff" />
               <Text style={styles.targetBtnText}>
                 {Number(agent.salesTargetMonthly ?? 0) > 0
-                  ? `Target: EGP ${Math.round(Number(agent.salesTargetMonthly)).toLocaleString()}`
-                  : "Set monthly target"}
+                  ? `${t("admin.agentTargetPrefix")}${Math.round(Number(agent.salesTargetMonthly)).toLocaleString()}`
+                  : t("admin.agentSetTarget")}
               </Text>
             </Pressable>
           </View>
@@ -163,22 +169,27 @@ export default function AgentDetail(): React.JSX.Element {
               <View style={styles.empty}>
                 <Ionicons name="checkmark-done-outline" size={44} color={colors.text.secondary} />
                 <Text style={styles.emptyText}>
-                  {isPool ? "No unassigned leads" : "No open leads"}
+                  {isPool ? t("admin.agentNoUnassigned") : t("admin.agentNoOpenLeads")}
                 </Text>
               </View>
             }
             renderItem={({ item }) => (
               <View style={styles.leadCard}>
                 <View style={{ flex: 1, gap: 3 }}>
-                  <Text style={styles.leadName}>{item.contactName ?? "Lead"}</Text>
+                  <Text style={styles.leadName}>
+                    {item.contactName ?? t("admin.agentLeadFallback")}
+                  </Text>
                   <Text style={styles.leadMeta}>
-                    {item.status ?? "new"} · {item.source ?? "—"} · EGP{" "}
+                    {item.status ?? t("admin.agentLeadStatusFallback")} ·{" "}
+                    {item.source ?? t("admin.dash")} · {t("admin.egp")}{" "}
                     {Number(item.estimatedValue ?? 0).toLocaleString()}
                   </Text>
                 </View>
                 <Pressable style={styles.assignBtn} onPress={() => setPickFor(item.id)}>
                   <Ionicons name="person-add" size={14} color="#fff" />
-                  <Text style={styles.assignText}>{isPool ? "Assign" : "Reassign"}</Text>
+                  <Text style={styles.assignText}>
+                    {isPool ? t("admin.agentAssign") : t("admin.agentReassign")}
+                  </Text>
                 </Pressable>
               </View>
             )}
@@ -195,11 +206,11 @@ export default function AgentDetail(): React.JSX.Element {
       >
         <Pressable style={styles.modalBg} onPress={() => setPickFor(null)}>
           <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Assign to…</Text>
+            <Text style={styles.modalTitle}>{t("admin.agentAssignTo")}</Text>
             <FlatList
               data={agents}
               keyExtractor={(a) => a.id}
-              ListEmptyComponent={<Text style={styles.emptyText}>No agents available.</Text>}
+              ListEmptyComponent={<Text style={styles.emptyText}>{t("admin.agentNoAgents")}</Text>}
               renderItem={({ item }) => (
                 <Pressable
                   style={styles.agentRow}
@@ -208,8 +219,11 @@ export default function AgentDetail(): React.JSX.Element {
                 >
                   <Ionicons name="person-circle" size={28} color={colors.brand.trendyPink} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.agentName}>{item.name ?? "Agent"}</Text>
-                    <Text style={styles.agentSub}>{item.openLeads ?? 0} open leads</Text>
+                    <Text style={styles.agentName}>{item.name ?? t("admin.agentFallback")}</Text>
+                    <Text style={styles.agentSub}>
+                      {item.openLeads ?? 0}
+                      {t("admin.agentOpenLeadsSuffix")}
+                    </Text>
                   </View>
                   {reassign.isPending ? (
                     <ActivityIndicator color={colors.brand.trendyPink} />
@@ -230,11 +244,11 @@ export default function AgentDetail(): React.JSX.Element {
       >
         <Pressable style={styles.modalBg} onPress={() => setTargetOpen(false)}>
           <Pressable style={styles.targetModal} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Monthly target (EGP)</Text>
+            <Text style={styles.modalTitle}>{t("admin.agentMonthlyTarget")}</Text>
             <TextInput
               style={styles.targetInput}
               keyboardType="number-pad"
-              placeholder="e.g. 250000"
+              placeholder={t("admin.agentTargetPlaceholder")}
               placeholderTextColor={colors.text.secondary}
               value={targetInput}
               onChangeText={setTargetInput}
@@ -246,14 +260,14 @@ export default function AgentDetail(): React.JSX.Element {
               onPress={() => {
                 const n = Number(targetInput);
                 if (!Number.isFinite(n) || n <= 0) {
-                  Alert.alert("Enter a valid amount");
+                  Alert.alert(t("admin.agentInvalidAmount"));
                   return;
                 }
                 setTarget.mutate(n);
               }}
             >
               <Text style={styles.saveBtnText}>
-                {setTarget.isPending ? "Saving…" : "Save target"}
+                {setTarget.isPending ? t("admin.agentSaving") : t("admin.agentSaveTarget")}
               </Text>
             </Pressable>
           </Pressable>

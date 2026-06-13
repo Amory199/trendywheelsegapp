@@ -20,15 +20,16 @@ import {
 } from "react-native";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 type SalesStatus = "available" | "reserved" | "sold";
 
 const SALES_STATUSES: SalesStatus[] = ["available", "reserved", "sold"];
 
-const STATUS_LABEL: Record<SalesStatus, string> = {
-  available: "Available",
-  reserved: "Reserved",
-  sold: "Sold",
+const STATUS_LABEL_KEY: Record<SalesStatus, string> = {
+  available: "buy.statusAvailable",
+  reserved: "buy.statusReserved",
+  sold: "buy.statusSold",
 };
 
 const STATUS_COLOR: Record<SalesStatus, string> = {
@@ -46,6 +47,7 @@ interface Vehicle {
 
 export default function InventoryToggle(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
   const qc = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -63,7 +65,7 @@ export default function InventoryToggle(): React.JSX.Element {
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!target) throw new Error("Pick a status first");
+      if (!target) throw new Error(t("buy.pickStatusFirst"));
       return api.setVehicleStatus(id!, {
         toStatus: target,
         dealNote: dealNote.trim() || null,
@@ -73,12 +75,16 @@ export default function InventoryToggle(): React.JSX.Element {
       await qc.invalidateQueries({ queryKey: ["inventory"] });
       await qc.invalidateQueries({ queryKey: ["vehicles"] });
       Alert.alert(
-        "Updated",
-        `${q.data?.name ?? "Vehicle"} → ${target ? STATUS_LABEL[target] : ""}`,
+        t("buy.updatedTitle"),
+        `${q.data?.name ?? t("buy.fallbackVehicle")} → ${target ? t(STATUS_LABEL_KEY[target]) : ""}`,
       );
       router.back();
     },
-    onError: (e) => Alert.alert("Could not update", e instanceof Error ? e.message : "Try again"),
+    onError: (e) =>
+      Alert.alert(
+        t("buy.couldNotUpdateTitle"),
+        e instanceof Error ? e.message : t("buy.tryAgainShort"),
+      ),
   });
 
   const current = (q.data?.status as SalesStatus | undefined) ?? "available";
@@ -87,7 +93,7 @@ export default function InventoryToggle(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: q.data?.name ?? "Inventory",
+          title: q.data?.name ?? t("buy.inventoryTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTitleStyle: { color: "#fff" },
           headerTintColor: "#fff",
@@ -100,13 +106,15 @@ export default function InventoryToggle(): React.JSX.Element {
       ) : (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
           <View style={styles.card}>
-            <Text style={styles.label}>Current status</Text>
+            <Text style={styles.label}>{t("buy.currentStatus")}</Text>
             <View style={[styles.chip, { backgroundColor: STATUS_COLOR[current] ?? "#888" }]}>
-              <Text style={styles.chipText}>{STATUS_LABEL[current] ?? current}</Text>
+              <Text style={styles.chipText}>
+                {STATUS_LABEL_KEY[current] ? t(STATUS_LABEL_KEY[current]) : current}
+              </Text>
             </View>
           </View>
 
-          <Text style={styles.section}>Change to</Text>
+          <Text style={styles.section}>{t("buy.changeTo")}</Text>
           {SALES_STATUSES.map((s) => {
             const selected = target === s;
             const disabled = current === s;
@@ -122,8 +130,8 @@ export default function InventoryToggle(): React.JSX.Element {
                 ]}
               >
                 <View style={[styles.rowDot, { backgroundColor: STATUS_COLOR[s] }]} />
-                <Text style={styles.rowText}>{STATUS_LABEL[s]}</Text>
-                {disabled ? <Text style={styles.rowHint}>Current</Text> : null}
+                <Text style={styles.rowText}>{t(STATUS_LABEL_KEY[s])}</Text>
+                {disabled ? <Text style={styles.rowHint}>{t("buy.currentHint")}</Text> : null}
                 {selected ? <Ionicons name="checkmark" size={18} color={STATUS_COLOR[s]} /> : null}
               </Pressable>
             );
@@ -131,12 +139,12 @@ export default function InventoryToggle(): React.JSX.Element {
 
           {target === "sold" || target === "reserved" ? (
             <>
-              <Text style={styles.section}>Deal note (optional)</Text>
+              <Text style={styles.section}>{t("buy.dealNote")}</Text>
               <TextInput
                 style={styles.input}
                 value={dealNote}
                 onChangeText={setDealNote}
-                placeholder="e.g. cash, plate #1234, customer Ahmed"
+                placeholder={t("buy.dealNotePlaceholder")}
                 placeholderTextColor="#888"
                 multiline
               />
@@ -148,7 +156,9 @@ export default function InventoryToggle(): React.JSX.Element {
             onPress={() => save.mutate()}
             disabled={!target || save.isPending}
           >
-            <Text style={styles.ctaText}>{save.isPending ? "Saving…" : "Update status"}</Text>
+            <Text style={styles.ctaText}>
+              {save.isPending ? t("buy.saving") : t("buy.updateStatus")}
+            </Text>
           </Pressable>
         </ScrollView>
       )}

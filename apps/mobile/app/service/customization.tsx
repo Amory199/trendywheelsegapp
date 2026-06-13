@@ -17,13 +17,14 @@ import {
 } from "react-native";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 const KINDS = [
-  { key: "paint", label: "Paint / wrap" },
-  { key: "lights", label: "Lights" },
-  { key: "wrap", label: "Vinyl wrap" },
-  { key: "audio", label: "Audio" },
-  { key: "other", label: "Other" },
+  { key: "paint", labelKey: "service.customization.kindPaint" },
+  { key: "lights", labelKey: "service.customization.kindLights" },
+  { key: "wrap", labelKey: "service.customization.kindWrap" },
+  { key: "audio", labelKey: "service.customization.kindAudio" },
+  { key: "other", labelKey: "service.customization.kindOther" },
 ] as const;
 
 type Kind = (typeof KINDS)[number]["key"];
@@ -31,6 +32,7 @@ type Kind = (typeof KINDS)[number]["key"];
 export default function CustomizationScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
+  const t = useT();
   const [kind, setKind] = useState<Kind>("paint");
   const [budget, setBudget] = useState("");
   const [notes, setNotes] = useState("");
@@ -46,19 +48,22 @@ export default function CustomizationScreen(): JSX.Element {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["service", "customization"] });
-      Alert.alert("Request received", "We'll send you concept options shortly.", [
-        { text: "OK", onPress: () => router.back() },
+      Alert.alert(t("service.customization.successTitle"), t("service.customization.successBody"), [
+        { text: t("common.confirm"), onPress: () => router.back() },
       ]);
     },
     onError: (err) =>
-      Alert.alert("Couldn't submit", err instanceof Error ? err.message : "Try again"),
+      Alert.alert(
+        t("service.submitErrorTitle"),
+        err instanceof Error ? err.message : t("service.submitErrorFallback"),
+      ),
   });
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: "Customization",
+          title: t("service.customization.headerTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -70,14 +75,11 @@ export default function CustomizationScreen(): JSX.Element {
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.intro}>
             <Ionicons name="color-palette" size={32} color={colors.brand.poolBlue} />
-            <Text style={styles.title}>Make it yours</Text>
-            <Text style={styles.subtitle}>
-              Tell us what you have in mind. Paint, wrap, lights, audio — we'll come back with
-              concept options.
-            </Text>
+            <Text style={styles.title}>{t("service.customization.intro")}</Text>
+            <Text style={styles.subtitle}>{t("service.customization.subtitle")}</Text>
           </View>
 
-          <Text style={styles.label}>Customization type</Text>
+          <Text style={styles.label}>{t("service.customization.typeLabel")}</Text>
           <View style={styles.chipRow}>
             {KINDS.map((k) => {
               const active = kind === k.key;
@@ -87,27 +89,29 @@ export default function CustomizationScreen(): JSX.Element {
                   onPress={() => setKind(k.key)}
                   style={[styles.chip, active && styles.chipActive]}
                 >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{k.label}</Text>
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {t(k.labelKey)}
+                  </Text>
                 </Pressable>
               );
             })}
           </View>
 
-          <Text style={styles.label}>Budget (EGP, optional)</Text>
+          <Text style={styles.label}>{t("service.customization.budgetLabel")}</Text>
           <TextInput
             value={budget}
             onChangeText={(v) => setBudget(v.replace(/[^0-9]/g, ""))}
-            placeholder="e.g. 25000"
+            placeholder={t("service.customization.budgetPlaceholder")}
             placeholderTextColor={colors.text.secondary}
             keyboardType="number-pad"
             style={styles.input}
           />
 
-          <Text style={styles.label}>Your idea</Text>
+          <Text style={styles.label}>{t("service.customization.ideaLabel")}</Text>
           <TextInput
             value={notes}
             onChangeText={setNotes}
-            placeholder="What do you have in mind?"
+            placeholder={t("service.customization.ideaPlaceholder")}
             placeholderTextColor={colors.text.secondary}
             multiline
             style={[styles.input, styles.textarea]}
@@ -123,7 +127,7 @@ export default function CustomizationScreen(): JSX.Element {
             ) : (
               <>
                 <Ionicons name="checkmark" size={16} color="#000" />
-                <Text style={styles.submitBtnText}>Submit request</Text>
+                <Text style={styles.submitBtnText}>{t("service.customization.submit")}</Text>
               </>
             )}
           </Pressable>

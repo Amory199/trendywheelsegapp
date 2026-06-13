@@ -2,13 +2,14 @@
 // completed counters. Calls /api/referrals/me directly via the api client.
 // Returns null while loading so the rest of the feed doesn't shift around.
 
-import { colors } from "@trendywheels/ui-tokens";
 import { useQuery } from "@tanstack/react-query";
+import { colors } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
 import * as React from "react";
 import { Share, Text, View } from "react-native";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 import { TWPressable } from "../ui";
 
 interface Referral {
@@ -21,6 +22,7 @@ interface ReferralData {
 }
 
 export function ReferralCard(): React.JSX.Element | null {
+  const t = useT();
   const q = useQuery<{ data: ReferralData }>({
     queryKey: ["mobile-referral"],
     queryFn: () => api.getReferralsMe(),
@@ -32,7 +34,7 @@ export function ReferralCard(): React.JSX.Element | null {
   const onShare = async (): Promise<void> => {
     try {
       await Share.share({
-        message: `Join me on TrendyWheels — use my code ${data.code} for a discount on your first ride: https://trendywheelseg.com`,
+        message: t("profile.referral.shareMessage").replace("{code}", data.code),
       });
     } catch {
       /* user cancelled */
@@ -63,7 +65,7 @@ export function ReferralCard(): React.JSX.Element | null {
               letterSpacing: 1.2,
             }}
           >
-            REFERRAL CODE
+            {t("profile.referral.codeLabel")}
           </Text>
           <Text
             style={{
@@ -84,14 +86,16 @@ export function ReferralCard(): React.JSX.Element | null {
               lineHeight: 15,
             }}
           >
-            Friends earn 500 pts on first ride. So do you.
+            {t("profile.referral.blurb")}
           </Text>
           <View style={{ flexDirection: "row", gap: 14, marginTop: 8 }}>
             <Text style={{ fontSize: 11, color: "#fff" }}>
-              <Text style={{ fontWeight: "800" }}>{data.usedCount}</Text> joined
+              <Text style={{ fontWeight: "800" }}>{data.usedCount}</Text>{" "}
+              {t("profile.referral.joined")}
             </Text>
             <Text style={{ fontSize: 11, color: "#fff" }}>
-              <Text style={{ fontWeight: "800" }}>{completed}</Text> completed
+              <Text style={{ fontWeight: "800" }}>{completed}</Text>{" "}
+              {t("profile.referral.completed")}
             </Text>
           </View>
         </View>
@@ -107,7 +111,7 @@ export function ReferralCard(): React.JSX.Element | null {
           }}
         >
           <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700", letterSpacing: 0.5 }}>
-            SHARE
+            {t("profile.referral.share")}
           </Text>
         </TWPressable>
       </LinearGradient>

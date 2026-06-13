@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../lib/api";
+import { useT } from "../lib/locale";
 
 // Boot-time force-update gate. Compares the installed binary's version with
 // /api/app-config's minSupportedVersion; below it, the app is blocked behind
@@ -25,6 +26,7 @@ function isBelow(current: string, min: string): boolean {
 
 export function UpdateGate(): React.JSX.Element | null {
   const [storeUrl, setStoreUrl] = useState<string | null>(null);
+  const t = useT();
 
   useEffect(() => {
     api
@@ -44,13 +46,10 @@ export function UpdateGate(): React.JSX.Element | null {
   return (
     <View style={styles.root}>
       <Text style={styles.emoji}>⬆️</Text>
-      <Text style={styles.title}>Update required</Text>
-      <Text style={styles.body}>
-        This version of TrendyWheels is no longer supported. Please update to keep booking, buying,
-        and managing your carts.
-      </Text>
+      <Text style={styles.title}>{t("components.updateGate.title")}</Text>
+      <Text style={styles.body}>{t("components.updateGate.body")}</Text>
       <Pressable style={styles.button} onPress={() => void Linking.openURL(storeUrl)}>
-        <Text style={styles.buttonText}>Update now</Text>
+        <Text style={styles.buttonText}>{t("components.updateGate.updateNow")}</Text>
       </Pressable>
     </View>
   );

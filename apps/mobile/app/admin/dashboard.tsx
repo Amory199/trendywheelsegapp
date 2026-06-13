@@ -15,6 +15,7 @@ import {
 
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useT } from "../../lib/locale";
 
 interface AdminMetrics {
   totalUsers: number;
@@ -29,6 +30,7 @@ export default function AdminDashboard(): JSX.Element {
   const router = useRouter();
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
+  const t = useT();
 
   const metricsQ = useQuery({
     queryKey: ["admin", "metrics"],
@@ -46,8 +48,11 @@ export default function AdminDashboard(): JSX.Element {
     <View style={styles.root}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.hello}>Hi, {user?.name ?? "Admin"}</Text>
-          <Text style={styles.role}>ADMIN</Text>
+          <Text style={styles.hello}>
+            {t("admin.dashHiPrefix")}
+            {user?.name ?? t("admin.dashAdminFallback")}
+          </Text>
+          <Text style={styles.role}>{t("admin.dashRole")}</Text>
         </View>
         <Pressable
           hitSlop={12}
@@ -72,22 +77,22 @@ export default function AdminDashboard(): JSX.Element {
       >
         <View style={styles.grid}>
           <Kpi
-            label="Pending bookings"
+            label={t("admin.kpiPendingBookings")}
             value={m?.pendingBookings ?? 0}
             tone="pink"
             onPress={() => router.push("/admin/bookings")}
           />
-          <Kpi label="Total users" value={m?.totalUsers ?? 0} tone="blue" />
-          <Kpi label="Vehicles" value={m?.totalVehicles ?? 0} tone="pool" />
-          <Kpi label="Bookings total" value={m?.totalBookings ?? 0} tone="amber" />
-          <Kpi label="Open tickets" value={m?.openTickets ?? 0} tone="pink" />
+          <Kpi label={t("admin.kpiTotalUsers")} value={m?.totalUsers ?? 0} tone="blue" />
+          <Kpi label={t("admin.kpiVehicles")} value={m?.totalVehicles ?? 0} tone="pool" />
+          <Kpi label={t("admin.kpiBookingsTotal")} value={m?.totalBookings ?? 0} tone="amber" />
+          <Kpi label={t("admin.kpiOpenTickets")} value={m?.openTickets ?? 0} tone="pink" />
           <Kpi
-            label="Revenue (EGP, m)"
+            label={t("admin.kpiRevenue")}
             value={m?.monthlyRevenue ? Math.round(Number(m.monthlyRevenue)) : 0}
             tone="blue"
           />
           <Kpi
-            label="Inactive leads pool"
+            label={t("admin.kpiInactiveLeads")}
             value={0}
             tone="pool"
             onPress={() => router.push("/admin/leads/inactive")}

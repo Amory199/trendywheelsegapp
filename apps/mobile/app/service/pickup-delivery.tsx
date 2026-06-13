@@ -18,10 +18,12 @@ import {
 } from "react-native";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 export default function PickupDeliveryScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
+  const t = useT();
   const [fromAddress, setFromAddress] = useState("");
   const [toAddress, setToAddress] = useState("");
   const [pickupAt, setPickupAt] = useState<Date>(new Date(Date.now() + 86400000));
@@ -42,19 +44,22 @@ export default function PickupDeliveryScreen(): JSX.Element {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["service", "transport"] });
-      Alert.alert("Request received", "We'll confirm pickup within a few hours.", [
-        { text: "OK", onPress: () => router.back() },
+      Alert.alert(t("service.pickup.successTitle"), t("service.pickup.successBody"), [
+        { text: t("common.confirm"), onPress: () => router.back() },
       ]);
     },
     onError: (err) =>
-      Alert.alert("Couldn't submit", err instanceof Error ? err.message : "Try again"),
+      Alert.alert(
+        t("service.submitErrorTitle"),
+        err instanceof Error ? err.message : t("service.submitErrorFallback"),
+      ),
   });
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: "Pickup & Delivery",
+          title: t("service.pickup.headerTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -66,31 +71,29 @@ export default function PickupDeliveryScreen(): JSX.Element {
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.intro}>
             <Ionicons name="cube" size={32} color={colors.brand.poolBlue} />
-            <Text style={styles.title}>Door-to-door transport</Text>
-            <Text style={styles.subtitle}>
-              Tell us where we're picking up and where it's going. We'll confirm pricing and ETA.
-            </Text>
+            <Text style={styles.title}>{t("service.pickup.intro")}</Text>
+            <Text style={styles.subtitle}>{t("service.pickup.subtitle")}</Text>
           </View>
 
-          <Text style={styles.label}>Pickup address</Text>
+          <Text style={styles.label}>{t("service.pickup.pickupAddress")}</Text>
           <TextInput
             value={fromAddress}
             onChangeText={setFromAddress}
-            placeholder="Street, district, city"
+            placeholder={t("service.pickup.addressPlaceholder")}
             placeholderTextColor={colors.text.secondary}
             style={styles.input}
           />
 
-          <Text style={styles.label}>Drop-off address</Text>
+          <Text style={styles.label}>{t("service.pickup.dropoffAddress")}</Text>
           <TextInput
             value={toAddress}
             onChangeText={setToAddress}
-            placeholder="Street, district, city"
+            placeholder={t("service.pickup.addressPlaceholder")}
             placeholderTextColor={colors.text.secondary}
             style={styles.input}
           />
 
-          <Text style={styles.label}>Pickup date</Text>
+          <Text style={styles.label}>{t("service.pickup.pickupDate")}</Text>
           <Pressable onPress={() => setShowPicker(true)} style={styles.input}>
             <Text style={styles.inputText}>{pickupAt.toLocaleDateString()}</Text>
           </Pressable>
@@ -106,11 +109,11 @@ export default function PickupDeliveryScreen(): JSX.Element {
             />
           )}
 
-          <Text style={styles.label}>Cargo notes (optional)</Text>
+          <Text style={styles.label}>{t("service.pickup.cargoNotesLabel")}</Text>
           <TextInput
             value={cargoNotes}
             onChangeText={setCargoNotes}
-            placeholder="Size, fragility, anything special?"
+            placeholder={t("service.pickup.cargoNotesPlaceholder")}
             placeholderTextColor={colors.text.secondary}
             multiline
             style={[styles.input, styles.textarea]}
@@ -126,7 +129,7 @@ export default function PickupDeliveryScreen(): JSX.Element {
             ) : (
               <>
                 <Ionicons name="checkmark" size={16} color="#000" />
-                <Text style={styles.submitBtnText}>Submit request</Text>
+                <Text style={styles.submitBtnText}>{t("service.pickup.submit")}</Text>
               </>
             )}
           </Pressable>

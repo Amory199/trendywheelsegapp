@@ -15,6 +15,7 @@ import {
 } from "react-native";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 interface AdminUser {
   id: string;
@@ -26,17 +27,55 @@ interface AdminUser {
   status: string;
 }
 
-const FILTERS: Array<{ key: string; label: string }> = [
-  { key: "all", label: "All" },
-  { key: "customer", label: "Customers" },
-  { key: "staff", label: "Staff" },
-  { key: "admin", label: "Admin" },
+const FILTERS: Array<{
+  key: string;
+  labelKey:
+    | "admin.usersFilterAll"
+    | "admin.usersFilterCustomers"
+    | "admin.usersFilterStaff"
+    | "admin.usersFilterAdmin";
+}> = [
+  { key: "all", labelKey: "admin.usersFilterAll" },
+  { key: "customer", labelKey: "admin.usersFilterCustomers" },
+  { key: "staff", labelKey: "admin.usersFilterStaff" },
+  { key: "admin", labelKey: "admin.usersFilterAdmin" },
 ];
+
+const ACCOUNT_TYPE_KEY: Record<
+  string,
+  "admin.accountTypeCustomer" | "admin.accountTypeStaff" | "admin.accountTypeAdmin"
+> = {
+  customer: "admin.accountTypeCustomer",
+  staff: "admin.accountTypeStaff",
+  admin: "admin.accountTypeAdmin",
+};
+
+const STAFF_ROLE_KEY: Record<
+  string,
+  | "admin.staffRoleSales"
+  | "admin.staffRoleSupport"
+  | "admin.staffRoleInventory"
+  | "admin.staffRoleMechanic"
+  | "admin.staffRoleAdmin"
+> = {
+  sales: "admin.staffRoleSales",
+  support: "admin.staffRoleSupport",
+  inventory: "admin.staffRoleInventory",
+  mechanic: "admin.staffRoleMechanic",
+  admin: "admin.staffRoleAdmin",
+};
 
 export default function AdminUsers(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
+
+  const badgeLabel = (u: AdminUser): string => {
+    if (u.staffRole && STAFF_ROLE_KEY[u.staffRole]) return t(STAFF_ROLE_KEY[u.staffRole]);
+    if (u.staffRole) return u.staffRole;
+    return ACCOUNT_TYPE_KEY[u.accountType] ? t(ACCOUNT_TYPE_KEY[u.accountType]) : u.accountType;
+  };
 
   const listQ = useQuery({
     queryKey: ["admin", "users"],
@@ -62,7 +101,7 @@ export default function AdminUsers(): JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.title}>Users</Text>
+        <Text style={styles.title}>{t("admin.usersTitle")}</Text>
       </View>
 
       <View style={styles.searchRow}>
@@ -70,7 +109,7 @@ export default function AdminUsers(): JSX.Element {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search name, phone, email"
+          placeholder={t("admin.usersSearchPlaceholder")}
           placeholderTextColor={colors.text.secondary}
           style={styles.search}
           autoCapitalize="none"
@@ -86,7 +125,7 @@ export default function AdminUsers(): JSX.Element {
             style={[styles.filter, filter === f.key && styles.filterActive]}
           >
             <Text style={[styles.filterText, filter === f.key && styles.filterTextActive]}>
-              {f.label}
+              {t(f.labelKey)}
             </Text>
           </Pressable>
         ))}
@@ -109,7 +148,7 @@ export default function AdminUsers(): JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="people-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No users match</Text>
+              <Text style={styles.emptyText}>{t("admin.usersEmpty")}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -121,7 +160,7 @@ export default function AdminUsers(): JSX.Element {
               </View>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={styles.name} numberOfLines={1}>
-                  {item.name || "(no name)"}
+                  {item.name || t("admin.usersNoName")}
                 </Text>
                 <Text style={styles.sub} numberOfLines={1}>
                   {item.phone}
@@ -135,7 +174,7 @@ export default function AdminUsers(): JSX.Element {
                   item.accountType === "staff" && styles.badgeStaff,
                 ]}
               >
-                <Text style={styles.badgeText}>{item.staffRole ?? item.accountType}</Text>
+                <Text style={styles.badgeText}>{badgeLabel(item)}</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
             </Pressable>

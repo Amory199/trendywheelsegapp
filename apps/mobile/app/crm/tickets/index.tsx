@@ -18,6 +18,7 @@ import {
 } from "react-native";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Ticket {
   id: string;
@@ -29,11 +30,17 @@ interface Ticket {
   user?: { name?: string; phone?: string };
 }
 
-const FILTERS: Array<{ key: string; label: string }> = [
-  { key: "open", label: "Open" },
-  { key: "in_progress", label: "In Progress" },
-  { key: "resolved", label: "Resolved" },
+const FILTERS: Array<{ key: string; labelKey: string }> = [
+  { key: "open", labelKey: "crm.tickets.filterOpen" },
+  { key: "in_progress", labelKey: "crm.tickets.filterInProgress" },
+  { key: "resolved", labelKey: "crm.tickets.filterResolved" },
 ];
+
+const STATUS_LABEL_KEY: Record<string, string> = {
+  open: "crm.tickets.filterOpen",
+  in_progress: "crm.tickets.filterInProgress",
+  resolved: "crm.tickets.filterResolved",
+};
 
 const PRIORITY_COLOR: Record<string, string> = {
   urgent: "#FF0000",
@@ -44,6 +51,7 @@ const PRIORITY_COLOR: Record<string, string> = {
 
 export default function StaffTickets(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
   const [status, setStatus] = useState("open");
 
   const listQ = useQuery({
@@ -57,8 +65,8 @@ export default function StaffTickets(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>SUPPORT · INBOX</Text>
-        <Text style={styles.title}>Tickets</Text>
+        <Text style={styles.kicker}>{t("crm.tickets.kicker")}</Text>
+        <Text style={styles.title}>{t("crm.tickets.title")}</Text>
       </View>
 
       <View style={styles.filterRow}>
@@ -69,7 +77,7 @@ export default function StaffTickets(): React.JSX.Element {
             style={[styles.filter, status === f.key && styles.filterActive]}
           >
             <Text style={[styles.filterText, status === f.key && styles.filterTextActive]}>
-              {f.label}
+              {t(f.labelKey)}
             </Text>
           </Pressable>
         ))}
@@ -92,7 +100,11 @@ export default function StaffTickets(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="checkmark-done-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No {status} tickets</Text>
+              <Text style={styles.emptyText}>
+                {t("crm.tickets.emptyPrefix")}{" "}
+                {STATUS_LABEL_KEY[status] ? t(STATUS_LABEL_KEY[status]) : status}{" "}
+                {t("crm.tickets.emptySuffix")}
+              </Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -108,8 +120,8 @@ export default function StaffTickets(): React.JSX.Element {
                   {item.subject}
                 </Text>
                 <Text style={styles.meta} numberOfLines={1}>
-                  {item.user?.name ?? item.user?.phone ?? "Unknown"} · {item.category ?? "general"}{" "}
-                  · {item.priority}
+                  {item.user?.name ?? item.user?.phone ?? t("crm.tickets.unknownUser")} ·{" "}
+                  {item.category ?? t("crm.tickets.generalCategory")} · {item.priority}
                 </Text>
                 <Text style={styles.age}>{new Date(item.createdAt).toLocaleString()}</Text>
               </View>

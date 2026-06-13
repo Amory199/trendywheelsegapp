@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-store";
+import { useT } from "../../../lib/locale";
 
 interface UserRow {
   id: string;
@@ -32,9 +33,41 @@ const ACCOUNT_TYPES = ["customer", "staff", "admin"];
 const STAFF_ROLES = ["sales", "support", "inventory", "mechanic", "admin"];
 const STATUSES = ["active", "inactive", "suspended"];
 
+const ACCOUNT_TYPE_KEY: Record<
+  string,
+  "admin.accountTypeCustomer" | "admin.accountTypeStaff" | "admin.accountTypeAdmin"
+> = {
+  customer: "admin.accountTypeCustomer",
+  staff: "admin.accountTypeStaff",
+  admin: "admin.accountTypeAdmin",
+};
+const STAFF_ROLE_KEY: Record<
+  string,
+  | "admin.staffRoleSales"
+  | "admin.staffRoleSupport"
+  | "admin.staffRoleInventory"
+  | "admin.staffRoleMechanic"
+  | "admin.staffRoleAdmin"
+> = {
+  sales: "admin.staffRoleSales",
+  support: "admin.staffRoleSupport",
+  inventory: "admin.staffRoleInventory",
+  mechanic: "admin.staffRoleMechanic",
+  admin: "admin.staffRoleAdmin",
+};
+const STATUS_KEY: Record<
+  string,
+  "admin.userStatusActive" | "admin.userStatusInactive" | "admin.userStatusSuspended"
+> = {
+  active: "admin.userStatusActive",
+  inactive: "admin.userStatusInactive",
+  suspended: "admin.userStatusSuspended",
+};
+
 export default function AdminUserEdit(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
+  const t = useT();
   const me = useAuth((s) => s.user);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [form, setForm] = useState<Partial<UserRow>>({});
@@ -56,9 +89,10 @@ export default function AdminUserEdit(): React.JSX.Element {
     mutationFn: async () => api.adminUpdateUser(id!, form as Record<string, unknown>),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["admin"] });
-      Alert.alert("Saved", "User updated.");
+      Alert.alert(t("admin.userSavedTitle"), t("admin.userSavedMessage"));
     },
-    onError: (e) => Alert.alert("Save failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) =>
+      Alert.alert(t("admin.saveFailed"), e instanceof Error ? e.message : t("admin.tryAgain")),
   });
 
   const disable = useMutation({
@@ -78,7 +112,7 @@ export default function AdminUserEdit(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: user?.name ?? "User",
+          title: user?.name ?? t("admin.userTitleFallback"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -101,18 +135,18 @@ export default function AdminUserEdit(): React.JSX.Element {
                   {(user.name ?? user.phone).slice(0, 2).toUpperCase()}
                 </Text>
               </View>
-              <Text style={styles.name}>{user.name ?? "Unnamed"}</Text>
+              <Text style={styles.name}>{user.name ?? t("admin.userUnnamed")}</Text>
               <Text style={styles.meta}>{user.phone}</Text>
               {user.email ? <Text style={styles.meta}>{user.email}</Text> : null}
             </View>
 
             <Field
-              label="Name"
+              label={t("admin.userFieldName")}
               value={form.name ?? ""}
               onChange={(v) => setForm((s) => ({ ...s, name: v }))}
             />
             <Field
-              label="Email"
+              label={t("admin.userFieldEmail")}
               value={form.email ?? ""}
               onChange={(v) => setForm((s) => ({ ...s, email: v }))}
               keyboardType="email-address"
@@ -121,18 +155,21 @@ export default function AdminUserEdit(): React.JSX.Element {
             {isAdmin && (
               <>
                 <View style={styles.card}>
-                  <Text style={styles.label}>Account type</Text>
+                  <Text style={styles.label}>{t("admin.userAccountType")}</Text>
                   <View style={styles.chipRow}>
-                    {ACCOUNT_TYPES.map((t) => (
+                    {ACCOUNT_TYPES.map((at) => (
                       <Pressable
-                        key={t}
-                        onPress={() => setForm((s) => ({ ...s, accountType: t }))}
-                        style={[styles.chip, form.accountType === t && styles.chipActive]}
+                        key={at}
+                        onPress={() => setForm((s) => ({ ...s, accountType: at }))}
+                        style={[styles.chip, form.accountType === at && styles.chipActive]}
                       >
                         <Text
-                          style={[styles.chipText, form.accountType === t && styles.chipTextActive]}
+                          style={[
+                            styles.chipText,
+                            form.accountType === at && styles.chipTextActive,
+                          ]}
                         >
-                          {t}
+                          {ACCOUNT_TYPE_KEY[at] ? t(ACCOUNT_TYPE_KEY[at]) : at}
                         </Text>
                       </Pressable>
                     ))}
@@ -141,7 +178,7 @@ export default function AdminUserEdit(): React.JSX.Element {
 
                 {form.accountType !== "customer" && (
                   <View style={styles.card}>
-                    <Text style={styles.label}>Staff role</Text>
+                    <Text style={styles.label}>{t("admin.userStaffRole")}</Text>
                     <View style={styles.chipRow}>
                       {STAFF_ROLES.map((r) => (
                         <Pressable
@@ -152,7 +189,7 @@ export default function AdminUserEdit(): React.JSX.Element {
                           <Text
                             style={[styles.chipText, form.staffRole === r && styles.chipTextActive]}
                           >
-                            {r}
+                            {STAFF_ROLE_KEY[r] ? t(STAFF_ROLE_KEY[r]) : r}
                           </Text>
                         </Pressable>
                       ))}
@@ -161,7 +198,7 @@ export default function AdminUserEdit(): React.JSX.Element {
                 )}
 
                 <View style={styles.card}>
-                  <Text style={styles.label}>Status</Text>
+                  <Text style={styles.label}>{t("admin.userStatus")}</Text>
                   <View style={styles.chipRow}>
                     {STATUSES.map((s) => (
                       <Pressable
@@ -170,7 +207,7 @@ export default function AdminUserEdit(): React.JSX.Element {
                         style={[styles.chip, form.status === s && styles.chipActive]}
                       >
                         <Text style={[styles.chipText, form.status === s && styles.chipTextActive]}>
-                          {s}
+                          {STATUS_KEY[s] ? t(STATUS_KEY[s]) : s}
                         </Text>
                       </Pressable>
                     ))}
@@ -185,21 +222,27 @@ export default function AdminUserEdit(): React.JSX.Element {
               onPress={() => save.mutate()}
             >
               <Ionicons name="checkmark-circle" size={18} color="#fff" />
-              <Text style={styles.saveBtnText}>{save.isPending ? "Saving…" : "Save"}</Text>
+              <Text style={styles.saveBtnText}>
+                {save.isPending ? t("admin.userSaving") : t("admin.userSave")}
+              </Text>
             </Pressable>
 
             {user.status === "active" ? (
               <Pressable
                 style={styles.dangerBtn}
                 onPress={() =>
-                  Alert.alert("Disable user?", "User will be unable to sign in.", [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Disable", style: "destructive", onPress: () => disable.mutate() },
+                  Alert.alert(t("admin.userDisableTitle"), t("admin.userDisableMessage"), [
+                    { text: t("common.cancel"), style: "cancel" },
+                    {
+                      text: t("admin.userDisable"),
+                      style: "destructive",
+                      onPress: () => disable.mutate(),
+                    },
                   ])
                 }
               >
                 <Ionicons name="ban" size={16} color="#FF5577" />
-                <Text style={styles.dangerBtnText}>Disable user</Text>
+                <Text style={styles.dangerBtnText}>{t("admin.userDisableUser")}</Text>
               </Pressable>
             ) : (
               <Pressable style={styles.enableBtn} onPress={() => enable.mutate()}>
@@ -208,7 +251,7 @@ export default function AdminUserEdit(): React.JSX.Element {
                   size={16}
                   color={colors.brand.ecoLimelight ?? "#A9F453"}
                 />
-                <Text style={styles.enableBtnText}>Re-enable user</Text>
+                <Text style={styles.enableBtnText}>{t("admin.userReenableUser")}</Text>
               </Pressable>
             )}
           </ScrollView>

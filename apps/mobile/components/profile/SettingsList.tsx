@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import * as React from "react";
 import { Alert, Text, View } from "react-native";
 
+import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 import { TWPressable } from "../ui";
 
@@ -31,19 +32,28 @@ interface Props {
 export function SettingsList({ appVersion, onSignOut, onDeleteAccount }: Props): React.JSX.Element {
   const router = useRouter();
   const { palette } = useTheme();
+  const t = useT();
 
   const rows: Row[] = [
-    { icon: "create-outline", label: "Edit profile", route: "/profile/edit" },
+    {
+      icon: "create-outline",
+      label: t("profile.settingsList.editProfile"),
+      route: "/profile/edit",
+    },
     {
       icon: "notifications-outline",
-      label: "Notifications",
+      label: t("profile.settingsList.notifications"),
       route: "/profile/notifications",
     },
-    { icon: "language-outline", label: "Language", route: "/profile/settings" },
-    { icon: "lock-closed-outline", label: "Privacy", route: "/privacy" },
+    {
+      icon: "language-outline",
+      label: t("profile.settingsList.language"),
+      route: "/profile/settings",
+    },
+    { icon: "lock-closed-outline", label: t("profile.settingsList.privacy"), route: "/privacy" },
     {
       icon: "help-circle-outline",
-      label: "Help & support",
+      label: t("profile.settingsList.helpSupport"),
       external: () => router.push("/messages"),
     },
   ];
@@ -119,11 +129,11 @@ export function SettingsList({ appVersion, onSignOut, onDeleteAccount }: Props):
         <TWPressable
           onPress={() =>
             Alert.alert(
-              "Delete account?",
-              "This permanently removes your data. You will receive a confirmation message before deletion.",
+              t("profile.settingsList.deleteTitle"),
+              t("profile.settingsList.deleteMessage"),
               [
-                { text: "Cancel", style: "cancel" },
-                { text: "Delete", style: "destructive", onPress: onDeleteAccount },
+                { text: t("common.cancel"), style: "cancel" },
+                { text: t("common.delete"), style: "destructive", onPress: onDeleteAccount },
               ],
             )
           }
@@ -135,7 +145,7 @@ export function SettingsList({ appVersion, onSignOut, onDeleteAccount }: Props):
               fontWeight: "700",
             }}
           >
-            Delete account
+            {t("profile.settingsList.deleteAccount")}
           </Text>
         </TWPressable>
       </View>
@@ -158,7 +168,7 @@ export function SettingsList({ appVersion, onSignOut, onDeleteAccount }: Props):
             textTransform: "uppercase",
           }}
         >
-          Sign out
+          {t("profile.settingsList.signOut")}
         </Text>
       </TWPressable>
     </View>

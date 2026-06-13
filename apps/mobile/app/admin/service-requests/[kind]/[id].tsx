@@ -16,8 +16,33 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../../lib/api";
+import { useT } from "../../../../lib/locale";
 
 type Kind = "maintenance" | "customization" | "transport";
+
+const KIND_TITLE_KEY: Record<
+  string,
+  "admin.serviceKindMaintenance" | "admin.serviceKindCustomization" | "admin.serviceKindTransport"
+> = {
+  maintenance: "admin.serviceKindMaintenance",
+  customization: "admin.serviceKindCustomization",
+  transport: "admin.serviceKindTransport",
+};
+
+const SERVICE_STATUS_KEY: Record<
+  string,
+  | "admin.serviceStatusSubmitted"
+  | "admin.serviceStatusAssigned"
+  | "admin.serviceStatusInProgress"
+  | "admin.serviceStatusCompleted"
+  | "admin.serviceStatusCancelled"
+> = {
+  submitted: "admin.serviceStatusSubmitted",
+  assigned: "admin.serviceStatusAssigned",
+  "in-progress": "admin.serviceStatusInProgress",
+  completed: "admin.serviceStatusCompleted",
+  cancelled: "admin.serviceStatusCancelled",
+};
 
 interface ServiceItem {
   id: string;
@@ -39,6 +64,7 @@ const STATUSES = ["submitted", "assigned", "in-progress", "completed", "cancelle
 export default function AdminServiceRequestDetail(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
+  const t = useT();
   const { kind, id } = useLocalSearchParams<{ kind: Kind; id: string }>();
   const [notes, setNotes] = useState<string>("");
   const [cost, setCost] = useState<string>("");
@@ -59,7 +85,8 @@ export default function AdminServiceRequestDetail(): React.JSX.Element {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["admin", "service"] });
     },
-    onError: (e) => Alert.alert("Update failed", e instanceof Error ? e.message : "Try again"),
+    onError: (e) =>
+      Alert.alert(t("admin.updateFailed"), e instanceof Error ? e.message : t("admin.tryAgain")),
   });
 
   const item = q.data;
@@ -68,7 +95,10 @@ export default function AdminServiceRequestDetail(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
-          title: kind ? kind.charAt(0).toUpperCase() + kind.slice(1) : "Request",
+          title:
+            kind && KIND_TITLE_KEY[kind]
+              ? t(KIND_TITLE_KEY[kind])
+              : t("admin.serviceDetailTitleFallback"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
         }}
@@ -87,7 +117,11 @@ export default function AdminServiceRequestDetail(): React.JSX.Element {
           >
             <View style={styles.card}>
               <Text style={styles.tt}>
-                {item.serviceType ?? item.kind ?? (item.fromAddress ? "Transport" : "Request")}
+                {item.serviceType ??
+                  item.kind ??
+                  (item.fromAddress
+                    ? t("admin.serviceTransportFallback")
+                    : t("admin.serviceRequestFallback"))}
               </Text>
               {item.fromAddress ? (
                 <Text style={styles.meta}>
@@ -95,14 +129,24 @@ export default function AdminServiceRequestDetail(): React.JSX.Element {
                 </Text>
               ) : null}
               <Text style={styles.meta}>
-                {item.user?.name ?? "—"} · {item.user?.phone ?? ""}
+                {item.user?.name ?? t("admin.dash")} · {item.user?.phone ?? ""}
               </Text>
-              {item.notes ? <Text style={styles.body}>Notes: {item.notes}</Text> : null}
-              {item.cargoNotes ? <Text style={styles.body}>Cargo: {item.cargoNotes}</Text> : null}
+              {item.notes ? (
+                <Text style={styles.body}>
+                  {t("admin.serviceNotesPrefix")}
+                  {item.notes}
+                </Text>
+              ) : null}
+              {item.cargoNotes ? (
+                <Text style={styles.body}>
+                  {t("admin.serviceCargoPrefix")}
+                  {item.cargoNotes}
+                </Text>
+              ) : null}
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.label}>Status</Text>
+              <Text style={styles.label}>{t("admin.serviceFieldStatus")}</Text>
               <View style={styles.chipRow}>
                 {STATUSES.map((s) => (
                   <Pressable
@@ -111,7 +155,7 @@ export default function AdminServiceRequestDetail(): React.JSX.Element {
                     style={[styles.chip, item.status === s && styles.chipActive]}
                   >
                     <Text style={[styles.chipText, item.status === s && styles.chipTextActive]}>
-                      {s}
+                      {SERVICE_STATUS_KEY[s] ? t(SERVICE_STATUS_KEY[s]) : s}
                     </Text>
                   </Pressable>
                 ))}
@@ -119,12 +163,12 @@ export default function AdminServiceRequestDetail(): React.JSX.Element {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.label}>Add note</Text>
+              <Text style={styles.label}>{t("admin.serviceAddNote")}</Text>
               <TextInput
                 value={notes}
                 onChangeText={setNotes}
                 multiline
-                placeholder="Internal note…"
+                placeholder={t("admin.serviceNotePlaceholder")}
                 placeholderTextColor={colors.text.secondary}
                 style={styles.input}
               />
@@ -137,17 +181,17 @@ export default function AdminServiceRequestDetail(): React.JSX.Element {
                   setNotes("");
                 }}
               >
-                <Text style={styles.saveBtnText}>Save note</Text>
+                <Text style={styles.saveBtnText}>{t("admin.serviceSaveNote")}</Text>
               </Pressable>
             </View>
 
             <View style={styles.card}>
               <Text style={styles.label}>
                 {kind === "transport"
-                  ? "Price (EGP)"
+                  ? t("admin.servicePriceTransport")
                   : kind === "customization"
-                    ? "Budget (EGP)"
-                    : "Estimated cost (EGP)"}
+                    ? t("admin.servicePriceCustomization")
+                    : t("admin.servicePriceMaintenance")}
               </Text>
               <TextInput
                 value={cost}
@@ -171,7 +215,7 @@ export default function AdminServiceRequestDetail(): React.JSX.Element {
                   setCost("");
                 }}
               >
-                <Text style={styles.saveBtnText}>Save price</Text>
+                <Text style={styles.saveBtnText}>{t("admin.serviceSavePrice")}</Text>
               </Pressable>
             </View>
           </ScrollView>

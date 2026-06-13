@@ -15,9 +15,25 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
+import { useT } from "../../lib/locale";
 
 const STATUS_ORDER = ["submitted", "assigned", "in-progress", "completed"] as const;
 type RepairStatus = (typeof STATUS_ORDER)[number] | "cancelled";
+
+const STATUS_LABEL_KEY: Record<RepairStatus, string> = {
+  submitted: "service.detail.statusSubmitted",
+  assigned: "service.detail.statusAssigned",
+  "in-progress": "service.detail.statusInProgress",
+  completed: "service.detail.statusCompleted",
+  cancelled: "service.detail.statusCancelled",
+};
+
+const PRIORITY_LABEL_KEY: Record<string, string> = {
+  low: "service.detail.priorityLow",
+  medium: "service.detail.priorityMedium",
+  high: "service.detail.priorityHigh",
+  urgent: "service.detail.priorityUrgent",
+};
 
 const STATUS_META: Record<
   RepairStatus,
@@ -48,6 +64,7 @@ export default function RepairDetailScreen(): JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
+  const t = useT();
 
   const { data, isLoading } = useQuery({
     queryKey: ["repair-request", id],
@@ -77,7 +94,7 @@ export default function RepairDetailScreen(): JSX.Element {
     return (
       <View style={styles.center}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.text.secondary} />
-        <Text style={styles.emptyText}>Request not found</Text>
+        <Text style={styles.emptyText}>{t("service.detail.notFound")}</Text>
       </View>
     );
   }
@@ -92,7 +109,7 @@ export default function RepairDetailScreen(): JSX.Element {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
-        <Text style={styles.headerTitle}>Repair Request</Text>
+        <Text style={styles.headerTitle}>{t("service.detail.headerTitle")}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -109,9 +126,13 @@ export default function RepairDetailScreen(): JSX.Element {
             <Ionicons name={currentMeta.icon} size={32} color={currentMeta.color} />
           </View>
           <View style={styles.heroInfo}>
-            <Text style={styles.heroStatus}>{repair.status.replace("-", " ").toUpperCase()}</Text>
+            <Text style={styles.heroStatus}>
+              {STATUS_LABEL_KEY[repair.status as RepairStatus]
+                ? t(STATUS_LABEL_KEY[repair.status as RepairStatus])
+                : repair.status.replace("-", " ").toUpperCase()}
+            </Text>
             <Text style={styles.heroDate}>
-              Submitted{" "}
+              {t("service.detail.submittedOn")}{" "}
               {new Date(repair.createdAt).toLocaleDateString("en-EG", {
                 day: "numeric",
                 month: "long",
@@ -131,14 +152,16 @@ export default function RepairDetailScreen(): JSX.Element {
                 { color: PRIORITY_COLOR[repair.priority] ?? colors.text.secondary },
               ]}
             >
-              {repair.priority.toUpperCase()}
+              {PRIORITY_LABEL_KEY[repair.priority]
+                ? t(PRIORITY_LABEL_KEY[repair.priority])
+                : repair.priority.toUpperCase()}
             </Text>
           </View>
         </Animated.View>
 
         {/* Progress timeline */}
         <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.card}>
-          <Text style={styles.sectionTitle}>Progress</Text>
+          <Text style={styles.sectionTitle}>{t("service.detail.progress")}</Text>
           <View style={styles.timeline}>
             {STATUS_ORDER.map((status, i) => {
               const done = i <= currentStatusIdx;
@@ -168,7 +191,9 @@ export default function RepairDetailScreen(): JSX.Element {
                   {/* Label */}
                   <View style={styles.timelineContent}>
                     <Text style={[styles.timelineLabel, done && { color: colors.text.light }]}>
-                      {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
+                      {STATUS_LABEL_KEY[status as RepairStatus]
+                        ? t(STATUS_LABEL_KEY[status as RepairStatus])
+                        : status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
                     </Text>
                     {status === "submitted" && (
                       <Text style={styles.timelineSub}>
@@ -184,7 +209,7 @@ export default function RepairDetailScreen(): JSX.Element {
 
         {/* Request details */}
         <Animated.View entering={FadeInDown.delay(140).springify()} style={styles.card}>
-          <Text style={styles.sectionTitle}>Details</Text>
+          <Text style={styles.sectionTitle}>{t("service.detail.details")}</Text>
           <View style={styles.detailRow}>
             <View style={styles.detailIcon}>
               <Ionicons
@@ -194,7 +219,7 @@ export default function RepairDetailScreen(): JSX.Element {
               />
             </View>
             <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>Category</Text>
+              <Text style={styles.detailLabel}>{t("service.detail.category")}</Text>
               <Text style={styles.detailValue}>{repair.category}</Text>
             </View>
           </View>
@@ -204,7 +229,7 @@ export default function RepairDetailScreen(): JSX.Element {
                 <Ionicons name="document-text-outline" size={18} color={colors.primary[400]} />
               </View>
               <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Description</Text>
+                <Text style={styles.detailLabel}>{t("service.detail.description")}</Text>
                 <Text style={[styles.detailValue, { lineHeight: 20 }]}>{repair.description}</Text>
               </View>
             </View>
@@ -214,13 +239,13 @@ export default function RepairDetailScreen(): JSX.Element {
         {/* Cost estimate */}
         {(repair.estimatedCost !== null || repair.actualCost !== null) && (
           <Animated.View entering={FadeInDown.delay(180).springify()} style={styles.card}>
-            <Text style={styles.sectionTitle}>Cost</Text>
+            <Text style={styles.sectionTitle}>{t("service.detail.cost")}</Text>
             <View style={styles.costRow}>
               {repair.estimatedCost !== null && (
                 <View style={styles.costItem}>
-                  <Text style={styles.costLabel}>Estimated</Text>
+                  <Text style={styles.costLabel}>{t("service.detail.estimated")}</Text>
                   <Text style={styles.costValue}>
-                    {Number(repair.estimatedCost).toLocaleString()} EGP
+                    {Number(repair.estimatedCost).toLocaleString()} {t("service.detail.currency")}
                   </Text>
                 </View>
               )}
@@ -229,9 +254,9 @@ export default function RepairDetailScreen(): JSX.Element {
               )}
               {repair.actualCost !== null && (
                 <View style={styles.costItem}>
-                  <Text style={styles.costLabel}>Actual</Text>
+                  <Text style={styles.costLabel}>{t("service.detail.actual")}</Text>
                   <Text style={[styles.costValue, { color: colors.accent.DEFAULT }]}>
-                    {Number(repair.actualCost).toLocaleString()} EGP
+                    {Number(repair.actualCost).toLocaleString()} {t("service.detail.currency")}
                   </Text>
                 </View>
               )}
@@ -241,15 +266,17 @@ export default function RepairDetailScreen(): JSX.Element {
 
         {/* Mechanic / Assignment */}
         <Animated.View entering={FadeInDown.delay(220).springify()} style={styles.card}>
-          <Text style={styles.sectionTitle}>Assigned Mechanic</Text>
+          <Text style={styles.sectionTitle}>{t("service.detail.assignedMechanic")}</Text>
           {repair.assignedMechanicId ? (
             <View style={styles.mechanicRow}>
               <View style={styles.mechanicAvatar}>
                 <Ionicons name="person" size={24} color={colors.primary[400]} />
               </View>
               <View style={styles.mechanicInfo}>
-                <Text style={styles.mechanicName}>Mechanic Assigned</Text>
-                <Text style={styles.mechanicSub}>ID: {repair.assignedMechanicId.slice(0, 8)}…</Text>
+                <Text style={styles.mechanicName}>{t("service.detail.mechanicAssigned")}</Text>
+                <Text style={styles.mechanicSub}>
+                  {t("service.detail.idPrefix")} {repair.assignedMechanicId.slice(0, 8)}…
+                </Text>
               </View>
               <Pressable style={styles.contactMechanic} onPress={() => router.push("/messages")}>
                 <Ionicons name="chatbubble-outline" size={18} color="#000" />
@@ -258,9 +285,7 @@ export default function RepairDetailScreen(): JSX.Element {
           ) : (
             <View style={styles.unassigned}>
               <Ionicons name="hourglass-outline" size={24} color={colors.text.secondary} />
-              <Text style={styles.unassignedText}>
-                Pending assignment — our team will review and assign a mechanic shortly.
-              </Text>
+              <Text style={styles.unassignedText}>{t("service.detail.pendingAssignment")}</Text>
             </View>
           )}
         </Animated.View>
@@ -268,7 +293,7 @@ export default function RepairDetailScreen(): JSX.Element {
         {/* Messages CTA */}
         <Pressable style={styles.messagesBtn} onPress={() => router.push("/messages")}>
           <Ionicons name="chatbubbles-outline" size={20} color={colors.text.light} />
-          <Text style={styles.messagesBtnText}>View Messages</Text>
+          <Text style={styles.messagesBtnText}>{t("service.detail.viewMessages")}</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
         </Pressable>
 
@@ -278,23 +303,21 @@ export default function RepairDetailScreen(): JSX.Element {
             style={styles.cancelBtn}
             disabled={cancelMut.isPending}
             onPress={() => {
-              Alert.alert(
-                "Cancel repair?",
-                "Are you sure you want to cancel this repair request?",
-                [
-                  { text: "Keep", style: "cancel" },
-                  {
-                    text: "Cancel repair",
-                    style: "destructive",
-                    onPress: () => cancelMut.mutate(),
-                  },
-                ],
-              );
+              Alert.alert(t("service.detail.cancelTitle"), t("service.detail.cancelMessage"), [
+                { text: t("service.detail.keep"), style: "cancel" },
+                {
+                  text: t("service.detail.cancelRepair"),
+                  style: "destructive",
+                  onPress: () => cancelMut.mutate(),
+                },
+              ]);
             }}
           >
             <Ionicons name="close-circle-outline" size={18} color={colors.error} />
             <Text style={styles.cancelBtnText}>
-              {cancelMut.isPending ? "Cancelling…" : "Cancel repair"}
+              {cancelMut.isPending
+                ? t("service.detail.cancelling")
+                : t("service.detail.cancelRepair")}
             </Text>
           </Pressable>
         ) : null}

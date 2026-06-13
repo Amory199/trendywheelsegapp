@@ -20,6 +20,7 @@ import {
 } from "react-native";
 
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 
 interface Repair {
   id: string;
@@ -32,11 +33,11 @@ interface Repair {
 }
 
 const STATUSES = ["submitted", "assigned", "in_progress", "completed"] as const;
-const STATUS_LABEL: Record<string, string> = {
-  submitted: "Requested",
-  assigned: "Assigned",
-  in_progress: "In progress",
-  completed: "Completed",
+const STATUS_LABEL_KEY: Record<string, string> = {
+  submitted: "crm.repairs.statusSubmitted",
+  assigned: "crm.repairs.statusAssigned",
+  in_progress: "crm.repairs.statusInProgress",
+  completed: "crm.repairs.statusCompleted",
 };
 const STATUS_TONE: Record<string, string> = {
   submitted: colors.text.secondary,
@@ -47,6 +48,7 @@ const STATUS_TONE: Record<string, string> = {
 
 export default function StaffRepairs(): React.JSX.Element {
   const router = useRouter();
+  const t = useT();
   const [status, setStatus] = useState<string>("submitted");
 
   const q = useQuery({
@@ -60,8 +62,8 @@ export default function StaffRepairs(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>WORK ORDERS</Text>
-        <Text style={styles.title}>Repairs</Text>
+        <Text style={styles.kicker}>{t("crm.repairs.kicker")}</Text>
+        <Text style={styles.title}>{t("crm.repairs.title")}</Text>
       </View>
 
       <View style={styles.filterRow}>
@@ -72,7 +74,7 @@ export default function StaffRepairs(): React.JSX.Element {
             style={[styles.filter, status === s && styles.filterActive]}
           >
             <Text style={[styles.filterText, status === s && styles.filterTextActive]}>
-              {STATUS_LABEL[s]}
+              {t(STATUS_LABEL_KEY[s])}
             </Text>
           </Pressable>
         ))}
@@ -97,25 +99,33 @@ export default function StaffRepairs(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="construct-outline" size={48} color={colors.text.secondary} />
-              <Text style={styles.emptyText}>No {STATUS_LABEL[status]} repairs</Text>
+              <Text style={styles.emptyText}>
+                {t("crm.repairs.emptyPrefix")} {t(STATUS_LABEL_KEY[status])}{" "}
+                {t("crm.repairs.emptySuffix")}
+              </Text>
             </View>
           }
           renderItem={({ item }) => (
             <Pressable style={styles.card} onPress={() => router.push(`/crm/repairs/${item.id}`)}>
               <View style={{ flex: 1, gap: 4 }}>
                 <View style={styles.row}>
-                  <Text style={styles.cat}>{item.category ?? "Repair"}</Text>
+                  <Text style={styles.cat}>
+                    {item.category ?? t("crm.repairs.fallbackCategory")}
+                  </Text>
                   <View style={[styles.dot, { backgroundColor: STATUS_TONE[item.status] }]} />
                   <Text style={[styles.statusText, { color: STATUS_TONE[item.status] }]}>
-                    {STATUS_LABEL[item.status] ?? item.status}
+                    {STATUS_LABEL_KEY[item.status] ? t(STATUS_LABEL_KEY[item.status]) : item.status}
                   </Text>
                 </View>
                 <Text style={styles.desc} numberOfLines={2}>
                   {item.description ?? "—"}
                 </Text>
                 <Text style={styles.meta}>
-                  {item.user?.name ?? "Customer"} · {new Date(item.createdAt).toLocaleDateString()}
-                  {item.assignedMechanicId ? " · Assigned" : " · Unassigned"}
+                  {item.user?.name ?? t("crm.repairs.fallbackCustomer")} ·{" "}
+                  {new Date(item.createdAt).toLocaleDateString()}
+                  {item.assignedMechanicId
+                    ? ` · ${t("crm.repairs.assigned")}`
+                    : ` · ${t("crm.repairs.unassigned")}`}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />

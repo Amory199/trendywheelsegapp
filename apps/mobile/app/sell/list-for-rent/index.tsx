@@ -22,25 +22,37 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { StepBar } from "../../../components/sell/StepBar";
 import { logEvent } from "../../../lib/analytics";
 import { api } from "../../../lib/api";
+import { useT } from "../../../lib/locale";
 import { uploadImages } from "../../../lib/upload";
 import { useTheme } from "../../../lib/use-theme";
 
 const CONDITIONS = ["excellent", "good", "fair", "poor"] as const;
 type Condition = (typeof CONDITIONS)[number];
 
+const CONDITION_LABEL_KEY: Record<
+  Condition,
+  "sell.condition.excellent" | "sell.condition.good" | "sell.condition.fair" | "sell.condition.poor"
+> = {
+  excellent: "sell.condition.excellent",
+  good: "sell.condition.good",
+  fair: "sell.condition.fair",
+  poor: "sell.condition.poor",
+};
+
 const CATEGORIES = [
-  { id: "golf-cart", label: "Golf cart" },
-  { id: "hover-board", label: "Hover board" },
-  { id: "scooter", label: "Scooter" },
-  { id: "scooter-sidecar", label: "Sidecar" },
-  { id: "buggy", label: "Buggy" },
-  { id: "utv", label: "UTV" },
-  { id: "jet-ski", label: "Jet ski" },
+  { id: "golf-cart", labelKey: "sell.catalog.golfCart" },
+  { id: "hover-board", labelKey: "sell.catalog.hoverBoard" },
+  { id: "scooter", labelKey: "sell.catalog.scooter" },
+  { id: "scooter-sidecar", labelKey: "sell.catalog.scooterSidecar" },
+  { id: "buggy", labelKey: "sell.catalog.buggy" },
+  { id: "utv", labelKey: "sell.catalog.utv" },
+  { id: "jet-ski", labelKey: "sell.catalog.jetSki" },
 ] as const;
 type CategoryId = (typeof CATEGORIES)[number]["id"];
 
 export default function ListForRentScreen(): JSX.Element {
   const router = useRouter();
+  const t = useT();
   const { palette } = useTheme();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const [step, setStep] = useState(0);
@@ -70,14 +82,15 @@ export default function ListForRentScreen(): JSX.Element {
     },
     onSuccess: () => {
       logEvent("listing_submitted", { kind: "rent" });
-      Alert.alert(
-        "Listing submitted",
-        "We'll review your listing within 48 hours and reach out to confirm terms.",
-        [{ text: "OK", onPress: () => router.replace("/(tabs)/sell") }],
-      );
+      Alert.alert(t("sell.rent.submittedTitle"), t("sell.rent.submittedMessage"), [
+        { text: t("sell.rent.ok"), onPress: () => router.replace("/(tabs)/sell") },
+      ]);
     },
     onError: (e: unknown) => {
-      Alert.alert("Couldn't submit", e instanceof Error ? e.message : "Try again later.");
+      Alert.alert(
+        t("sell.rent.submitFailedTitle"),
+        e instanceof Error ? e.message : t("sell.rent.submitFailedMessage"),
+      );
     },
   });
 
@@ -121,9 +134,13 @@ export default function ListForRentScreen(): JSX.Element {
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>LIST FOR RENT</Text>
+          <Text style={styles.eyebrow}>{t("sell.rent.eyebrow")}</Text>
           <Text style={styles.title}>
-            {step === 0 ? "Tell us about your cart" : step === 1 ? "Add photos" : "Review + submit"}
+            {step === 0
+              ? t("sell.rent.titleStep0")
+              : step === 1
+                ? t("sell.rent.titleStep1")
+                : t("sell.rent.titleStep2")}
           </Text>
         </View>
       </View>
@@ -134,21 +151,26 @@ export default function ListForRentScreen(): JSX.Element {
         {step === 0 ? (
           <Animated.View entering={FadeInDown.duration(220)} style={{ gap: 14 }}>
             <Field
-              label="Brand"
+              label={t("sell.rent.brand")}
               value={brand}
               onChange={setBrand}
-              placeholder="Club Car / E-Z-GO …"
+              placeholder={t("sell.rent.brandPlaceholder")}
             />
-            <Field label="Model" value={model} onChange={setModel} placeholder="Onward 4P …" />
             <Field
-              label="Year"
+              label={t("sell.rent.model")}
+              value={model}
+              onChange={setModel}
+              placeholder={t("sell.rent.modelPlaceholder")}
+            />
+            <Field
+              label={t("sell.rent.year")}
               value={year}
               onChange={(v) => setYear(v.replace(/[^0-9]/g, "").slice(0, 4))}
-              placeholder="2022"
+              placeholder={t("sell.rent.yearPlaceholder")}
               keyboardType="number-pad"
             />
             <View>
-              <Label palette={palette}>Category</Label>
+              <Label palette={palette}>{t("sell.rent.categoryLabel")}</Label>
               <View style={styles.pills}>
                 {CATEGORIES.map((c) => {
                   const active = category === c.id;
@@ -159,7 +181,7 @@ export default function ListForRentScreen(): JSX.Element {
                       style={[styles.pill, active && styles.pillActive]}
                     >
                       <Text style={[styles.pillText, active && styles.pillTextActive]}>
-                        {c.label}
+                        {t(c.labelKey)}
                       </Text>
                     </Pressable>
                   );
@@ -167,7 +189,7 @@ export default function ListForRentScreen(): JSX.Element {
               </View>
             </View>
             <View>
-              <Label palette={palette}>Condition</Label>
+              <Label palette={palette}>{t("sell.rent.conditionLabel")}</Label>
               <View style={styles.pills}>
                 {CONDITIONS.map((c) => {
                   const active = condition === c;
@@ -177,26 +199,28 @@ export default function ListForRentScreen(): JSX.Element {
                       onPress={() => setCondition(c)}
                       style={[styles.pill, active && styles.pillActive]}
                     >
-                      <Text style={[styles.pillText, active && styles.pillTextActive]}>{c}</Text>
+                      <Text style={[styles.pillText, active && styles.pillTextActive]}>
+                        {t(CONDITION_LABEL_KEY[c])}
+                      </Text>
                     </Pressable>
                   );
                 })}
               </View>
             </View>
             <Field
-              label="Suggested daily rate (EGP, optional)"
+              label={t("sell.rent.dailyRateLabel")}
               value={dailyRate}
               onChange={(v) => setDailyRate(v.replace(/[^0-9]/g, "").slice(0, 6))}
-              placeholder="e.g. 600"
+              placeholder={t("sell.rent.dailyRatePlaceholder")}
               keyboardType="number-pad"
             />
             <View>
-              <Label palette={palette}>Notes (optional)</Label>
+              <Label palette={palette}>{t("sell.rent.notesLabel")}</Label>
               <TextInput
                 value={notes}
                 onChangeText={setNotes}
                 multiline
-                placeholder="Any modifications, restrictions, availability windows…"
+                placeholder={t("sell.rent.notesPlaceholder")}
                 placeholderTextColor={palette.muted}
                 style={[styles.input, styles.textarea]}
               />
@@ -206,7 +230,7 @@ export default function ListForRentScreen(): JSX.Element {
 
         {step === 1 ? (
           <Animated.View entering={FadeInDown.duration(220)} style={{ gap: 12 }}>
-            <Label palette={palette}>Upload up to 6 photos</Label>
+            <Label palette={palette}>{t("sell.rent.uploadPhotos")}</Label>
             <View style={styles.photoGrid}>
               {localPhotos.map((uri, i) => (
                 <View key={i} style={styles.photoTile}>
@@ -232,25 +256,40 @@ export default function ListForRentScreen(): JSX.Element {
         {step === 2 ? (
           <Animated.View entering={FadeInDown.duration(220)} style={{ gap: 14 }}>
             <View style={styles.reviewCard}>
-              <Row label="Brand" value={brand} palette={palette} />
-              <Row label="Model" value={model} palette={palette} />
-              <Row label="Year" value={year} palette={palette} />
+              <Row label={t("sell.rent.reviewBrand")} value={brand} palette={palette} />
+              <Row label={t("sell.rent.reviewModel")} value={model} palette={palette} />
+              <Row label={t("sell.rent.reviewYear")} value={year} palette={palette} />
               <Row
-                label="Category"
-                value={CATEGORIES.find((c) => c.id === category)?.label ?? category}
+                label={t("sell.rent.reviewCategory")}
+                value={(() => {
+                  const c = CATEGORIES.find((x) => x.id === category);
+                  return c ? t(c.labelKey) : category;
+                })()}
                 palette={palette}
               />
-              <Row label="Condition" value={condition} palette={palette} capitalize />
+              <Row
+                label={t("sell.rent.reviewCondition")}
+                value={t(CONDITION_LABEL_KEY[condition])}
+                palette={palette}
+              />
               {dailyRate ? (
-                <Row label="Daily rate" value={`EGP ${dailyRate}`} palette={palette} />
+                <Row
+                  label={t("sell.rent.reviewDailyRate")}
+                  value={`${dailyRate} ${t("sell.egp")}`}
+                  palette={palette}
+                />
               ) : null}
-              {notes ? <Row label="Notes" value={notes} palette={palette} /> : null}
-              <Row label="Photos" value={`${localPhotos.length} attached`} palette={palette} />
+              {notes ? (
+                <Row label={t("sell.rent.reviewNotes")} value={notes} palette={palette} />
+              ) : null}
+              <Row
+                label={t("sell.rent.reviewPhotos")}
+                value={`${localPhotos.length} ${t("sell.rent.photosAttachedSuffix")}`}
+                palette={palette}
+              />
             </View>
             <View style={styles.note}>
-              <Text style={styles.noteText}>
-                We&apos;ll review your listing within 48 hours and reach out to confirm terms.
-              </Text>
+              <Text style={styles.noteText}>{t("sell.rent.reviewNote")}</Text>
             </View>
           </Animated.View>
         ) : null}
@@ -276,7 +315,9 @@ export default function ListForRentScreen(): JSX.Element {
             <ActivityIndicator color="#000" />
           ) : (
             <>
-              <Text style={styles.submitBtnText}>{step === 2 ? "Submit listing" : "Continue"}</Text>
+              <Text style={styles.submitBtnText}>
+                {step === 2 ? t("sell.rent.submit") : t("sell.rent.continue")}
+              </Text>
               <Ionicons
                 name={step === 2 ? "checkmark-circle-outline" : "arrow-forward"}
                 size={18}
