@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { colors, type Palette } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -24,6 +25,8 @@ interface InventoryVehicle {
   type: string;
   seating: number;
   dailyRate: number | string;
+  salePrice?: number | string | null;
+  listingType?: "rent" | "sale" | "both";
   location: string;
   status: string;
   images?: Array<{ url: string }>;
@@ -38,8 +41,22 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "maintenance", label: "Maintenance" },
 ];
 
+// Vehicles can be rent-only, sale-only, or both. Rent/both show the daily
+// rate; sale-only shows the one-off sale price (no "/day"). Decimal fields
+// arrive as strings over JSON, hence the Number() coercion + zero guards.
+function priceLabel(v: InventoryVehicle): string {
+  const listing = v.listingType ?? "rent";
+  const daily = Number(v.dailyRate);
+  const sale = v.salePrice == null ? 0 : Number(v.salePrice);
+  if (listing === "sale") {
+    return sale > 0 ? `EGP ${sale.toLocaleString()}` : "—";
+  }
+  return daily > 0 ? `EGP ${daily.toLocaleString()}/day` : "—";
+}
+
 export default function CrmInventory(): JSX.Element {
   const { palette } = useTheme();
+  const router = useRouter();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -118,7 +135,12 @@ export default function CrmInventory(): JSX.Element {
           removeClippedSubviews
           windowSize={7}
           columnWrapperStyle={{ gap: 10 }}
-          contentContainerStyle={{ padding: 14, paddingBottom: 120, gap: 10 }}
+          contentContainerStyle={{
+            paddingHorizontal: 14,
+            paddingTop: 6,
+            paddingBottom: 120,
+            gap: 10,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={listQ.isFetching}
@@ -135,7 +157,12 @@ export default function CrmInventory(): JSX.Element {
             </View>
           }
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <Pressable
+              style={styles.card}
+              onPress={() =>
+                router.push({ pathname: "/admin/vehicles/[id]", params: { id: item.id } })
+              }
+            >
               {item.images?.[0]?.url ? (
                 <Image
                   source={{ uri: item.images[0].url }}
@@ -152,7 +179,7 @@ export default function CrmInventory(): JSX.Element {
                 {item.seating}-seater · {item.location}
               </Text>
               <View style={styles.cardFooter}>
-                <Text style={styles.price}>EGP {Number(item.dailyRate).toLocaleString()}/day</Text>
+                <Text style={styles.price}>{priceLabel(item)}</Text>
                 <View
                   style={[
                     styles.statusDot,
@@ -167,7 +194,7 @@ export default function CrmInventory(): JSX.Element {
                   ]}
                 />
               </View>
-            </View>
+            </Pressable>
           )}
         />
       )}
@@ -194,8 +221,20 @@ function makeStyles(palette: Palette) {
       paddingHorizontal: 12,
       height: 42,
     },
-    searchInput: { flex: 1, color: palette.text, fontSize: 14, paddingVertical: 0 },
-    filterRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 8, alignItems: "center" },
+    searchInput: {
+      flex: 1,
+      color: palette.text,
+      fontSize: 14,
+      letterSpacing: 0,
+      paddingVertical: 0,
+    },
+    filterRow: {
+      paddingHorizontal: 14,
+      paddingTop: 8,
+      paddingBottom: 4,
+      gap: 8,
+      alignItems: "center",
+    },
     filterChip: {
       paddingHorizontal: 12,
       paddingVertical: 7,
