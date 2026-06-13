@@ -36,9 +36,10 @@ export default function MessagesScreen(): JSX.Element {
     mutationFn: async () => {
       const support = await api.getSupportContact();
       const conv = await api.createConversation(support.data.id);
-      return conv.data.id;
+      return { id: conv.data.id, peerId: support.data.id };
     },
-    onSuccess: (id) => router.push(`/messages/${id}`),
+    onSuccess: ({ id, peerId }) =>
+      router.push({ pathname: "/messages/[id]", params: { id, peerId } }),
     onError: (err) =>
       Alert.alert("Couldn't open support", err instanceof Error ? err.message : "Try again"),
   });
@@ -103,7 +104,12 @@ export default function MessagesScreen(): JSX.Element {
                     styles.row,
                     pressed && { backgroundColor: colors.dark.border },
                   ]}
-                  onPress={() => router.push(`/messages/${item.id}`)}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/messages/[id]",
+                      params: { id: item.id, peerId: otherParticipant?.userId ?? "" },
+                    })
+                  }
                 >
                   <View style={styles.avatar}>
                     <Text style={styles.avatarText}>{name[0].toUpperCase()}</Text>

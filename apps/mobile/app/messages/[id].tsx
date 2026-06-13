@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -22,7 +23,10 @@ import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 
 export default function ChatScreen(): JSX.Element {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // peerId = the other participant's userId, passed in when the chat is opened.
+  // Essential for a BRAND-NEW conversation: with no messages yet we can't
+  // derive the recipient from the thread, so without this the send no-ops.
+  const { id, peerId } = useLocalSearchParams<{ id: string; peerId?: string }>();
   const router = useRouter();
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -40,8 +44,12 @@ export default function ChatScreen(): JSX.Element {
 
   const mutation = useMutation({
     mutationFn: (msg: string) => {
+      // Prefer the peer from an existing message; fall back to the peerId the
+      // opener passed (covers the empty-thread case where the old code sent to
+      // an empty recipient and silently failed).
       const other = messages.find((m) => m.senderId !== user?.id);
-      const recipientId = other?.senderId ?? "";
+      const recipientId = other?.senderId ?? peerId ?? "";
+      if (!recipientId) throw new Error("No recipient for this conversation");
       return api.sendMessage(recipientId, msg);
     },
     onSuccess: () => {
@@ -50,6 +58,8 @@ export default function ChatScreen(): JSX.Element {
       void qc.invalidateQueries({ queryKey: ["messages", id] });
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     },
+    onError: (err) =>
+      Alert.alert("Message not sent", err instanceof Error ? err.message : "Try again"),
   });
 
   const send = (): void => {
@@ -79,7 +89,11 @@ export default function ChatScreen(): JSX.Element {
           ref={listRef}
           data={messages}
           keyExtractor={(m) => m.id}
-          contentContainerStyle={{ padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.lg }}
+          contentContainerStyle={{
+            padding: spacing.md,
+            gap: spacing.sm,
+            paddingBottom: spacing.lg,
+          }}
           onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
           renderItem={({ item, index }) => {
             const isMe = item.senderId === user?.id;
@@ -88,11 +102,18 @@ export default function ChatScreen(): JSX.Element {
                 entering={FadeInUp.delay(index * 20).springify()}
                 style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}
               >
-                <Text style={[styles.bubbleText, isMe ? styles.bubbleTextMe : styles.bubbleTextThem]}>
+                <Text
+                  style={[styles.bubbleText, isMe ? styles.bubbleTextMe : styles.bubbleTextThem]}
+                >
                   {item.message}
                 </Text>
-                <Text style={[styles.bubbleTime, isMe ? styles.bubbleTimeMe : styles.bubbleTimeThem]}>
-                  {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                <Text
+                  style={[styles.bubbleTime, isMe ? styles.bubbleTimeMe : styles.bubbleTimeThem]}
+                >
+                  {new Date(item.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                   {isMe && item.readAt && " ✓✓"}
                 </Text>
               </Animated.View>
