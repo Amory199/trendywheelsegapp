@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { VEHICLE_CATEGORIES, type VehicleCategory } from "@trendywheels/types";
 import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { memo } from "react";
 import Animated from "react-native-reanimated";
@@ -26,6 +27,16 @@ const CATEGORY_GRADIENTS: Record<VehicleCategory, [string, string]> = {
   utv: ["#9c27b0", "#4a0a6b"],
   "jet-ski": [colors.brand.poolBlue, "#0a3a8a"],
   "hover-board": [colors.brand.trendyPink, colors.brand.friendlyBlue],
+};
+
+// Real per-category hero photos (bundled). Categories without one yet
+// (plain scooter, hover-board) fall back to the gradient + icon tile below.
+const CATEGORY_IMAGES: Partial<Record<VehicleCategory, number>> = {
+  "golf-cart": require("../assets/categories/golf-cart.jpg"),
+  "scooter-sidecar": require("../assets/categories/scooter-sidecar.jpg"),
+  buggy: require("../assets/categories/buggy.jpg"),
+  utv: require("../assets/categories/utv.jpg"),
+  "jet-ski": require("../assets/categories/jet-ski.jpg"),
 };
 
 const SCREEN_W = Dimensions.get("window").width;
@@ -110,32 +121,41 @@ function CategoryBlock({
     colors.brand.poolBlue,
     colors.brand.friendlyBlue,
   ];
+  const image = CATEGORY_IMAGES[categoryKey];
   return (
     <Pressable
       onPress={onPress}
       android_ripple={{ color: "rgba(43,15,248,0.18)", borderless: false }}
       style={[styles.block, active && styles.blockActive]}
     >
+      {image ? (
+        // Real photo tile: image fills the block, dark veil keeps the label legible.
+        <Image source={image} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+      ) : (
+        // Fallback for categories without a photo yet (scooter, hover-board):
+        // brand gradient + centred icon.
+        <>
+          <LinearGradient
+            colors={gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.iconWrap}>
+            <Ionicons
+              name={icon as keyof typeof import("@expo/vector-icons").Ionicons.glyphMap}
+              size={56}
+              color="rgba(255,255,255,0.95)"
+            />
+          </View>
+        </>
+      )}
+      {/* Bottom dark veil so the label text stays readable over photo or gradient. */}
       <LinearGradient
-        colors={gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      {/* Subtle dark veil at the bottom so the label text stays readable on
-          any gradient combination. */}
-      <LinearGradient
-        colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.55)"]}
-        style={[StyleSheet.absoluteFill, { top: BLOCK_H * 0.5 }]}
+        colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.65)"]}
+        style={[StyleSheet.absoluteFill, { top: BLOCK_H * 0.45 }]}
         pointerEvents="none"
       />
-      <View style={styles.iconWrap}>
-        <Ionicons
-          name={icon as keyof typeof import("@expo/vector-icons").Ionicons.glyphMap}
-          size={56}
-          color="rgba(255,255,255,0.95)"
-        />
-      </View>
       <BlockLabel label={label} active={active} />
     </Pressable>
   );
