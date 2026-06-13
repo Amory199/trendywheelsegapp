@@ -25,10 +25,10 @@ import { followUpAfterNoAnswer, initialGreeting } from "../../../lib/lead-templa
 import { playSound } from "../../../lib/sounds";
 import { useTheme } from "../../../lib/use-theme";
 
-import { CadenceStrip, type CrmRules } from "./_components/CadenceStrip";
-import { DetailField } from "./_components/DetailField";
-import { LeadActionsBar } from "./_components/LeadActionsBar";
-import { makeStyles } from "./_components/styles";
+import { CadenceStrip, type CrmRules } from "../../../components/crm-leads/CadenceStrip";
+import { DetailField } from "../../../components/crm-leads/DetailField";
+import { LeadActionsBar } from "../../../components/crm-leads/LeadActionsBar";
+import { makeStyles } from "../../../components/crm-leads/styles";
 
 type ActivityType =
   | "note"

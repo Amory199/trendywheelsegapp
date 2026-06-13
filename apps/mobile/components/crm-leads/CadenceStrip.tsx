@@ -5,7 +5,7 @@
 import { useMemo } from "react";
 import { Text, View } from "react-native";
 
-import { useTheme } from "../../../../lib/use-theme";
+import { useTheme } from "../../lib/use-theme";
 
 import { makeStyles } from "./styles";
 
