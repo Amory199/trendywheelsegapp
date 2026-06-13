@@ -1,3 +1,20 @@
+import admin from "./en/admin";
+import buy from "./en/buy";
+import components from "./en/components";
+import crm from "./en/crm";
+import home from "./en/home";
+import messages from "./en/messages";
+import profile from "./en/profile";
+import rent from "./en/rent";
+import sell from "./en/sell";
+import service from "./en/service";
+import support from "./en/support";
+
+// Core namespaces (consumed by already-wired screens) stay inline; every other
+// screen area lives in its own ./en/<area>.ts module so the dictionary can grow
+// per-area without merge conflicts during parallel translation work. Each
+// matching ./ar/<area>.ts is type-checked against its en counterpart, so a
+// missing Arabic key fails the build.
 const en = {
   common: {
     loading: "Loading...",
@@ -49,59 +66,21 @@ const en = {
     repair: "Service",
     profile: "Profile",
   },
-  rent: {
-    browse: "Browse Vehicles",
-    bookNow: "Book Now",
-    reserveNow: "Reserve Now",
-    perDay: "/day",
-    available: "Available",
-    rented: "Rented",
-    myBookings: "My Bookings",
-    activeBookings: "Active",
-    completedBookings: "Completed",
-    cancelledBookings: "Cancelled",
-    pickupDate: "Pickup Date",
-    returnDate: "Return Date",
-    totalCost: "Total Cost",
-    confirmBooking: "Confirm Booking",
-    bookingConfirmed: "Booking Confirmed!",
-  },
-  sell: {
-    browse: "Browse Listings",
-    createListing: "Create Listing",
-    myListings: "My Listings",
-    askingPrice: "Asking Price",
-    mileage: "Mileage",
-    year: "Year",
-    contactSeller: "Contact Seller",
-    views: "Views",
-    inquiries: "Inquiries",
-  },
-  repair: {
-    requestRepair: "Request Repair",
-    repairStatus: "Repair Status",
-    issueDescription: "Describe the issue",
-    category: "Category",
-    priority: "Priority",
-    submitRequest: "Submit Request",
-    mechanical: "Mechanical",
-    electrical: "Electrical",
-    cosmetic: "Cosmetic",
-    other: "Other",
-  },
-  profile: {
-    myProfile: "My Profile",
-    editProfile: "Edit Profile",
-    preferences: "Preferences",
-    loyaltyPoints: "Loyalty Points",
-    communicationCenter: "Messages",
-    interactionHistory: "History",
-    settings: "Settings",
-  },
   settings: {
     languageChanged: "Language Changed",
     restartToApply: "Please restart the app to apply the new language and layout.",
   },
+  home,
+  buy,
+  rent,
+  sell,
+  service,
+  profile,
+  messages,
+  admin,
+  crm,
+  support,
+  components,
 } as const;
 
 export default en;

@@ -1,0 +1,98 @@
+import type enNs from "../en/rent";
+import type { Stringify } from "../_stringify";
+
+const rent: Stringify<typeof enNs> = {
+  // Rent tab — app/(tabs)/rent.tsx
+  findYourRide: "اعثر على سيارتك",
+  pickCategory: "اختر فئة لعرض السيارات",
+
+  // Vehicle detail — app/rent/[id].tsx
+  availableNow: "متاحة الآن",
+  reviewsCountSuffix: "تقييم",
+  perDay: "في اليوم",
+  specSeats: "المقاعد",
+  specDrive: "ناقل الحركة",
+  specFuel: "الوقود",
+  specCity: "المدينة",
+  fuelPetrol: "بنزين",
+  aboutVehicle: "عن هذه السيارة",
+  aboutVehicleBody:
+    "سيارة فاخرة بحالة ممتازة. مثالية للقيادة داخل المدينة والرحلات الطويلة. التأمين مشمول والتوصيل متاح خلال 24 ساعة.",
+  features: "المميزات",
+  recentReviews: "أحدث التقييمات",
+  noReviewsYet: "لا توجد تقييمات بعد — كن أول من يقيّم بعد رحلتك!",
+  defaultRiderName: "مستخدم تريندي ويلز",
+  total: "الإجمالي",
+  perDayShort: "/ اليوم",
+  bookNow: "احجز الآن",
+
+  // Booking flow — app/rent/book.tsx
+  stepDates: "التواريخ",
+  stepYourInfo: "بياناتك",
+  stepPayment: "الدفع",
+  bookVehicle: "احجز السيارة",
+  selectDates: "اختر التواريخ",
+  pickupDate: "تاريخ الاستلام",
+  returnDate: "تاريخ الإرجاع",
+  dayOne: "يوم",
+  dayMany: "أيام",
+  summaryTotalSuffix: "إجمالاً",
+  yourInformation: "بياناتك",
+  fullName: "الاسم الكامل",
+  fullNamePlaceholder: "أحمد محمد",
+  email: "البريد الإلكتروني",
+  emailPlaceholder: "you@email.com",
+  phone: "رقم الهاتف",
+  phonePlaceholder: "+20 1xx xxx xxxx",
+  driversLicense: "رقم رخصة القيادة",
+  licensePlaceholder: "رقم الرخصة",
+  paymentMethod: "طريقة الدفع",
+  cashOnPickup: "الدفع نقداً عند الاستلام",
+  creditDebitCard: "بطاقة ائتمان / خصم",
+  perDayPaymentSuffix: "/يوم",
+  continue: "متابعة",
+  confirmBooking: "تأكيد الحجز",
+  bookingFailedInline: "فشل الحجز. يرجى المحاولة مرة أخرى.",
+  bookingFailedTitle: "فشل الحجز",
+  bookingFailedMessage: "تعذّر إتمام حجزك. تأكد من بياناتك وحاول مرة أخرى.",
+  tapToChoose: "اضغط للاختيار",
+  done: "تم",
+  currency: "ج.م",
+  // Success screen
+  bookingConfirmed: "تم تأكيد الحجز!",
+  refPrefix: "الرقم المرجعي:",
+  successMessagePrefix: "قدّم هذا الرقم المرجعي عند الاستلام. لقد أرسلنا تأكيداً إلى",
+  successMessageFallbackInbox: "بريدك الإلكتروني",
+  successMessageSuffix: ".",
+  viewMyBookings: "عرض حجوزاتي",
+  backToBrowse: "العودة للتصفح",
+
+  // Category list — app/rent/category/[key].tsx
+  allCategories: "كل الفئات",
+  vehiclesFallback: "السيارات",
+  seatsSuffix: "مقاعد",
+  perDaySlash: "/يوم",
+  searchPlaceholder: "ابحث بالاسم أو الموقع أو النوع…",
+  noMatches: "لا توجد نتائج",
+  noVehiclesInCategory: "لا توجد سيارات في هذه الفئة",
+
+  // My bookings — app/rent/my-bookings.tsx
+  myBookings: "حجوزاتي",
+  tabAwaiting: "قيد الانتظار",
+  tabActive: "نشطة",
+  tabCompleted: "مكتملة",
+  tabCancelled: "ملغاة",
+  statusPending: "قيد الانتظار",
+  statusConfirmed: "مؤكدة",
+  statusCompleted: "مكتملة",
+  statusCancelled: "ملغاة",
+  emptyBookingsPrefix: "لا توجد حجوزات",
+  emptyBookingsSuffix: "",
+  bookingNumberPrefix: "حجز رقم #",
+  pickup: "الاستلام",
+  returnLabel: "الإرجاع",
+  cancelBooking: "إلغاء الحجز",
+  rateYourRental: "قيّم رحلتك",
+};
+
+export default rent;

@@ -1,4 +1,15 @@
 import type { TranslationKeys } from "./en";
+import admin from "./ar/admin";
+import buy from "./ar/buy";
+import components from "./ar/components";
+import crm from "./ar/crm";
+import home from "./ar/home";
+import messages from "./ar/messages";
+import profile from "./ar/profile";
+import rent from "./ar/rent";
+import sell from "./ar/sell";
+import service from "./ar/service";
+import support from "./ar/support";
 
 const ar: TranslationKeys = {
   common: {
@@ -38,7 +49,7 @@ const ar: TranslationKeys = {
     invalidNumberTitle: "رقم غير صحيح",
     invalidNumberMessage: "أدخل رقم موبايل مصري مكوّناً من 10 أرقام يبدأ بـ 1.",
     otpSendFailed: "تعذر إرسال رمز التحقق",
-    verifyTitle: "تأكيد رقم هاتفك",
+    verifyTitle: "تأكيد رقمك",
     otpSentTo: "أدخل الرمز المرسل إلى",
     verifying: "جاري التحقق…",
     verificationFailed: "فشل التحقق",
@@ -51,59 +62,21 @@ const ar: TranslationKeys = {
     repair: "الصيانة",
     profile: "حسابي",
   },
-  rent: {
-    browse: "تصفح السيارات",
-    bookNow: "احجز الآن",
-    reserveNow: "احجز الآن",
-    perDay: "/يوم",
-    available: "متاح",
-    rented: "مؤجر",
-    myBookings: "حجوزاتي",
-    activeBookings: "نشطة",
-    completedBookings: "مكتملة",
-    cancelledBookings: "ملغية",
-    pickupDate: "تاريخ الاستلام",
-    returnDate: "تاريخ الإرجاع",
-    totalCost: "التكلفة الإجمالية",
-    confirmBooking: "تأكيد الحجز",
-    bookingConfirmed: "تم تأكيد الحجز!",
-  },
-  sell: {
-    browse: "تصفح الإعلانات",
-    createListing: "إنشاء إعلان",
-    myListings: "إعلاناتي",
-    askingPrice: "السعر المطلوب",
-    mileage: "المسافة المقطوعة",
-    year: "السنة",
-    contactSeller: "تواصل مع البائع",
-    views: "المشاهدات",
-    inquiries: "الاستفسارات",
-  },
-  repair: {
-    requestRepair: "طلب صيانة",
-    repairStatus: "حالة الصيانة",
-    issueDescription: "وصف المشكلة",
-    category: "الفئة",
-    priority: "الأولوية",
-    submitRequest: "إرسال الطلب",
-    mechanical: "ميكانيكي",
-    electrical: "كهربائي",
-    cosmetic: "تجميلي",
-    other: "أخرى",
-  },
-  profile: {
-    myProfile: "ملفي الشخصي",
-    editProfile: "تعديل الملف",
-    preferences: "التفضيلات",
-    loyaltyPoints: "نقاط الولاء",
-    communicationCenter: "الرسائل",
-    interactionHistory: "السجل",
-    settings: "الإعدادات",
-  },
   settings: {
     languageChanged: "تم تغيير اللغة",
-    restartToApply: "يرجى إعادة تشغيل التطبيق لتطبيق اللغة واتجاه الواجهة الجديدين.",
+    restartToApply: "يرجى إعادة تشغيل التطبيق لتطبيق اللغة والاتجاه الجديدين.",
   },
-} as const;
+  home,
+  buy,
+  rent,
+  sell,
+  service,
+  profile,
+  messages,
+  admin,
+  crm,
+  support,
+  components,
+};
 
 export default ar;
