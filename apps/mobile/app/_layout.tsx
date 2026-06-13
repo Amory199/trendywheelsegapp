@@ -6,6 +6,8 @@ import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { LanguageGate } from "../components/LanguageGate";
+import { MobileIntro } from "../components/MobileIntro";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { UpdateGate } from "../components/UpdateGate";
 import { initAppCheck } from "../lib/app-check";
@@ -97,6 +99,10 @@ export default function RootLayout(): JSX.Element {
           </Stack>
           <OfflineBanner />
           <UpdateGate />
+          {/* Branded cold-start intro, then (first launch only) the language
+              gate on top of it — both above the app, gate wins z-order. */}
+          <MobileIntro />
+          <LanguageGate />
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

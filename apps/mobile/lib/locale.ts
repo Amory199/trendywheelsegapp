@@ -6,29 +6,52 @@ import { Alert, I18nManager } from "react-native";
 import { create } from "zustand";
 
 const LOCALE_STORAGE_KEY = "tw_locale";
+const LOCALE_CHOSEN_KEY = "tw_locale_chosen";
 
 type TranslationKey = Parameters<typeof t>[0];
 
 interface LocaleState {
   locale: Locale;
+  // Has the user explicitly picked a language on the first-launch gate yet?
+  // Distinct from `locale` because the default "en" must NOT skip the gate.
+  chosen: boolean;
+  // True once the SecureStore reads have resolved — the gate waits for this
+  // so it never flashes before we know whether a choice was already made.
+  hydrated: boolean;
   setLocale: (locale: Locale) => void;
+  markChosen: () => Promise<void>;
 }
 
 export const useLocale = create<LocaleState>((set) => ({
   locale: "en",
+  chosen: false,
+  hydrated: false,
   setLocale: (locale) => set({ locale }),
+  markChosen: async () => {
+    set({ chosen: true });
+    try {
+      await SecureStore.setItemAsync(LOCALE_CHOSEN_KEY, "1");
+    } catch {
+      // Non-fatal: worst case the gate shows once more next launch.
+    }
+  },
 }));
 
-// Hydrate the persisted locale at module load. The store defaults to "en"
-// until the SecureStore read resolves.
+// Hydrate persisted locale + chosen flag at module load. Defaults stand until
+// the SecureStore reads resolve; `hydrated` flips true when they do.
 void (async () => {
   try {
-    const stored = await SecureStore.getItemAsync(LOCALE_STORAGE_KEY);
-    if (stored === "en" || stored === "ar") {
-      useLocale.setState({ locale: stored });
-    }
+    const [stored, chosen] = await Promise.all([
+      SecureStore.getItemAsync(LOCALE_STORAGE_KEY),
+      SecureStore.getItemAsync(LOCALE_CHOSEN_KEY),
+    ]);
+    useLocale.setState({
+      locale: stored === "en" || stored === "ar" ? stored : "en",
+      chosen: chosen === "1",
+      hydrated: true,
+    });
   } catch {
-    // Keep the "en" default if the read fails.
+    useLocale.setState({ hydrated: true });
   }
 })();
 
