@@ -1,27 +1,45 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
+import { isRTL } from "@trendywheels/i18n";
+import { type Vehicle } from "@trendywheels/types";
 import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CategoryCircles } from "../../components/CategoryCircles";
+import { HomeSearchBar } from "../../components/HomeSearchBar";
+import { ListingCard } from "../../components/ListingCard";
+import { Rail } from "../../components/Rail";
+import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
-import { useT } from "../../lib/locale";
+import { useLocale, useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
+import { vehicleImageUrl } from "../../lib/vehicle";
 
 const HERO_VIDEO = require("../../assets/hero/home.mp4");
+const INK = "#02011F";
+const MUTED = "rgba(2,1,31,0.55)";
 
-const CHIPS = [
-  { href: "/(tabs)/buy" as const, labelKey: "home.chipBuy", subKey: "home.chipBuySub" },
-  { href: "/(tabs)/rent" as const, labelKey: "home.chipRent", subKey: "home.chipRentSub" },
-  { href: "/(tabs)/sell" as const, labelKey: "home.chipSell", subKey: "home.chipSellSub" },
-  { href: "/(tabs)/repair" as const, labelKey: "home.chipService", subKey: "home.chipServiceSub" },
-] as const;
+type ProductCategory = "cart_new" | "cart_used" | "parts" | "accessory";
+interface Product {
+  id: string;
+  name: string;
+  priceEgp: string | number;
+  images: string[];
+  inStock: boolean;
+  category: ProductCategory;
+}
 
 export default function HomeScreen(): React.JSX.Element {
   const router = useRouter();
   const t = useT();
+  const rtl = isRTL(useLocale((s) => s.locale));
+  const insets = useSafeAreaInsets();
   const user = useAuth((s) => s.user);
   const scrollHandler = useTabBarScrollHandler();
 
@@ -31,109 +49,266 @@ export default function HomeScreen(): React.JSX.Element {
     p.play();
   });
 
+  // The home tab stays mounted under the tab navigator, so pause the looping
+  // banner video whenever the tab isn't focused — no off-screen battery drain.
+  useFocusEffect(
+    React.useCallback(() => {
+      player.play();
+      return () => player.pause();
+    }, [player]),
+  );
+
+  const vehiclesQ = useQuery({
+    queryKey: ["home-vehicles"],
+    queryFn: () => api.request<{ data: Vehicle[] }>("GET", "/api/vehicles?limit=40"),
+  });
+  const productsQ = useQuery({
+    queryKey: ["home-products"],
+    queryFn: () => api.request<{ data: Product[] }>("GET", "/api/products?limit=40"),
+  });
+
+  const vehicles = React.useMemo(() => (vehiclesQ.data?.data ?? []) as Vehicle[], [vehiclesQ.data]);
+  const products = React.useMemo(() => (productsQ.data?.data ?? []) as Product[], [productsQ.data]);
+
+  // Rent uses Vehicles (rich rating/location, /rent/[id] detail). Buy uses
+  // Products (real string[] images, working /buy/[id] detail + cart) — keeps
+  // each rail pointed at a detail screen that actually fits its intent.
+  const forRent = React.useMemo(
+    () => vehicles.filter((v) => v.listingType === "rent" || v.listingType === "both").slice(0, 10),
+    [vehicles],
+  );
+  const cartsForSale = React.useMemo(
+    () =>
+      products.filter((p) => p.category === "cart_new" || p.category === "cart_used").slice(0, 10),
+    [products],
+  );
+  const partsShop = React.useMemo(
+    () => products.filter((p) => p.category === "parts" || p.category === "accessory").slice(0, 10),
+    [products],
+  );
+
+  const renderVehicle = React.useCallback(
+    (v: Vehicle) => (
+      <ListingCard
+        title={v.name}
+        priceLabel={`${t("home.egp")} ${Number(v.dailyRate).toLocaleString()}${t("home.perDay")}`}
+        image={vehicleImageUrl(v.images?.[0])}
+        rating={v.averageRating}
+        location={v.location}
+        badge={t("home.badgeForRent")}
+        badgeColor={colors.brand.friendlyBlue}
+        onPress={() => router.push(`/rent/${v.id}` as never)}
+      />
+    ),
+    [t, router],
+  );
+  const renderProduct = React.useCallback(
+    (p: Product) => (
+      <ListingCard
+        title={p.name}
+        priceLabel={`${t("home.egp")} ${Number(p.priceEgp).toLocaleString()}`}
+        image={p.images?.[0]}
+        overlayLabel={!p.inStock ? t("buy.outOfStock") : null}
+        onPress={() => router.push(`/buy/${p.id}` as never)}
+      />
+    ),
+    [t, router],
+  );
+
   const firstName = user?.name?.split(" ")[0];
+  const greeting = firstName
+    ? `${t("home.heroGreeting")} ${firstName.toUpperCase()}`
+    : t("home.welcome");
+  const hasError = vehiclesQ.isError && productsQ.isError;
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F7F7FB" }}>
+    <View style={styles.container}>
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: TAB_BAR_SAFE_BOTTOM }}
       >
-        {/* HERO */}
-        <View
-          style={{
-            height: 540,
-            position: "relative",
-            backgroundColor: "#02011F",
-            overflow: "hidden",
-          }}
-        >
-          <View style={StyleSheet.absoluteFill}>
-            <VideoView
-              player={player}
-              style={StyleSheet.absoluteFill}
-              contentFit="cover"
-              nativeControls={false}
-              pointerEvents="none"
-              surfaceType="textureView"
-            />
+        {/* HEADER */}
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.eyebrow}>{greeting}</Text>
+            <Text style={styles.tagline}>{t("home.tagline")}</Text>
           </View>
-          <LinearGradient
-            colors={["rgba(2,1,31,0.15)", "rgba(2,1,31,0.55)", "rgba(2,1,31,0.92)"]}
-            style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
-          />
-          <View style={{ position: "absolute", left: 24, right: 24, bottom: 36 }}>
-            <Animated.Text
-              entering={FadeIn.duration(400)}
-              style={{
-                fontSize: 11,
-                color: "rgba(255,255,255,0.85)",
-                letterSpacing: 2.4,
-                fontWeight: "700",
-                marginBottom: 10,
-              }}
-            >
-              {firstName
-                ? `${t("home.heroGreeting")}, ${firstName.toUpperCase()}`
-                : t("home.heroDefault")}
-            </Animated.Text>
-            <Animated.Text
-              entering={FadeInDown.duration(450).delay(100)}
-              style={{
-                fontFamily: "Anton",
-                fontSize: 56,
-                color: "#fff",
-                lineHeight: 56,
-                letterSpacing: 0.4,
-              }}
-            >
-              {t("home.heroTitleLine1")}
-              {"\n"}
-              <Text style={{ color: colors.brand.trendyPink }}>{t("home.heroTitleLine2")}</Text>
-            </Animated.Text>
-          </View>
+          <Pressable
+            onPress={() => router.push("/profile/notifications")}
+            hitSlop={8}
+            style={styles.iconBtn}
+          >
+            <Ionicons name="notifications-outline" size={22} color={INK} />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/(tabs)/profile")}
+            hitSlop={8}
+            style={styles.avatar}
+          >
+            <Text style={styles.avatarText}>{(firstName?.[0] ?? "T").toUpperCase()}</Text>
+          </Pressable>
         </View>
 
-        {/* CHIPS */}
-        <View style={{ padding: 16, gap: 12 }}>
-          {CHIPS.map((c, i) => (
-            <Animated.View key={c.href} entering={FadeInDown.duration(350).delay(150 + i * 80)}>
-              <Pressable
-                onPress={() => router.push(c.href as never)}
-                android_ripple={{ color: "rgba(43,15,248,0.10)", borderless: false }}
-                style={({ pressed }) => ({
-                  backgroundColor: "#fff",
-                  borderRadius: 18,
-                  padding: 22,
-                  borderWidth: 1,
-                  borderColor: "rgba(2,1,31,0.06)",
-                  transform: [{ scale: pressed ? 0.97 : 1 }],
-                  shadowColor: "#02011F",
-                  shadowOpacity: 0.06,
-                  shadowOffset: { width: 0, height: 6 },
-                  shadowRadius: 18,
-                })}
-              >
-                <Text
-                  style={{
-                    fontFamily: "Anton",
-                    fontSize: 32,
-                    color: "#02011F",
-                    letterSpacing: 0.4,
-                  }}
-                >
-                  {t(c.labelKey)}
-                </Text>
-                <Text style={{ fontSize: 13, color: "rgba(2,1,31,0.55)", marginTop: 4 }}>
-                  {t(c.subKey)}
-                </Text>
-              </Pressable>
-            </Animated.View>
-          ))}
-        </View>
-        <View style={{ height: TAB_BAR_SAFE_BOTTOM }} />
+        {/* SEARCH */}
+        <HomeSearchBar />
+
+        {/* PROMO BANNER (brand video) */}
+        <Pressable onPress={() => router.push("/(tabs)/buy")} style={styles.banner}>
+          <VideoView
+            player={player}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            nativeControls={false}
+            pointerEvents="none"
+            surfaceType="textureView"
+          />
+          <LinearGradient
+            colors={["rgba(2,1,31,0.10)", "rgba(2,1,31,0.45)", "rgba(2,1,31,0.85)"]}
+            style={StyleSheet.absoluteFill}
+          />
+          <Animated.View entering={FadeIn.duration(400)} style={styles.bannerContent}>
+            <Text style={styles.bannerTitle}>{t("home.promoTitle")}</Text>
+            <View style={styles.bannerCta}>
+              <Text style={styles.bannerCtaText}>{t("home.promoCta")}</Text>
+              <Ionicons name={rtl ? "arrow-back" : "arrow-forward"} size={14} color="#fff" />
+            </View>
+          </Animated.View>
+        </Pressable>
+
+        {/* CATEGORIES */}
+        <Text style={styles.sectionLabel}>{t("home.browse")}</Text>
+        <CategoryCircles onPress={(key) => router.push(`/rent/category/${key}` as never)} />
+
+        {hasError ? (
+          <Pressable
+            style={styles.errorBox}
+            onPress={() => {
+              void vehiclesQ.refetch();
+              void productsQ.refetch();
+            }}
+          >
+            <Ionicons name="cloud-offline-outline" size={20} color={MUTED} />
+            <Text style={styles.errorText}>
+              {t("common.error")} · {t("common.tryAgain")}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {/* RAILS */}
+        <Rail<Vehicle>
+          title={t("home.railForRent")}
+          data={forRent}
+          loading={vehiclesQ.isLoading}
+          keyExtractor={(v) => v.id}
+          seeAllLabel={t("home.seeAll")}
+          onSeeAll={() => router.push("/(tabs)/rent")}
+          renderCard={renderVehicle}
+        />
+
+        <Rail<Product>
+          title={t("home.railForSale")}
+          data={cartsForSale}
+          loading={productsQ.isLoading}
+          keyExtractor={(p) => p.id}
+          seeAllLabel={t("home.seeAll")}
+          onSeeAll={() => router.push("/(tabs)/buy")}
+          renderCard={renderProduct}
+        />
+
+        <Rail<Product>
+          title={t("home.railShop")}
+          data={partsShop}
+          loading={productsQ.isLoading}
+          keyExtractor={(p) => p.id}
+          seeAllLabel={t("home.seeAll")}
+          onSeeAll={() => router.push("/(tabs)/buy")}
+          renderCard={renderProduct}
+        />
       </Animated.ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#F7F7FB" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
+  eyebrow: { fontSize: 11, color: MUTED, letterSpacing: 1.8, fontWeight: "700" },
+  tagline: { fontFamily: "Anton", fontSize: 26, color: INK, letterSpacing: 0.3, marginTop: 2 },
+  iconBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(2,1,31,0.06)",
+  },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.brand.trustWorth,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { color: "#fff", fontWeight: "800", fontSize: 16 },
+  banner: {
+    height: 170,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 20,
+    overflow: "hidden",
+    backgroundColor: "#02011F",
+  },
+  bannerContent: { position: "absolute", left: 18, right: 18, bottom: 16, gap: 10 },
+  bannerTitle: {
+    fontFamily: "Anton",
+    fontSize: 26,
+    color: "#fff",
+    letterSpacing: 0.3,
+    maxWidth: "80%",
+  },
+  bannerCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    backgroundColor: colors.brand.trendyPink,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  bannerCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  sectionLabel: {
+    fontFamily: "Anton",
+    fontSize: 22,
+    color: INK,
+    letterSpacing: 0.3,
+    paddingHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 20,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "rgba(2,1,31,0.06)",
+  },
+  errorText: { color: MUTED, fontSize: 13, fontWeight: "600" },
+});

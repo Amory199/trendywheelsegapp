@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
-import { Image } from "expo-image";
+import { TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import * as React from "react";
 import { useState } from "react";
 import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { ListingCard } from "../../components/ListingCard";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
@@ -108,75 +108,19 @@ export default function BuyScreen(): React.JSX.Element {
           <Text style={{ padding: 40, color: "rgba(2,1,31,0.5)" }}>{t("buy.emptyCatalog")}</Text>
         ) : (
           items.map((p, i) => (
-            <Animated.View key={p.id} entering={FadeInDown.duration(280).delay(i * 30)}>
-              <Pressable
+            <Animated.View
+              key={p.id}
+              entering={FadeInDown.duration(280).delay(Math.min(i, 8) * 30)}
+            >
+              <ListingCard
+                width={W}
+                imageRatio={1}
+                title={p.name}
+                priceLabel={`${t("buy.egp")} ${Number(p.priceEgp).toLocaleString()}`}
+                image={p.images[0]}
+                overlayLabel={!p.inStock ? t("buy.outOfStock") : null}
                 onPress={() => router.push(`/buy/${p.id}` as never)}
-                style={({ pressed }) => ({
-                  width: W,
-                  transform: [{ scale: pressed ? 0.97 : 1 }],
-                })}
-              >
-                <View
-                  style={{
-                    width: W,
-                    height: W,
-                    borderRadius: 14,
-                    overflow: "hidden",
-                    backgroundColor: "#EAEAF0",
-                  }}
-                >
-                  {p.images[0] ? (
-                    <Image
-                      source={p.images[0]}
-                      style={{ flex: 1 }}
-                      contentFit="cover"
-                      transition={250}
-                    />
-                  ) : null}
-                  {!p.inStock ? (
-                    <View
-                      style={{
-                        position: "absolute",
-                        left: 0,
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        backgroundColor: "rgba(2,1,31,0.55)",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: "#fff",
-                          fontWeight: "700",
-                          letterSpacing: 1.5,
-                          fontSize: 11,
-                        }}
-                      >
-                        {t("buy.outOfStock")}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-                <Text
-                  numberOfLines={1}
-                  style={{ marginTop: 8, fontSize: 13, fontWeight: "700", color: "#02011F" }}
-                >
-                  {p.name}
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: "Anton",
-                    fontSize: 18,
-                    color: colors.brand.trendyPink,
-                    marginTop: 2,
-                    letterSpacing: 0.3,
-                  }}
-                >
-                  {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
-                </Text>
-              </Pressable>
+              />
             </Animated.View>
           ))
         )}
