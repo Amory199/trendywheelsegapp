@@ -43,14 +43,17 @@ const CATEGORY_GRADIENTS: Record<VehicleCategory, [string, string]> = {
   "hover-board": [colors.brand.trendyPink, colors.brand.friendlyBlue],
 };
 
-// Real per-category hero photos (bundled). Categories without one yet
-// (plain scooter, hover-board) fall back to the gradient + icon tile below.
+// Real per-category hero photos (bundled). Every VehicleCategory now has one;
+// the gradient + icon tile below stays as a defensive fallback for any future
+// category added before its photo lands.
 const CATEGORY_IMAGES: Partial<Record<VehicleCategory, number>> = {
   "golf-cart": require("../assets/categories/golf-cart.jpg"),
+  scooter: require("../assets/categories/scooter.jpg"),
   "scooter-sidecar": require("../assets/categories/scooter-sidecar.jpg"),
   buggy: require("../assets/categories/buggy.jpg"),
   utv: require("../assets/categories/utv.jpg"),
   "jet-ski": require("../assets/categories/jet-ski.jpg"),
+  "hover-board": require("../assets/categories/hover-board.jpg"),
 };
 
 const SCREEN_W = Dimensions.get("window").width;
