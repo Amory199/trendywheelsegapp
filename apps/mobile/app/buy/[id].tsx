@@ -53,7 +53,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
         orderId
           ? `Your order #${orderId.slice(0, 8)} is confirmed. You'll get updates via push and SMS.`
           : "Your order is confirmed. You'll get updates via push and SMS.",
-        [{ text: "View my orders", onPress: () => router.push("/(tabs)/profile" as never) }],
+        [{ text: "View my orders", onPress: () => router.push("/buy/my-orders") }],
       );
     },
     onError: (err) => {

@@ -1,7 +1,17 @@
 import { colors, spacing, typography, borderRadius, type Palette } from "@trendywheels/ui-tokens";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+} from "react-native";
 
 import { useAuth } from "../../lib/auth-store";
 import { confirmFirebaseOtp } from "../../lib/firebase-phone-auth";
@@ -58,43 +68,53 @@ export default function OtpScreen(): JSX.Element {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>{t("auth.verifyTitle")}</Text>
-        <Text style={styles.subtitle}>
-          {t("auth.otpSentTo")} {phone}
-        </Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="000000"
-          placeholderTextColor={p.muted}
-          keyboardType="number-pad"
-          value={otp}
-          onChangeText={setOtp}
-          maxLength={6}
-          textAlign="center"
-        />
-
-        <TouchableOpacity
-          style={[styles.button, (otp.length !== 6 || loading) && styles.buttonDisabled]}
-          onPress={() => void handleVerify()}
-          disabled={otp.length !== 6 || loading}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? t("auth.verifying") : t("auth.verifyOtp")}
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>{t("auth.verifyTitle")}</Text>
+          <Text style={styles.subtitle}>
+            {t("auth.otpSentTo")} {phone}
           </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+
+          <TextInput
+            style={styles.input}
+            placeholder="000000"
+            placeholderTextColor={p.muted}
+            keyboardType="number-pad"
+            value={otp}
+            onChangeText={setOtp}
+            maxLength={6}
+            textAlign="center"
+          />
+
+          <TouchableOpacity
+            style={[styles.button, (otp.length !== 6 || loading) && styles.buttonDisabled]}
+            onPress={() => void handleVerify()}
+            disabled={otp.length !== 6 || loading}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? t("auth.verifying") : t("auth.verifyOtp")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 function makeStyles(p: Palette) {
   return StyleSheet.create({
+    flex: { flex: 1, backgroundColor: p.bg },
     container: {
-      flex: 1,
+      flexGrow: 1,
       backgroundColor: p.bg,
       justifyContent: "center",
       padding: spacing.lg,

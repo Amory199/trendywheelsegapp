@@ -44,13 +44,15 @@ const STATUS_TINT: Record<string, string> = {
 export default function MyOrders(): React.JSX.Element {
   const router = useRouter();
 
+  // Shape must match the profile screen's ["my-orders"] query EXACTLY — both
+  // share this cache key, so a divergent shape made one screen misread the
+  // other's cached value (profile showed a count while this list rendered
+  // empty). Both now cache { data: Order[] } and read `.data`.
   const q = useQuery({
     queryKey: ["my-orders"],
-    queryFn: async (): Promise<Order[]> => {
-      const r = await api.getMyOrders();
-      return ((r as { data: Order[] }).data ?? []) as Order[];
-    },
+    queryFn: () => api.getMyOrders().catch(() => ({ data: [] as Order[] })),
   });
+  const orders = (q.data?.data ?? []) as Order[];
 
   return (
     <>
@@ -69,7 +71,7 @@ export default function MyOrders(): React.JSX.Element {
       ) : (
         <FlatList<Order>
           style={styles.root}
-          data={q.data ?? []}
+          data={orders}
           keyExtractor={(o) => o.id}
           contentContainerStyle={{ padding: 14, gap: 10 }}
           refreshControl={
