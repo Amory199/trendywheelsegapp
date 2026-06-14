@@ -10,6 +10,7 @@ import { Share, Text, View } from "react-native";
 
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
+import { useDisplay, useTracking } from "../../lib/typography";
 import { TWPressable } from "../ui";
 
 interface Referral {
@@ -23,6 +24,8 @@ interface ReferralData {
 
 export function ReferralCard(): React.JSX.Element | null {
   const t = useT();
+  const display = useDisplay();
+  const track = useTracking();
   const q = useQuery<{ data: ReferralData }>({
     queryKey: ["mobile-referral"],
     queryFn: () => api.getReferralsMe(),
@@ -62,19 +65,20 @@ export function ReferralCard(): React.JSX.Element | null {
               fontSize: 10,
               fontWeight: "800",
               color: "rgba(255,255,255,0.85)",
-              letterSpacing: 1.2,
+              letterSpacing: track(1.2),
             }}
           >
             {t("profile.referral.codeLabel")}
           </Text>
           <Text
-            style={{
-              fontFamily: "Anton",
-              fontSize: 30,
-              color: "#fff",
-              letterSpacing: 1,
-              marginTop: 4,
-            }}
+            style={[
+              {
+                fontSize: 30,
+                color: "#fff",
+                marginTop: 4,
+              },
+              display(1),
+            ]}
           >
             {data.code}
           </Text>
@@ -110,7 +114,9 @@ export function ReferralCard(): React.JSX.Element | null {
             borderColor: "rgba(255,255,255,0.35)",
           }}
         >
-          <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700", letterSpacing: 0.5 }}>
+          <Text
+            style={{ color: "#fff", fontSize: 12, fontWeight: "700", letterSpacing: track(0.5) }}
+          >
             {t("profile.referral.share")}
           </Text>
         </TWPressable>

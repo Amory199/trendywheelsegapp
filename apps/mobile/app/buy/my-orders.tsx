@@ -67,6 +67,7 @@ export default function MyOrders(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           title: t("buy.myOrdersTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTitleStyle: { color: "#fff" },

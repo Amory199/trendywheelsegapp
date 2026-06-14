@@ -16,6 +16,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
+import { useTracking } from "../../lib/typography";
 
 const STATUS_ORDER = ["submitted", "assigned", "in-progress", "completed"] as const;
 type RepairStatus = (typeof STATUS_ORDER)[number] | "cancelled";
@@ -65,6 +66,7 @@ export default function RepairDetailScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
   const t = useT();
+  const track = useTracking();
 
   const { data, isLoading } = useQuery({
     queryKey: ["repair-request", id],
@@ -126,7 +128,7 @@ export default function RepairDetailScreen(): JSX.Element {
             <Ionicons name={currentMeta.icon} size={32} color={currentMeta.color} />
           </View>
           <View style={styles.heroInfo}>
-            <Text style={styles.heroStatus}>
+            <Text style={[styles.heroStatus, { letterSpacing: track(0.5) }]}>
               {STATUS_LABEL_KEY[repair.status as RepairStatus]
                 ? t(STATUS_LABEL_KEY[repair.status as RepairStatus])
                 : repair.status.replace("-", " ").toUpperCase()}
@@ -219,7 +221,9 @@ export default function RepairDetailScreen(): JSX.Element {
               />
             </View>
             <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>{t("service.detail.category")}</Text>
+              <Text style={[styles.detailLabel, { letterSpacing: track(0.5) }]}>
+                {t("service.detail.category")}
+              </Text>
               <Text style={styles.detailValue}>{repair.category}</Text>
             </View>
           </View>
@@ -229,7 +233,9 @@ export default function RepairDetailScreen(): JSX.Element {
                 <Ionicons name="document-text-outline" size={18} color={colors.primary[400]} />
               </View>
               <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>{t("service.detail.description")}</Text>
+                <Text style={[styles.detailLabel, { letterSpacing: track(0.5) }]}>
+                  {t("service.detail.description")}
+                </Text>
                 <Text style={[styles.detailValue, { lineHeight: 20 }]}>{repair.description}</Text>
               </View>
             </View>
@@ -366,7 +372,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   heroInfo: { flex: 1 },
-  heroStatus: { color: colors.text.light, fontSize: 14, fontWeight: "700", letterSpacing: 0.5 },
+  heroStatus: { color: colors.text.light, fontSize: 14, fontWeight: "700" },
   heroDate: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },
   priorityBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   priorityText: { fontSize: 10, fontWeight: "700" },
@@ -430,7 +436,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: 11,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   detailValue: {
     color: colors.text.light,

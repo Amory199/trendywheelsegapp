@@ -3,6 +3,7 @@ import { isRTL } from "@trendywheels/i18n";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useLocale } from "../lib/locale";
+import { useDisplay } from "../lib/typography";
 
 const INK = "#02011F";
 
@@ -35,13 +36,14 @@ export function Rail<T>({
 }: RailProps<T>): JSX.Element | null {
   const locale = useLocale((s) => s.locale);
   const rtl = isRTL(locale);
+  const display = useDisplay();
 
   if (!loading && hideWhenEmpty && data.length === 0) return null;
 
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.title, display(0.3)]}>{title}</Text>
         {onSeeAll ? (
           <Pressable onPress={onSeeAll} hitSlop={10} style={styles.seeAll}>
             <Text style={styles.seeAllText}>{seeAllLabel}</Text>
@@ -83,7 +85,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 12,
   },
-  title: { fontFamily: "Anton", fontSize: 22, color: INK, letterSpacing: 0.3 },
+  title: { fontSize: 22, color: INK },
   seeAll: { flexDirection: "row", alignItems: "center", gap: 2 },
   seeAllText: { fontSize: 13, fontWeight: "700", color: INK },
   loader: { alignSelf: "flex-start", marginLeft: 24 },

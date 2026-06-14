@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CategoryVideoHero } from "../../../components/CategoryVideoHero";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
+import { useRTL } from "../../../lib/typography";
 
 // The API returns vehicle images as rows ({ url, sortOrder }); older cached
 // payloads were plain strings. Accept both so covers never silently break.
@@ -36,6 +37,7 @@ export default function RentCategoryScreen(): JSX.Element {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const t = useT();
+  const rtl = useRTL();
   const { key } = useLocalSearchParams<{ key: string }>();
   const [search, setSearch] = useState("");
 
@@ -162,6 +164,7 @@ export default function RentCategoryScreen(): JSX.Element {
           placeholderTextColor={palette.muted}
           value={search}
           onChangeText={setSearch}
+          textAlign={rtl ? "right" : "left"}
           autoCorrect={false}
           autoCapitalize="none"
         />

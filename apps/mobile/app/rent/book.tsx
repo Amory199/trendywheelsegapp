@@ -28,6 +28,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TWSkiaConfetti } from "../../components/skia/confetti";
 import { logEvent } from "../../lib/analytics";
@@ -70,6 +71,7 @@ export default function BookScreen(): JSX.Element {
   const { palette } = useTheme();
   const t = useT();
   const styles = useMemo(() => makeStyles(palette), [palette]);
+  const insets = useSafeAreaInsets();
   const { vehicleId } = useLocalSearchParams<{ vehicleId: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -139,7 +141,7 @@ export default function BookScreen(): JSX.Element {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Pressable onPress={() => (step > 0 ? setStep((s) => s - 1) : router.back())}>
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
@@ -412,7 +414,6 @@ function makeStyles(palette: Palette) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingTop: 56,
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.md,
     },

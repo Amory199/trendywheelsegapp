@@ -20,6 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useT } from "../../lib/locale";
+import { useDisplay, useTracking } from "../../lib/typography";
 import { TWPressable } from "../ui";
 
 interface Props {
@@ -31,6 +32,7 @@ interface Props {
 export function HeroStrip({ name, phone, tier }: Props): React.JSX.Element {
   const router = useRouter();
   const t = useT();
+  const display = useDisplay();
   const colorsPair = TIER_COLORS[tier] ?? TIER_COLORS.bronze;
   const initials = initialsOf(name);
 
@@ -62,15 +64,10 @@ export function HeroStrip({ name, phone, tier }: Props): React.JSX.Element {
             justifyContent: "center",
           }}
         >
-          <Text style={{ color: "#fff", fontFamily: "Anton", fontSize: 30, letterSpacing: 1 }}>
-            {initials || "TW"}
-          </Text>
+          <Text style={[{ color: "#fff", fontSize: 30 }, display(1)]}>{initials || "TW"}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text
-            style={{ color: "#fff", fontFamily: "Anton", fontSize: 24, letterSpacing: 0.5 }}
-            numberOfLines={1}
-          >
+          <Text style={[{ color: "#fff", fontSize: 24 }, display(0.5)]} numberOfLines={1}>
             {name || t("profile.welcome")}
           </Text>
           <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 2 }}>
@@ -89,6 +86,7 @@ export function HeroStrip({ name, phone, tier }: Props): React.JSX.Element {
 // Subtle shimmer that sweeps left-to-right over the tier pill.
 function TierShimmerPill({ tier }: { tier: LoyaltyTier }): React.JSX.Element {
   const t = useT();
+  const track = useTracking();
   const sweep = useSharedValue(0);
   const [pillW, setPillW] = React.useState(0);
   useEffect(() => {
@@ -131,7 +129,7 @@ function TierShimmerPill({ tier }: { tier: LoyaltyTier }): React.JSX.Element {
           color: "#fff",
           fontSize: 11,
           fontWeight: "800",
-          letterSpacing: 1,
+          letterSpacing: track(1),
           textTransform: "uppercase",
         }}
       >

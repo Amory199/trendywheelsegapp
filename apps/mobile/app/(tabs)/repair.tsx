@@ -47,6 +47,7 @@ import { TWBadge, TWButton, TWCard, TWPressable, TWSkeletonCard } from "../../co
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
+import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
 const REPAIR_VIDEO = require("../../assets/category/repair.mp4");
@@ -78,6 +79,8 @@ export default function RepairScreen(): React.JSX.Element {
   const scrollHandler = useTabBarScrollHandler();
   const { palette } = useTheme();
   const t = useT();
+  const display = useDisplay();
+  const track = useTracking();
 
   const q = useQuery({
     queryKey: ["repair-requests"],
@@ -103,19 +106,25 @@ export default function RepairScreen(): React.JSX.Element {
       >
         <View>
           <Text
-            style={{ fontSize: 11, color: palette.muted, fontWeight: "700", letterSpacing: 0.8 }}
+            style={{
+              fontSize: 11,
+              color: palette.muted,
+              fontWeight: "700",
+              letterSpacing: track(0.8),
+            }}
           >
             {t("service.tab.eyebrow")}
           </Text>
           <Text
-            style={{
-              fontFamily: "Anton",
-              fontSize: 30,
-              color: palette.text,
-              textTransform: "uppercase",
-              letterSpacing: 0.3,
-              marginTop: 4,
-            }}
+            style={[
+              {
+                fontSize: 30,
+                color: palette.text,
+                textTransform: "uppercase",
+                marginTop: 4,
+              },
+              display(0.3),
+            ]}
           >
             {t("service.tab.title")}
           </Text>
@@ -192,7 +201,7 @@ export default function RepairScreen(): React.JSX.Element {
               color: palette.muted,
               fontSize: 11,
               fontWeight: "700",
-              letterSpacing: 0.8,
+              letterSpacing: track(0.8),
               textTransform: "uppercase",
               marginTop: 18,
             }}
@@ -235,14 +244,15 @@ export default function RepairScreen(): React.JSX.Element {
         <Ionicons name="construct-outline" size={36} color={colors.brand.friendlyBlue} />
       </View>
       <Text
-        style={{
-          fontFamily: "Anton",
-          fontSize: 22,
-          color: palette.text,
-          textTransform: "uppercase",
-          textAlign: "center",
-          letterSpacing: 0.3,
-        }}
+        style={[
+          {
+            fontSize: 22,
+            color: palette.text,
+            textTransform: "uppercase",
+            textAlign: "center",
+          },
+          display(0.3),
+        ]}
       >
         {t("service.tab.emptyTitle")}
       </Text>

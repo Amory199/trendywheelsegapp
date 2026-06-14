@@ -51,6 +51,7 @@ export default function NotificationsScreen(): JSX.Element {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           title: t("profile.notifications.title"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,

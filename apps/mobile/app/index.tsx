@@ -8,22 +8,15 @@ import { useAuth } from "../lib/auth-store";
 
 const LOADING_SRC = require("../assets/loading.webp");
 
-// Module-level flag so the intro reel plays exactly once per JS session
-// (cold launch). Backgrounding + foregrounding the app keeps the flag set,
-// so the user doesn't sit through the intro every time they return.
-let hasPlayedIntro = false;
-
+// The cold-start brand animation is the <MobileIntro> overlay (SVG lockup),
+// mounted in _layout.tsx — NOT a separate route. The old /intro mp4 reel was
+// retired so the two never play on top of each other.
 export default function Index(): JSX.Element {
   const { user, initialized, hydrate } = useAuth();
 
   useEffect(() => {
     if (!initialized) void hydrate();
   }, [initialized, hydrate]);
-
-  if (!hasPlayedIntro) {
-    hasPlayedIntro = true;
-    return <Redirect href="/intro" />;
-  }
 
   if (!initialized) {
     return (

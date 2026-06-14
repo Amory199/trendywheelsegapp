@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, spacing } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CategoryStrip } from "../../components/CategoryStrip";
 import { useT } from "../../lib/locale";
@@ -12,6 +13,7 @@ export default function RentScreen(): JSX.Element {
   const router = useRouter();
   const { palette } = useTheme();
   const t = useT();
+  const insets = useSafeAreaInsets();
   const scrollHandler = useTabBarScrollHandler();
 
   return (
@@ -19,7 +21,11 @@ export default function RentScreen(): JSX.Element {
       <View
         style={[
           styles.header,
-          { backgroundColor: palette.card, borderBottomColor: palette.border },
+          {
+            backgroundColor: palette.card,
+            borderBottomColor: palette.border,
+            paddingTop: insets.top + 12,
+          },
         ]}
       >
         <Text style={[styles.eyebrow, { color: palette.muted }]}>
@@ -44,7 +50,6 @@ export default function RentScreen(): JSX.Element {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingTop: 60,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,

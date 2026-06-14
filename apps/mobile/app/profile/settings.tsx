@@ -22,6 +22,7 @@ import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { applyLanguage, useT } from "../../lib/locale";
+import { useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
 type Theme = "dark" | "light" | "system";
@@ -31,6 +32,7 @@ export default function SettingsScreen(): JSX.Element {
   const { palette } = useTheme();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const t = useT();
+  const track = useTracking();
   const router = useRouter();
   const { user, hydrate } = useAuth();
   const prefs = user?.preferences;
@@ -120,7 +122,9 @@ export default function SettingsScreen(): JSX.Element {
       >
         {/* Appearance */}
         <Animated.View entering={FadeInDown.delay(40).springify()}>
-          <Text style={styles.sectionTitle}>{t("profile.settings.appearance")}</Text>
+          <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+            {t("profile.settings.appearance")}
+          </Text>
           <View style={styles.settingsCard}>
             {(["system", "light", "dark"] as Theme[]).map((themeOption, i) => (
               <View key={themeOption}>
@@ -174,7 +178,9 @@ export default function SettingsScreen(): JSX.Element {
 
         {/* Language */}
         <Animated.View entering={FadeInDown.delay(80).springify()}>
-          <Text style={styles.sectionTitle}>{t("profile.settings.language")}</Text>
+          <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+            {t("profile.settings.language")}
+          </Text>
           <View style={styles.settingsCard}>
             <Pressable
               style={[styles.langOption, language === "en" && styles.langOptionActive]}
@@ -214,7 +220,9 @@ export default function SettingsScreen(): JSX.Element {
 
         {/* Notifications */}
         <Animated.View entering={FadeInDown.delay(140).springify()}>
-          <Text style={styles.sectionTitle}>{t("profile.settings.notifications")}</Text>
+          <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+            {t("profile.settings.notifications")}
+          </Text>
           <View style={styles.settingsCard}>
             <ToggleRow
               icon="notifications-outline"
@@ -264,7 +272,9 @@ export default function SettingsScreen(): JSX.Element {
 
         {/* Marketing */}
         <Animated.View entering={FadeInDown.delay(200).springify()}>
-          <Text style={styles.sectionTitle}>{t("profile.settings.privacy")}</Text>
+          <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+            {t("profile.settings.privacy")}
+          </Text>
           <View style={styles.settingsCard}>
             <ToggleRow
               icon="megaphone-outline"
@@ -322,7 +332,9 @@ export default function SettingsScreen(): JSX.Element {
 
         {/* Danger zone */}
         <Animated.View entering={FadeInDown.delay(220).springify()}>
-          <Text style={styles.sectionTitle}>{t("profile.settings.account")}</Text>
+          <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+            {t("profile.settings.account")}
+          </Text>
           <View style={styles.settingsCard}>
             <Pressable
               style={styles.settingRow}
@@ -468,7 +480,6 @@ function makeStyles(palette: Palette) {
       fontSize: 11,
       fontWeight: "700",
       textTransform: "uppercase",
-      letterSpacing: 1,
       marginBottom: spacing.sm,
       paddingHorizontal: 2,
     },

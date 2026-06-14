@@ -5,11 +5,13 @@ import * as React from "react";
 import { useState } from "react";
 import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ListingCard } from "../../components/ListingCard";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
+import { useDisplay } from "../../lib/typography";
 
 type Category = "cart_new" | "cart_used" | "parts" | "accessory";
 
@@ -38,6 +40,8 @@ const W = (Dimensions.get("window").width - PADDING * 2 - CARD_GAP) / 2;
 export default function BuyScreen(): React.JSX.Element {
   const router = useRouter();
   const t = useT();
+  const display = useDisplay();
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Category | "all">("all");
   const scrollHandler = useTabBarScrollHandler();
 
@@ -53,8 +57,8 @@ export default function BuyScreen(): React.JSX.Element {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F7F7FB" }}>
-      <View style={{ paddingTop: 60, paddingHorizontal: PADDING, paddingBottom: 12 }}>
-        <Text style={{ fontFamily: "Anton", fontSize: 38, color: "#02011F", letterSpacing: 0.4 }}>
+      <View style={{ paddingTop: insets.top + 12, paddingHorizontal: PADDING, paddingBottom: 12 }}>
+        <Text style={[{ fontSize: 38, color: "#02011F" }, display(0.4)]}>
           {t("buy.catalogTitle")}
         </Text>
         <Text style={{ fontSize: 13, color: "rgba(2,1,31,0.55)", marginTop: 2 }}>

@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CategoryVideoHero } from "../../../components/CategoryVideoHero";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
+import { useRTL } from "../../../lib/typography";
 
 const PAGE_SIZE = 20;
 
@@ -27,6 +28,7 @@ export default function SellCategoryScreen(): JSX.Element {
   const router = useRouter();
   const t = useT();
   const insets = useSafeAreaInsets();
+  const rtl = useRTL();
   const { key } = useLocalSearchParams<{ key: string }>();
   const [search, setSearch] = useState("");
 
@@ -146,6 +148,7 @@ export default function SellCategoryScreen(): JSX.Element {
           onChangeText={setSearch}
           autoCorrect={false}
           autoCapitalize="none"
+          textAlign={rtl ? "right" : "left"}
         />
         {search.length > 0 ? (
           <Pressable onPress={() => setSearch("")} hitSlop={8}>

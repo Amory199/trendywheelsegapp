@@ -8,6 +8,7 @@ import { colors } from "@trendywheels/ui-tokens";
 import * as React from "react";
 import { Text, View } from "react-native";
 
+import { useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 import { TWPressable } from "../ui";
 
@@ -39,6 +40,7 @@ export function ActivityCard({
   onPress,
 }: Props): React.JSX.Element {
   const { palette } = useTheme();
+  const track = useTracking();
   const accent = TONE_MAP[tone];
   return (
     <TWPressable
@@ -76,7 +78,7 @@ export function ActivityCard({
               color: palette.text,
               fontSize: 18,
               fontWeight: "700",
-              letterSpacing: 0.2,
+              letterSpacing: track(0.2),
             }}
             numberOfLines={1}
           >
@@ -96,7 +98,7 @@ export function ActivityCard({
                   color: "#fff",
                   fontSize: 11,
                   fontWeight: "800",
-                  letterSpacing: 0.4,
+                  letterSpacing: track(0.4),
                 }}
               >
                 {badge}

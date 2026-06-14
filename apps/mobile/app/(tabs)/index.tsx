@@ -19,6 +19,7 @@ import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useLocale, useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
+import { useDisplay, useTracking } from "../../lib/typography";
 import { vehicleImageUrl } from "../../lib/vehicle";
 
 const HERO_VIDEO = require("../../assets/hero/home.mp4");
@@ -39,6 +40,8 @@ export default function HomeScreen(): React.JSX.Element {
   const router = useRouter();
   const t = useT();
   const rtl = isRTL(useLocale((s) => s.locale));
+  const display = useDisplay();
+  const track = useTracking();
   const insets = useSafeAreaInsets();
   const user = useAuth((s) => s.user);
   const scrollHandler = useTabBarScrollHandler();
@@ -132,8 +135,8 @@ export default function HomeScreen(): React.JSX.Element {
         {/* HEADER */}
         <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>{greeting}</Text>
-            <Text style={styles.tagline}>{t("home.tagline")}</Text>
+            <Text style={[styles.eyebrow, { letterSpacing: track(1.8) }]}>{greeting}</Text>
+            <Text style={[styles.tagline, display(0.3)]}>{t("home.tagline")}</Text>
           </View>
           <Pressable
             onPress={() => router.push("/profile/notifications")}
@@ -169,7 +172,7 @@ export default function HomeScreen(): React.JSX.Element {
             style={StyleSheet.absoluteFill}
           />
           <Animated.View entering={FadeIn.duration(400)} style={styles.bannerContent}>
-            <Text style={styles.bannerTitle}>{t("home.promoTitle")}</Text>
+            <Text style={[styles.bannerTitle, display(0.3)]}>{t("home.promoTitle")}</Text>
             <View style={styles.bannerCta}>
               <Text style={styles.bannerCtaText}>{t("home.promoCta")}</Text>
               <Ionicons name={rtl ? "arrow-back" : "arrow-forward"} size={14} color="#fff" />
@@ -178,7 +181,7 @@ export default function HomeScreen(): React.JSX.Element {
         </Pressable>
 
         {/* CATEGORIES */}
-        <Text style={styles.sectionLabel}>{t("home.browse")}</Text>
+        <Text style={[styles.sectionLabel, display(0.3)]}>{t("home.browse")}</Text>
         <CategoryCircles onPress={(key) => router.push(`/rent/category/${key}` as never)} />
 
         {hasError ? (
@@ -240,8 +243,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 14,
   },
-  eyebrow: { fontSize: 11, color: MUTED, letterSpacing: 1.8, fontWeight: "700" },
-  tagline: { fontFamily: "Anton", fontSize: 26, color: INK, letterSpacing: 0.3, marginTop: 2 },
+  eyebrow: { fontSize: 11, color: MUTED, fontWeight: "700" },
+  tagline: { fontSize: 26, color: INK, marginTop: 2 },
   iconBtn: {
     width: 42,
     height: 42,
@@ -271,10 +274,8 @@ const styles = StyleSheet.create({
   },
   bannerContent: { position: "absolute", left: 18, right: 18, bottom: 16, gap: 10 },
   bannerTitle: {
-    fontFamily: "Anton",
     fontSize: 26,
     color: "#fff",
-    letterSpacing: 0.3,
     maxWidth: "80%",
   },
   bannerCta: {
@@ -289,10 +290,8 @@ const styles = StyleSheet.create({
   },
   bannerCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
   sectionLabel: {
-    fontFamily: "Anton",
     fontSize: 22,
     color: INK,
-    letterSpacing: 0.3,
     paddingHorizontal: 16,
     marginTop: 24,
     marginBottom: 12,

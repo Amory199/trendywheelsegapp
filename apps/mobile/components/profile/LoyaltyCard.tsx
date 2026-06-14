@@ -15,6 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useT } from "../../lib/locale";
+import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 import { TWLoyaltyBadge } from "../skia/loyalty-badge";
 
@@ -26,6 +27,8 @@ interface Props {
 export function LoyaltyCard({ tier, points }: Props): React.JSX.Element {
   const { palette } = useTheme();
   const t = useT();
+  const display = useDisplay();
+  const track = useTracking();
   const next = nextTier(tier);
   const progress = tierProgress(tier, points);
   const remaining = pointsToNext(tier, points);
@@ -53,7 +56,7 @@ export function LoyaltyCard({ tier, points }: Props): React.JSX.Element {
     >
       <TWLoyaltyBadge tier={tier} size={64} />
       <View style={{ flex: 1 }}>
-        <Text style={{ color: palette.text, fontFamily: "Anton", fontSize: 30 }}>
+        <Text style={[{ color: palette.text, fontSize: 30 }, display(0)]}>
           {points.toLocaleString()}
         </Text>
         <Text
@@ -61,7 +64,7 @@ export function LoyaltyCard({ tier, points }: Props): React.JSX.Element {
             color: palette.muted,
             fontSize: 11,
             fontWeight: "700",
-            letterSpacing: 0.6,
+            letterSpacing: track(0.6),
             textTransform: "uppercase",
             marginTop: -2,
           }}

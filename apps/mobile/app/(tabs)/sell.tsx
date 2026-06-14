@@ -2,10 +2,12 @@ import { colors, spacing, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HubCard } from "../../components/HubCard";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
+import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
 const HUB_PATHS = [
@@ -34,6 +36,9 @@ export default function SellScreen(): JSX.Element {
   const t = useT();
   const { palette } = useTheme();
   const scrollHandler = useTabBarScrollHandler();
+  const insets = useSafeAreaInsets();
+  const display = useDisplay();
+  const track = useTracking();
 
   return (
     <Animated.ScrollView
@@ -43,8 +48,10 @@ export default function SellScreen(): JSX.Element {
       scrollEventThrottle={16}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: palette.text }]}>{t("sell.hub.title")}</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Text style={[styles.title, display(0.3), { color: palette.text }]}>
+          {t("sell.hub.title")}
+        </Text>
         <Text style={[styles.subtitle, { color: palette.muted }]}>{t("sell.hub.subtitle")}</Text>
       </View>
 
@@ -63,7 +70,10 @@ export default function SellScreen(): JSX.Element {
 
       <View style={styles.footer}>
         <Text
-          style={[styles.footerLink, { color: colors.brand.friendlyBlue }]}
+          style={[
+            styles.footerLink,
+            { letterSpacing: track(0.4), color: colors.brand.friendlyBlue },
+          ]}
           onPress={() => router.push("/sell/category/all" as never)}
         >
           {t("sell.hub.browseMarketplace")}
@@ -77,9 +87,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingBottom: TAB_BAR_SAFE_BOTTOM + 24 },
   header: { paddingTop: 60, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
-  title: { fontFamily: "Anton", fontSize: 44, lineHeight: 46, letterSpacing: 0.3 },
+  title: { fontSize: 44, lineHeight: 46 },
   subtitle: { fontSize: 15, marginTop: 8 },
   cards: { paddingHorizontal: spacing.lg, gap: 16, marginTop: 8 },
   footer: { paddingHorizontal: spacing.lg, marginTop: 28, alignItems: "center" },
-  footerLink: { fontSize: 13, fontWeight: "700", letterSpacing: 0.4 },
+  footerLink: { fontSize: 13, fontWeight: "700" },
 });

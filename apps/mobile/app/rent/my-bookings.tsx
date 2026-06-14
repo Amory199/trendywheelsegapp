@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ReviewModal } from "../../components/ReviewModal";
 import { TWSkeletonCard } from "../../components/ui";
@@ -47,6 +48,7 @@ export default function MyBookingsScreen(): JSX.Element {
   const router = useRouter();
   const t = useT();
   const qc = useQueryClient();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabKey>("pending");
   const [reviewTarget, setReviewTarget] = useState<{
     bookingId: string;
@@ -74,7 +76,7 @@ export default function MyBookingsScreen(): JSX.Element {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
@@ -230,7 +232,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 56,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
   },

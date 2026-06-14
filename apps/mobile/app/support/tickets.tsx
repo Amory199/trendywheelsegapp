@@ -16,6 +16,7 @@ import {
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
+import { useTracking } from "../../lib/typography";
 
 interface Ticket {
   id: string;
@@ -59,6 +60,7 @@ export default function SupportTickets(): JSX.Element {
   const t = useT();
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
+  const track = useTracking();
   const [status, setStatus] = useState("open");
 
   const listQ = useQuery({
@@ -76,7 +78,9 @@ export default function SupportTickets(): JSX.Element {
           <Text style={styles.hello}>
             {t("support.ticketsGreeting")} {user?.name?.split(" ")[0] ?? t("support.ticketsAgent")}
           </Text>
-          <Text style={styles.role}>{t("support.ticketsRole")}</Text>
+          <Text style={[styles.role, { letterSpacing: track(1.5) }]}>
+            {t("support.ticketsRole")}
+          </Text>
         </View>
         <Pressable
           hitSlop={12}
@@ -169,7 +173,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   hello: { color: colors.text.light, fontSize: 20, fontWeight: "700" },
-  role: { color: colors.brand.poolBlue, fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
+  role: { color: colors.brand.poolBlue, fontSize: 11, fontWeight: "800" },
   filterRow: { flexDirection: "row", paddingHorizontal: 14, paddingBottom: 10, gap: 8 },
   filter: {
     paddingHorizontal: 14,

@@ -10,6 +10,7 @@ import { ImageCarousel } from "../../components/ImageCarousel";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
+import { useDisplay, useTracking } from "../../lib/typography";
 
 interface Product {
   id: string;
@@ -31,6 +32,8 @@ export default function ProductDetailScreen(): React.JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const t = useT();
+  const display = useDisplay();
+  const track = useTracking();
   const qc = useQueryClient();
   const [showSpecs, setShowSpecs] = useState(false);
 
@@ -125,7 +128,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
           <Text
             style={{
               fontSize: 11,
-              letterSpacing: 2,
+              letterSpacing: track(2),
               color: "rgba(2,1,31,0.5)",
               textTransform: "uppercase",
               marginBottom: 6,
@@ -134,17 +137,18 @@ export default function ProductDetailScreen(): React.JSX.Element {
             {categoryLabel}
             {p.brand ? ` · ${p.brand}` : ""}
           </Text>
-          <Text style={{ fontFamily: "Anton", fontSize: 30, color: "#02011F", lineHeight: 32 }}>
+          <Text style={[{ fontSize: 30, color: "#02011F", lineHeight: 32 }, display(0)]}>
             {p.name}
           </Text>
           <Text
-            style={{
-              fontFamily: "Anton",
-              fontSize: 36,
-              color: colors.brand.trendyPink,
-              marginTop: 14,
-              letterSpacing: 0.3,
-            }}
+            style={[
+              {
+                fontSize: 36,
+                color: colors.brand.trendyPink,
+                marginTop: 14,
+              },
+              display(0.3),
+            ]}
           >
             {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
           </Text>
@@ -204,7 +208,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
       >
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 11, color: "rgba(2,1,31,0.55)" }}>{t("buy.total")}</Text>
-          <Text style={{ fontFamily: "Anton", fontSize: 22, color: colors.brand.trendyPink }}>
+          <Text style={[{ fontSize: 22, color: colors.brand.trendyPink }, display(0)]}>
             {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
           </Text>
         </View>

@@ -16,6 +16,7 @@ import * as React from "react";
 import { useEffect } from "react";
 import { Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ActivityCard } from "../../components/profile/ActivityCard";
 import { HeroStrip } from "../../components/profile/HeroStrip";
@@ -36,6 +37,7 @@ export default function ProfileScreen(): React.JSX.Element {
   const { palette } = useTheme();
   const { user, hydrate, logout, initialized } = useAuth();
   const scrollHandler = useTabBarScrollHandler();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!initialized) void hydrate();
@@ -141,7 +143,7 @@ export default function ProfileScreen(): React.JSX.Element {
   return (
     <Animated.ScrollView
       style={{ flex: 1, backgroundColor: palette.bg }}
-      contentContainerStyle={{ paddingTop: 16, paddingBottom: TAB_BAR_SAFE_BOTTOM }}
+      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: TAB_BAR_SAFE_BOTTOM }}
       onScroll={scrollHandler}
       scrollEventThrottle={16}
     >

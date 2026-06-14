@@ -19,6 +19,7 @@ import {
 
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
+import { useTracking } from "../../lib/typography";
 
 const TYPES = [
   { key: "oil", labelKey: "service.maintenance.typeOil" },
@@ -34,6 +35,7 @@ export default function MaintenanceScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
   const t = useT();
+  const track = useTracking();
   const [serviceType, setServiceType] = useState<ServiceType>("oil");
   const [preferredDate, setPreferredDate] = useState<Date>(new Date(Date.now() + 86400000));
   const [showPicker, setShowPicker] = useState(false);
@@ -65,6 +67,7 @@ export default function MaintenanceScreen(): JSX.Element {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           title: t("service.maintenance.headerTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
@@ -81,7 +84,9 @@ export default function MaintenanceScreen(): JSX.Element {
             <Text style={styles.subtitle}>{t("service.maintenance.subtitle")}</Text>
           </View>
 
-          <Text style={styles.label}>{t("service.maintenance.serviceLabel")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("service.maintenance.serviceLabel")}
+          </Text>
           <View style={styles.chipRow}>
             {TYPES.map((item) => {
               const active = serviceType === item.key;
@@ -99,7 +104,9 @@ export default function MaintenanceScreen(): JSX.Element {
             })}
           </View>
 
-          <Text style={styles.label}>{t("service.maintenance.preferredDate")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("service.maintenance.preferredDate")}
+          </Text>
           <Pressable onPress={() => setShowPicker(true)} style={styles.input}>
             <Text style={styles.inputText}>{preferredDate.toLocaleDateString()}</Text>
           </Pressable>
@@ -115,7 +122,9 @@ export default function MaintenanceScreen(): JSX.Element {
             />
           )}
 
-          <Text style={styles.label}>{t("service.maintenance.notesLabel")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("service.maintenance.notesLabel")}
+          </Text>
           <TextInput
             value={notes}
             onChangeText={setNotes}
@@ -155,7 +164,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 1,
     textTransform: "uppercase",
     marginTop: 4,
   },

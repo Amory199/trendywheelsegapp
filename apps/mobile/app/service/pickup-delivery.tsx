@@ -19,11 +19,13 @@ import {
 
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
+import { useTracking } from "../../lib/typography";
 
 export default function PickupDeliveryScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
   const t = useT();
+  const track = useTracking();
   const [fromAddress, setFromAddress] = useState("");
   const [toAddress, setToAddress] = useState("");
   const [pickupAt, setPickupAt] = useState<Date>(new Date(Date.now() + 86400000));
@@ -59,6 +61,7 @@ export default function PickupDeliveryScreen(): JSX.Element {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           title: t("service.pickup.headerTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
@@ -75,7 +78,9 @@ export default function PickupDeliveryScreen(): JSX.Element {
             <Text style={styles.subtitle}>{t("service.pickup.subtitle")}</Text>
           </View>
 
-          <Text style={styles.label}>{t("service.pickup.pickupAddress")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("service.pickup.pickupAddress")}
+          </Text>
           <TextInput
             value={fromAddress}
             onChangeText={setFromAddress}
@@ -84,7 +89,9 @@ export default function PickupDeliveryScreen(): JSX.Element {
             style={styles.input}
           />
 
-          <Text style={styles.label}>{t("service.pickup.dropoffAddress")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("service.pickup.dropoffAddress")}
+          </Text>
           <TextInput
             value={toAddress}
             onChangeText={setToAddress}
@@ -93,7 +100,9 @@ export default function PickupDeliveryScreen(): JSX.Element {
             style={styles.input}
           />
 
-          <Text style={styles.label}>{t("service.pickup.pickupDate")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("service.pickup.pickupDate")}
+          </Text>
           <Pressable onPress={() => setShowPicker(true)} style={styles.input}>
             <Text style={styles.inputText}>{pickupAt.toLocaleDateString()}</Text>
           </Pressable>
@@ -109,7 +118,9 @@ export default function PickupDeliveryScreen(): JSX.Element {
             />
           )}
 
-          <Text style={styles.label}>{t("service.pickup.cargoNotesLabel")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("service.pickup.cargoNotesLabel")}
+          </Text>
           <TextInput
             value={cargoNotes}
             onChangeText={setCargoNotes}
@@ -149,7 +160,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 1,
     textTransform: "uppercase",
     marginTop: 4,
   },

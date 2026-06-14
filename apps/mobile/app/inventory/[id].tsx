@@ -93,6 +93,7 @@ export default function InventoryToggle(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           title: q.data?.name ?? t("buy.inventoryTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTitleStyle: { color: "#fff" },

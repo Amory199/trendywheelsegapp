@@ -12,6 +12,7 @@ import * as React from "react";
 import { Alert, Text, View } from "react-native";
 
 import { useT } from "../../lib/locale";
+import { useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 import { TWPressable } from "../ui";
 
@@ -33,6 +34,7 @@ export function SettingsList({ appVersion, onSignOut, onDeleteAccount }: Props):
   const router = useRouter();
   const { palette } = useTheme();
   const t = useT();
+  const track = useTracking();
 
   const rows: Row[] = [
     {
@@ -164,7 +166,7 @@ export function SettingsList({ appVersion, onSignOut, onDeleteAccount }: Props):
             color: colors.brand.trendyPink,
             fontSize: 15,
             fontWeight: "700",
-            letterSpacing: 0.4,
+            letterSpacing: track(0.4),
             textTransform: "uppercase",
           }}
         >

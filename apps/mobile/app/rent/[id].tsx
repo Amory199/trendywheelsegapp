@@ -21,6 +21,7 @@ import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
+import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -34,6 +35,8 @@ export default function RentDetailScreen(): React.JSX.Element {
   const scrollY = useSharedValue(0);
   const { palette } = useTheme();
   const t = useT();
+  const display = useDisplay();
+  const track = useTracking();
 
   const q = useQuery({
     queryKey: ["vehicle", id],
@@ -235,14 +238,15 @@ export default function RentDetailScreen(): React.JSX.Element {
             >
               <View style={{ flex: 1, marginRight: 12 }}>
                 <Text
-                  style={{
-                    fontFamily: "Anton",
-                    fontSize: 28,
-                    color: palette.text,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.3,
-                    lineHeight: 30,
-                  }}
+                  style={[
+                    {
+                      fontSize: 28,
+                      color: palette.text,
+                      textTransform: "uppercase",
+                      lineHeight: 30,
+                    },
+                    display(0.3),
+                  ]}
                 >
                   {vehicle.name}
                 </Text>
@@ -299,7 +303,7 @@ export default function RentDetailScreen(): React.JSX.Element {
                 fontSize: 11,
                 fontWeight: "700",
                 color: palette.muted,
-                letterSpacing: 0.8,
+                letterSpacing: track(0.8),
                 marginBottom: 8,
               }}
             >
@@ -317,7 +321,7 @@ export default function RentDetailScreen(): React.JSX.Element {
                   fontSize: 11,
                   fontWeight: "700",
                   color: palette.muted,
-                  letterSpacing: 0.8,
+                  letterSpacing: track(0.8),
                   marginBottom: 10,
                 }}
               >
@@ -345,7 +349,7 @@ export default function RentDetailScreen(): React.JSX.Element {
                   fontSize: 11,
                   fontWeight: "700",
                   color: palette.muted,
-                  letterSpacing: 0.8,
+                  letterSpacing: track(0.8),
                 }}
               >
                 {t("rent.recentReviews").toUpperCase()}
@@ -466,7 +470,12 @@ export default function RentDetailScreen(): React.JSX.Element {
       >
         <View style={{ flex: 1 }}>
           <Text
-            style={{ fontSize: 11, color: palette.muted, fontWeight: "700", letterSpacing: 0.5 }}
+            style={{
+              fontSize: 11,
+              color: palette.muted,
+              fontWeight: "700",
+              letterSpacing: track(0.5),
+            }}
           >
             {t("rent.total").toUpperCase()}
           </Text>
@@ -530,6 +539,7 @@ function SpecCell({
   last?: boolean;
 }): React.JSX.Element {
   const { palette: p } = useTheme();
+  const track = useTracking();
   return (
     <View
       style={{
@@ -542,7 +552,7 @@ function SpecCell({
     >
       <Ionicons name={icon} size={18} color={colors.brand.friendlyBlue} />
       <Text style={{ fontSize: 13, fontWeight: "700", color: p.text }}>{value}</Text>
-      <Text style={{ fontSize: 10, color: p.muted, fontWeight: "600", letterSpacing: 0.4 }}>
+      <Text style={{ fontSize: 10, color: p.muted, fontWeight: "600", letterSpacing: track(0.4) }}>
         {label.toUpperCase()}
       </Text>
     </View>

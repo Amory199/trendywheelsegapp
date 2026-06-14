@@ -8,6 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useT } from "../lib/locale";
+import { useDisplay, useTracking } from "../lib/typography";
 
 interface HubCardProps {
   imageUri: string;
@@ -18,6 +19,8 @@ interface HubCardProps {
 
 export function HubCard({ imageUri, label, sub, onPress }: HubCardProps): JSX.Element {
   const t = useT();
+  const display = useDisplay();
+  const track = useTracking();
   return (
     <Pressable onPress={onPress} style={styles.card}>
       <Image source={{ uri: imageUri }} style={styles.bg} contentFit="cover" />
@@ -28,9 +31,9 @@ export function HubCard({ imageUri, label, sub, onPress }: HubCardProps): JSX.El
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.content}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, display(0.3)]}>{label}</Text>
         <Text style={styles.sub}>{sub}</Text>
-        <Text style={styles.start}>{t("home.start")}</Text>
+        <Text style={[styles.start, { letterSpacing: track(1.5) }]}>{t("home.start")}</Text>
       </View>
     </Pressable>
   );
@@ -52,10 +55,8 @@ const styles = StyleSheet.create({
     minHeight: 220,
   },
   label: {
-    fontFamily: "Anton",
     fontSize: 32,
     color: "#fff",
-    letterSpacing: 0.3,
     lineHeight: 34,
   },
   sub: {
@@ -68,7 +69,6 @@ const styles = StyleSheet.create({
     marginTop: 14,
     fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 1.5,
     color: colors.brand.ecoLimelight,
   },
 });

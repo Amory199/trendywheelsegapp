@@ -4,6 +4,7 @@
 import * as React from "react";
 import { Text, View } from "react-native";
 
+import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
 interface Stat {
@@ -13,6 +14,8 @@ interface Stat {
 
 export function KpiRow({ stats }: { stats: [Stat, Stat, Stat] }): React.JSX.Element {
   const { palette } = useTheme();
+  const display = useDisplay();
+  const track = useTracking();
   return (
     <View
       style={{
@@ -30,12 +33,13 @@ export function KpiRow({ stats }: { stats: [Stat, Stat, Stat] }): React.JSX.Elem
         <React.Fragment key={s.label}>
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text
-              style={{
-                color: palette.text,
-                fontFamily: "Anton",
-                fontSize: 28,
-                letterSpacing: 0.5,
-              }}
+              style={[
+                {
+                  color: palette.text,
+                  fontSize: 28,
+                },
+                display(0.5),
+              ]}
             >
               {s.value}
             </Text>
@@ -45,7 +49,7 @@ export function KpiRow({ stats }: { stats: [Stat, Stat, Stat] }): React.JSX.Elem
                 fontSize: 11,
                 marginTop: 2,
                 fontWeight: "700",
-                letterSpacing: 0.4,
+                letterSpacing: track(0.4),
                 textTransform: "uppercase",
               }}
             >

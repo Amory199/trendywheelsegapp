@@ -28,20 +28,9 @@ export const lightPalette: Palette = twPalette(false);
 // Typography
 // ──────────────────────────────────────────────────────────────────────────
 
-export const typo = StyleSheet.create({
-  display: {
-    fontFamily: "Anton",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    color: palette.text,
-  },
-  h1: { fontSize: 32, lineHeight: 34, fontFamily: "Anton", color: palette.text },
-  h2: { fontSize: 24, lineHeight: 26, fontFamily: "Anton", color: palette.text },
-  body: { fontSize: 14, color: palette.text },
-  bodyMuted: { fontSize: 14, color: palette.muted },
-  caption: { fontSize: 11, color: palette.muted, fontWeight: "700", letterSpacing: 0.5 },
-  mono: { fontFamily: "ui-monospace" as never, fontSize: 11 },
-});
+// (Removed the unused `typo` scale — it hardcoded Anton + letterSpacing, the
+// exact pattern that breaks Arabic joining. Localized headings use the
+// locale-aware useDisplay()/useTracking() from lib/typography instead.)
 
 // ──────────────────────────────────────────────────────────────────────────
 // TWCard — rounded surface with subtle border, used everywhere.

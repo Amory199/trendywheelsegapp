@@ -8,6 +8,7 @@ import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
 import { useT } from "../lib/locale";
+import { useTracking } from "../lib/typography";
 import { useTheme } from "../lib/use-theme";
 
 // Maps the VehicleCategory enum (English labels live in @trendywheels/types) to
@@ -180,9 +181,10 @@ function CategoryBlock({
 }
 
 function BlockLabel({ label, active }: { label: string; active: boolean }): JSX.Element {
+  const track = useTracking();
   return (
     <View style={styles.labelWrap}>
-      <Text style={styles.labelText} numberOfLines={1}>
+      <Text style={[styles.labelText, { letterSpacing: track(0.2) }]} numberOfLines={1}>
         {label}
       </Text>
       {active ? <View style={styles.activeUnderline} /> : null}
@@ -225,7 +227,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 15,
     fontWeight: "800",
-    letterSpacing: 0.2,
   },
   activeUnderline: {
     marginTop: 4,

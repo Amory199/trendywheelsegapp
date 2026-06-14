@@ -22,10 +22,12 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
+import { useTracking } from "../../lib/typography";
 
 export default function ProfileEditScreen(): JSX.Element {
   const router = useRouter();
   const t = useT();
+  const track = useTracking();
   const { user, hydrate } = useAuth();
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
@@ -129,7 +131,9 @@ export default function ProfileEditScreen(): JSX.Element {
         {/* Form fields */}
         <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.formCard}>
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>{t("profile.edit.fullName")}</Text>
+            <Text style={[styles.fieldLabel, { letterSpacing: track(0.5) }]}>
+              {t("profile.edit.fullName")}
+            </Text>
             <TextInput
               style={styles.input}
               value={name}
@@ -145,7 +149,9 @@ export default function ProfileEditScreen(): JSX.Element {
           <View style={styles.fieldDivider} />
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>{t("profile.edit.emailAddress")}</Text>
+            <Text style={[styles.fieldLabel, { letterSpacing: track(0.5) }]}>
+              {t("profile.edit.emailAddress")}
+            </Text>
             <TextInput
               style={styles.input}
               value={email}
@@ -163,7 +169,9 @@ export default function ProfileEditScreen(): JSX.Element {
 
           {/* Phone — read only */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>{t("profile.edit.phoneNumber")}</Text>
+            <Text style={[styles.fieldLabel, { letterSpacing: track(0.5) }]}>
+              {t("profile.edit.phoneNumber")}
+            </Text>
             <View style={styles.readOnlyField}>
               <Text style={styles.readOnlyText}>{user?.phone ?? "—"}</Text>
               <Ionicons name="lock-closed-outline" size={14} color={colors.text.secondary} />
@@ -285,7 +293,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   input: {
     color: colors.text.light,

@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ListingCard } from "../components/ListingCard";
 import { api } from "../lib/api";
 import { useT } from "../lib/locale";
+import { useRTL } from "../lib/typography";
 import { vehicleImageUrl } from "../lib/vehicle";
 
 const INK = "#02011F";
@@ -32,6 +33,7 @@ type Result = { kind: "vehicle"; item: Vehicle } | { kind: "product"; item: Prod
 export default function SearchScreen(): JSX.Element {
   const router = useRouter();
   const t = useT();
+  const rtl = useRTL();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState("");
 
@@ -118,6 +120,7 @@ export default function SearchScreen(): JSX.Element {
             onChangeText={setQuery}
             placeholder={t("home.searchPlaceholder")}
             placeholderTextColor="rgba(2,1,31,0.45)"
+            textAlign={rtl ? "right" : "left"}
             autoFocus
             returnKeyType="search"
             autoCorrect={false}

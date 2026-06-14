@@ -18,6 +18,7 @@ import {
 
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
+import { useTracking } from "../../lib/typography";
 
 const KINDS = [
   { key: "paint", labelKey: "service.customization.kindPaint" },
@@ -33,6 +34,7 @@ export default function CustomizationScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
   const t = useT();
+  const track = useTracking();
   const [kind, setKind] = useState<Kind>("paint");
   const [budget, setBudget] = useState("");
   const [notes, setNotes] = useState("");
@@ -63,6 +65,7 @@ export default function CustomizationScreen(): JSX.Element {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           title: t("service.customization.headerTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
@@ -79,7 +82,9 @@ export default function CustomizationScreen(): JSX.Element {
             <Text style={styles.subtitle}>{t("service.customization.subtitle")}</Text>
           </View>
 
-          <Text style={styles.label}>{t("service.customization.typeLabel")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("service.customization.typeLabel")}
+          </Text>
           <View style={styles.chipRow}>
             {KINDS.map((k) => {
               const active = kind === k.key;
@@ -97,7 +102,9 @@ export default function CustomizationScreen(): JSX.Element {
             })}
           </View>
 
-          <Text style={styles.label}>{t("service.customization.budgetLabel")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("service.customization.budgetLabel")}
+          </Text>
           <TextInput
             value={budget}
             onChangeText={(v) => setBudget(v.replace(/[^0-9]/g, ""))}
@@ -107,7 +114,9 @@ export default function CustomizationScreen(): JSX.Element {
             style={styles.input}
           />
 
-          <Text style={styles.label}>{t("service.customization.ideaLabel")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("service.customization.ideaLabel")}
+          </Text>
           <TextInput
             value={notes}
             onChangeText={setNotes}
@@ -147,7 +156,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 1,
     textTransform: "uppercase",
     marginTop: 4,
   },

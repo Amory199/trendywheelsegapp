@@ -1,5 +1,4 @@
 import { colors } from "@trendywheels/ui-tokens";
-import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -10,15 +9,15 @@ import Animated, {
   useSharedValue,
   withDelay,
   withRepeat,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
 
-// Branded cold-start intro: the TrendyWheels mark blooms in over a pulsing
-// glow, holds, then fades into the app. Plays once per app launch (module
-// flag, resets on cold start) and is skippable. Pure Reanimated — no video,
-// instant first frame, mirrors the web intro's logo finale.
-const LOGO = require("../assets/brand-logo.png");
+import { TWLogoLockup } from "./BrandMark";
+
+// Branded cold-start intro: the TrendyWheels lockup (SVG monogram + wordmark,
+// identical to the admin-web finale) blooms in over a pulsing glow, holds, then
+// fades into the app. Plays once per app launch (module flag, resets on cold
+// start) and is skippable. Pure Reanimated — no video, instant first frame.
 const IN_MS = 650;
 const HOLD_MS = 1150;
 const OUT_MS = 420;
@@ -79,7 +78,7 @@ export function MobileIntro(): React.JSX.Element | null {
     <Animated.View style={[styles.root, rootStyle]}>
       <Animated.View style={[styles.glow, glowStyle]} pointerEvents="none" />
       <Animated.View style={logoStyle}>
-        <Image source={LOGO} style={styles.logo} contentFit="contain" />
+        <TWLogoLockup size={58} color="#FFFFFF" />
       </Animated.View>
       <Pressable style={styles.skip} onPress={dismiss} hitSlop={12}>
         <Text style={styles.skipText}>Skip ▸</Text>
@@ -103,7 +102,6 @@ const styles = StyleSheet.create({
     borderRadius: 180,
     backgroundColor: colors.brand.poolBlue,
   },
-  logo: { width: 240, height: 140 },
   skip: { position: "absolute", bottom: 40, right: 20, padding: 10 },
   skipText: { color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: "600" },
 });

@@ -22,10 +22,12 @@ import {
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
+import { useTracking } from "../../lib/typography";
 
 export default function LicenseCaptureScreen(): JSX.Element {
   const router = useRouter();
   const t = useT();
+  const track = useTracking();
   const params = useLocalSearchParams() as { next?: string; [k: string]: string | undefined };
   const { user, setUser } = useAuth();
   const [number, setNumber] = useState(user?.licenseNumber ?? "");
@@ -91,6 +93,7 @@ export default function LicenseCaptureScreen(): JSX.Element {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           title: t("profile.license.title"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
@@ -107,7 +110,9 @@ export default function LicenseCaptureScreen(): JSX.Element {
             <Text style={styles.subtitle}>{t("profile.license.subtitle")}</Text>
           </View>
 
-          <Text style={styles.label}>{t("profile.license.numberLabel")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("profile.license.numberLabel")}
+          </Text>
           <TextInput
             value={number}
             onChangeText={setNumber}
@@ -117,7 +122,9 @@ export default function LicenseCaptureScreen(): JSX.Element {
             style={styles.input}
           />
 
-          <Text style={styles.label}>{t("profile.license.expiryLabel")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("profile.license.expiryLabel")}
+          </Text>
           <Pressable style={styles.input} onPress={() => setShowExpiryPicker(true)}>
             <Text
               style={{
@@ -148,7 +155,9 @@ export default function LicenseCaptureScreen(): JSX.Element {
             />
           ) : null}
 
-          <Text style={styles.label}>{t("profile.license.photoLabel")}</Text>
+          <Text style={[styles.label, { letterSpacing: track(1) }]}>
+            {t("profile.license.photoLabel")}
+          </Text>
           <Pressable onPress={pickPhoto} style={styles.photoBtn}>
             {photoUri ? (
               <Image source={{ uri: photoUri }} style={styles.photo} contentFit="cover" />
@@ -199,7 +208,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 1,
     textTransform: "uppercase",
     marginTop: 4,
   },

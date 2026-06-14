@@ -48,6 +48,7 @@ export default function OrderDetail(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           title: `${t("buy.orderDetailTitlePrefix")}${id?.slice(0, 8) ?? ""}`,
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTitleStyle: { color: "#fff" },

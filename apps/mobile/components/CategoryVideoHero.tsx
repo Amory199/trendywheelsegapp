@@ -14,6 +14,8 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import * as React from "react";
 import { Text, View } from "react-native";
 
+import { useDisplay } from "../lib/typography";
+
 const VIDEO_SOURCES: Record<VehicleCategory, number | null> = {
   "golf-cart": require("../assets/category/golf-cart.mp4"),
   scooter: require("../assets/category/scooter.mp4"),
@@ -39,6 +41,7 @@ export function CategoryVideoHero({
   icon,
   height = 220,
 }: Props): React.JSX.Element {
+  const display = useDisplay();
   const source = VIDEO_SOURCES[categoryKey as VehicleCategory] ?? null;
   const player = useVideoPlayer(source, (p) => {
     if (!p) return;
@@ -82,12 +85,13 @@ export function CategoryVideoHero({
       >
         {icon ? <Ionicons name={icon} size={28} color="#fff" /> : null}
         <Text
-          style={{
-            color: "#fff",
-            fontFamily: "Anton",
-            fontSize: 28,
-            letterSpacing: 0.6,
-          }}
+          style={[
+            {
+              color: "#fff",
+              fontSize: 28,
+            },
+            display(0.6),
+          ]}
         >
           {label}
         </Text>

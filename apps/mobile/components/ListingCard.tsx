@@ -4,6 +4,8 @@ import { Image } from "expo-image";
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { useDisplay, useTracking } from "../lib/typography";
+
 const INK = "#02011F";
 const MUTED = "rgba(2,1,31,0.55)";
 
@@ -47,6 +49,8 @@ function ListingCardImpl({
   width = 156,
   imageRatio = 0.78,
 }: ListingCardProps): JSX.Element {
+  const display = useDisplay();
+  const track = useTracking();
   const imgH = Math.round(width * imageRatio);
   const ratingNum = Number(rating) || 0;
   return (
@@ -73,7 +77,7 @@ function ListingCardImpl({
 
         {badge ? (
           <View style={[styles.badge, { backgroundColor: badgeColor }]}>
-            <Text style={styles.badgeText}>{badge}</Text>
+            <Text style={[styles.badgeText, { letterSpacing: track(0.4) }]}>{badge}</Text>
           </View>
         ) : null}
 
@@ -86,7 +90,7 @@ function ListingCardImpl({
 
         {overlayLabel ? (
           <View style={styles.overlay}>
-            <Text style={styles.overlayText}>{overlayLabel}</Text>
+            <Text style={[styles.overlayText, { letterSpacing: track(1.5) }]}>{overlayLabel}</Text>
           </View>
         ) : null}
       </View>
@@ -104,7 +108,7 @@ function ListingCardImpl({
         </View>
       ) : null}
 
-      <Text numberOfLines={1} style={styles.price}>
+      <Text numberOfLines={1} style={[styles.price, display(0.3)]}>
         {priceLabel}
       </Text>
     </Pressable>
@@ -128,7 +132,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 999,
   },
-  badgeText: { color: "#fff", fontSize: 10, fontWeight: "800", letterSpacing: 0.4 },
+  badgeText: { color: "#fff", fontSize: 10, fontWeight: "800" },
   ratingPill: {
     position: "absolute",
     top: 8,
@@ -148,15 +152,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  overlayText: { color: "#fff", fontWeight: "700", letterSpacing: 1.5, fontSize: 11 },
+  overlayText: { color: "#fff", fontWeight: "700", fontSize: 11 },
   title: { marginTop: 8, fontSize: 13, fontWeight: "700", color: INK },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
   location: { fontSize: 11, color: MUTED, flexShrink: 1 },
   price: {
-    fontFamily: "Anton",
     fontSize: 17,
     color: colors.brand.trendyPink,
     marginTop: 2,
-    letterSpacing: 0.3,
   },
 });

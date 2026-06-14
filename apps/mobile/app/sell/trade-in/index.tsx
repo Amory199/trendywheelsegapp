@@ -23,6 +23,7 @@ import { StepBar } from "../../../components/sell/StepBar";
 import { logEvent } from "../../../lib/analytics";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
+import { useDisplay, useTracking } from "../../../lib/typography";
 import { uploadImages } from "../../../lib/upload";
 import { useTheme } from "../../../lib/use-theme";
 
@@ -44,6 +45,8 @@ export default function TradeInScreen(): JSX.Element {
   const t = useT();
   const { palette } = useTheme();
   const styles = useMemo(() => makeStyles(palette), [palette]);
+  const display = useDisplay();
+  const track = useTracking();
   const [step, setStep] = useState(0); // 0/1/2 → web's 1/2/3
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
@@ -119,8 +122,10 @@ export default function TradeInScreen(): JSX.Element {
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>{t("sell.tradeIn.eyebrow")}</Text>
-          <Text style={styles.title}>
+          <Text style={[styles.eyebrow, { letterSpacing: track(2) }]}>
+            {t("sell.tradeIn.eyebrow")}
+          </Text>
+          <Text style={[styles.title, display(0)]}>
             {step === 0
               ? t("sell.tradeIn.titleStep0")
               : step === 1
@@ -312,13 +317,14 @@ function Label({
   children: React.ReactNode;
   palette: Palette;
 }): JSX.Element {
+  const track = useTracking();
   return (
     <Text
       style={{
         fontSize: 12,
         fontWeight: "600",
         color: palette.muted,
-        letterSpacing: 0.4,
+        letterSpacing: track(0.4),
         marginBottom: 6,
       }}
     >
@@ -367,8 +373,8 @@ function makeStyles(palette: Palette) {
       gap: spacing.sm,
     },
     backBtn: { paddingTop: 4 },
-    eyebrow: { fontSize: 11, letterSpacing: 2, fontWeight: "700", color: palette.muted },
-    title: { fontFamily: "Anton", fontSize: 28, lineHeight: 32, marginTop: 4, color: palette.text },
+    eyebrow: { fontSize: 11, fontWeight: "700", color: palette.muted },
+    title: { fontSize: 28, lineHeight: 32, marginTop: 4, color: palette.text },
     body: { paddingHorizontal: spacing.lg, paddingBottom: 120, paddingTop: spacing.sm },
     input: {
       borderWidth: 1,

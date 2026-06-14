@@ -21,6 +21,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
+import { useTracking } from "../../lib/typography";
 
 const { width: W } = Dimensions.get("window");
 
@@ -256,10 +257,11 @@ function SpecCell({
   label: string;
   value: string;
 }): JSX.Element {
+  const track = useTracking();
   return (
     <View style={styles.specCell}>
       <Ionicons name={icon} size={18} color={colors.primary[400]} />
-      <Text style={styles.specLabel}>{label}</Text>
+      <Text style={[styles.specLabel, { letterSpacing: track(0.5) }]}>{label}</Text>
       <Text style={styles.specValue}>{value}</Text>
     </View>
   );
@@ -372,7 +374,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: 9,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   specValue: {
     color: colors.text.light,

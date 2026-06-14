@@ -20,6 +20,7 @@ import {
 
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
+import { useTracking } from "../../../lib/typography";
 
 interface Ticket {
   id: string;
@@ -65,6 +66,7 @@ const PRIORITY_KEY = {
 export default function SupportTicketDetail(): React.JSX.Element {
   const qc = useQueryClient();
   const t = useT();
+  const track = useTracking();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [reply, setReply] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
@@ -103,6 +105,7 @@ export default function SupportTicketDetail(): React.JSX.Element {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           title: ticket ? `#${ticket.id.slice(0, 6)}` : t("support.detailFallbackTitle"),
           headerStyle: { backgroundColor: colors.dark.bg },
           headerTintColor: colors.text.light,
@@ -135,7 +138,12 @@ export default function SupportTicketDetail(): React.JSX.Element {
                       { backgroundColor: PRIORITY_COLOR[ticket.priority] },
                     ]}
                   />
-                  <Text style={[styles.priorityText, { color: PRIORITY_COLOR[ticket.priority] }]}>
+                  <Text
+                    style={[
+                      styles.priorityText,
+                      { color: PRIORITY_COLOR[ticket.priority], letterSpacing: track(0.5) },
+                    ]}
+                  >
                     {PRIORITY_KEY[ticket.priority as keyof typeof PRIORITY_KEY]
                       ? t(PRIORITY_KEY[ticket.priority as keyof typeof PRIORITY_KEY])
                       : ticket.priority}
@@ -153,13 +161,17 @@ export default function SupportTicketDetail(): React.JSX.Element {
 
             {ticket.message && (
               <View style={styles.card}>
-                <Text style={styles.sectionTitle}>{t("support.customerMessage")}</Text>
+                <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+                  {t("support.customerMessage")}
+                </Text>
                 <Text style={styles.body}>{ticket.message}</Text>
               </View>
             )}
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>{t("support.priority")}</Text>
+              <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+                {t("support.priority")}
+              </Text>
               <View style={styles.chipRow}>
                 {PRIORITIES.map((p) => (
                   <Pressable
@@ -184,7 +196,9 @@ export default function SupportTicketDetail(): React.JSX.Element {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>{t("support.status")}</Text>
+              <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+                {t("support.status")}
+              </Text>
               <View style={styles.chipRow}>
                 {STATUSES.map((s) => (
                   <Pressable
@@ -236,7 +250,9 @@ export default function SupportTicketDetail(): React.JSX.Element {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>{t("support.replyTitle")}</Text>
+              <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+                {t("support.replyTitle")}
+              </Text>
               <TextInput
                 value={reply}
                 onChangeText={setReply}
@@ -342,7 +358,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   priorityDot: { width: 6, height: 6, borderRadius: 3 },
-  priorityText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
+  priorityText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
   assigned: { color: colors.brand.poolBlue, fontSize: 11, fontWeight: "700" },
   unassigned: { color: "#F5B800", fontSize: 11, fontWeight: "700" },
   card: {
@@ -353,7 +369,7 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 8,
   },
-  sectionTitle: { color: colors.text.secondary, fontSize: 11, fontWeight: "700", letterSpacing: 1 },
+  sectionTitle: { color: colors.text.secondary, fontSize: 11, fontWeight: "700" },
   body: { color: colors.text.light, fontSize: 14, lineHeight: 20 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   chip: {
