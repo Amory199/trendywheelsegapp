@@ -15,6 +15,7 @@ import {
 
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
+import { useDisplay, useTracking } from "../../../lib/typography";
 
 interface Vehicle {
   id: string;
@@ -50,6 +51,8 @@ const CATEGORY_KEY: Record<
 export default function AdminVehicles(): React.JSX.Element {
   const router = useRouter();
   const t = useT();
+  const display = useDisplay();
+  const track = useTracking();
   const [category, setCategory] = useState<string>("all");
 
   const categoryLabel = (c: string): string => (CATEGORY_KEY[c] ? t(CATEGORY_KEY[c]) : c);
@@ -77,8 +80,10 @@ export default function AdminVehicles(): React.JSX.Element {
     <View style={styles.root}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.kicker}>{t("admin.vehiclesKicker")}</Text>
-          <Text style={styles.title}>{t("admin.vehiclesTitle")}</Text>
+          <Text style={[styles.kicker, { letterSpacing: track(1.5) }]}>
+            {t("admin.vehiclesKicker")}
+          </Text>
+          <Text style={[styles.title, display(0.3)]}>{t("admin.vehiclesTitle")}</Text>
         </View>
         <Pressable style={styles.fab} onPress={() => router.push("/admin/vehicles/new")}>
           <Ionicons name="add" size={20} color="#fff" />
@@ -188,13 +193,11 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     gap: 12,
   },
-  kicker: { color: colors.brand.friendlyBlue, fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
+  kicker: { color: colors.brand.friendlyBlue, fontSize: 11, fontWeight: "800" },
   title: {
     color: colors.text.light,
     fontSize: 28,
-    fontFamily: "Anton",
     textTransform: "uppercase",
-    letterSpacing: 0.3,
     marginTop: 4,
   },
   fab: {

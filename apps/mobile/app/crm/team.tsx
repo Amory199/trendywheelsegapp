@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } f
 
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
+import { useDisplay, useTracking } from "../../lib/typography";
 
 interface Agent {
   id: string;
@@ -18,6 +19,8 @@ interface Agent {
 
 export default function CrmTeam(): React.JSX.Element {
   const t = useT();
+  const display = useDisplay();
+  const track = useTracking();
   const q = useQuery({
     queryKey: ["crm", "team"],
     queryFn: async (): Promise<Agent[]> => {
@@ -29,8 +32,8 @@ export default function CrmTeam(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>{t("crm.team.kicker")}</Text>
-        <Text style={styles.title}>{t("crm.team.title")}</Text>
+        <Text style={[styles.kicker, { letterSpacing: track(1.5) }]}>{t("crm.team.kicker")}</Text>
+        <Text style={[styles.title, display(0.3)]}>{t("crm.team.title")}</Text>
       </View>
 
       {q.isLoading ? (
@@ -117,13 +120,11 @@ function Stat({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dark.bg },
   header: { paddingTop: 72, paddingHorizontal: 18, paddingBottom: 14 },
-  kicker: { color: colors.brand.trendyPink, fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
+  kicker: { color: colors.brand.trendyPink, fontSize: 11, fontWeight: "800" },
   title: {
     color: colors.text.light,
     fontSize: 28,
-    fontFamily: "Anton",
     textTransform: "uppercase",
-    letterSpacing: 0.3,
     marginTop: 4,
   },
   empty: { alignItems: "center", paddingVertical: 60, gap: 10 },

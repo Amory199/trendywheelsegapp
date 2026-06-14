@@ -15,6 +15,7 @@ import {
 
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
+import { useDisplay, useTracking } from "../../../lib/typography";
 
 interface Repair {
   id: string;
@@ -49,6 +50,8 @@ const STATUS_TONE: Record<string, string> = {
 export default function AdminRepairs(): React.JSX.Element {
   const router = useRouter();
   const t = useT();
+  const display = useDisplay();
+  const track = useTracking();
   const [status, setStatus] = useState<string>("submitted");
 
   const statusLabel = (key: string): string =>
@@ -65,8 +68,10 @@ export default function AdminRepairs(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>{t("admin.repairsKicker")}</Text>
-        <Text style={styles.title}>{t("admin.repairsTitle")}</Text>
+        <Text style={[styles.kicker, { letterSpacing: track(1.5) }]}>
+          {t("admin.repairsKicker")}
+        </Text>
+        <Text style={[styles.title, display(0.3)]}>{t("admin.repairsTitle")}</Text>
       </View>
 
       <View style={styles.filterRow}>
@@ -144,13 +149,11 @@ export default function AdminRepairs(): React.JSX.Element {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dark.bg },
   header: { paddingTop: 72, paddingHorizontal: 18, paddingBottom: 14 },
-  kicker: { color: "#F5B800", fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
+  kicker: { color: "#F5B800", fontSize: 11, fontWeight: "800" },
   title: {
     color: colors.text.light,
     fontSize: 28,
-    fontFamily: "Anton",
     textTransform: "uppercase",
-    letterSpacing: 0.3,
     marginTop: 4,
   },
   filterRow: { flexDirection: "row", paddingHorizontal: 14, paddingBottom: 10, gap: 6 },

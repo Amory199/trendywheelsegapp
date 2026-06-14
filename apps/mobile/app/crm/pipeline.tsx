@@ -22,6 +22,7 @@ import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { initialGreeting } from "../../lib/lead-templates";
 import { translate, useT } from "../../lib/locale";
+import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
 interface Lead {
@@ -83,6 +84,8 @@ function relativeTime(iso: string | undefined): string {
 export default function CrmPipeline(): React.JSX.Element {
   const { palette } = useTheme();
   const t = useT();
+  const display = useDisplay();
+  const track = useTracking();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const router = useRouter();
   const user = useAuth((s) => s.user);
@@ -155,8 +158,10 @@ export default function CrmPipeline(): React.JSX.Element {
     <View style={styles.root}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.kicker}>{t("crm.pipeline.kicker")}</Text>
-          <Text style={styles.title}>
+          <Text style={[styles.kicker, { letterSpacing: track(1.5) }]}>
+            {t("crm.pipeline.kicker")}
+          </Text>
+          <Text style={[styles.title, display(0.3)]}>
             {t("crm.pipeline.greeting")},{" "}
             {user?.name?.split(" ")[0] ?? t("crm.pipeline.fallbackName")}
           </Text>
@@ -182,7 +187,9 @@ export default function CrmPipeline(): React.JSX.Element {
       <View style={[styles.heroCard, { marginTop: 10 }]}>
         <View>
           <Text style={styles.heroLabel}>{t("crm.pipeline.totalPipeline")}</Text>
-          <Text style={styles.heroValue}>EGP {Math.round(totalValue).toLocaleString()}</Text>
+          <Text style={[styles.heroValue, display(0.4)]}>
+            EGP {Math.round(totalValue).toLocaleString()}
+          </Text>
         </View>
         <View style={{ alignItems: "flex-end" }}>
           <Text style={styles.heroLabel}>{t("crm.pipeline.wonThisMonth")}</Text>
@@ -353,13 +360,11 @@ function makeStyles(palette: Palette) {
       paddingBottom: 12,
       gap: 12,
     },
-    kicker: { color: colors.brand.trendyPink, fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
+    kicker: { color: colors.brand.trendyPink, fontSize: 11, fontWeight: "800" },
     title: {
       color: palette.text,
       fontSize: 26,
-      fontFamily: "Anton",
       textTransform: "uppercase",
-      letterSpacing: 0.3,
       marginTop: 4,
     },
     fab: {
@@ -389,8 +394,6 @@ function makeStyles(palette: Palette) {
       fontSize: 20,
       fontWeight: "800",
       marginTop: 2,
-      fontFamily: "Anton",
-      letterSpacing: 0.4,
     },
     wonChip: {
       flexDirection: "row",

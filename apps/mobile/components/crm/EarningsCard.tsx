@@ -10,11 +10,14 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
+import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
 export function EarningsCard(): React.JSX.Element | null {
   const { palette } = useTheme();
   const t = useT();
+  const display = useDisplay();
+  const track = useTracking();
   const styles = useMemo(() => makeStyles(palette), [palette]);
 
   const earningsQ = useQuery({
@@ -35,10 +38,12 @@ export function EarningsCard(): React.JSX.Element | null {
     <View style={styles.card}>
       <View style={styles.topRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.label}>
+          <Text style={[styles.label, { letterSpacing: track(1.2) }]}>
             {t("crm.earnings.myMonthPrefix")} · {e.month}
           </Text>
-          <Text style={styles.wonValue}>EGP {e.monthWonAmount.toLocaleString()}</Text>
+          <Text style={[styles.wonValue, display(0.4)]}>
+            EGP {e.monthWonAmount.toLocaleString()}
+          </Text>
         </View>
         <View style={styles.dealsChip}>
           <Ionicons name="trophy" size={12} color={colors.brand.ecoLimelight ?? "#A9F453"} />
@@ -106,15 +111,12 @@ function makeStyles(palette: Palette) {
       color: colors.brand.trendyPink,
       fontSize: 10,
       fontWeight: "800",
-      letterSpacing: 1.2,
     },
     wonValue: {
       color: palette.text,
       fontSize: 20,
       fontWeight: "800",
       marginTop: 2,
-      fontFamily: "Anton",
-      letterSpacing: 0.4,
     },
     dealsChip: {
       flexDirection: "row",
