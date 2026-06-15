@@ -57,6 +57,9 @@ const en = {
     otpSentTo: "Enter the code sent to",
     verifying: "Verifying…",
     verificationFailed: "Verification failed",
+    guestTitle: "Sign in to continue",
+    guestBody: "Sign in to use this. You can keep browsing without an account.",
+    guestCta: "Sign in",
   },
   tabs: {
     home: "Home",

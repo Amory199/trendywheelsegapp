@@ -53,6 +53,9 @@ const ar: TranslationKeys = {
     otpSentTo: "أدخل الرمز المرسل إلى",
     verifying: "جاري التحقق…",
     verificationFailed: "فشل التحقق",
+    guestTitle: "سجّل الدخول للمتابعة",
+    guestBody: "سجّل الدخول لاستخدام هذه الميزة. يمكنك متابعة التصفّح بدون حساب.",
+    guestCta: "تسجيل الدخول",
   },
   tabs: {
     home: "الرئيسية",
