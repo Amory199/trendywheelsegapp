@@ -53,6 +53,17 @@ const home: Stringify<typeof enNs> = {
   promoCta: "تسوّق الآن",
   egp: "ج.م",
   perDay: "/يوم",
+
+  // Quick-access grid (Talabat-style home tiles)
+  quickTitle: "ماذا تحتاج؟",
+  quickBuy: "شراء",
+  quickRent: "إيجار",
+  quickSell: "بيع",
+  quickTradeIn: "استبدال",
+  quickMaintenance: "صيانة",
+  quickCustomization: "تخصيص",
+  quickDelivery: "توصيل",
+  quickSupport: "الدعم",
 };
 
 export default home;

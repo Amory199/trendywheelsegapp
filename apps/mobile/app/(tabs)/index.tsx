@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CategoryCircles } from "../../components/CategoryCircles";
 import { HomeSearchBar } from "../../components/HomeSearchBar";
 import { ListingCard } from "../../components/ListingCard";
+import { QuickAccessGrid } from "../../components/QuickAccessGrid";
 import { Rail } from "../../components/Rail";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
@@ -156,6 +157,9 @@ export default function HomeScreen(): React.JSX.Element {
 
         {/* SEARCH */}
         <HomeSearchBar />
+
+        {/* QUICK ACCESS — every flow one tap from the home screen */}
+        <QuickAccessGrid />
 
         {/* PROMO BANNER (brand video) */}
         <Pressable onPress={() => router.push("/(tabs)/buy")} style={styles.banner}>

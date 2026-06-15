@@ -50,4 +50,15 @@ export default {
   promoCta: "Shop now",
   egp: "EGP",
   perDay: "/day",
+
+  // Quick-access grid (Talabat-style home tiles)
+  quickTitle: "What do you need?",
+  quickBuy: "Buy",
+  quickRent: "Rent",
+  quickSell: "Sell",
+  quickTradeIn: "Trade-in",
+  quickMaintenance: "Maintenance",
+  quickCustomization: "Customize",
+  quickDelivery: "Delivery",
+  quickSupport: "Support",
 } as const;
