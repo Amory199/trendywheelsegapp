@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { GuestGate } from "../../components/GuestGate";
 import { TWSkeletonCard } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
@@ -82,6 +83,8 @@ export default function MyListingsScreen(): JSX.Element {
       },
     ]);
   };
+
+  if (!user) return <GuestGate />;
 
   return (
     <View style={styles.container}>

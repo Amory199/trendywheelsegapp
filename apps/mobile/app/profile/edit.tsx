@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
@@ -91,6 +92,8 @@ export default function ProfileEditScreen(): JSX.Element {
     name.trim() !== (user?.name ?? "") || (email.trim() || null) !== user?.email || avatarChanged;
 
   const initials = (user?.name ?? user?.phone ?? "?")[0].toUpperCase();
+
+  if (!user) return <GuestGate />;
 
   return (
     <KeyboardAvoidingView

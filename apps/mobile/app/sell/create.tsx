@@ -21,8 +21,10 @@ import {
 } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
+import { GuestGate } from "../../components/GuestGate";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { playSound } from "../../lib/sounds";
 import { uploadImages } from "../../lib/upload";
@@ -79,6 +81,7 @@ export default function SellCreateScreen(): JSX.Element {
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const router = useRouter();
   const qc = useQueryClient();
+  const user = useAuth((s) => s.user);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>({
     title: "",
@@ -169,6 +172,8 @@ export default function SellCreateScreen(): JSX.Element {
       form.images.filter((_, i) => i !== idx),
     );
   };
+
+  if (!user) return <GuestGate />;
 
   return (
     <KeyboardAvoidingView

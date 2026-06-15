@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 
+import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
@@ -72,6 +73,8 @@ export default function ChatScreen(): JSX.Element {
     if (!trimmed) return;
     mutation.mutate(trimmed);
   };
+
+  if (!user) return <GuestGate />;
 
   return (
     <KeyboardAvoidingView

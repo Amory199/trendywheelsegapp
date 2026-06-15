@@ -19,9 +19,11 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { GuestGate } from "../../../components/GuestGate";
 import { StepBar } from "../../../components/sell/StepBar";
 import { logEvent } from "../../../lib/analytics";
 import { api } from "../../../lib/api";
+import { useAuth } from "../../../lib/auth-store";
 import { useT } from "../../../lib/locale";
 import { useDisplay, useTracking } from "../../../lib/typography";
 import { uploadImages } from "../../../lib/upload";
@@ -47,6 +49,7 @@ export default function TradeInScreen(): JSX.Element {
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const display = useDisplay();
   const track = useTracking();
+  const user = useAuth((s) => s.user);
   const [step, setStep] = useState(0); // 0/1/2 → web's 1/2/3
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
@@ -108,6 +111,8 @@ export default function TradeInScreen(): JSX.Element {
   const canProceed0 = brand.trim() && model.trim() && /^\d{4}$/.test(year);
   const canProceed1 = localPhotos.length >= 1;
   const blocked = submit.isPending || (step === 0 && !canProceed0) || (step === 1 && !canProceed1);
+
+  if (!user) return <GuestGate />;
 
   return (
     <KeyboardAvoidingView

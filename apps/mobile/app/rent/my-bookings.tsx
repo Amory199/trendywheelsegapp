@@ -9,9 +9,11 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { GuestGate } from "../../components/GuestGate";
 import { ReviewModal } from "../../components/ReviewModal";
 import { TWSkeletonCard } from "../../components/ui";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 
 type TabKey = "pending" | "confirmed" | "completed" | "cancelled";
@@ -49,6 +51,7 @@ export default function MyBookingsScreen(): JSX.Element {
   const t = useT();
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
+  const user = useAuth((s) => s.user);
   const [activeTab, setActiveTab] = useState<TabKey>("pending");
   const [reviewTarget, setReviewTarget] = useState<{
     bookingId: string;
@@ -73,6 +76,8 @@ export default function MyBookingsScreen(): JSX.Element {
   });
 
   const bookings = (data?.data ?? []) as BookingRow[];
+
+  if (!user) return <GuestGate />;
 
   return (
     <View style={styles.container}>

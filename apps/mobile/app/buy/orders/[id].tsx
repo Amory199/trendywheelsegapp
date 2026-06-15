@@ -8,7 +8,9 @@ import { colors } from "@trendywheels/ui-tokens";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { GuestGate } from "../../../components/GuestGate";
 import { api } from "../../../lib/api";
+import { useAuth } from "../../../lib/auth-store";
 import { useT } from "../../../lib/locale";
 
 interface OrderItem {
@@ -35,6 +37,7 @@ const STATUS_LABEL_KEY: Record<string, string> = {
 export default function OrderDetail(): React.JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
   const t = useT();
+  const user = useAuth((s) => s.user);
   const q = useQuery({
     queryKey: ["my-orders", id],
     queryFn: async (): Promise<Order> => {
@@ -43,6 +46,8 @@ export default function OrderDetail(): React.JSX.Element {
     },
     enabled: !!id,
   });
+
+  if (!user) return <GuestGate />;
 
   return (
     <>

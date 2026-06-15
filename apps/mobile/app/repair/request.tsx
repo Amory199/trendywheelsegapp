@@ -17,8 +17,10 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { GuestGate } from "../../components/GuestGate";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { playSound } from "../../lib/sounds";
 
@@ -47,6 +49,7 @@ export default function RepairRequestScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
   const t = useT();
+  const user = useAuth((s) => s.user);
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("mechanical");
   const [priority, setPriority] = useState<Priority>("medium");
@@ -82,6 +85,8 @@ export default function RepairRequestScreen(): JSX.Element {
   });
 
   const canSubmit = description.length >= 10 && !mutation.isPending;
+
+  if (!user) return <GuestGate />;
 
   return (
     <View style={styles.container}>

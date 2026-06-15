@@ -26,7 +26,11 @@ export default function Index(): JSX.Element {
     );
   }
 
-  if (!user) return <Redirect href="/(auth)/phone" />;
+  // Guests land in the catalog and browse freely (Apple guideline 5.1.1(v) —
+  // non-account features must not be gated behind login). Account actions
+  // (buy, book, sell, profile, messaging) prompt sign-in at the point of use
+  // via <GuestGate> / useRequireAuth.
+  if (!user) return <Redirect href="/(tabs)" />;
 
   // Role-aware cold-start routing. Admin → admin console. ANY staff member
   // (regardless of staffRole — sales, support, inventory, mechanic, or none)

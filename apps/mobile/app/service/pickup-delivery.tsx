@@ -20,12 +20,14 @@ import {
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useTracking } from "../../lib/typography";
+import { useRequireAuth } from "../../lib/use-require-auth";
 
 export default function PickupDeliveryScreen(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
   const t = useT();
   const track = useTracking();
+  const requireAuth = useRequireAuth();
   const [fromAddress, setFromAddress] = useState("");
   const [toAddress, setToAddress] = useState("");
   const [pickupAt, setPickupAt] = useState<Date>(new Date(Date.now() + 86400000));
@@ -132,7 +134,7 @@ export default function PickupDeliveryScreen(): JSX.Element {
 
           <Pressable
             disabled={!canSubmit || submit.isPending}
-            onPress={() => submit.mutate()}
+            onPress={() => requireAuth(() => submit.mutate())}
             style={[styles.submitBtn, (!canSubmit || submit.isPending) && { opacity: 0.5 }]}
           >
             {submit.isPending ? (

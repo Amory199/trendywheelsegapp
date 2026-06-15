@@ -11,6 +11,7 @@ import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useDisplay, useTracking } from "../../lib/typography";
+import { useRequireAuth } from "../../lib/use-require-auth";
 
 interface Product {
   id: string;
@@ -35,6 +36,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
   const display = useDisplay();
   const track = useTracking();
   const qc = useQueryClient();
+  const requireAuth = useRequireAuth();
   const [showSpecs, setShowSpecs] = useState(false);
 
   const q = useQuery({
@@ -214,7 +216,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
         </View>
         <Pressable
           disabled={!p.inStock || buy.isPending}
-          onPress={() => buy.mutate()}
+          onPress={() => requireAuth(() => buy.mutate())}
           style={({ pressed }) => ({
             paddingHorizontal: 26,
             paddingVertical: 14,

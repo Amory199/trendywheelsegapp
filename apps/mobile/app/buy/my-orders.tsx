@@ -17,7 +17,9 @@ import {
   View,
 } from "react-native";
 
+import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 
 interface OrderItem {
@@ -52,6 +54,7 @@ const STATUS_LABEL_KEY: Record<string, string> = {
 export default function MyOrders(): React.JSX.Element {
   const router = useRouter();
   const t = useT();
+  const user = useAuth((s) => s.user);
 
   // Shape must match the profile screen's ["my-orders"] query EXACTLY — both
   // share this cache key, so a divergent shape made one screen misread the
@@ -62,6 +65,8 @@ export default function MyOrders(): React.JSX.Element {
     queryFn: () => api.getMyOrders().catch(() => ({ data: [] as Order[] })),
   });
   const orders = (q.data?.data ?? []) as Order[];
+
+  if (!user) return <GuestGate />;
 
   return (
     <>

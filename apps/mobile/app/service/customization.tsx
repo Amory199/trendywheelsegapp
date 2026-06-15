@@ -19,6 +19,7 @@ import {
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useTracking } from "../../lib/typography";
+import { useRequireAuth } from "../../lib/use-require-auth";
 
 const KINDS = [
   { key: "paint", labelKey: "service.customization.kindPaint" },
@@ -35,6 +36,7 @@ export default function CustomizationScreen(): JSX.Element {
   const qc = useQueryClient();
   const t = useT();
   const track = useTracking();
+  const requireAuth = useRequireAuth();
   const [kind, setKind] = useState<Kind>("paint");
   const [budget, setBudget] = useState("");
   const [notes, setNotes] = useState("");
@@ -128,7 +130,7 @@ export default function CustomizationScreen(): JSX.Element {
 
           <Pressable
             disabled={submit.isPending}
-            onPress={() => submit.mutate()}
+            onPress={() => requireAuth(() => submit.mutate())}
             style={[styles.submitBtn, submit.isPending && { opacity: 0.5 }]}
           >
             {submit.isPending ? (

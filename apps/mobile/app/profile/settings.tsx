@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { GuestGate } from "../../components/GuestGate";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
@@ -104,6 +105,8 @@ export default function SettingsScreen(): JSX.Element {
     // app (dev builds fall back to a restart prompt inside applyLanguage).
     await applyLanguage(lang);
   };
+
+  if (!user) return <GuestGate />;
 
   return (
     <View style={styles.container}>

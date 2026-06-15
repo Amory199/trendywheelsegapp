@@ -30,6 +30,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { GuestGate } from "../../components/GuestGate";
 import { TWSkiaConfetti } from "../../components/skia/confetti";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
@@ -134,6 +135,8 @@ export default function BookScreen(): JSX.Element {
       );
     },
   });
+
+  if (!user) return <GuestGate />;
 
   if (booked) {
     return <SuccessScreen bookingRef={bookingRef} email={email} router={router} />;

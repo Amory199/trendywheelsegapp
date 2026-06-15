@@ -14,7 +14,9 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { useTracking } from "../../lib/typography";
 
@@ -67,6 +69,7 @@ export default function RepairDetailScreen(): JSX.Element {
   const qc = useQueryClient();
   const t = useT();
   const track = useTracking();
+  const user = useAuth((s) => s.user);
 
   const { data, isLoading } = useQuery({
     queryKey: ["repair-request", id],
@@ -83,6 +86,8 @@ export default function RepairDetailScreen(): JSX.Element {
   });
 
   const repair = data?.data as RepairRequest | undefined;
+
+  if (!user) return <GuestGate />;
 
   if (isLoading) {
     return (

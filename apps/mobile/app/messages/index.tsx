@@ -13,7 +13,9 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 
 interface Conversation {
@@ -26,6 +28,7 @@ interface Conversation {
 export default function MessagesScreen(): JSX.Element {
   const router = useRouter();
   const t = useT();
+  const user = useAuth((s) => s.user);
 
   const { data, isLoading } = useQuery({
     queryKey: ["conversations"],
@@ -48,6 +51,8 @@ export default function MessagesScreen(): JSX.Element {
         err instanceof Error ? err.message : t("common.tryAgain"),
       ),
   });
+
+  if (!user) return <GuestGate />;
 
   return (
     <View style={styles.container}>

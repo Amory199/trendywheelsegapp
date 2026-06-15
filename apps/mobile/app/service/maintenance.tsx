@@ -20,6 +20,7 @@ import {
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useTracking } from "../../lib/typography";
+import { useRequireAuth } from "../../lib/use-require-auth";
 
 const TYPES = [
   { key: "oil", labelKey: "service.maintenance.typeOil" },
@@ -36,6 +37,7 @@ export default function MaintenanceScreen(): JSX.Element {
   const qc = useQueryClient();
   const t = useT();
   const track = useTracking();
+  const requireAuth = useRequireAuth();
   const [serviceType, setServiceType] = useState<ServiceType>("oil");
   const [preferredDate, setPreferredDate] = useState<Date>(new Date(Date.now() + 86400000));
   const [showPicker, setShowPicker] = useState(false);
@@ -136,7 +138,7 @@ export default function MaintenanceScreen(): JSX.Element {
 
           <Pressable
             disabled={submit.isPending}
-            onPress={() => submit.mutate()}
+            onPress={() => requireAuth(() => submit.mutate())}
             style={[styles.submitBtn, submit.isPending && { opacity: 0.5 }]}
           >
             {submit.isPending ? (

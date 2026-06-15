@@ -12,7 +12,9 @@ import {
   View,
 } from "react-native";
 
+import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 
 interface Conversation {
@@ -25,6 +27,7 @@ interface Conversation {
 export default function SupportChat(): JSX.Element {
   const router = useRouter();
   const t = useT();
+  const user = useAuth((s) => s.user);
 
   const convQ = useQuery({
     queryKey: ["support", "conversations"],
@@ -33,6 +36,8 @@ export default function SupportChat(): JSX.Element {
       return (r.data ?? []) as Conversation[];
     },
   });
+
+  if (!user) return <GuestGate />;
 
   return (
     <View style={styles.root}>

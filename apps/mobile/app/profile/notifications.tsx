@@ -12,7 +12,9 @@ import {
   View,
 } from "react-native";
 
+import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 
 interface NotificationItem {
@@ -29,6 +31,7 @@ export default function NotificationsScreen(): JSX.Element {
   const router = useRouter();
   const t = useT();
   const qc = useQueryClient();
+  const user = useAuth((s) => s.user);
   const query = useQuery({
     queryKey: ["notifications"],
     queryFn: async (): Promise<NotificationItem[]> => {
@@ -46,6 +49,8 @@ export default function NotificationsScreen(): JSX.Element {
     mutationFn: async () => api.markAllNotificationsRead(),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
+
+  if (!user) return <GuestGate />;
 
   return (
     <>

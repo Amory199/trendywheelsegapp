@@ -7,9 +7,11 @@ import { useRouter } from "expo-router";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { GuestGate } from "../../components/GuestGate";
 import { TWSkeletonCard } from "../../components/ui";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 
 // The favorites endpoint returns a trimmed vehicle (select, not the full
@@ -46,6 +48,7 @@ export default function FavoritesScreen(): JSX.Element {
   const router = useRouter();
   const t = useT();
   const qc = useQueryClient();
+  const user = useAuth((s) => s.user);
 
   const query = useQuery({
     queryKey: ["favorites"],
@@ -77,6 +80,8 @@ export default function FavoritesScreen(): JSX.Element {
   };
 
   const favorites = query.data?.data ?? [];
+
+  if (!user) return <GuestGate />;
 
   return (
     <View style={styles.container}>

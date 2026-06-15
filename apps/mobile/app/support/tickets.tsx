@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 
+import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
@@ -70,6 +71,8 @@ export default function SupportTickets(): JSX.Element {
       return (r.data ?? []) as unknown as Ticket[];
     },
   });
+
+  if (!user) return <GuestGate />;
 
   return (
     <View style={styles.root}>

@@ -18,7 +18,9 @@ import {
   View,
 } from "react-native";
 
+import { GuestGate } from "../../../components/GuestGate";
 import { api } from "../../../lib/api";
+import { useAuth } from "../../../lib/auth-store";
 import { useT } from "../../../lib/locale";
 import { useTracking } from "../../../lib/typography";
 
@@ -67,6 +69,7 @@ export default function SupportTicketDetail(): React.JSX.Element {
   const qc = useQueryClient();
   const t = useT();
   const track = useTracking();
+  const user = useAuth((s) => s.user);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [reply, setReply] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
@@ -100,6 +103,8 @@ export default function SupportTicketDetail(): React.JSX.Element {
   });
 
   const ticket = ticketQ.data;
+
+  if (!user) return <GuestGate />;
 
   return (
     <>

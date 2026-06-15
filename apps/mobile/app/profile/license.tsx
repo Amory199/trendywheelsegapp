@@ -19,6 +19,7 @@ import {
   View,
 } from "react-native";
 
+import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
@@ -88,6 +89,8 @@ export default function LicenseCaptureScreen(): JSX.Element {
   }
 
   const canSave = number.trim().length >= 4 && !!expiry;
+
+  if (!user) return <GuestGate />;
 
   return (
     <>
