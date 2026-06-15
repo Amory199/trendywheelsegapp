@@ -222,6 +222,12 @@ export async function verifyOtp(
  * the user + signup lead on first call. Returns the same shape as verifyOtp().
  */
 function isStaffTestPhone(phone: string): boolean {
+  // Hard production backstop (INC-033): staff/admin accounts can NEVER obtain a
+  // token via phone auth in production, regardless of env. Even if a stale
+  // STAFF_TEST_PHONES entry (or a Firebase fixed-code test number) lingers, the
+  // no-password superadmin path via /api/auth/firebase-token is dead in prod.
+  // Privileged login must go through email + password. Dev/test still works.
+  if (env.NODE_ENV === "production") return false;
   if (!env.STAFF_TEST_PHONES) return false;
   return env.STAFF_TEST_PHONES.split(",")
     .map((p) => p.trim())
