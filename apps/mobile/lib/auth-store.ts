@@ -26,26 +26,20 @@ export const useAuth = create<AuthState>((set) => ({
       set({ initialized: true });
       return;
     }
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
     try {
-      const baseUrl = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:4000";
-      const res = await fetch(`${baseUrl}/api/users/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: controller.signal,
-      });
-      if (res.ok) {
-        const json = (await res.json()) as { data: User };
-        set({ user: json.data, initialized: true });
-      } else {
-        await clearTokens();
-        set({ initialized: true });
-      }
+      // Go through the ApiClient (not a raw fetch) so an expired access token
+      // is transparently refreshed via the stored refresh token. The client
+      // only clears tokens (onAuthError) when the session is genuinely dead —
+      // a refresh that the server rejected. A transient network/timeout error
+      // throws WITHOUT clearing, so a flaky boot keeps the session for the next
+      // launch instead of silently logging the user out.
+      const res = await api.request<{ data: User }>("GET", "/api/users/me");
+      set({ user: res.data, initialized: true });
     } catch {
-      await clearTokens();
+      // Either a dead session (tokens already cleared by onAuthError → user
+      // reset to null) or a network blip (tokens preserved, retried next
+      // launch). Never clear tokens here.
       set({ initialized: true });
-    } finally {
-      clearTimeout(timeout);
     }
   },
 

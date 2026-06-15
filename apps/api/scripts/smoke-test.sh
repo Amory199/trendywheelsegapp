@@ -50,6 +50,30 @@ AUTH_A="-H \"Authorization: Bearer $ADMIN_TOKEN\""
 AUTH_S="-H \"Authorization: Bearer $SALES_TOKEN\""
 JSON='Content-Type: application/json'
 
+# ─── 1b. Refresh-token rotation (session-persistence fix) ────
+# /auth/refresh-token must return a NEW refresh token (not just an access
+# token) and revoke the old one. Before the fix it returned only {token} and
+# revoked the presented refresh token — so a session died at the 24h access-
+# token expiry and users were logged out on next launch.
+note "1b. Refresh-token rotates the full pair"
+ADMIN_RT=$(echo "$ADMIN_RESP" | jq -r '.refreshToken // empty')
+[ -n "$ADMIN_RT" ] || fail "login did not return a refreshToken"
+REFRESH_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/refresh-token" -H "$JSON" \
+  -d "{\"refreshToken\":\"$ADMIN_RT\"}") || fail "POST /auth/refresh-token failed"
+NEW_AT=$(echo "$REFRESH_RESP" | jq -r '.token // empty')
+NEW_RT=$(echo "$REFRESH_RESP" | jq -r '.refreshToken // empty')
+[ -n "$NEW_AT" ] || fail "refresh did not return a new access token"
+[ -n "$NEW_RT" ] || fail "refresh returned no NEW refresh token — rotation regressed (session dies at 24h)"
+# The rotated refresh token must itself work (proves it was persisted).
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/refresh-token" -H "$JSON" \
+  -d "{\"refreshToken\":\"$NEW_RT\"}" >/dev/null \
+  || fail "the rotated refresh token does not work — rotation broken"
+# The old refresh token must now be revoked (single-use).
+OLD_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/auth/refresh-token" \
+  -H "$JSON" -d "{\"refreshToken\":\"$ADMIN_RT\"}")
+[ "$OLD_CODE" = "401" ] || fail "old refresh token still valid after rotation (got $OLD_CODE) — replay risk"
+pass "refresh rotates: new pair works, old token revoked"
+
 # ─── 2. CRM — createLeadSchema with the formerly-failing mobile sources ───
 note "2. CRM lead create (mobile-friendly source)"
 LEAD_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/crm/leads" \

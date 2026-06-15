@@ -8,9 +8,14 @@ const REFRESH_KEY = "tw_refresh";
 
 const baseUrl = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:4000";
 
-export async function setTokens(token: string, refreshToken: string): Promise<void> {
+export async function setTokens(token: string, refreshToken?: string): Promise<void> {
   await SecureStore.setItemAsync(ACCESS_KEY, token);
-  await SecureStore.setItemAsync(REFRESH_KEY, refreshToken);
+  // Only rewrite the refresh token when a new one is actually issued. Guards
+  // against SecureStore throwing on an undefined value (it rejects non-strings)
+  // and preserves the existing refresh token if a response omits it.
+  if (refreshToken) {
+    await SecureStore.setItemAsync(REFRESH_KEY, refreshToken);
+  }
 }
 
 export async function clearTokens(): Promise<void> {

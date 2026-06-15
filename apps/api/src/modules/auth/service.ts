@@ -321,7 +321,9 @@ export async function issueTokensForPhone(
   };
 }
 
-export async function refreshAccessToken(refreshToken: string): Promise<{ token: string }> {
+export async function refreshAccessToken(
+  refreshToken: string,
+): Promise<{ token: string; refreshToken: string }> {
   // Find all non-revoked, non-expired refresh tokens
   const tokens = await prisma.refreshToken.findMany({
     where: {
@@ -342,11 +344,28 @@ export async function refreshAccessToken(refreshToken: string): Promise<{ token:
   if (!matchedToken) {
     throw AppError.unauthorized("Invalid refresh token");
   }
+  if (matchedToken.user.status !== "active") {
+    throw AppError.forbidden("Account is not active");
+  }
 
-  // Rotate: revoke old, issue new
+  // Rotate the WHOLE pair: revoke the presented refresh token AND mint a fresh
+  // one. Previously we revoked the old token but returned only a new access
+  // token — so the next refresh (after the access token's 24h life) found the
+  // refresh token already revoked and logged the user out. Returning a new
+  // refresh token here lets a session survive its full 30-day window.
   await prisma.refreshToken.update({
     where: { id: matchedToken.id },
     data: { revokedAt: new Date() },
+  });
+
+  const newRefreshToken = generateRefreshToken();
+  const tokenHash = await bcrypt.hash(newRefreshToken, 12);
+  await prisma.refreshToken.create({
+    data: {
+      userId: matchedToken.user.id,
+      tokenHash,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    },
   });
 
   const payload: AuthPayload = {
@@ -354,7 +373,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{ token:
     accountType: matchedToken.user.accountType,
   };
 
-  return { token: signAccessToken(payload) };
+  return { token: signAccessToken(payload), refreshToken: newRefreshToken };
 }
 
 export async function logout(userId: string, pushToken?: string): Promise<void> {
