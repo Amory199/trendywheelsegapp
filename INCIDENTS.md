@@ -974,6 +974,36 @@ void Linking.openURL(`https://wa.me/${digits}`);
 
 ---
 
+### INC-032 — Mobile sessions not persisted across app relaunches (2026-06-15)
+
+**Status:** Fixed
+**Severity:** P1 (every user + external testers re-logged-in on each launch)
+**Touched:** `apps/mobile/lib/auth-store.ts` (hydrate), `apps/mobile/lib/api.ts` (setTokens), `apps/api/src/modules/auth/service.ts` (refreshAccessToken)
+**Fixed in:** commit `915e7f4` — API redeployed (pm2 restart, rotation verified live) + OTA `78353f5c`
+**Related:** INC-030 (the "fresh installs work on first launch then break" reports were partly this), INC-013 (session revocation marker)
+
+**Symptom**
+"Each time I log in it doesn't save my login — I have to log in again every time I reopen the app." Confirmed by external testers.
+
+**Root cause (two compounding bugs)**
+
+1. `auth-store.hydrate()` validated the session on boot with a **raw `fetch`** to `/users/me` using the access token, and cleared **both** tokens on ANY non-2xx — including the expected 24h access-token expiry AND a transient network blip — **without ever using the refresh token**. So the day after login (or on any flaky boot) the user was silently logged out.
+2. `refreshAccessToken` revoked the presented refresh token but returned **only a new access token** (`{ token }`, no `refreshToken`). Even when a refresh did fire, `setTokens(token, undefined)` threw in SecureStore (rejects non-strings), and the single-use refresh token was already revoked with no replacement — so the next refresh failed too.
+
+**Fix**
+
+- `hydrate()` now calls `api.request("GET","/api/users/me")` (the refresh-aware ApiClient): an expired access token is transparently refreshed; tokens are cleared ONLY when the server rejects the refresh (onAuthError), never on a network/timeout error.
+- `refreshAccessToken` now rotates the **whole pair**: revoke old, mint+persist a new refresh token, return `{ token, refreshToken }` — so a session lives its full 30-day window.
+- `setTokens(token, refreshToken?)` only rewrites the refresh token when one is actually returned (defensive against undefined / omitted).
+
+**Pattern to follow next time**
+
+- Boot/restore paths MUST go through the refresh-aware client, not a raw fetch — otherwise they bypass token refresh and the centralized onAuthError clearing.
+- NEVER clear auth tokens on a network/timeout error; only on a definitive server auth rejection. A flaky boot must not log the user out.
+- Token "rotation" means return a NEW refresh token, not just a new access token. Smoke (`section 1b`) now asserts `/auth/refresh-token` returns a working new pair and revokes the old.
+
+---
+
 ## How to add a new entry
 
 1. Pick the next `INC-NNN` number (zero-padded, monotonic).
