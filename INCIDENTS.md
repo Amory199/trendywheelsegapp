@@ -69,6 +69,8 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 | 029 | 2026-06-08 | WhatsApp CRM button fire-and-forget mutation (Call awaits, WA didn't)   | Fixed      | P2  |
 | 030 | 2026-06-11 | Every OTA baked localhost:4000 as API URL — recurring network errors    | Fixed      | P0  |
 | 031 | 2026-06-12 | Sale cars leaked into Rent; photos never rendered; catalog double-entry | Fixed      | P1  |
+| 032 | 2026-06-15 | Mobile sessions not persisted across app relaunches                     | Fixed      | P1  |
+| 033 | 2026-06-15 | `STAFF_TEST_PHONES` + Firebase fixed codes → no-password superadmin     | Open       | P0  |
 
 ---
 
@@ -1001,6 +1003,28 @@ void Linking.openURL(`https://wa.me/${digits}`);
 - Boot/restore paths MUST go through the refresh-aware client, not a raw fetch — otherwise they bypass token refresh and the centralized onAuthError clearing.
 - NEVER clear auth tokens on a network/timeout error; only on a definitive server auth rejection. A flaky boot must not log the user out.
 - Token "rotation" means return a NEW refresh token, not just a new access token. Smoke (`section 1b`) now asserts `/auth/refresh-token` returns a working new pair and revokes the old.
+
+---
+
+### INC-033 — Production `STAFF_TEST_PHONES` + Firebase fixed-code test numbers grant no-password superadmin (2026-06-15)
+
+**Status:** Open — owner remediating (prod `.env` + Firebase Console + admin password; no code deploy authorized this session)
+**Severity:** P0 (no-auth path to a superadmin JWT against production)
+**Touched:** `apps/api/.env` (`STAFF_TEST_PHONES`), `apps/api/src/modules/auth/service.ts` (`isStaffTestPhone`, `issueTokensForPhone:240`), `apps/api/src/modules/auth/controller.ts` (`firebaseToken`), `packages/db/prisma/seed.ts:42-49,819`, **Firebase Console** (test phone numbers — external, not in repo)
+**Fixed in:** open
+**Related:** INC-013 (access-token revocation), INC-018 (mass-assignment — still live), INC-012 (refresh O(n) scan), AUDIT_FINDINGS "Re-audit 2026-06-15"
+
+**Symptom**
+A 4-reviewer security review (2026-06-15, triggered by `/security-review`) found a live, no-password path to a superadmin token against production. The API already logs a warning about it at every boot (`server.ts:94-97`).
+
+**Root cause**
+Prod `.env` sets `STAFF_TEST_PHONES=+201500001001,+201500001002` under `NODE_ENV=production`. `seed.ts` seeds `+201500001001` with `staffRole:"admin"` and documents it as a **Firebase Console test phone with fixed verification code `100001`** (`seed.ts:819`). `issueTokensForPhone` (service.ts:240) deliberately exempts allow-listed staff phones from the customer-only guard: `isAllowedStaffTest = isStaffTestPhone(phone) && user.staffRole !== null`. `POST /api/auth/firebase-token` reads the `phone_number` claim off a verified Firebase ID token and calls `issueTokensForPhone`. Because Firebase fixed-code test numbers send no SMS, anyone who knows the number + fixed code (both live in tracked `seed.ts`) can `signInWithPhoneNumber` → `confirm("100001")` → obtain a genuine Google-signed token → exchange it for a **superadmin JWT**. No password, no SMS interception. (One external link not verifiable from the box: that the number is _currently_ registered as a Firebase test number — but the seed documents it and the staff-phone feature requires it.)
+
+**Fix**
+Owner actions: (1) empty `STAFF_TEST_PHONES` in prod `.env`, then `pm2 restart trendywheels-api`; (2) delete the two numbers in Firebase Console → Auth → Phone → numbers for testing; (3) rotate the admin password off the published default `Admin@123!` — staff login also has NO MFA (the `totpCode` field in `staffLoginSchema` is accepted but never verified anywhere). Recommended durable code gate: make `isStaffTestPhone` return `false` when `NODE_ENV === "production"` (same pattern as `DEV_ONLY_TRIAL_BYPASS`), so env drift alone can't reintroduce the bypass. Does NOT affect the App Store reviewer login (separate `+201234567000` customer bypass) or admin-web email login.
+
+**Pattern to follow next time**
+A static-code / test-phone path must NEVER resolve to a staff or admin account in production. Gate test-only allow-lists behind `NODE_ENV !== "production"` in code, not just env discipline — env files drift, code gates don't. Privileged login must require email + password + a real second factor.
 
 ---
 

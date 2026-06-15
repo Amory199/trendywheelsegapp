@@ -90,6 +90,39 @@ This file is the single source of truth for what audit said vs what was actually
 
 ---
 
+## Re-audit — 2026-06-15 (`/security-review`, 4 parallel reviewers)
+
+Triggered by `/security-review`. Four reviewers: live auth/token, `feat/social-auth` branch (adversarial), secrets/config/infra, authz/IDOR/validation. Cryptographic core verified sound (RS256 alg-pinned, bcrypt-rotated refresh, helmet+CSP+layered limits, pino redaction, no committed secrets, consistent object-ownership checks, no SQLi/XSS/SSRF). The real issues are config/feature backdoors and a few authz gaps.
+
+### 🔴 NEW — Critical (tracked as INC-033)
+
+- **Prod `STAFF_TEST_PHONES` + Firebase fixed-code test numbers → no-password superadmin.** `+201500001001` (seeded `staffRole:admin`, Firebase fixed code `100001`, both in tracked `seed.ts`) → `signInWithPhoneNumber`/`confirm` → `POST /api/auth/firebase-token` → superadmin JWT. Verified at code+config level; API warns at boot (`server.ts:94-97`). **Owner remediating** (empty env var + delete Firebase test numbers + rotate `Admin@123!` + recommended `NODE_ENV` code gate). See INC-033.
+
+### 📋 Confirmed STILL LIVE (existing INCs, re-verified open this audit)
+
+- **INC-018** — mass-assignment: a customer can `PUT /api/sales/:id` their own listing to `status:"active"` + arbitrary `price`, skipping staff approval (`sales/controller.ts:115`, raw `data: req.body`). Fix pattern already exists in `rental-listings/controller.ts`. Still open.
+- **INC-012** — refresh-token lookup is an O(n) bcrypt scan over all active tokens (CPU DoS at scale). Still open; rate-limiter bounds it.
+- **INC-013** — no access-token revocation: a stolen access token stays valid up to 24h (refresh revocation only bites at refresh time). Still open.
+- **INC-019** — web tokens in localStorage (XSS escalation). Still open.
+
+### 📨 NEW — lower severity, reported to owner (not yet INC-tracked)
+
+- **HIGH** — staff/admin password login has NO second factor: `staffLoginSchema.totpCode` is accepted but never verified anywhere; seed sets published default passwords (`Admin@123!`/`Sales@123!`). (Folded into INC-033 remediation.)
+- **MED** — a `staff` (sales) account can `POST /api/users/:id/disable` an **admin** → force-logout the admin team (`users/controller.ts:275`); no rank check on target.
+- **MED** — prod `CORS_ORIGINS` includes `http://localhost:*` and `http://<rawIP>:*` with `credentials:true`.
+- **MED** — refresh rotation is not transactional (crash between revoke+create = lockout) and has no token-reuse detection (stolen refresh token rolls forever). Extends INC-012/013.
+- **LOW** — any user can DM/notify any `recipientId` (spam, `messages/controller.ts:59`); `POST /request-deletion` has no rate limit; godmode `GET /records/users` returns `passwordHash` to the admin client (no `select`).
+- **(intentional)** — `ENABLE_TRIAL_OTP_BYPASS=true` in prod is the customer-scope `+201234567000`/`730284` review bypass; set `false` once Apple/Google reviews clear.
+
+### ⏸ `feat/social-auth` branch — must fix BEFORE it ships (not deployed)
+
+- Email not canonicalized before the auto-link `findUnique({where:{email}})` → duplicate/shadow-account + linking ambiguity (`service.ts:426-433`).
+- Link ticket is not single-use (no `jti`) and not audience-pinned (the documented `aud="social-link"` doesn't exist — only a `kind` body claim; shares the access-token signing key). `service.ts:358-380`.
+- `setPassword`/`confirmPasswordReset` revoke refresh tokens but don't kill outstanding access tokens (skips the revocation marker to dodge the same-second `iat` race; fix the marker as `freshIat-1` instead).
+- Folds into the existing "re-apply session fix + harden before merge" track for that branch.
+
+---
+
 ## How to extend this file
 
 When `/security-review` or another audit returns new findings:
