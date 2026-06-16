@@ -64,6 +64,55 @@ const home: Stringify<typeof enNs> = {
   quickCustomization: "تخصيص",
   quickDelivery: "توصيل",
   quickSupport: "الدعم",
+
+  // Header location pill
+  deliverTo: "التوصيل إلى",
+  deliverDefault: "القاهرة، مصر",
+
+  // Promo carousel
+  promoBrowseTitle: "اعثر على مركبتك",
+  promoCrossTitle: "استأجر اليوم، اشترِ غداً",
+  promoServiceTitle: "نأتي إليك",
+  promoChipFreeDelivery: "توصيل حتى باب منزلك",
+  promoChipNoAccount: "تصفّح دون حساب",
+  promoChipRentBuy: "استأجر أو اشترِ",
+
+  // Continue / reorder card
+  continueOrderTitle: "أكمل طلبك",
+  continueBookingTitle: "تابع حجزك",
+  continueFavoriteTitle: "عُد إلى مركبتك المحفوظة",
+  continueCtaReorder: "أعد الطلب",
+  continueCtaResume: "متابعة",
+  continueCtaView: "عرض",
+
+  // Redeem & save row (loyalty + refer)
+  loyaltyTitle: "الولاء",
+  loyaltyPoints: "نقطة",
+  referTitle: "ادعُ واربح",
+  referSub: "شارك ترندي ويلز",
+  redeemGuestTitle: "سجّل الدخول لتربح المكافآت",
+  redeemGuestCta: "تسجيل الدخول",
+  tier: {
+    bronze: "برونزي",
+    silver: "فضي",
+    gold: "ذهبي",
+    platinum: "بلاتيني",
+  },
+
+  // On sale rail (honest salePrice only)
+  railDeals: "للبيع",
+  dealsBadge: "للبيع",
+
+  // Services rail
+  servicesTitle: "الخدمات",
+  serviceMaintenance: "الصيانة",
+  serviceMaintenanceSub: "إصلاح وضبط",
+  serviceCustomize: "التخصيص",
+  serviceCustomizeSub: "اجعلها على ذوقك",
+  serviceDelivery: "التوصيل",
+  serviceDeliverySub: "استلام وتسليم",
+  serviceTradeIn: "الاستبدال",
+  serviceTradeInSub: "بدّل وطوّر",
 };
 
 export default home;

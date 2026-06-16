@@ -61,4 +61,53 @@ export default {
   quickCustomization: "Customize",
   quickDelivery: "Delivery",
   quickSupport: "Support",
+
+  // Header location pill
+  deliverTo: "Deliver to",
+  deliverDefault: "Cairo, Egypt",
+
+  // Promo carousel
+  promoBrowseTitle: "Find your ride",
+  promoCrossTitle: "Rent today, buy tomorrow",
+  promoServiceTitle: "We come to you",
+  promoChipFreeDelivery: "Doorstep delivery",
+  promoChipNoAccount: "Browse without an account",
+  promoChipRentBuy: "Rent or buy",
+
+  // Continue / reorder card
+  continueOrderTitle: "Pick up your order",
+  continueBookingTitle: "Resume your booking",
+  continueFavoriteTitle: "Back to your saved ride",
+  continueCtaReorder: "Reorder",
+  continueCtaResume: "Resume",
+  continueCtaView: "View",
+
+  // Redeem & save row (loyalty + refer)
+  loyaltyTitle: "Loyalty",
+  loyaltyPoints: "points",
+  referTitle: "Invite & earn",
+  referSub: "Share TrendyWheels",
+  redeemGuestTitle: "Sign in to earn rewards",
+  redeemGuestCta: "Sign in",
+  tier: {
+    bronze: "Bronze",
+    silver: "Silver",
+    gold: "Gold",
+    platinum: "Platinum",
+  },
+
+  // On sale rail (honest salePrice only)
+  railDeals: "On sale",
+  dealsBadge: "On sale",
+
+  // Services rail
+  servicesTitle: "Services",
+  serviceMaintenance: "Maintenance",
+  serviceMaintenanceSub: "Repairs & tune-ups",
+  serviceCustomize: "Customize",
+  serviceCustomizeSub: "Make it yours",
+  serviceDelivery: "Delivery",
+  serviceDeliverySub: "Pickup & drop-off",
+  serviceTradeIn: "Trade-in",
+  serviceTradeInSub: "Swap & upgrade",
 } as const;
