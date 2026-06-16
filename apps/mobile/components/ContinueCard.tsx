@@ -17,11 +17,11 @@ import { vehicleImageUrl } from "../lib/vehicle";
 const INK = "#02011F";
 const MUTED = "rgba(2,1,31,0.55)";
 
-// The single in-progress item the card surfaces, normalized off whichever
-// auth-only, user-scoped source resolved first (recent order → saved favorite).
+// The single item the card surfaces, off whichever auth-only, user-scoped
+// source resolved first (a COMPLETED purchase → saved favorite).
 interface ContinueItem {
   titleKey: "home.continueOrderTitle" | "home.continueFavoriteTitle";
-  ctaKey: "home.continueCtaReorder" | "home.continueCtaView";
+  ctaKey: "home.continueCtaExplore" | "home.continueCtaView";
   ctaIcon: keyof typeof Ionicons.glyphMap;
   title: string;
   priceLabel: string;
@@ -34,7 +34,7 @@ interface ContinueItem {
 type OrderItemProduct = { name?: unknown; images?: unknown };
 type OrderRow = {
   id?: unknown;
-  totalEgp?: unknown;
+  status?: unknown;
   items?: Array<{ product?: OrderItemProduct } | undefined> | unknown;
 };
 
@@ -48,8 +48,8 @@ function firstString(value: unknown): string | undefined {
 
 /**
  * Personalization slot on the home feed: resurfaces the user's single most
- * relevant in-progress item (most recent order → else a saved favorite
- * vehicle) as a tappable "pick up where you left off" card.
+ * relevant item (a completed purchase → else a saved favorite vehicle) as a
+ * tappable discovery card ("you bought this before — explore more").
  *
  * Guest-safe by construction (Apple 5.1.1(v)): every query is `enabled: !!user`
  * so NO auth request fires for a signed-out user, and the component returns
@@ -128,25 +128,26 @@ export function ContinueCard(): JSX.Element | null {
     </View>
   );
 
-  // Resolution order: recent ORDER → first FAVORITE vehicle. Each branch is
-  // fully optional-chained so a partial payload never throws.
+  // Resolution order: first COMPLETED purchase → first FAVORITE vehicle. Each
+  // branch is fully optional-chained so a partial payload never throws.
   function resolveItem(): ContinueItem | null {
-    const orders = (ordersQ.data?.data ?? []) as unknown[];
-    const recentOrder = orders[0] as OrderRow | undefined;
-    if (recentOrder) {
-      const items = Array.isArray(recentOrder.items) ? recentOrder.items : [];
+    const orders = (ordersQ.data?.data ?? []) as OrderRow[];
+    // Discovery nudge off a COMPLETED order only (not pending/any): "you bought
+    // this before — explore more". The CTA goes to the catalog to surface OTHER
+    // carts, not a reorder of the same item.
+    const boughtOrder = orders.find((o) => o?.status === "completed");
+    if (boughtOrder) {
+      const items = Array.isArray(boughtOrder.items) ? boughtOrder.items : [];
       const product = (items[0] as { product?: OrderItemProduct } | undefined)?.product;
       const name = typeof product?.name === "string" ? product.name : t("home.continueOrderTitle");
-      const total = Number(recentOrder.totalEgp);
-      const priceLabel = Number.isFinite(total) ? `${t("home.egp")} ${total.toLocaleString()}` : "";
       return {
         titleKey: "home.continueOrderTitle",
-        ctaKey: "home.continueCtaReorder",
-        ctaIcon: "refresh",
+        ctaKey: "home.continueCtaExplore",
+        ctaIcon: rtl ? "arrow-back" : "arrow-forward",
         title: name,
-        priceLabel,
+        priceLabel: t("home.continueExploreSub"),
         image: firstString(product?.images),
-        route: "/buy/my-orders",
+        route: "/(tabs)/buy",
       };
     }
 

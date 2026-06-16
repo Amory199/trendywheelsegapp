@@ -77,12 +77,11 @@ const home: Stringify<typeof enNs> = {
   promoChipNoAccount: "تصفّح دون حساب",
   promoChipRentBuy: "استأجر أو اشترِ",
 
-  // Continue / reorder card
-  continueOrderTitle: "أكمل طلبك",
-  continueBookingTitle: "تابع حجزك",
+  // Continue card — discovery off a completed purchase / saved favorite
+  continueOrderTitle: "اشتريت هذا من قبل",
+  continueExploreSub: "اكتشف المزيد مما يعجبك",
   continueFavoriteTitle: "عُد إلى مركبتك المحفوظة",
-  continueCtaReorder: "أعد الطلب",
-  continueCtaResume: "متابعة",
+  continueCtaExplore: "استكشف المزيد",
   continueCtaView: "عرض",
 
   // Redeem & save row (loyalty + refer)

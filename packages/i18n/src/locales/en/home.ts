@@ -74,12 +74,11 @@ export default {
   promoChipNoAccount: "Browse without an account",
   promoChipRentBuy: "Rent or buy",
 
-  // Continue / reorder card
-  continueOrderTitle: "Pick up your order",
-  continueBookingTitle: "Resume your booking",
+  // Continue card — discovery off a completed purchase / saved favorite
+  continueOrderTitle: "You bought this before",
+  continueExploreSub: "Discover more you'll love",
   continueFavoriteTitle: "Back to your saved ride",
-  continueCtaReorder: "Reorder",
-  continueCtaResume: "Resume",
+  continueCtaExplore: "Explore more",
   continueCtaView: "View",
 
   // Redeem & save row (loyalty + refer)
