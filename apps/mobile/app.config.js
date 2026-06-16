@@ -91,12 +91,13 @@ module.exports = {
       checkAutomatically: "ON_LOAD",
       fallbackToCacheTimeout: 0,
     },
-    owner: "amrco_19",
+    owner: "amrco19s-organization",
     extra: {
       eas: {
-        // Re-init'd against amrco_19 on 2026-05-20 after asasasasas hit its
-        // monthly free build cap. New keystore — old APK can't be upgraded;
-        // must be uninstalled before installing this build.
+        // Project transferred amrco_19 -> amrco19s-organization on 2026-06-16
+        // for fresh iOS build quota (amrco_19 hit its monthly free cap).
+        // Same projectId — OTA continuity + project env vars preserved;
+        // signing creds are local files so they carry over untouched.
         projectId: "641975a5-54c8-49e4-aa3b-2519c084d0e1",
       },
     },
