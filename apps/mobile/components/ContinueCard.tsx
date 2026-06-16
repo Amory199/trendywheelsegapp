@@ -1,0 +1,212 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
+import { isRTL } from "@trendywheels/i18n";
+import type { Vehicle } from "@trendywheels/types";
+import { colors } from "@trendywheels/ui-tokens";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+
+import { api } from "../lib/api";
+import { useAuth } from "../lib/auth-store";
+import { useLocale, useT } from "../lib/locale";
+import { useDisplay } from "../lib/typography";
+import { useRequireAuth } from "../lib/use-require-auth";
+import { vehicleImageUrl } from "../lib/vehicle";
+
+const INK = "#02011F";
+const MUTED = "rgba(2,1,31,0.55)";
+
+// The single in-progress item the card surfaces, normalized off whichever
+// auth-only, user-scoped source resolved first (recent order → saved favorite).
+interface ContinueItem {
+  titleKey: "home.continueOrderTitle" | "home.continueFavoriteTitle";
+  ctaKey: "home.continueCtaReorder" | "home.continueCtaView";
+  ctaIcon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  priceLabel: string;
+  image?: string;
+  route: string;
+}
+
+// Minimal shapes we read off the loosely-typed (`unknown[]`) order payload.
+// The orders endpoint serializes { id, totalEgp, items: [{ product }] }.
+type OrderItemProduct = { name?: unknown; images?: unknown };
+type OrderRow = {
+  id?: unknown;
+  totalEgp?: unknown;
+  items?: Array<{ product?: OrderItemProduct } | undefined> | unknown;
+};
+
+function firstString(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    const first = value[0];
+    return typeof first === "string" ? first : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Personalization slot on the home feed: resurfaces the user's single most
+ * relevant in-progress item (most recent order → else a saved favorite
+ * vehicle) as a tappable "pick up where you left off" card.
+ *
+ * Guest-safe by construction (Apple 5.1.1(v)): every query is `enabled: !!user`
+ * so NO auth request fires for a signed-out user, and the component returns
+ * null when there's no user (or nothing to continue). The page's only sign-in
+ * nudge lives elsewhere — a personalization slot's correct guest state is
+ * silent absence, never a wall or a load-time redirect. The CTA still routes
+ * through useRequireAuth() so a stale/expired token bounces to login on press
+ * instead of throwing.
+ */
+export function ContinueCard(): JSX.Element | null {
+  const user = useAuth((s) => s.user);
+  const t = useT();
+  const display = useDisplay();
+  const router = useRouter();
+  const requireAuth = useRequireAuth();
+  const rtl = isRTL(useLocale((s) => s.locale));
+
+  const ordersQ = useQuery({
+    queryKey: ["my-orders"],
+    queryFn: () => api.getMyOrders().catch(() => ({ data: [] as unknown[] })),
+    enabled: !!user,
+  });
+  const favoritesQ = useQuery({
+    queryKey: ["favorites"],
+    queryFn: () => api.getFavorites().catch(() => ({ data: [] })),
+    enabled: !!user,
+  });
+
+  // Silent absence for guests — and no auth query ever fires for them.
+  if (!user) return null;
+
+  const item = resolveItem();
+  if (!item) return null;
+
+  return (
+    <View style={styles.wrap}>
+      <Text style={styles.label}>{t(item.titleKey)}</Text>
+      <Pressable
+        onPress={() => requireAuth(() => router.push(item.route as never))}
+        android_ripple={{ color: "rgba(43,15,248,0.10)", borderless: false }}
+        style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.98 }] }]}
+      >
+        <View style={styles.thumb}>
+          {item.image ? (
+            <Image
+              source={item.image}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              transition={250}
+              cachePolicy="memory-disk"
+              recyclingKey={item.image}
+            />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, styles.thumbPlaceholder]}>
+              <Ionicons name="car-sport" size={24} color="rgba(2,1,31,0.18)" />
+            </View>
+          )}
+        </View>
+
+        <View style={styles.middle}>
+          <Text numberOfLines={1} style={styles.title}>
+            {item.title}
+          </Text>
+          <Text numberOfLines={1} style={[styles.price, display(0.3)]}>
+            {item.priceLabel}
+          </Text>
+        </View>
+
+        <View style={styles.cta}>
+          <Text numberOfLines={1} style={styles.ctaText}>
+            {t(item.ctaKey)}
+          </Text>
+          <Ionicons name={item.ctaIcon} size={15} color="#fff" />
+        </View>
+      </Pressable>
+    </View>
+  );
+
+  // Resolution order: recent ORDER → first FAVORITE vehicle. Each branch is
+  // fully optional-chained so a partial payload never throws.
+  function resolveItem(): ContinueItem | null {
+    const orders = (ordersQ.data?.data ?? []) as unknown[];
+    const recentOrder = orders[0] as OrderRow | undefined;
+    if (recentOrder) {
+      const items = Array.isArray(recentOrder.items) ? recentOrder.items : [];
+      const product = (items[0] as { product?: OrderItemProduct } | undefined)?.product;
+      const name = typeof product?.name === "string" ? product.name : t("home.continueOrderTitle");
+      const total = Number(recentOrder.totalEgp);
+      const priceLabel = Number.isFinite(total) ? `${t("home.egp")} ${total.toLocaleString()}` : "";
+      return {
+        titleKey: "home.continueOrderTitle",
+        ctaKey: "home.continueCtaReorder",
+        ctaIcon: "refresh",
+        title: name,
+        priceLabel,
+        image: firstString(product?.images),
+        route: "/buy/my-orders",
+      };
+    }
+
+    const favorite = favoritesQ.data?.data?.[0];
+    const vehicle = favorite?.vehicle as Vehicle | undefined;
+    if (vehicle) {
+      const rate = Number(vehicle.dailyRate);
+      const priceLabel = Number.isFinite(rate)
+        ? `${t("home.egp")} ${rate.toLocaleString()}${t("home.perDay")}`
+        : "";
+      return {
+        titleKey: "home.continueFavoriteTitle",
+        ctaKey: "home.continueCtaView",
+        ctaIcon: rtl ? "arrow-back" : "arrow-forward",
+        title: vehicle.name,
+        priceLabel,
+        image: vehicleImageUrl(vehicle.images?.[0]),
+        route: `/rent/${vehicle.id}`,
+      };
+    }
+
+    return null;
+  }
+}
+
+const styles = StyleSheet.create({
+  wrap: { marginTop: 22, marginHorizontal: 16 },
+  label: { fontSize: 13, fontWeight: "800", color: INK, marginBottom: 10 },
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 12,
+    shadowColor: INK,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  thumb: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "#EAEAF0",
+  },
+  thumbPlaceholder: { alignItems: "center", justifyContent: "center" },
+  middle: { flex: 1, minWidth: 0 },
+  title: { fontSize: 14, fontWeight: "700", color: INK },
+  price: { fontSize: 16, color: colors.brand.trendyPink, marginTop: 2 },
+  cta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: colors.brand.friendlyBlue,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+  },
+  ctaText: { color: "#fff", fontSize: 12, fontWeight: "800" },
+});

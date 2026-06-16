@@ -4,18 +4,22 @@ import { isRTL } from "@trendywheels/i18n";
 import { type Vehicle } from "@trendywheels/types";
 import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect, useRouter } from "expo-router";
-import { useVideoPlayer, VideoView } from "expo-video";
+import { useRouter } from "expo-router";
 import * as React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CategoryCircles } from "../../components/CategoryCircles";
+import { ContinueCard } from "../../components/ContinueCard";
 import { HomeSearchBar } from "../../components/HomeSearchBar";
 import { ListingCard } from "../../components/ListingCard";
+import { PromoCarousel } from "../../components/PromoCarousel";
 import { QuickAccessGrid } from "../../components/QuickAccessGrid";
 import { Rail } from "../../components/Rail";
+import { RedeemSaveRow } from "../../components/RedeemSaveRow";
+import { SectionHeader } from "../../components/SectionHeader";
+import { ServicesRail } from "../../components/ServicesRail";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useLocale, useT } from "../../lib/locale";
@@ -23,8 +27,6 @@ import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useDisplay, useTracking } from "../../lib/typography";
 import { vehicleImageUrl } from "../../lib/vehicle";
 
-const HERO_VIDEO = require("../../assets/hero/home.mp4");
-const INK = "#02011F";
 const MUTED = "rgba(2,1,31,0.55)";
 
 type ProductCategory = "cart_new" | "cart_used" | "parts" | "accessory";
@@ -47,21 +49,6 @@ export default function HomeScreen(): React.JSX.Element {
   const user = useAuth((s) => s.user);
   const scrollHandler = useTabBarScrollHandler();
 
-  const player = useVideoPlayer(HERO_VIDEO, (p) => {
-    p.loop = true;
-    p.muted = true;
-    p.play();
-  });
-
-  // The home tab stays mounted under the tab navigator, so pause the looping
-  // banner video whenever the tab isn't focused — no off-screen battery drain.
-  useFocusEffect(
-    React.useCallback(() => {
-      player.play();
-      return () => player.pause();
-    }, [player]),
-  );
-
   const vehiclesQ = useQuery({
     queryKey: ["home-vehicles"],
     queryFn: () => api.request<{ data: Vehicle[] }>("GET", "/api/vehicles?limit=40"),
@@ -79,6 +66,12 @@ export default function HomeScreen(): React.JSX.Element {
   // each rail pointed at a detail screen that actually fits its intent.
   const forRent = React.useMemo(
     () => vehicles.filter((v) => v.listingType === "rent" || v.listingType === "both").slice(0, 10),
+    [vehicles],
+  );
+  // Honest deals only: vehicles carrying a real, positive salePrice. No invented
+  // %-off, no countdown — Rail.hideWhenEmpty drops the section if none qualify.
+  const onSale = React.useMemo(
+    () => vehicles.filter((v) => v.salePrice != null && Number(v.salePrice) > 0).slice(0, 10),
     [vehicles],
   );
   const cartsForSale = React.useMemo(
@@ -106,6 +99,21 @@ export default function HomeScreen(): React.JSX.Element {
     ),
     [t, router],
   );
+  const renderSaleVehicle = React.useCallback(
+    (v: Vehicle) => (
+      <ListingCard
+        title={v.name}
+        priceLabel={`${t("home.egp")} ${Number(v.salePrice).toLocaleString()}`}
+        image={vehicleImageUrl(v.images?.[0])}
+        rating={v.averageRating}
+        location={v.location}
+        badge={t("home.dealsBadge")}
+        badgeColor={colors.brand.ecoLimelight}
+        onPress={() => router.push(`/rent/${v.id}` as never)}
+      />
+    ),
+    [t, router],
+  );
   const renderProduct = React.useCallback(
     (p: Product) => (
       <ListingCard
@@ -118,12 +126,28 @@ export default function HomeScreen(): React.JSX.Element {
     ),
     [t, router],
   );
+  const renderSaleProduct = React.useCallback(
+    (p: Product) => (
+      <ListingCard
+        title={p.name}
+        priceLabel={`${t("home.egp")} ${Number(p.priceEgp).toLocaleString()}`}
+        image={p.images?.[0]}
+        badge={t("home.badgeForSale")}
+        badgeColor={colors.brand.trendyPink}
+        overlayLabel={!p.inStock ? t("buy.outOfStock") : null}
+        onPress={() => router.push(`/buy/${p.id}` as never)}
+      />
+    ),
+    [t, router],
+  );
 
   const firstName = user?.name?.split(" ")[0];
   const greeting = firstName
     ? `${t("home.heroGreeting")} ${firstName.toUpperCase()}`
     : t("home.welcome");
-  const hasError = vehiclesQ.isError && productsQ.isError;
+  // Surface retry if EITHER feed fails — a half-failure otherwise silently
+  // collapses its rails (Rail.hideWhenEmpty) with no way to recover.
+  const hasError = vehiclesQ.isError || productsQ.isError;
 
   return (
     <View style={styles.container}>
@@ -133,60 +157,73 @@ export default function HomeScreen(): React.JSX.Element {
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: TAB_BAR_SAFE_BOTTOM }}
       >
-        {/* HEADER */}
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { letterSpacing: track(1.8) }]}>{greeting}</Text>
-            <Text style={[styles.tagline, display(0.3)]}>{t("home.tagline")}</Text>
+        {/* HEADER — brand gradient with a presentational location pill. */}
+        <LinearGradient
+          colors={[colors.brand.friendlyBlue, colors.brand.poolBlue]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top + 10 }]}
+        >
+          <Ionicons
+            name="car-sport"
+            size={64}
+            color="rgba(255,255,255,0.12)"
+            style={styles.headerDecor}
+          />
+          <View style={styles.headerTop}>
+            <Pressable
+              onPress={() => router.push("/search")}
+              hitSlop={6}
+              style={styles.locationPill}
+            >
+              <Ionicons name="location-outline" size={14} color="#fff" />
+              <View style={styles.locationText}>
+                <Text style={styles.locationLabel} numberOfLines={1}>
+                  {t("home.deliverTo")}
+                </Text>
+                <Text style={styles.locationArea} numberOfLines={1}>
+                  {t("home.deliverDefault")}
+                </Text>
+              </View>
+              <Ionicons name={rtl ? "chevron-back" : "chevron-forward"} size={14} color="#fff" />
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/profile/notifications")}
+              hitSlop={8}
+              style={styles.iconBtn}
+            >
+              <Ionicons name="notifications-outline" size={20} color="#fff" />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/(tabs)/profile")}
+              hitSlop={8}
+              style={styles.avatar}
+            >
+              <Text style={styles.avatarText}>{(firstName?.[0] ?? "T").toUpperCase()}</Text>
+            </Pressable>
           </View>
-          <Pressable
-            onPress={() => router.push("/profile/notifications")}
-            hitSlop={8}
-            style={styles.iconBtn}
-          >
-            <Ionicons name="notifications-outline" size={22} color={INK} />
-          </Pressable>
-          <Pressable
-            onPress={() => router.push("/(tabs)/profile")}
-            hitSlop={8}
-            style={styles.avatar}
-          >
-            <Text style={styles.avatarText}>{(firstName?.[0] ?? "T").toUpperCase()}</Text>
-          </Pressable>
+
+          <Text style={[styles.eyebrow, { letterSpacing: track(1.8) }]}>{greeting}</Text>
+          <Text style={[styles.tagline, display(0.3)]}>{t("home.tagline")}</Text>
+        </LinearGradient>
+
+        {/* SEARCH — floats over the gradient's rounded bottom. */}
+        <View style={styles.searchFloat}>
+          <HomeSearchBar />
         </View>
 
-        {/* SEARCH */}
-        <HomeSearchBar />
-
-        {/* QUICK ACCESS — every flow one tap from the home screen */}
+        {/* QUICK ACCESS — every flow one tap from the home screen. */}
         <QuickAccessGrid />
 
-        {/* PROMO BANNER (brand video) */}
-        <Pressable onPress={() => router.push("/(tabs)/buy")} style={styles.banner}>
-          <VideoView
-            player={player}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            nativeControls={false}
-            pointerEvents="none"
-            surfaceType="textureView"
-          />
-          <LinearGradient
-            colors={["rgba(2,1,31,0.10)", "rgba(2,1,31,0.45)", "rgba(2,1,31,0.85)"]}
-            style={StyleSheet.absoluteFill}
-          />
-          <Animated.View entering={FadeIn.duration(400)} style={styles.bannerContent}>
-            <Text style={[styles.bannerTitle, display(0.3)]}>{t("home.promoTitle")}</Text>
-            <View style={styles.bannerCta}>
-              <Text style={styles.bannerCtaText}>{t("home.promoCta")}</Text>
-              <Ionicons name={rtl ? "arrow-back" : "arrow-forward"} size={14} color="#fff" />
-            </View>
-          </Animated.View>
-        </Pressable>
+        {/* CONTINUE — personalization slot; null for guests / nothing in progress. */}
+        <ContinueCard />
 
-        {/* CATEGORIES */}
-        <Text style={[styles.sectionLabel, display(0.3)]}>{t("home.browse")}</Text>
-        <CategoryCircles onPress={(key) => router.push(`/rent/category/${key}` as never)} />
+        {/* PROMO CAROUSEL — replaces the expo-video banner (OTA-safe). */}
+        <PromoCarousel />
+
+        {/* REDEEM & SAVE — loyalty + refer; collapses to one sign-in nudge for guests. */}
+        <RedeemSaveRow />
 
         {hasError ? (
           <Pressable
@@ -203,7 +240,7 @@ export default function HomeScreen(): React.JSX.Element {
           </Pressable>
         ) : null}
 
-        {/* RAILS */}
+        {/* FOR RENT */}
         <Rail<Vehicle>
           title={t("home.railForRent")}
           data={forRent}
@@ -214,6 +251,13 @@ export default function HomeScreen(): React.JSX.Element {
           renderCard={renderVehicle}
         />
 
+        {/* SHOP BY TYPE — secondary discovery row. */}
+        <View style={styles.section}>
+          <SectionHeader title={t("home.browse")} />
+          <CategoryCircles onPress={(key) => router.push(`/rent/category/${key}` as never)} />
+        </View>
+
+        {/* CARTS FOR SALE */}
         <Rail<Product>
           title={t("home.railForSale")}
           data={cartsForSale}
@@ -221,9 +265,21 @@ export default function HomeScreen(): React.JSX.Element {
           keyExtractor={(p) => p.id}
           seeAllLabel={t("home.seeAll")}
           onSeeAll={() => router.push("/(tabs)/buy")}
-          renderCard={renderProduct}
+          renderCard={renderSaleProduct}
         />
 
+        {/* ON SALE — honest salePrice only; hidden when none qualify. */}
+        <Rail<Vehicle>
+          title={t("home.railDeals")}
+          data={onSale}
+          loading={vehiclesQ.isLoading}
+          keyExtractor={(v) => v.id}
+          seeAllLabel={t("home.seeAll")}
+          onSeeAll={() => router.push("/(tabs)/rent")}
+          renderCard={renderSaleVehicle}
+        />
+
+        {/* PARTS & ACCESSORIES */}
         <Rail<Product>
           title={t("home.railShop")}
           data={partsShop}
@@ -233,6 +289,9 @@ export default function HomeScreen(): React.JSX.Element {
           onSeeAll={() => router.push("/(tabs)/buy")}
           renderCard={renderProduct}
         />
+
+        {/* SERVICES */}
+        <ServicesRail />
       </Animated.ScrollView>
     </View>
   );
@@ -241,65 +300,53 @@ export default function HomeScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F7F7FB" },
   header: {
+    paddingHorizontal: 16,
+    paddingBottom: 34,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: "hidden",
+  },
+  headerDecor: { position: "absolute", top: 12, right: 8 },
+  headerTop: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
+    gap: 10,
   },
-  eyebrow: { fontSize: 11, color: MUTED, fontWeight: "700" },
-  tagline: { fontSize: 26, color: INK, marginTop: 2 },
+  locationPill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.18)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  locationText: { flex: 1, minWidth: 0 },
+  locationLabel: { color: "rgba(255,255,255,0.75)", fontSize: 10, fontWeight: "700" },
+  locationArea: { color: "#fff", fontSize: 13, fontWeight: "800" },
   iconBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#fff",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(2,1,31,0.06)",
   },
   avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.brand.trustWorth,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.22)",
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: { color: "#fff", fontWeight: "800", fontSize: 16 },
-  banner: {
-    height: 170,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 20,
-    overflow: "hidden",
-    backgroundColor: "#02011F",
-  },
-  bannerContent: { position: "absolute", left: 18, right: 18, bottom: 16, gap: 10 },
-  bannerTitle: {
-    fontSize: 26,
-    color: "#fff",
-    maxWidth: "80%",
-  },
-  bannerCta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    backgroundColor: colors.brand.trendyPink,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  bannerCtaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
-  sectionLabel: {
-    fontSize: 22,
-    color: INK,
-    paddingHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 12,
-  },
+  eyebrow: { fontSize: 11, color: "rgba(255,255,255,0.85)", fontWeight: "700", marginTop: 18 },
+  tagline: { fontSize: 26, color: "#fff", marginTop: 2 },
+  searchFloat: { marginTop: -26, zIndex: 2 },
+  section: { marginTop: 22 },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
