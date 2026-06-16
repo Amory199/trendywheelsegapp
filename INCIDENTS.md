@@ -70,7 +70,7 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 | 030 | 2026-06-11 | Every OTA baked localhost:4000 as API URL — recurring network errors    | Fixed      | P0  |
 | 031 | 2026-06-12 | Sale cars leaked into Rent; photos never rendered; catalog double-entry | Fixed      | P1  |
 | 032 | 2026-06-15 | Mobile sessions not persisted across app relaunches                     | Fixed      | P1  |
-| 033 | 2026-06-15 | `STAFF_TEST_PHONES` + Firebase fixed codes → no-password superadmin     | Open       | P0  |
+| 033 | 2026-06-15 | `STAFF_TEST_PHONES` + Firebase fixed codes → no-password superadmin     | Fixed      | P0  |
 
 ---
 
@@ -1008,10 +1008,10 @@ void Linking.openURL(`https://wa.me/${digits}`);
 
 ### INC-033 — Production `STAFF_TEST_PHONES` + Firebase fixed-code test numbers grant no-password superadmin (2026-06-15)
 
-**Status:** Open — owner remediating (prod `.env` + Firebase Console + admin password; no code deploy authorized this session)
+**Status:** Fixed (code) — `NODE_ENV` gate deployed + smoke-verified 2026-06-15; exploit path dead in prod. Owner still to clear `STAFF_TEST_PHONES` from `.env` + delete the Firebase test numbers + rotate the `Admin@123!` password (defense-in-depth, pending).
 **Severity:** P0 (no-auth path to a superadmin JWT against production)
 **Touched:** `apps/api/.env` (`STAFF_TEST_PHONES`), `apps/api/src/modules/auth/service.ts` (`isStaffTestPhone`, `issueTokensForPhone:240`), `apps/api/src/modules/auth/controller.ts` (`firebaseToken`), `packages/db/prisma/seed.ts:42-49,819`, **Firebase Console** (test phone numbers — external, not in repo)
-**Fixed in:** open
+**Fixed in:** commit `3f92d65` — `isStaffTestPhone` returns false when `NODE_ENV==="production"`; API restarted (pm2) + smoke PASSED; reviewer customer bypass (`+201234567000`/`730284`) confirmed still working.
 **Related:** INC-013 (access-token revocation), INC-018 (mass-assignment — still live), INC-012 (refresh O(n) scan), AUDIT_FINDINGS "Re-audit 2026-06-15"
 
 **Symptom**
