@@ -21,6 +21,8 @@ const crm: Stringify<typeof enNs> = {
     emptyNoVehicles: "لا توجد عربات متاحة",
     perDay: "/يوم",
     seaterSuffix: " مقاعد",
+    share: "مشاركة",
+    shareLead: "شوف العربة دي من ترندي ويلز 🛺",
   },
   pipeline: {
     kicker: "المبيعات · المسار",

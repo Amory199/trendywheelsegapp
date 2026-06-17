@@ -10,6 +10,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -80,6 +81,19 @@ export default function CrmInventory(): JSX.Element {
       return hay.includes(q);
     });
   }, [listQ.data, search, status]);
+
+  // Hand a customer a ready-to-send pitch: cart name, price, location + the
+  // public listing link. Opens the OS share sheet so the agent picks WhatsApp
+  // (or any channel) and the recipient — no in-app contact list needed.
+  const shareVehicle = async (v: InventoryVehicle): Promise<void> => {
+    const url = `https://app.trendywheelseg.com/rent/${v.id}`;
+    const message = `${t("crm.inventory.shareLead")}\n\n${v.name} — ${priceLabel(v)}\n📍 ${v.location}\n\n${url}`;
+    try {
+      await Share.share({ message });
+    } catch {
+      /* sheet dismissed — no-op */
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -179,6 +193,14 @@ export default function CrmInventory(): JSX.Element {
               ) : (
                 <View style={[styles.thumb, { backgroundColor: palette.bg }]} />
               )}
+              <Pressable
+                onPress={() => void shareVehicle(item)}
+                hitSlop={8}
+                style={styles.shareBtn}
+                accessibilityLabel={t("crm.inventory.share")}
+              >
+                <Ionicons name="share-social" size={15} color="#fff" />
+              </Pressable>
               <Text style={styles.name} numberOfLines={1}>
                 {item.name}
               </Text>
@@ -286,5 +308,16 @@ function makeStyles(palette: Palette) {
     },
     price: { color: colors.brand.trendyPink, fontSize: 13, fontWeight: "700" },
     statusDot: { width: 8, height: 8, borderRadius: 4 },
+    shareBtn: {
+      position: "absolute",
+      top: 16,
+      right: 16,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: "rgba(2,1,31,0.55)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
   });
 }

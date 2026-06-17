@@ -18,6 +18,8 @@ export default {
     emptyNoVehicles: "No vehicles available",
     perDay: "/day",
     seaterSuffix: "-seater",
+    share: "Share",
+    shareLead: "Check out this ride from TrendyWheels 🛺",
   },
   pipeline: {
     kicker: "SALES · PIPELINE",
