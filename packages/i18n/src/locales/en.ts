@@ -60,6 +60,8 @@ const en = {
     guestTitle: "Sign in to continue",
     guestBody: "Sign in to use this. You can keep browsing without an account.",
     guestCta: "Sign in",
+    browseAsGuest: "Continue browsing without an account",
+    keepBrowsing: "Not now — keep browsing",
   },
   tabs: {
     home: "Home",

@@ -3,9 +3,10 @@ import { useRouter } from "expo-router";
 import * as React from "react";
 import { Text, View } from "react-native";
 
-import { TWButton } from "./ui";
 import { useT } from "../lib/locale";
 import { useTheme } from "../lib/use-theme";
+
+import { TWButton } from "./ui";
 
 // Shown in place of an account-gated screen when no user is signed in. Browsing
 // the catalog stays open to guests (Apple guideline 5.1.1(v)); only account
@@ -53,6 +54,21 @@ export function GuestGate({ message }: { message?: string }): React.JSX.Element 
       <TWButton kind="pink" size="lg" onPress={() => router.push("/(auth)/phone")}>
         {t("auth.guestCta")}
       </TWButton>
+
+      {/* Never a dead end (Apple 5.1.1(v)): account screens gate here, but the
+          guest can always bounce back to free browsing instead of signing in. */}
+      <Text
+        onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
+        style={{
+          color: palette.muted,
+          fontSize: 14,
+          fontWeight: "700",
+          marginTop: 18,
+          textDecorationLine: "underline",
+        }}
+      >
+        {t("auth.keepBrowsing")}
+      </Text>
     </View>
   );
 }

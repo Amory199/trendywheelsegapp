@@ -70,6 +70,8 @@ export default function SupportTickets(): JSX.Element {
       const r = await api.getTickets({ status, limit: 50 });
       return (r.data ?? []) as unknown as Ticket[];
     },
+    // Guests never fire this auth-only call — they get GuestGate, not a 401.
+    enabled: !!user,
   });
 
   if (!user) return <GuestGate />;

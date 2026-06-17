@@ -1,6 +1,7 @@
 import { colors, spacing, typography, borderRadius, type Palette } from "@trendywheels/ui-tokens";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -13,6 +14,14 @@ import {
   ScrollView,
   Platform,
 } from "react-native";
+import Animated, {
+  Easing,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 
 import { useAuth } from "../../lib/auth-store";
 import { isTrialPhone, sendFirebaseOtp } from "../../lib/firebase-phone-auth";
@@ -20,6 +29,7 @@ import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
 const EGYPT_DIAL_CODE = "+20";
+const LOGO = require("../../assets/brand-logo.png");
 
 export default function PhoneScreen(): JSX.Element {
   const router = useRouter();
@@ -30,6 +40,17 @@ export default function PhoneScreen(): JSX.Element {
   const [localPhone, setLocalPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [consented, setConsented] = useState(false);
+
+  // Gentle continuous "breathing" on the logo — a calm brand moment on entry.
+  const logoScale = useSharedValue(1);
+  useEffect(() => {
+    logoScale.value = withRepeat(
+      withTiming(1.06, { duration: 1700, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+  }, [logoScale]);
+  const logoAnim = useAnimatedStyle(() => ({ transform: [{ scale: logoScale.value }] }));
 
   const localValid = /^1[0-9]{9}$/.test(localPhone);
   const fullPhone = `${EGYPT_DIAL_CODE}${localPhone}`;
@@ -76,8 +97,21 @@ export default function PhoneScreen(): JSX.Element {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>
-          <Text style={styles.title}>{t("auth.welcome")}</Text>
-          <Text style={styles.subtitle}>{t("auth.phoneSubtitle")}</Text>
+          <Animated.View
+            entering={FadeInDown.duration(550).springify().damping(14)}
+            style={styles.logoWrap}
+          >
+            <Animated.View style={logoAnim}>
+              <Image source={LOGO} style={styles.logo} contentFit="contain" transition={200} />
+            </Animated.View>
+          </Animated.View>
+
+          <Animated.Text entering={FadeInDown.delay(120).duration(500)} style={styles.title}>
+            {t("auth.welcome")}
+          </Animated.Text>
+          <Animated.Text entering={FadeInDown.delay(200).duration(500)} style={styles.subtitle}>
+            {t("auth.phoneSubtitle")}
+          </Animated.Text>
 
           <View style={styles.phoneRow}>
             <View style={styles.dialChip}>
@@ -122,6 +156,17 @@ export default function PhoneScreen(): JSX.Element {
           >
             <Text style={styles.buttonText}>{loading ? t("auth.sending") : t("auth.sendOtp")}</Text>
           </TouchableOpacity>
+
+          {/* Escape hatch — the app is fully browsable without an account
+              (Apple 5.1.1(v)). Sign-in is only for account actions, so login is
+              never a dead end: a guest can always continue into the catalog. */}
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={() => router.replace("/(tabs)")}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.skipText}>{t("auth.browseAsGuest")}</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -138,6 +183,8 @@ function makeStyles(p: Palette) {
       padding: spacing.lg,
     },
     content: { alignItems: "center" },
+    logoWrap: { alignItems: "center", marginBottom: spacing.lg },
+    logo: { width: 168, height: 98 },
     title: {
       fontSize: typography.fontSize.h1,
       fontWeight: typography.fontWeight.bold,
@@ -226,6 +273,18 @@ function makeStyles(p: Palette) {
       fontSize: typography.fontSize.bodyLarge,
       fontWeight: typography.fontWeight.bold,
       color: "#fff",
+    },
+    skipButton: {
+      marginTop: spacing.lg,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      alignItems: "center",
+    },
+    skipText: {
+      fontSize: typography.fontSize.bodyLarge,
+      fontWeight: typography.fontWeight.semibold,
+      color: p.blue,
+      textDecorationLine: "underline",
     },
   });
 }

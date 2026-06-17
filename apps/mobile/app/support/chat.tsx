@@ -35,6 +35,8 @@ export default function SupportChat(): JSX.Element {
       const r = await api.getConversations();
       return (r.data ?? []) as Conversation[];
     },
+    // Guests never fire this auth-only call — they get GuestGate, not a 401.
+    enabled: !!user,
   });
 
   if (!user) return <GuestGate />;

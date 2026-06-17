@@ -56,6 +56,8 @@ const ar: TranslationKeys = {
     guestTitle: "سجّل الدخول للمتابعة",
     guestBody: "سجّل الدخول لاستخدام هذه الميزة. يمكنك متابعة التصفّح بدون حساب.",
     guestCta: "تسجيل الدخول",
+    browseAsGuest: "تابع التصفّح بدون حساب",
+    keepBrowsing: "ليس الآن — تابع التصفّح",
   },
   tabs: {
     home: "الرئيسية",
