@@ -34,6 +34,7 @@ interface Lead {
   source?: string;
   lastActivityAt?: string;
   ownerId?: string | null;
+  nextActionAt?: string | null;
 }
 
 type FilterKey = "all" | "mine" | "unclaimed" | "stale";
@@ -153,6 +154,22 @@ export default function CrmPipeline(): React.JSX.Element {
 
   const totalValue = Object.values(stageValue).reduce((a, b) => a + b, 0);
   const currentLeads = filteredAll.filter((l) => l.status === stage);
+
+  // Follow-ups that have come due (scheduled time is now or past) on still-open
+  // leads. Surfaced as a banner above the pipeline so the agent's first glance
+  // each morning is "who do I owe a callback". Won/lost/inactive leads are
+  // excluded — a closed deal needs no chase. Soonest-overdue first.
+  const dueFollowUps = useMemo(() => {
+    const now = Date.now();
+    return allLeads
+      .filter(
+        (l) =>
+          l.nextActionAt &&
+          !["won", "lost", "inactive"].includes(l.status) &&
+          new Date(l.nextActionAt).getTime() <= now,
+      )
+      .sort((a, b) => new Date(a.nextActionAt!).getTime() - new Date(b.nextActionAt!).getTime());
+  }, [allLeads]);
 
   return (
     <View style={styles.root}>
@@ -279,6 +296,33 @@ export default function CrmPipeline(): React.JSX.Element {
               onRefresh={() => leadsQ.refetch()}
               tintColor={palette.text}
             />
+          }
+          ListHeaderComponent={
+            dueFollowUps.length > 0 ? (
+              <View style={styles.followUpCard}>
+                <View style={styles.followUpHeader}>
+                  <Ionicons name="alarm" size={16} color={colors.brand.trendyPink} />
+                  <Text style={styles.followUpTitle}>
+                    {t("crm.pipeline.followUpsDue")} · {dueFollowUps.length}
+                  </Text>
+                </View>
+                {dueFollowUps.slice(0, 5).map((l) => (
+                  <Pressable
+                    key={l.id}
+                    style={styles.followUpRow}
+                    onPress={() => router.push(`/crm/leads/${l.id}`)}
+                  >
+                    <Text style={styles.followUpName} numberOfLines={1}>
+                      {l.contactName}
+                    </Text>
+                    <Text style={styles.followUpDue}>
+                      {relativeTime(l.nextActionAt ?? undefined)}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={14} color={palette.muted} />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null
           }
           ListEmptyComponent={
             <View style={styles.empty}>
@@ -503,5 +547,37 @@ function makeStyles(palette: Palette) {
       borderColor: colors.brand.friendlyBlue,
     },
     filterChipText: { color: palette.muted, fontWeight: "700", fontSize: 12 },
+    followUpCard: {
+      backgroundColor: palette.card,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.brand.trendyPink + "55",
+      padding: 12,
+      marginBottom: 12,
+      gap: 4,
+    },
+    followUpHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 4,
+    },
+    followUpTitle: {
+      color: colors.brand.trendyPink,
+      fontWeight: "800",
+      fontSize: 12,
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+    },
+    followUpRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingVertical: 8,
+      borderTopWidth: 1,
+      borderTopColor: palette.border,
+    },
+    followUpName: { flex: 1, color: palette.text, fontSize: 14, fontWeight: "700" },
+    followUpDue: { color: colors.brand.trendyPink, fontSize: 11, fontWeight: "700" },
   });
 }

@@ -73,6 +73,7 @@ interface Lead {
   messageCount?: number;
   lastCallAt?: string | null;
   lastMessageAt?: string | null;
+  nextActionAt?: string | null;
 }
 
 interface Vehicle {
@@ -112,6 +113,7 @@ const ACTIVITY_TYPE_KEY: Record<string, string> = {
   call_no_answer: "crm.lead.activityTypeCallNoAnswer",
   whatsapp_sent: "crm.lead.activityTypeWhatsAppSent",
   matched: "crm.lead.activityTypeMatched",
+  follow_up: "crm.lead.activityTypeFollowUp",
 };
 
 export default function LeadDetail(): React.JSX.Element {
@@ -236,6 +238,32 @@ export default function LeadDetail(): React.JSX.Element {
         e instanceof Error ? e.message : t("crm.lead.alerts.tryAgain"),
       ),
   });
+
+  // Follow-up reminder. Sales schedules a callback (tomorrow / +3d / +7d) and
+  // the lead surfaces in the pipeline's "Follow-ups due" list once the time
+  // arrives. Passing null clears the reminder. The backend records a "follow_up"
+  // activity so the timeline shows when it was (re)scheduled.
+  const setFollowUp = useMutation({
+    mutationFn: async (iso: string | null) => api.crmUpdateLead(id!, { nextActionAt: iso }),
+    onSuccess: async () => {
+      playSound("success");
+      await qc.invalidateQueries({ queryKey: ["crm"] });
+    },
+    onError: (e) =>
+      Alert.alert(
+        t("crm.lead.alerts.updateFailedTitle"),
+        e instanceof Error ? e.message : t("crm.lead.alerts.tryAgain"),
+      ),
+  });
+
+  // Anchor reminders to 9am local on the target day — a sensible "first thing"
+  // callback time rather than the exact moment of tapping.
+  function followUpIso(days: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    d.setHours(9, 0, 0, 0);
+    return d.toISOString();
+  }
 
   // Replaces the old "Mark Lost" / Claim affordances. Sales presses "Pass to
   // next agent" when they can't progress a lead; the backend rotates it to a
@@ -633,6 +661,54 @@ export default function LeadDetail(): React.JSX.Element {
                       {logActivity.isPending ? t("crm.lead.saving") : t("crm.lead.saveNote")}
                     </Text>
                   </Pressable>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>{t("crm.lead.followUpTitle")}</Text>
+                  <Text
+                    style={{
+                      color: lead.nextActionAt ? colors.brand.trendyPink : palette.muted,
+                      fontSize: 12,
+                      marginTop: -2,
+                      marginBottom: 10,
+                    }}
+                  >
+                    {lead.nextActionAt
+                      ? `${t("crm.lead.followUpScheduledPrefix")} ${new Date(lead.nextActionAt).toLocaleString()}`
+                      : t("crm.lead.followUpNone")}
+                  </Text>
+                  <View style={styles.stageRow}>
+                    <Pressable
+                      style={styles.stage}
+                      disabled={setFollowUp.isPending}
+                      onPress={() => setFollowUp.mutate(followUpIso(1))}
+                    >
+                      <Text style={styles.stageText}>{t("crm.lead.followUpTomorrow")}</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.stage}
+                      disabled={setFollowUp.isPending}
+                      onPress={() => setFollowUp.mutate(followUpIso(3))}
+                    >
+                      <Text style={styles.stageText}>{t("crm.lead.followUpIn3Days")}</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.stage}
+                      disabled={setFollowUp.isPending}
+                      onPress={() => setFollowUp.mutate(followUpIso(7))}
+                    >
+                      <Text style={styles.stageText}>{t("crm.lead.followUpNextWeek")}</Text>
+                    </Pressable>
+                    {lead.nextActionAt ? (
+                      <Pressable
+                        style={styles.stage}
+                        disabled={setFollowUp.isPending}
+                        onPress={() => setFollowUp.mutate(null)}
+                      >
+                        <Text style={styles.stageText}>{t("crm.lead.followUpClear")}</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                 </View>
 
                 {(lead.activities ?? []).length > 0 && (

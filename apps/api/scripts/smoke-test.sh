@@ -94,6 +94,27 @@ curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/crm/leads/$LEAD_ID" \
   || fail "PATCH /crm/leads/:id status=contacted failed"
 pass "lead status moved"
 
+# ─── 2b. Follow-up reminder set / round-trip / clear ─────────
+# PATCH nextActionAt (ISO) schedules a callback that surfaces in the mobile
+# pipeline's "Follow-ups due" banner; null clears it.
+note "2b. Follow-up reminder (nextActionAt set/clear)"
+FUTURE_ISO=$(date -u -d '+2 days' +%Y-%m-%dT09:00:00.000Z)
+curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/crm/leads/$LEAD_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"nextActionAt\":\"$FUTURE_ISO\"}" >/dev/null \
+  || fail "PATCH /crm/leads/:id nextActionAt=$FUTURE_ISO rejected — validator missing nextActionAt"
+SET_VAL=$(curl -fsS -A "$SMOKE_UA" "$BASE/crm/leads/$LEAD_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.data.nextActionAt // empty')
+[ -n "$SET_VAL" ] || fail "nextActionAt did not persist (got empty) — column/migration missing?"
+curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/crm/leads/$LEAD_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"nextActionAt":null}' >/dev/null \
+  || fail "PATCH /crm/leads/:id nextActionAt=null (clear) rejected"
+CLEARED=$(curl -fsS -A "$SMOKE_UA" "$BASE/crm/leads/$LEAD_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.data.nextActionAt')
+[ "$CLEARED" = "null" ] || fail "nextActionAt not cleared (got $CLEARED)"
+pass "follow-up reminder set + cleared"
+
 # ─── 3. CRM activities — NEW types ───────────────────────────
 note "3. CRM activity types (call_attempted, call_no_answer, whatsapp_sent, call_answered, note)"
 for t in call_attempted call_no_answer whatsapp_sent call_answered note; do

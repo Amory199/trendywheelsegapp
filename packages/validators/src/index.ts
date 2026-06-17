@@ -325,6 +325,8 @@ export const updateLeadSchema = z.object({
   contactName: z.string().min(1).max(120).optional(),
   contactPhone: z.string().min(5).max(20).optional(),
   contactEmail: z.string().email().optional(),
+  // Follow-up reminder timestamp (ISO). null clears it.
+  nextActionAt: z.string().datetime().nullable().optional(),
 });
 
 export const leadActivityTypeEnum = z.enum([

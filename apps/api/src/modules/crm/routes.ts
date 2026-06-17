@@ -353,6 +353,9 @@ const updateLeadSchema = z.object({
   status: z.enum(["new", "contacted", "qualified", "proposal", "won", "lost"]).optional(),
   estimatedValue: z.number().min(0).optional(),
   notes: z.string().max(2000).optional(),
+  // Follow-up reminder. ISO datetime to schedule, null to clear. Surfaces in
+  // the mobile pipeline's "Follow-ups due" list once the time arrives.
+  nextActionAt: z.string().datetime().nullable().optional(),
 });
 
 router.patch("/leads/:id", async (req, res) => {
@@ -367,10 +370,16 @@ router.patch("/leads/:id", async (req, res) => {
     throw AppError.forbidden("You don't own this lead");
   }
 
+  // nextActionAt arrives as an ISO string (or null to clear). Pull it out of
+  // the spread so Prisma receives a Date, not a raw string.
+  const { nextActionAt, ...rest } = body;
   const data: Record<string, unknown> = {
-    ...body,
+    ...rest,
     lastActivityAt: new Date(),
   };
+  if (nextActionAt !== undefined) {
+    data.nextActionAt = nextActionAt ? new Date(nextActionAt) : null;
+  }
   if (body.status === "won" || body.status === "lost") {
     data.closedAt = new Date();
   }
@@ -387,6 +396,16 @@ router.patch("/leads/:id", async (req, res) => {
   }
   if (body.notes !== undefined && body.notes !== lead.notes) {
     await recordActivity(lead.id, userId, "note", "Notes updated");
+  }
+  if (nextActionAt !== undefined) {
+    await recordActivity(
+      lead.id,
+      userId,
+      "follow_up",
+      nextActionAt
+        ? `Follow-up scheduled for ${new Date(nextActionAt).toISOString()}`
+        : "Follow-up cleared",
+    );
   }
 
   emitLeadUpdated(lead.id, userId, body.status ?? undefined);
