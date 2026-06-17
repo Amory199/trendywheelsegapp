@@ -49,6 +49,7 @@ export default function AdminLayout(): JSX.Element {
     <Tabs
       screenOptions={{
         headerShown: false,
+        animation: "fade",
         tabBarBackground: () => <GlassTabBar />,
         tabBarStyle: {
           height: 70,

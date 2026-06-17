@@ -92,10 +92,18 @@ export default function RootLayout(): JSX.Element {
           <Stack
             screenOptions={{
               headerShown: false,
+              // One coherent horizontal push for the whole detail hierarchy
+              // (rent/buy/sell flows, profile sub-pages, messages, …) plus
+              // edge swipe-back. Native-screen driven, so it's OTA-safe.
+              animation: "slide_from_right",
+              gestureEnabled: true,
             }}
           >
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            {/* Search is an overlay, not a deeper page — rise it from the
+                bottom so it reads as a sheet, not a drill-down. */}
+            <Stack.Screen name="search" options={{ animation: "slide_from_bottom" }} />
           </Stack>
           <OfflineBanner />
           <UpdateGate />

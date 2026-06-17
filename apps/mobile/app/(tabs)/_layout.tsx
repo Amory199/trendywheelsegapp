@@ -67,6 +67,8 @@ export default function TabLayout(): JSX.Element {
         tabBar={(props) => <AutoHidingTabBar {...props} />}
         screenOptions={{
           headerShown: false,
+          // Soft crossfade between tabs instead of a hard cut.
+          animation: "fade",
           tabBarBackground: () => <GlassTabBar isDark={isDark} />,
           tabBarStyle: {
             height: layout.bottomTabHeight + 14,

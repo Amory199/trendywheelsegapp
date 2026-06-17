@@ -39,6 +39,7 @@ export default function CrmLayout(): JSX.Element {
     <Tabs
       screenOptions={{
         headerShown: false,
+        animation: "fade",
         tabBarBackground: () => <GlassTabBar />,
         tabBarStyle: {
           height: 70,
