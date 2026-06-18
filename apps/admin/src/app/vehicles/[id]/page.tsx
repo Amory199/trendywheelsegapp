@@ -51,6 +51,7 @@ export default function VehicleEditPage(): JSX.Element {
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState<VehicleStatus>("available");
   const [features, setFeatures] = useState("");
+  const [saleDescription, setSaleDescription] = useState("");
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<Array<{ file: File; preview: string }>>([]);
   const [loading, setLoading] = useState(false);
@@ -68,6 +69,7 @@ export default function VehicleEditPage(): JSX.Element {
       setLocation(vehicle.location);
       setStatus(vehicle.status);
       setFeatures(vehicle.features.join(", "));
+      setSaleDescription(vehicle.saleDescription ?? "");
       // The API returns images as { url, sortOrder, ... } objects; the update
       // contract expects string URLs, so flatten on load.
       const imgs = (vehicle.images as unknown as Array<string | { url: string }>) ?? [];
@@ -126,6 +128,8 @@ export default function VehicleEditPage(): JSX.Element {
           .split(",")
           .map((f) => f.trim())
           .filter(Boolean),
+        // null clears it (schema is nullable); only sale/both listings surface it.
+        saleDescription: saleDescription.trim() || null,
       });
 
       void qc.invalidateQueries({ queryKey: ["vehicles"] });
@@ -303,6 +307,16 @@ export default function VehicleEditPage(): JSX.Element {
                 )}
               </select>
             </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Sale description</label>
+            <textarea
+              rows={3}
+              value={saleDescription}
+              onChange={(e) => setSaleDescription(e.target.value)}
+              placeholder="Condition, year, kms, what's included… (shown on sale / both listings)"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
           </div>
           <div>
             <label className="text-xs font-medium text-gray-500 block mb-1">
