@@ -72,6 +72,7 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 | 032 | 2026-06-15 | Mobile sessions not persisted across app relaunches                     | Fixed      | P1  |
 | 033 | 2026-06-15 | `STAFF_TEST_PHONES` + Firebase fixed codes → no-password superadmin     | Fixed      | P0  |
 | 034 | 2026-06-17 | Refresh-token rotation race → spurious logout on relaunch/OTA update    | Fixed      | P1  |
+| 035 | 2026-06-18 | Support messages routed to one admin only — no team notify, no response | Fixed      | P1  |
 
 ---
 
@@ -1050,6 +1051,27 @@ INC-032 made refresh tokens single-use and rotating (revoke old → mint new on 
 
 **Pattern to follow next time**
 Single-use/rotating refresh tokens REQUIRE a single-flight guard on the client — without it, concurrent 401s self-inflict a logout. And keep INC-032's rule: only a definitive server auth rejection clears tokens; network/timeout never does.
+
+---
+
+### INC-035 — Support messages routed to one admin only (2026-06-18)
+
+**Status:** Fixed
+**Severity:** P1 (customer support effectively invisible — "messages don't go anywhere, nowhere to respond")
+**Touched:** `apps/api/src/modules/messages/controller.ts`, `apps/api/scripts/smoke-test.sh`
+**Related:** uses `notifyAdmins` (utils/notify.ts)
+
+**Symptom**
+Owner: "support messages don't go anywhere and nowhere to respond to them." A customer's support message reached at most one staff member, and no one else could see or answer it.
+
+**Root cause**
+`supportContact` returns the single oldest active admin. The customer starts a 1:1 `Conversation` with that one person; `send()` notified ONLY that recipient (`notifyUser`), and the other staff weren't participants, so they neither got pinged nor could open/reply to the thread. If that one admin wasn't watching, the message was a black hole.
+
+**Fix (API-only, no migration, no client change)**
+In `send()`, detect a support thread = exactly one side is staff/admin. For those: (1) `findOrCreateSupportConversation` reuses the customer's existing support thread (customer + any staff participant) so replies thread into ONE conversation instead of fragmenting; (2) `ensureAllStaffParticipants` adds every active staff/admin as a participant, so the thread appears in everyone's inbox, passes the participant check, and any of them can reply; (3) a customer→support message broadcasts via `notifyAdmins` (whole team), while staff replies / ordinary 1:1 DMs still `notifyUser` the single recipient. Existing 1:1 threads migrate to shared on their next message. Smoke 1d asserts a staff member who is NOT the recipient sees the thread.
+
+**Pattern to follow next time**
+Support is a shared team inbox, not a private DM to one person — fan out participants + broadcast the notification. Watch for `findOrCreateConversation(a,b)` pair-matching silently spawning duplicate threads when a different staff replies.
 
 ---
 

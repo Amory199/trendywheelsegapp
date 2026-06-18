@@ -88,6 +88,24 @@ DEMO_TYPE=$(echo "$DEMO_RESP" | jq -r '.user.accountType // empty')
   || fail "demo bypass account type=$DEMO_TYPE (expected customer — a fixed code must NEVER reach staff/admin)"
 pass "demo customer bypass logs in as customer"
 
+# ─── 1d. Support message reaches the whole staff team ────────
+# A customer support message must fan out to ALL staff: a staff member who is
+# NOT the original recipient must still see the thread in their inbox.
+note "1d. Support message → shared team thread"
+ADMIN_USER_ID=$(echo "$ADMIN_RESP" | jq -r '.user.id')
+SUP_MSG=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/messages" \
+  -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+  -d "{\"recipientId\":\"$ADMIN_USER_ID\",\"message\":\"smoke-test support message — please ignore\"}") \
+  || fail "customer support message POST /messages failed"
+SUP_CONV=$(echo "$SUP_MSG" | jq -r '.data.conversationId // empty')
+[ -n "$SUP_CONV" ] || fail "support message returned no conversationId: $SUP_MSG"
+SALES_SEES=$(curl -fsS -A "$SMOKE_UA" "$BASE/messages/conversations" \
+  -H "Authorization: Bearer $SALES_TOKEN" \
+  | jq "[.data[] | select(.id == \"$SUP_CONV\")] | length")
+[ "$SALES_SEES" = "1" ] \
+  || fail "sales agent (not the recipient) can't see the support thread — fan-out broken (count=$SALES_SEES)"
+pass "support thread shared with the whole team"
+
 # ─── 2. CRM — createLeadSchema with the formerly-failing mobile sources ───
 note "2. CRM lead create (mobile-friendly source)"
 LEAD_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/crm/leads" \
