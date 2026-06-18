@@ -80,6 +80,10 @@ module.exports = {
       ],
       "./plugins/with-fmt-cpp17",
       "./plugins/with-rnfb-modular-headers",
+      // Strips expo-audio's unused media-playback/mic foreground service +
+      // permissions from the merged manifest (we only play short UI sounds).
+      // Clears the Play "Foreground service permissions" policy block.
+      "./plugins/with-strip-audio-foreground-service",
     ],
     experiments: {
       typedRoutes: true,

@@ -36,43 +36,44 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 
 ## Index
 
-| INC | Date       | Symptom                                                                 | Status     | Sev |
-| --- | ---------- | ----------------------------------------------------------------------- | ---------- | --- |
-| 001 | 2026-05-21 | EAS project re-init silently replaced the Android signing keystore      | Fixed      | P0  |
-| 002 | 2026-05-21 | AU-11 lockfile bumped but four app `package.json` files were not        | Fixed      | P1  |
-| 003 | 2026-05-21 | React 19 removed global JSX namespace — 102 .tsx files broke            | Fixed      | P1  |
-| 004 | 2026-05-23 | Web login forms prefilled non-existent users (401 on first submit)      | Fixed      | P2  |
-| 005 | 2026-05-24 | `VehicleCategory` enum casing mismatch — validator (kebab) vs Prisma    | Workaround | P2  |
-| 006 | 2026-05-24 | Customer rent page filter chips used car-template enums (sedan/van)     | Fixed      | P2  |
-| 007 | 2026-05-24 | Smoke-test 4xx assertions polluted Sentry every run                     | Fixed      | P3  |
-| 008 | 2026-05-24 | Play Console rejected AAB — upload-key fingerprint mismatch             | Fixed      | P0  |
-| 009 | 2026-05-24 | `/api/health` returns 401 for unauthenticated probes                    | Fixed      | P3  |
-| 010 | 2026-05-24 | Customer web has no phone+OTP login (staff-only portal)                 | Open       | P2  |
-| 011 | 2026-05-24 | 4 mobile screens use `as unknown as <Type>` instead of runtime parse    | Open       | P3  |
-| 012 | 2026-05-28 | Refresh-token lookup scans every active token (CPU DoS at scale)        | Open       | P0  |
-| 013 | 2026-05-28 | Access-token revocation missing (stolen token usable up to 24h)         | Open       | P1  |
-| 014 | 2026-05-28 | Cascade delete on `User → Booking/Notification` destroys records        | Open       | P1  |
-| 015 | 2026-05-28 | No soft-delete on `User` (GDPR / Play Store deletion)                   | Open       | P1  |
-| 016 | 2026-05-28 | Composite indexes missing on hot query paths                            | Open       | P1  |
-| 017 | 2026-05-28 | BullMQ workers lack retry/concurrency/idempotency/DLQ                   | Open       | P1  |
-| 018 | 2026-05-28 | Mass-assignment in `sales`, `repairs`, `kb` controllers                 | Open       | P1  |
-| 019 | 2026-05-28 | Web tokens in localStorage (XSS escalation path)                        | Open       | P1  |
-| 020 | 2026-05-28 | Prod infra SPOFs + no uptime monitor + no secret-rotation runbook       | Open       | P1  |
-| 021 | 2026-05-28 | No certificate pinning on mobile API calls                              | Open       | P2  |
-| 022 | 2026-06-08 | EAS iOS Distribution Cert can't be set up non-interactively (CLI bug)   | Workaround | P1  |
-| 023 | 2026-06-08 | `GoogleService-Info.plist` gitignored → EAS Cloud build fails           | Fixed      | P0  |
-| 024 | 2026-06-08 | RN 0.79.x bundled fmt 11.0.2 + Xcode 16.2+/26.x consteval error         | Workaround | P0  |
-| 025 | 2026-06-08 | Apple requires Xcode 26+ as of 2026-04-28 (policy, not technical)       | Fixed      | P0  |
-| 026 | 2026-06-08 | Mobile app had zero Jest tests + pnpm node_modules pattern trap         | Fixed      | P1  |
-| 027 | 2026-06-08 | Customer storage prefix allowlist missed sell/sales/rental flows        | Fixed      | P0  |
-| 028 | 2026-06-08 | Customer mutations silently fail with no Alert on error                 | Fixed      | P1  |
-| 029 | 2026-06-08 | WhatsApp CRM button fire-and-forget mutation (Call awaits, WA didn't)   | Fixed      | P2  |
-| 030 | 2026-06-11 | Every OTA baked localhost:4000 as API URL — recurring network errors    | Fixed      | P0  |
-| 031 | 2026-06-12 | Sale cars leaked into Rent; photos never rendered; catalog double-entry | Fixed      | P1  |
-| 032 | 2026-06-15 | Mobile sessions not persisted across app relaunches                     | Fixed      | P1  |
-| 033 | 2026-06-15 | `STAFF_TEST_PHONES` + Firebase fixed codes → no-password superadmin     | Fixed      | P0  |
-| 034 | 2026-06-17 | Refresh-token rotation race → spurious logout on relaunch/OTA update    | Fixed      | P1  |
-| 035 | 2026-06-18 | Support messages routed to one admin only — no team notify, no response | Fixed      | P1  |
+| INC | Date       | Symptom                                                                       | Status              | Sev |
+| --- | ---------- | ----------------------------------------------------------------------------- | ------------------- | --- |
+| 001 | 2026-05-21 | EAS project re-init silently replaced the Android signing keystore            | Fixed               | P0  |
+| 002 | 2026-05-21 | AU-11 lockfile bumped but four app `package.json` files were not              | Fixed               | P1  |
+| 003 | 2026-05-21 | React 19 removed global JSX namespace — 102 .tsx files broke                  | Fixed               | P1  |
+| 004 | 2026-05-23 | Web login forms prefilled non-existent users (401 on first submit)            | Fixed               | P2  |
+| 005 | 2026-05-24 | `VehicleCategory` enum casing mismatch — validator (kebab) vs Prisma          | Workaround          | P2  |
+| 006 | 2026-05-24 | Customer rent page filter chips used car-template enums (sedan/van)           | Fixed               | P2  |
+| 007 | 2026-05-24 | Smoke-test 4xx assertions polluted Sentry every run                           | Fixed               | P3  |
+| 008 | 2026-05-24 | Play Console rejected AAB — upload-key fingerprint mismatch                   | Fixed               | P0  |
+| 009 | 2026-05-24 | `/api/health` returns 401 for unauthenticated probes                          | Fixed               | P3  |
+| 010 | 2026-05-24 | Customer web has no phone+OTP login (staff-only portal)                       | Open                | P2  |
+| 011 | 2026-05-24 | 4 mobile screens use `as unknown as <Type>` instead of runtime parse          | Open                | P3  |
+| 012 | 2026-05-28 | Refresh-token lookup scans every active token (CPU DoS at scale)              | Open                | P0  |
+| 013 | 2026-05-28 | Access-token revocation missing (stolen token usable up to 24h)               | Open                | P1  |
+| 014 | 2026-05-28 | Cascade delete on `User → Booking/Notification` destroys records              | Open                | P1  |
+| 015 | 2026-05-28 | No soft-delete on `User` (GDPR / Play Store deletion)                         | Open                | P1  |
+| 016 | 2026-05-28 | Composite indexes missing on hot query paths                                  | Open                | P1  |
+| 017 | 2026-05-28 | BullMQ workers lack retry/concurrency/idempotency/DLQ                         | Open                | P1  |
+| 018 | 2026-05-28 | Mass-assignment in `sales`, `repairs`, `kb` controllers                       | Open                | P1  |
+| 019 | 2026-05-28 | Web tokens in localStorage (XSS escalation path)                              | Open                | P1  |
+| 020 | 2026-05-28 | Prod infra SPOFs + no uptime monitor + no secret-rotation runbook             | Open                | P1  |
+| 021 | 2026-05-28 | No certificate pinning on mobile API calls                                    | Open                | P2  |
+| 022 | 2026-06-08 | EAS iOS Distribution Cert can't be set up non-interactively (CLI bug)         | Workaround          | P1  |
+| 023 | 2026-06-08 | `GoogleService-Info.plist` gitignored → EAS Cloud build fails                 | Fixed               | P0  |
+| 024 | 2026-06-08 | RN 0.79.x bundled fmt 11.0.2 + Xcode 16.2+/26.x consteval error               | Workaround          | P0  |
+| 025 | 2026-06-08 | Apple requires Xcode 26+ as of 2026-04-28 (policy, not technical)             | Fixed               | P0  |
+| 026 | 2026-06-08 | Mobile app had zero Jest tests + pnpm node_modules pattern trap               | Fixed               | P1  |
+| 027 | 2026-06-08 | Customer storage prefix allowlist missed sell/sales/rental flows              | Fixed               | P0  |
+| 028 | 2026-06-08 | Customer mutations silently fail with no Alert on error                       | Fixed               | P1  |
+| 029 | 2026-06-08 | WhatsApp CRM button fire-and-forget mutation (Call awaits, WA didn't)         | Fixed               | P2  |
+| 030 | 2026-06-11 | Every OTA baked localhost:4000 as API URL — recurring network errors          | Fixed               | P0  |
+| 031 | 2026-06-12 | Sale cars leaked into Rent; photos never rendered; catalog double-entry       | Fixed               | P1  |
+| 032 | 2026-06-15 | Mobile sessions not persisted across app relaunches                           | Fixed               | P1  |
+| 033 | 2026-06-15 | `STAFF_TEST_PHONES` + Firebase fixed codes → no-password superadmin           | Fixed               | P0  |
+| 034 | 2026-06-17 | Refresh-token rotation race → spurious logout on relaunch/OTA update          | Fixed               | P1  |
+| 035 | 2026-06-18 | Support messages routed to one admin only — no team notify, no response       | Fixed               | P1  |
+| 036 | 2026-06-18 | Play block: expo-audio leaks FOREGROUND_SERVICE_MEDIA_PLAYBACK + RECORD_AUDIO | Fixed (needs build) | P1  |
 
 ---
 
@@ -1072,6 +1073,27 @@ In `send()`, detect a support thread = exactly one side is staff/admin. For thos
 
 **Pattern to follow next time**
 Support is a shared team inbox, not a private DM to one person — fan out participants + broadcast the notification. Watch for `findOrCreateConversation(a,b)` pair-matching silently spawning duplicate threads when a different staff replies.
+
+---
+
+### INC-036 — Play policy block: `FOREGROUND_SERVICE_MEDIA_PLAYBACK` + `RECORD_AUDIO` from expo-audio (2026-06-18)
+
+**Status:** Fixed (code-complete; requires a fresh Android build to ship — permission is baked into the binary, NOT OTA-able)
+**Severity:** P1 (Play "Foreground service permissions" declaration overdue → app updates rejected until resolved)
+**Touched:** `apps/mobile/plugins/with-strip-audio-foreground-service.js` (new), `apps/mobile/app.config.js`
+**Related:** distinct from the "16 KB page size" Play policy item (that one is the NDK r27/SDK 35 toolchain in `expo-build-properties`, already in app.config.js).
+
+**Symptom**
+Play Console "App content" → "Foreground service permissions": "your app bundle includes FOREGROUND_SERVICE_MEDIA_PLAYBACK", declaration overdue, blocking releases. Google demands either a justification video or removal.
+
+**Root cause**
+`expo-audio`'s OWN `android/src/main/AndroidManifest.xml` unconditionally declares `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS` + an `AudioControlsService` (mediaPlayback) and `AudioRecordingService` (microphone). These merge into the app manifest via Gradle regardless of config-plugin options. We only use expo-audio for tiny in-app UI sound effects (`lib/sounds.ts`: `createAudioPlayer`+`play()`) — no background playback, no media session, no recording — so we have NO legitimate use for the permission and don't qualify to declare it.
+
+**Fix**
+New config plugin `with-strip-audio-foreground-service.js` adds Gradle manifest-merger `tools:node="remove"` markers (and the `xmlns:tools` namespace) for the three permissions + both services, so the final merged AAB manifest drops them. Kept `MODIFY_AUDIO_SETTINGS` (harmless normal permission used by playback). Verified: only expo-audio contributed these in the whole `node_modules`; `expo-notifications` does NOT need `FOREGROUND_SERVICE`. Confirmed via `expo prebuild --platform android` that the generated manifest carries the remove markers; cleaned up the throwaway `android/` dir after.
+
+**Pattern to follow next time**
+A library's _own_ manifest contributes permissions you can't strip with a plugin option — the only lever is a `tools:node="remove"` marker in the app manifest (a `withAndroidManifest` config plugin). Permission changes are NATIVE: an OTA can't fix them, a new build is required. Before adding any media/mic Expo module, check its `android/src/main/AndroidManifest.xml` for foreground-service / dangerous permissions.
 
 ---
 
