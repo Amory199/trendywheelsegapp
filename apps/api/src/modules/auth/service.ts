@@ -41,6 +41,12 @@ function generateOtp(): string {
 const APPLE_REVIEW_BYPASS: Record<string, string> = {
   "+201234567000": "730284", // Apple App Review demo account
 };
+// Prod-active demo logins. CUSTOMER-ONLY by construction: verifyOtp() still
+// blocks staff/admin on the bypass path (only a real Firebase SMS can mint a
+// privileged token), so a guessable code here can never reach a staff account.
+const DEMO_CUSTOMER_BYPASS: Record<string, string> = {
+  "+201111139358": "222222", // Owner demo — customer
+};
 const DEV_ONLY_TRIAL_BYPASS: Record<string, string> = {
   "+201000000001": "111111", // Admin — Mostafa
   "+201000000010": "222222", // Sales — Amira
@@ -50,6 +56,7 @@ const DEV_ONLY_TRIAL_BYPASS: Record<string, string> = {
 };
 const TRIAL_OTP_BYPASS: Record<string, string> = {
   ...APPLE_REVIEW_BYPASS,
+  ...DEMO_CUSTOMER_BYPASS,
   ...(env.NODE_ENV !== "production" ? DEV_ONLY_TRIAL_BYPASS : {}),
 };
 
@@ -221,33 +228,23 @@ export async function verifyOtp(
  * already verified the phone (via OTP, Firebase ID token, etc.). Auto-creates
  * the user + signup lead on first call. Returns the same shape as verifyOtp().
  */
-function isStaffTestPhone(phone: string): boolean {
-  // Hard production backstop (INC-033): staff/admin accounts can NEVER obtain a
-  // token via phone auth in production, regardless of env. Even if a stale
-  // STAFF_TEST_PHONES entry (or a Firebase fixed-code test number) lingers, the
-  // no-password superadmin path via /api/auth/firebase-token is dead in prod.
-  // Privileged login must go through email + password. Dev/test still works.
-  if (env.NODE_ENV === "production") return false;
-  if (!env.STAFF_TEST_PHONES) return false;
-  return env.STAFF_TEST_PHONES.split(",")
-    .map((p) => p.trim())
-    .includes(phone);
-}
-
 export async function issueTokensForPhone(
   phone: string,
 ): Promise<{ token: string; refreshToken: string; user: object }> {
   let user = await prisma.user.findUnique({ where: { phone } });
   let isNewSignup = false;
-  // Customer-only by default (vuln 1 fix). Narrow exception: phones in the
-  // STAFF_TEST_PHONES allow-list AND already seeded with a staffRole can
-  // authenticate as staff for dev/test. Both conditions must hold.
-  if (user && user.accountType !== "customer") {
-    const isAllowedStaffTest = isStaffTestPhone(phone) && user.staffRole !== null;
-    if (!isAllowedStaffTest) {
-      throw AppError.forbidden("Staff and admins must sign in with email and password.");
-    }
-  }
+  // Staff/admin may sign in by phone OTP (decision 2026-06-17). This function is
+  // ONLY reached from POST /api/auth/firebase-token, which cryptographically
+  // verifies the Firebase ID token first — so `phone` is proven to have received
+  // a real SMS on the account owner's SIM, which is a sound auth factor for
+  // staff/admin too. We therefore no longer force them onto email+password here.
+  //
+  // ⚠️ SECURITY PRECONDITION (INC-033): this is safe ONLY while Firebase has NO
+  // fixed-code test numbers — those mint a valid ID token with NO real SMS, which
+  // would be a no-password path to a staff/admin JWT. The hardcoded code bypasses
+  // (TRIAL_OTP_BYPASS) stay customer-only: verifyOtp() still blocks staff/admin
+  // on that path, so only a genuine Firebase SMS can mint a privileged token.
+  // An unknown phone still auto-creates a customer below.
   if (user && user.status !== "active") {
     throw AppError.forbidden("Account is not active");
   }

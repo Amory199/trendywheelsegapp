@@ -74,6 +74,20 @@ OLD_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/
 [ "$OLD_CODE" = "401" ] || fail "old refresh token still valid after rotation (got $OLD_CODE) — replay risk"
 pass "refresh rotates: new pair works, old token revoked"
 
+# ─── 1c. Demo customer phone bypass (+201111139358 / 222222) ─
+# Prod-active demo login. MUST resolve to a customer — verifyOtp blocks staff
+# on the bypass path, so a guessable code can never mint a privileged token.
+note "1c. Demo customer phone OTP bypass"
+DEMO_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/verify-otp" -H "$JSON" \
+  -d '{"phone":"+201111139358","otp":"222222"}') \
+  || fail "demo bypass verify-otp failed (ENABLE_TRIAL_OTP_BYPASS off or bypass not wired)"
+DEMO_TOKEN=$(echo "$DEMO_RESP" | jq -r '.token // empty')
+DEMO_TYPE=$(echo "$DEMO_RESP" | jq -r '.user.accountType // empty')
+[ -n "$DEMO_TOKEN" ] || fail "demo bypass returned no token: $DEMO_RESP"
+[ "$DEMO_TYPE" = "customer" ] \
+  || fail "demo bypass account type=$DEMO_TYPE (expected customer — a fixed code must NEVER reach staff/admin)"
+pass "demo customer bypass logs in as customer"
+
 # ─── 2. CRM — createLeadSchema with the formerly-failing mobile sources ───
 note "2. CRM lead create (mobile-friendly source)"
 LEAD_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/crm/leads" \

@@ -20,6 +20,7 @@ const TRIAL_PHONES = new Set([
   "+201000000020", // Support — Layla
   "+201112223344", // Customer — Mohamed
   "+201234567000", // Apple App Review demo account
+  "+201111139358", // Owner demo — customer (fixed code 222222)
 ]);
 
 export function isTrialPhone(phone: string): boolean {

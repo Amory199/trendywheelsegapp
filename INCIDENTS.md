@@ -71,6 +71,7 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 | 031 | 2026-06-12 | Sale cars leaked into Rent; photos never rendered; catalog double-entry | Fixed      | P1  |
 | 032 | 2026-06-15 | Mobile sessions not persisted across app relaunches                     | Fixed      | P1  |
 | 033 | 2026-06-15 | `STAFF_TEST_PHONES` + Firebase fixed codes → no-password superadmin     | Fixed      | P0  |
+| 034 | 2026-06-17 | Refresh-token rotation race → spurious logout on relaunch/OTA update    | Fixed      | P1  |
 
 ---
 
@@ -1025,6 +1026,30 @@ Owner actions: (1) empty `STAFF_TEST_PHONES` in prod `.env`, then `pm2 restart t
 
 **Pattern to follow next time**
 A static-code / test-phone path must NEVER resolve to a staff or admin account in production. Gate test-only allow-lists behind `NODE_ENV !== "production"` in code, not just env discipline — env files drift, code gates don't. Privileged login must require email + password + a real second factor.
+
+**Update 2026-06-17 — staff phone login deliberately re-enabled (owner decision).**
+Staff/admin had NO way to sign into the mobile app (phone blocked here, no email/password screen), so sales agents couldn't reach the CRM. Per owner decision, `issueTokensForPhone` now allows staff/admin — but ONLY via this function, which is reached solely from `POST /api/auth/firebase-token` after a cryptographic Firebase ID-token verify (= a real SMS to the owner's SIM). The dead `isStaffTestPhone` backstop was removed and `STAFF_TEST_PHONES` cleared in prod `.env`. **The INC-033 hole stays closed iff Firebase has NO fixed-code test numbers** (those mint a valid ID token with no SMS). `verifyOtp` (the DB/bypass path) STILL blocks staff, so the hardcoded `TRIAL_OTP_BYPASS` codes remain customer-only. **Owner action still required:** delete the Firebase Console test phone numbers + rotate `Admin@123!`. Touched: `auth/service.ts`, `config/env.ts`, `.env`.
+
+---
+
+### INC-034 — Refresh-token rotation race → spurious logout on relaunch / OTA update (2026-06-17)
+
+**Status:** Fixed
+**Severity:** P1 (users + testers reported being logged out "every time", especially after an update)
+**Touched:** `packages/api-client/src/index.ts` (`request` 401 handler, new `refreshTokensOnce` single-flight, `doRefreshTokens` network-error class)
+**Related:** INC-032 (made refresh tokens single-use/rotating — which introduced this race), INC-013 (onAuthError clears tokens)
+
+**Symptom**
+"Even though we fixed sessions, it still signs me out — is it because of each update?" Logouts clustered on app relaunch and right after an OTA update.
+
+**Root cause**
+INC-032 made refresh tokens single-use and rotating (revoke old → mint new on every refresh). But the api-client 401 handler had no single-flight guard: each request that hit a 401 independently read the refresh token and called `/auth/refresh-token`. On boot / after an OTA reload, several screens mount at once and all hit the >24h-expired access token simultaneously → the first refresh rotates (revokes) the token, the 2nd+ concurrent callers present the now-revoked token → rejected → `onAuthError` → forced logout. Also: a network failure during the refresh fetch was treated as an auth rejection (logout), violating INC-032's "never log out on a network blip".
+
+**Fix**
+`refreshTokensOnce()` funnels every concurrent refresh through ONE in-flight promise (cleared in `finally`), so a burst rotates the token exactly once and all callers retry with the new access token. `doRefreshTokens` now classifies an unreachable endpoint as a `TIMEOUT`/network error (statusCode 0); the 401 handler only calls `onAuthError` for a genuine server rejection, never a network error. Shipped via OTA (mobile) + next web deploy (shared client).
+
+**Pattern to follow next time**
+Single-use/rotating refresh tokens REQUIRE a single-flight guard on the client — without it, concurrent 401s self-inflict a logout. And keep INC-032's rule: only a definitive server auth rejection clears tokens; network/timeout never does.
 
 ---
 

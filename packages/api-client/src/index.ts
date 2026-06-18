@@ -44,6 +44,8 @@ interface PaginationParams {
 class ApiClient {
   public readonly baseUrl: string;
   private config: ClientConfig;
+  // Single-flight guard for token refresh — see refreshTokensOnce().
+  private refreshInflight: Promise<AuthTokens> | null = null;
 
   constructor(config: ClientConfig) {
     this.config = config;
@@ -57,13 +59,45 @@ class ApiClient {
   // Raw fetch — bypasses `request()` so a 401 retry path can't recursively
   // re-enter the refresh handler. Used internally by the 401-retry branch.
   private async doRefreshTokens(refreshToken: string): Promise<AuthTokens> {
-    const res = await fetch(`${this.baseUrl}/api/auth/refresh-token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${this.baseUrl}/api/auth/refresh-token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+    } catch {
+      // Couldn't reach the refresh endpoint at all (offline / DNS / timeout).
+      // This is NOT an auth rejection — surface it as a network error so the
+      // caller keeps the session instead of logging the user out (INC-032).
+      throw new ApiClientError("Network error during refresh", 0, "TIMEOUT");
+    }
     if (!res.ok) throw new ApiClientError("Refresh failed", res.status, "REFRESH_FAILED");
     return res.json() as Promise<AuthTokens>;
+  }
+
+  // Single-flight token refresh. Concurrent 401s — several screens mounting on
+  // boot, or right after an OTA update, all hitting a >24h-expired access token
+  // at once — must NOT each call /auth/refresh-token. Refresh tokens are
+  // single-use and rotate on every use (INC-032), so the 2nd+ concurrent caller
+  // would present an already-revoked token, get rejected, and trigger a spurious
+  // logout. Funnel every concurrent refresh through ONE in-flight promise so a
+  // burst rotates the token exactly once and everyone retries with the new one.
+  private async refreshTokensOnce(): Promise<AuthTokens> {
+    if (!this.refreshInflight) {
+      this.refreshInflight = (async (): Promise<AuthTokens> => {
+        const refreshToken = await this.config.getRefreshToken();
+        if (!refreshToken) {
+          throw new ApiClientError("Session expired", 401, "SESSION_EXPIRED");
+        }
+        const tokens = await this.doRefreshTokens(refreshToken);
+        await this.config.onTokenRefresh(tokens);
+        return tokens;
+      })().finally(() => {
+        this.refreshInflight = null;
+      });
+    }
+    return this.refreshInflight;
   }
 
   async request<T>(
@@ -121,25 +155,21 @@ class ApiClient {
     let response = await fetchWithTimeout(headers["Authorization"]);
 
     if (response.status === 401) {
-      const refreshToken = await this.config.getRefreshToken();
-      if (refreshToken) {
-        try {
-          const newTokens = await this.doRefreshTokens(refreshToken);
-          await this.config.onTokenRefresh(newTokens);
-          response = await fetchWithTimeout(`Bearer ${newTokens.token}`);
-        } catch (err) {
-          // Refresh rejected → the session is dead (revoked or expired). Signal
-          // the app to log out; don't retry. A network blip surfaces as a
-          // TIMEOUT ApiClientError, not a 401, so this only fires on real
-          // refresh failures.
-          await this.config.onAuthError?.();
-          throw err instanceof ApiClientError
-            ? err
-            : new ApiClientError("Session expired", 401, "SESSION_EXPIRED");
-        }
-      } else {
-        // 401 with no refresh token to fall back on — session is over.
-        await this.config.onAuthError?.();
+      try {
+        // Single-flight: concurrent 401s share one refresh so the rotating
+        // refresh token is consumed exactly once (no revoked-token logout race).
+        const newTokens = await this.refreshTokensOnce();
+        response = await fetchWithTimeout(`Bearer ${newTokens.token}`);
+      } catch (err) {
+        // Only a genuine server rejection (revoked/expired refresh token, or no
+        // refresh token at all) kills the session. A network blip during refresh
+        // surfaces as a TIMEOUT error — never log the user out for that (INC-032).
+        const isNetwork =
+          err instanceof ApiClientError && (err.code === "TIMEOUT" || err.statusCode === 0);
+        if (!isNetwork) await this.config.onAuthError?.();
+        throw err instanceof ApiClientError
+          ? err
+          : new ApiClientError("Session expired", 401, "SESSION_EXPIRED");
       }
     }
 

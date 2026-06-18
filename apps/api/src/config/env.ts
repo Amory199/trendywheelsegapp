@@ -39,10 +39,10 @@ export const env = cleanEnv(process.env, {
   // Firebase project ID — required for verifying Firebase Phone Auth ID tokens.
   FIREBASE_PROJECT_ID: str({ default: "" }),
 
-  // Comma-separated allow-list of Firebase test phone numbers that are
-  // permitted to authenticate as staff/admin (bypasses the customer-only
-  // restriction in issueTokensForPhone). The phone must also exist as a
-  // seeded user with a staffRole. Dev/test only — clear before prod launch.
+  // LEGACY — no longer consulted by auth. Staff/admin now sign in via a real
+  // Firebase SMS OTP (see issueTokensForPhone, decision 2026-06-17), so this
+  // allow-list was removed from the auth path. Kept only so a lingering prod
+  // value doesn't fail env parsing; safe to leave empty.
   STAFF_TEST_PHONES: str({ default: "" }),
 
   // SendGrid (optional)
