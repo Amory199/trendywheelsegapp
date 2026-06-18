@@ -7,9 +7,10 @@ import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import { PageHeader } from "@trendywheels/ui-brand/page-header";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { JSX } from "react";
 
+import { useDebounce } from "../../hooks/useDebounce";
 import { api } from "../../lib/api";
 import { useList } from "../../lib/fetcher";
 import { TourHelpButton } from "../../lib/tour-help-button";
@@ -44,18 +45,23 @@ export default function VehiclesPage(): JSX.Element {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<VehicleStatus>("inactive");
   const [search, setSearch] = useState("");
+  const dsearch = useDebounce(search);
   const [listingFilter, setListingFilter] = useState<"all" | ListingType>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | VehicleCategory>("all");
 
-  const filtered = data.filter((v) => {
-    if (listingFilter !== "all" && v.listingType !== listingFilter) return false;
-    if (categoryFilter !== "all" && v.category !== categoryFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return v.name.toLowerCase().includes(q) || v.location.toLowerCase().includes(q);
-    }
-    return true;
-  });
+  const filtered = useMemo(
+    () =>
+      data.filter((v) => {
+        if (listingFilter !== "all" && v.listingType !== listingFilter) return false;
+        if (categoryFilter !== "all" && v.category !== categoryFilter) return false;
+        if (dsearch) {
+          const q = dsearch.toLowerCase();
+          return v.name.toLowerCase().includes(q) || v.location.toLowerCase().includes(q);
+        }
+        return true;
+      }),
+    [data, dsearch, listingFilter, categoryFilter],
+  );
 
   const toggleAll = (): void => {
     if (selected.size === filtered.length) setSelected(new Set());

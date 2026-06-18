@@ -3,9 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { JSX } from "react";
 
+import { useDebounce } from "../../hooks/useDebounce";
 import { authedFetch } from "../../lib/fetcher";
 
 type VehicleStatus = "available" | "rented" | "maintenance" | "inactive";
@@ -59,6 +60,7 @@ export default function AdminFleetPage(): JSX.Element {
   const [statusFilter, setStatusFilter] = useState<VehicleStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const dsearch = useDebounce(search);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const { data, isLoading } = useQuery({
@@ -72,13 +74,17 @@ export default function AdminFleetPage(): JSX.Element {
   });
 
   const vehicles = data?.data ?? [];
-  const filtered = search
-    ? vehicles.filter(
-        (v) =>
-          v.name.toLowerCase().includes(search.toLowerCase()) ||
-          v.location.toLowerCase().includes(search.toLowerCase()),
-      )
-    : vehicles;
+  const filtered = useMemo(
+    () =>
+      dsearch
+        ? vehicles.filter(
+            (v) =>
+              v.name.toLowerCase().includes(dsearch.toLowerCase()) ||
+              v.location.toLowerCase().includes(dsearch.toLowerCase()),
+          )
+        : vehicles,
+    [vehicles, dsearch],
+  );
 
   const counts = STATUSES.reduce<Record<string, number>>(
     (acc, s) => ({ ...acc, [s]: vehicles.filter((v) => v.status === s).length }),

@@ -14,7 +14,7 @@ export function TourHelpButton({ pageKey }: { pageKey: string }): React.JSX.Elem
 
   const onClick = useCallback(() => {
     if (!spec) return;
-    runTour(spec);
+    void runTour(spec);
   }, [spec]);
 
   if (!spec) return null;

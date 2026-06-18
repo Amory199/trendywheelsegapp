@@ -1,11 +1,12 @@
 "use client";
 
-import { driver, type Config, type DriveStep } from "driver.js";
+import type { Config, DriveStep } from "driver.js";
+// Stylesheet is tiny and has no JS cost (Next extracts it to a CSS file); only
+// the driver.js *JS* is heavy, so just that is lazy-loaded in createDriver().
+import "driver.js/dist/driver.css";
 import { useEffect, useRef } from "react";
 
 import { useTour } from "../hooks/use-tour";
-
-import "driver.js/dist/driver.css";
 
 // Tour spec — what each page hands to the runner. Steps target real DOM via
 // CSS selector (`[data-tour="..."]`) so missing anchors silently skip rather
@@ -26,14 +27,27 @@ export function TourRunner({ pageKey, spec }: { pageKey: string; spec: TourSpec 
   useEffect(() => {
     if (!shouldAutoShow || launched.current) return;
     launched.current = true;
-    const d = createDriver(spec, () => {
+    let cancelled = false;
+    let driverInstance: DriverInstance | null = null;
+    let timer: number | null = null;
+
+    void createDriver(spec, () => {
       void markSeen();
+    }).then((d) => {
+      if (cancelled) {
+        // Effect was torn down before driver.js finished loading — drop it.
+        d.destroy();
+        return;
+      }
+      driverInstance = d;
+      // Slight delay so anchored elements are mounted + layouted.
+      timer = window.setTimeout(() => d.drive(), 300);
     });
-    // Slight delay so anchored elements are mounted + layouted.
-    const t = window.setTimeout(() => d.drive(), 300);
+
     return () => {
-      window.clearTimeout(t);
-      d.destroy();
+      cancelled = true;
+      if (timer !== null) window.clearTimeout(timer);
+      driverInstance?.destroy();
     };
   }, [shouldAutoShow, spec, markSeen]);
 
@@ -41,14 +55,23 @@ export function TourRunner({ pageKey, spec }: { pageKey: string; spec: TourSpec 
 }
 
 // Imperative tour runner — used by the "?" button to relaunch a tour on demand
-// regardless of seen state. Returns a teardown function.
-export function runTour(spec: TourSpec, onDone?: () => void): () => void {
-  const d = createDriver(spec, onDone);
+// regardless of seen state. driver.js is loaded lazily, so this is async; it
+// resolves to a teardown function once the tour is running.
+export async function runTour(spec: TourSpec, onDone?: () => void): Promise<() => void> {
+  const d = await createDriver(spec, onDone);
   d.drive();
   return () => d.destroy();
 }
 
-function createDriver(spec: TourSpec, onDone?: () => void) {
+// driver.js exposes its instance type via the return of `driver()`. We infer it
+// from the dynamically-imported module to avoid a static runtime import.
+type DriverInstance = Awaited<ReturnType<typeof createDriver>>;
+
+async function createDriver(spec: TourSpec, onDone?: () => void) {
+  // Lazily pull in the driver.js JS only when a tour actually runs (the heavy
+  // part). The stylesheet is imported statically at module top — it has no JS
+  // cost, so keeping the JS out of the critical bundle is the win.
+  const { driver } = await import("driver.js");
   return driver({
     showProgress: true,
     showButtons: ["next", "previous", "close"],

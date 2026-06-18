@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { JSX } from "react";
 
+import { useDebounce } from "../../hooks/useDebounce";
 import { authedFetch } from "../../lib/fetcher";
 import { TourHelpButton } from "../../lib/tour-help-button";
 
@@ -37,12 +38,13 @@ const TIER_COLORS: Record<string, string> = {
 export default function CustomersPage(): JSX.Element {
   const router = useRouter();
   const [q, setQ] = useState("");
+  const dq = useDebounce(q);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-customers", q],
+    queryKey: ["admin-customers", dq],
     queryFn: () =>
       authedFetch<{ data: CustomerRow[]; total: number }>(
-        `/api/admin/customers?limit=50${q ? `&q=${encodeURIComponent(q)}` : ""}`,
+        `/api/admin/customers?limit=50${dq ? `&q=${encodeURIComponent(dq)}` : ""}`,
       ),
   });
 
@@ -66,7 +68,7 @@ export default function CustomersPage(): JSX.Element {
         }
       />
       <div className="p-8 space-y-6">
-        {!isLoading && rows.length === 0 && !q ? (
+        {!isLoading && rows.length === 0 && !dq ? (
           <EmptyState
             icon="👥"
             title="No customers yet"
@@ -105,7 +107,7 @@ export default function CustomersPage(): JSX.Element {
                 ) : rows.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
-                      No customers match &quot;{q}&quot;.
+                      No customers match &quot;{dq}&quot;.
                     </td>
                   </tr>
                 ) : (

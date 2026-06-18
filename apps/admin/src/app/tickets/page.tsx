@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { JSX } from "react";
 
+import { useDebounce } from "../../hooks/useDebounce";
 import { authedFetch } from "../../lib/fetcher";
 import { TourHelpButton } from "../../lib/tour-help-button";
 import { TWSelect } from "../../lib/tw-select";
@@ -69,6 +70,7 @@ export default function AdminTicketsPage(): JSX.Element {
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "">("");
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | "">("");
   const [search, setSearch] = useState("");
+  const dsearch = useDebounce(search);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-tickets", statusFilter, priorityFilter],
@@ -81,11 +83,11 @@ export default function AdminTicketsPage(): JSX.Element {
   });
 
   const tickets = data?.data ?? [];
-  const filtered = search
+  const filtered = dsearch
     ? tickets.filter(
         (t) =>
-          t.subject.toLowerCase().includes(search.toLowerCase()) ||
-          t.user?.name.toLowerCase().includes(search.toLowerCase()),
+          t.subject.toLowerCase().includes(dsearch.toLowerCase()) ||
+          t.user?.name.toLowerCase().includes(dsearch.toLowerCase()),
       )
     : tickets;
 
@@ -184,7 +186,7 @@ export default function AdminTicketsPage(): JSX.Element {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-0 py-0">
-                    {tickets.length === 0 && !statusFilter && !priorityFilter && !search ? (
+                    {tickets.length === 0 && !statusFilter && !priorityFilter && !dsearch ? (
                       <div className="p-6">
                         <EmptyState
                           flush
