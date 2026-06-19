@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SalesListing } from "@trendywheels/types";
-import { borderRadius, colors, spacing } from "@trendywheels/ui-tokens";
+import { borderRadius, colors, type Palette, spacing } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,10 +19,12 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { GuestGate } from "../../components/GuestGate";
+import { StatStrip } from "../../components/StatStrip";
 import { TWSkeletonCard } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
+import { useTheme } from "../../lib/use-theme";
 
 const STATUS_COLOR: Record<string, string> = {
   active: colors.success,
@@ -43,6 +45,8 @@ export default function MyListingsScreen(): JSX.Element {
   const router = useRouter();
   const t = useT();
   const { user } = useAuth();
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const qc = useQueryClient();
   const [menuId, setMenuId] = useState<string | null>(null);
 
@@ -54,6 +58,15 @@ export default function MyListingsScreen(): JSX.Element {
   });
 
   const listings = data ?? [];
+  const stats = useMemo(() => {
+    const by = (s: string): number => listings.filter((l) => l.status === s).length;
+    return [
+      { label: t("sell.track.total"), value: listings.length },
+      { label: t("sell.status.active"), value: by("active"), tone: colors.success },
+      { label: t("sell.status.sold"), value: by("sold"), tone: colors.error },
+      { label: t("sell.status.pending"), value: by("pending"), tone: colors.warning },
+    ];
+  }, [listings, t]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteSalesListing(id),
@@ -90,7 +103,7 @@ export default function MyListingsScreen(): JSX.Element {
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color={colors.text.light} />
+          <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Pressable>
         <Text style={styles.title}>{t("sell.myListings.title")}</Text>
         <Pressable style={styles.addBtn} onPress={() => router.push("/sell/create")}>
@@ -106,7 +119,7 @@ export default function MyListingsScreen(): JSX.Element {
         </View>
       ) : listings.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons name="pricetag-outline" size={64} color={colors.text.secondary} />
+          <Ionicons name="pricetag-outline" size={64} color={palette.muted} />
           <Text style={styles.emptyTitle}>{t("sell.myListings.emptyTitle")}</Text>
           <Text style={styles.emptySubtitle}>{t("sell.myListings.emptySubtitle")}</Text>
           <Pressable style={styles.emptyBtn} onPress={() => router.push("/sell/create")}>
@@ -117,6 +130,7 @@ export default function MyListingsScreen(): JSX.Element {
         <FlatList<SalesListing>
           data={listings}
           keyExtractor={(l) => l.id}
+          ListHeaderComponent={<StatStrip stats={stats} />}
           removeClippedSubviews
           windowSize={7}
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 40 }}
@@ -152,14 +166,14 @@ export default function MyListingsScreen(): JSX.Element {
                       style={[
                         styles.statusBadge,
                         {
-                          backgroundColor: `${STATUS_COLOR[item.status] ?? colors.text.secondary}22`,
+                          backgroundColor: `${STATUS_COLOR[item.status] ?? palette.muted}22`,
                         },
                       ]}
                     >
                       <Text
                         style={[
                           styles.statusText,
-                          { color: STATUS_COLOR[item.status] ?? colors.text.secondary },
+                          { color: STATUS_COLOR[item.status] ?? palette.muted },
                         ]}
                       >
                         {STATUS_KEY[item.status]
@@ -178,9 +192,9 @@ export default function MyListingsScreen(): JSX.Element {
                       {item.year} · {Number(item.mileage).toLocaleString()} km
                     </Text>
                     <View style={styles.statsRow}>
-                      <Ionicons name="eye-outline" size={12} color={colors.text.secondary} />
+                      <Ionicons name="eye-outline" size={12} color={palette.muted} />
                       <Text style={styles.metaText}>{item.viewsCount ?? 0}</Text>
-                      <Ionicons name="chatbubble-outline" size={12} color={colors.text.secondary} />
+                      <Ionicons name="chatbubble-outline" size={12} color={palette.muted} />
                       <Text style={styles.metaText}>{item.inquiriesCount ?? 0}</Text>
                     </View>
                   </View>
@@ -194,7 +208,7 @@ export default function MyListingsScreen(): JSX.Element {
                     setMenuId(item.id);
                   }}
                 >
-                  <Ionicons name="ellipsis-vertical" size={20} color={colors.text.secondary} />
+                  <Ionicons name="ellipsis-vertical" size={20} color={palette.muted} />
                 </Pressable>
               </Pressable>
             </Animated.View>
@@ -221,7 +235,7 @@ export default function MyListingsScreen(): JSX.Element {
                 if (menuId) router.push(`/sell/${menuId}`);
               }}
             >
-              <Ionicons name="eye-outline" size={20} color={colors.text.light} />
+              <Ionicons name="eye-outline" size={20} color={palette.text} />
               <Text style={styles.sheetOptionText}>{t("sell.myListings.viewListing")}</Text>
             </Pressable>
 
@@ -263,122 +277,124 @@ export default function MyListingsScreen(): JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.dark.bg },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 56,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  title: { color: colors.text.light, fontSize: 18, fontWeight: "700" },
-  addBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.accent.DEFAULT,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+function makeStyles(palette: Palette) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: palette.bg },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingTop: 56,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.border,
+    },
+    title: { color: palette.text, fontSize: 18, fontWeight: "700" },
+    addBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.accent.DEFAULT,
+      justifyContent: "center",
+      alignItems: "center",
+    },
 
-  empty: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: spacing.md,
-    padding: spacing.xl,
-  },
-  emptyTitle: { color: colors.text.light, fontSize: 18, fontWeight: "700" },
-  emptySubtitle: { color: colors.text.secondary, fontSize: 14, textAlign: "center" },
-  emptyBtn: {
-    backgroundColor: colors.accent.DEFAULT,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  emptyBtnText: { color: "#000", fontWeight: "700" },
+    empty: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      gap: spacing.md,
+      padding: spacing.xl,
+    },
+    emptyTitle: { color: palette.text, fontSize: 18, fontWeight: "700" },
+    emptySubtitle: { color: palette.muted, fontSize: 14, textAlign: "center" },
+    emptyBtn: {
+      backgroundColor: colors.accent.DEFAULT,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.sm,
+      marginTop: spacing.sm,
+    },
+    emptyBtnText: { color: "#000", fontWeight: "700" },
 
-  card: {
-    flexDirection: "row",
-    backgroundColor: colors.dark.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.dark.border,
-    overflow: "hidden",
-    alignItems: "center",
-  },
-  cardImage: { width: 96, height: 96 },
-  cardBody: { flex: 1, padding: spacing.md, gap: 4 },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-  },
-  cardTitle: { flex: 1, color: colors.text.light, fontSize: 13, fontWeight: "600", lineHeight: 18 },
-  statusBadge: {
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    alignSelf: "flex-start",
-  },
-  statusText: { fontSize: 9, fontWeight: "700" },
-  cardPrice: { color: colors.accent.DEFAULT, fontSize: 15, fontWeight: "700" },
-  cardMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  statsRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  metaText: { color: colors.text.secondary, fontSize: 11 },
-  moreBtn: { padding: spacing.md },
+    card: {
+      flexDirection: "row",
+      backgroundColor: palette.card,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.border,
+      overflow: "hidden",
+      alignItems: "center",
+    },
+    cardImage: { width: 96, height: 96 },
+    cardBody: { flex: 1, padding: spacing.md, gap: 4 },
+    cardHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: spacing.sm,
+    },
+    cardTitle: { flex: 1, color: palette.text, fontSize: 13, fontWeight: "600", lineHeight: 18 },
+    statusBadge: {
+      borderRadius: 6,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      alignSelf: "flex-start",
+    },
+    statusText: { fontSize: 9, fontWeight: "700" },
+    cardPrice: { color: colors.accent.DEFAULT, fontSize: 15, fontWeight: "700" },
+    cardMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    statsRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+    metaText: { color: palette.muted, fontSize: 11 },
+    moreBtn: { padding: spacing.md },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "flex-end",
-  },
-  actionSheet: {
-    backgroundColor: colors.dark.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 34,
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.dark.border,
-    alignSelf: "center",
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  sheetTitle: {
-    color: colors.text.secondary,
-    fontSize: 12,
-    fontWeight: "600",
-    textAlign: "center",
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  sheetOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  sheetOptionDanger: { borderBottomWidth: 0 },
-  sheetOptionText: { color: colors.text.light, fontSize: 15, fontWeight: "600" },
-  sheetCancel: {
-    margin: spacing.md,
-    backgroundColor: colors.dark.bg,
-    borderRadius: 12,
-    padding: spacing.md,
-    alignItems: "center",
-  },
-  sheetCancelText: { color: colors.text.secondary, fontWeight: "700" },
-});
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.6)",
+      justifyContent: "flex-end",
+    },
+    actionSheet: {
+      backgroundColor: palette.card,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingBottom: 34,
+    },
+    sheetHandle: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: palette.border,
+      alignSelf: "center",
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    sheetTitle: {
+      color: palette.muted,
+      fontSize: 12,
+      fontWeight: "600",
+      textAlign: "center",
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.border,
+    },
+    sheetOption: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      padding: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.border,
+    },
+    sheetOptionDanger: { borderBottomWidth: 0 },
+    sheetOptionText: { color: palette.text, fontSize: 15, fontWeight: "600" },
+    sheetCancel: {
+      margin: spacing.md,
+      backgroundColor: palette.bg,
+      borderRadius: 12,
+      padding: spacing.md,
+      alignItems: "center",
+    },
+    sheetCancelText: { color: palette.muted, fontWeight: "700" },
+  });
+}

@@ -11,6 +11,7 @@ import { ListingCard } from "../../components/ListingCard";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
+import { useTheme } from "../../lib/use-theme";
 import { useDisplay } from "../../lib/typography";
 
 type Category = "cart_new" | "cart_used" | "parts" | "accessory";
@@ -44,6 +45,7 @@ export default function BuyScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Category | "all">("all");
   const scrollHandler = useTabBarScrollHandler();
+  const { palette } = useTheme();
 
   const q = useQuery({
     queryKey: ["mobile-products", tab],
@@ -56,12 +58,12 @@ export default function BuyScreen(): React.JSX.Element {
   const items = q.data?.data ?? [];
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F7F7FB" }}>
+    <View style={{ flex: 1, backgroundColor: palette.bg }}>
       <View style={{ paddingTop: insets.top + 12, paddingHorizontal: PADDING, paddingBottom: 12 }}>
-        <Text style={[{ fontSize: 38, color: "#02011F" }, display(0.4)]}>
+        <Text style={[{ fontSize: 38, color: palette.text }, display(0.4)]}>
           {t("buy.catalogTitle")}
         </Text>
-        <Text style={{ fontSize: 13, color: "rgba(2,1,31,0.55)", marginTop: 2 }}>
+        <Text style={{ fontSize: 13, color: palette.muted, marginTop: 2 }}>
           {t("buy.catalogSubtitle")}
         </Text>
       </View>
@@ -79,13 +81,17 @@ export default function BuyScreen(): React.JSX.Element {
                   paddingVertical: 9,
                   marginRight: 8,
                   borderRadius: 999,
-                  backgroundColor: active ? "#02011F" : "#fff",
+                  backgroundColor: active ? palette.text : palette.card,
                   borderWidth: active ? 0 : 1,
-                  borderColor: "rgba(2,1,31,0.12)",
+                  borderColor: palette.border,
                 }}
               >
                 <Text
-                  style={{ color: active ? "#fff" : "#02011F", fontWeight: "700", fontSize: 13 }}
+                  style={{
+                    color: active ? palette.bg : palette.text,
+                    fontWeight: "700",
+                    fontSize: 13,
+                  }}
                 >
                   {t(tabItem.labelKey)}
                 </Text>
@@ -107,9 +113,9 @@ export default function BuyScreen(): React.JSX.Element {
         }}
       >
         {q.isLoading ? (
-          <Text style={{ padding: 40, color: "rgba(2,1,31,0.5)" }}>{t("common.loading")}</Text>
+          <Text style={{ padding: 40, color: palette.muted }}>{t("common.loading")}</Text>
         ) : items.length === 0 ? (
-          <Text style={{ padding: 40, color: "rgba(2,1,31,0.5)" }}>{t("buy.emptyCatalog")}</Text>
+          <Text style={{ padding: 40, color: palette.muted }}>{t("buy.emptyCatalog")}</Text>
         ) : (
           items.map((p, i) => (
             <Animated.View

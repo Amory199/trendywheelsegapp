@@ -23,6 +23,8 @@ const profile: Stringify<typeof enNs> = {
     repairsEmpty: "لا توجد طلبات إصلاح",
     rentalsTitle: "إعلانات التأجير",
     rentalsEmpty: "أدرج مركبتك للتأجير المُدار",
+    tradeInsTitle: "تبديلاتي",
+    tradeInsEmpty: "بدّل مركبتك واحصل على واحدة جديدة",
     messagesTitle: "الرسائل",
     messagesEmpty: "لا توجد رسائل جديدة",
     total: "إجمالاً",

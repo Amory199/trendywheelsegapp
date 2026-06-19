@@ -145,10 +145,28 @@ export default function SellCreateScreen(): JSX.Element {
     },
   });
 
+  // Mirror the server schema (createSalesListingSchema) so the form can't
+  // reach Publish in a state the API will 400 on. title.min(5), description
+  // .min(10) were the silent rejections that surfaced as a vague "validation
+  // error" even though the user assumed it was the (actually-optional) photos.
+  const TITLE_MIN = 5;
+  const DESC_MIN = 10;
+
   const canProceed = (): boolean => {
     if (step === 0)
-      return !!(form.title.trim() && form.make.trim() && form.model.trim() && form.year);
-    if (step === 1) return !!(form.price && form.mileage && form.color.trim());
+      return !!(
+        form.title.trim().length >= TITLE_MIN &&
+        form.make.trim() &&
+        form.model.trim() &&
+        form.year
+      );
+    if (step === 1)
+      return !!(
+        form.price &&
+        form.mileage &&
+        form.color.trim() &&
+        form.description.trim().length >= DESC_MIN
+      );
     if (step === 2) return true; // images optional
     return true;
   };
@@ -228,6 +246,9 @@ export default function SellCreateScreen(): JSX.Element {
               value={form.title}
               onChangeText={(v) => set("title", v)}
             />
+            {form.title.length > 0 && form.title.trim().length < TITLE_MIN ? (
+              <Text style={styles.inputHint}>{t("sell.create.titleHint")}</Text>
+            ) : null}
             <Text style={styles.fieldLabel}>{t("sell.create.categoryLabel")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {VEHICLE_CATEGORIES.map((c) => {
@@ -376,7 +397,14 @@ export default function SellCreateScreen(): JSX.Element {
                 numberOfLines={5}
                 maxLength={1000}
               />
-              <Text style={styles.charCount}>{form.description.length}/1000</Text>
+              <View style={styles.hintRow}>
+                {form.description.trim().length < DESC_MIN ? (
+                  <Text style={styles.inputHint}>{t("sell.create.descriptionHint")}</Text>
+                ) : (
+                  <View />
+                )}
+                <Text style={styles.charCount}>{form.description.length}/1000</Text>
+              </View>
             </View>
           </Animated.View>
         )}
@@ -613,6 +641,13 @@ function makeStyles(palette: Palette) {
     },
     textarea: { height: 100, textAlignVertical: "top", paddingTop: spacing.sm },
     charCount: { color: palette.muted, fontSize: 11, textAlign: "right", marginTop: 4 },
+    hintRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 4,
+    },
+    inputHint: { color: colors.warning, fontSize: 11, fontWeight: "600" },
 
     segment: {
       flexDirection: "row",

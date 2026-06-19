@@ -24,10 +24,9 @@ import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useLocale, useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
+import { useTheme } from "../../lib/use-theme";
 import { useDisplay, useTracking } from "../../lib/typography";
 import { vehicleImageUrl } from "../../lib/vehicle";
-
-const MUTED = "rgba(2,1,31,0.55)";
 
 type ProductCategory = "cart_new" | "cart_used" | "parts" | "accessory";
 interface Product {
@@ -48,6 +47,7 @@ export default function HomeScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const user = useAuth((s) => s.user);
   const scrollHandler = useTabBarScrollHandler();
+  const { palette } = useTheme();
 
   const vehiclesQ = useQuery({
     queryKey: ["home-vehicles"],
@@ -150,7 +150,7 @@ export default function HomeScreen(): React.JSX.Element {
   const hasError = vehiclesQ.isError || productsQ.isError;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.bg }]}>
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={scrollHandler}
@@ -227,14 +227,17 @@ export default function HomeScreen(): React.JSX.Element {
 
         {hasError ? (
           <Pressable
-            style={styles.errorBox}
+            style={[
+              styles.errorBox,
+              { backgroundColor: palette.card, borderColor: palette.border },
+            ]}
             onPress={() => {
               void vehiclesQ.refetch();
               void productsQ.refetch();
             }}
           >
-            <Ionicons name="cloud-offline-outline" size={20} color={MUTED} />
-            <Text style={styles.errorText}>
+            <Ionicons name="cloud-offline-outline" size={20} color={palette.muted} />
+            <Text style={[styles.errorText, { color: palette.muted }]}>
               {t("common.error")} · {t("common.tryAgain")}
             </Text>
           </Pressable>
@@ -298,7 +301,7 @@ export default function HomeScreen(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F7F7FB" },
+  container: { flex: 1 },
   header: {
     paddingHorizontal: 16,
     paddingBottom: 34,
@@ -356,9 +359,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingVertical: 16,
     borderRadius: 14,
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "rgba(2,1,31,0.06)",
   },
-  errorText: { color: MUTED, fontSize: 13, fontWeight: "600" },
+  errorText: { fontSize: 13, fontWeight: "600" },
 });

@@ -3,9 +3,8 @@ import { isRTL } from "@trendywheels/i18n";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useLocale } from "../lib/locale";
+import { useTheme } from "../lib/use-theme";
 import { useDisplay } from "../lib/typography";
-
-const INK = "#02011F";
 
 interface SectionHeaderProps {
   /** Already-translated section title (caller passes t("home.<key>")). */
@@ -26,14 +25,19 @@ export function SectionHeader({ title, seeAllLabel, onSeeAll }: SectionHeaderPro
   const locale = useLocale((s) => s.locale);
   const rtl = isRTL(locale);
   const display = useDisplay();
+  const { palette } = useTheme();
 
   return (
     <View style={styles.header}>
-      <Text style={[styles.title, display(0.3)]}>{title}</Text>
+      <Text style={[styles.title, display(0.3), { color: palette.text }]}>{title}</Text>
       {onSeeAll && seeAllLabel ? (
         <Pressable onPress={onSeeAll} hitSlop={10} style={styles.seeAll}>
-          <Text style={styles.seeAllText}>{seeAllLabel}</Text>
-          <Ionicons name={rtl ? "chevron-back" : "chevron-forward"} size={14} color={INK} />
+          <Text style={[styles.seeAllText, { color: palette.text }]}>{seeAllLabel}</Text>
+          <Ionicons
+            name={rtl ? "chevron-back" : "chevron-forward"}
+            size={14}
+            color={palette.text}
+          />
         </Pressable>
       ) : null}
     </View>
@@ -48,7 +52,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 12,
   },
-  title: { fontSize: 22, color: INK },
+  title: { fontSize: 22 },
   seeAll: { flexDirection: "row", alignItems: "center", gap: 2 },
-  seeAllText: { fontSize: 13, fontWeight: "700", color: INK },
+  seeAllText: { fontSize: 13, fontWeight: "700" },
 });

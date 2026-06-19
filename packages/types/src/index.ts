@@ -208,6 +208,31 @@ export interface RentalListing {
   updatedAt: string;
 }
 
+export type TradeInStatus =
+  | "submitted"
+  | "reviewing"
+  | "quoted"
+  | "accepted"
+  | "declined"
+  | "expired";
+
+export interface TradeIn {
+  id: string;
+  userId: string;
+  brand: string;
+  model: string;
+  year: number;
+  condition: "excellent" | "good" | "fair" | "poor";
+  notes: string | null;
+  photos: string[];
+  status: TradeInStatus;
+  quoteEgp: number | string | null;
+  quoteValidUntil: string | null;
+  appliedToOrderId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SupportTicket {
   id: string;
   userId: string;

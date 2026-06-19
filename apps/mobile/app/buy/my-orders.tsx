@@ -1,12 +1,12 @@
 // Customer's "my orders" history. Lists every purchase the user has placed
-// through /buy/[id], newest first. Each row is read-only for now; v1.2 buyer
-// pipeline (deposit → paperwork → delivery) will turn these into rich tracking
-// cards.
+// through /buy/[id], newest first. A summary strip at the top gives an
+// at-a-glance count by status so the buyer can see where things stand.
 
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { colors } from "@trendywheels/ui-tokens";
+import { colors, type Palette } from "@trendywheels/ui-tokens";
 import { Stack, useRouter } from "expo-router";
+import { useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -18,9 +18,11 @@ import {
 } from "react-native";
 
 import { GuestGate } from "../../components/GuestGate";
+import { StatStrip } from "../../components/StatStrip";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
+import { useTheme } from "../../lib/use-theme";
 
 interface OrderItem {
   productId: string;
@@ -55,6 +57,8 @@ export default function MyOrders(): React.JSX.Element {
   const router = useRouter();
   const t = useT();
   const user = useAuth((s) => s.user);
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
 
   // Shape must match the profile screen's ["my-orders"] query EXACTLY — both
   // share this cache key, so a divergent shape made one screen misread the
@@ -66,6 +70,24 @@ export default function MyOrders(): React.JSX.Element {
   });
   const orders = (q.data?.data ?? []) as Order[];
 
+  const stats = useMemo(() => {
+    const by = (s: string): number => orders.filter((o) => o.status === s).length;
+    return [
+      { label: t("sell.track.total"), value: orders.length },
+      { label: t("buy.orderStatusPending"), value: by("pending"), tone: colors.brand.poolBlue },
+      {
+        label: t("buy.orderStatusConfirmed"),
+        value: by("confirmed"),
+        tone: colors.brand.friendlyBlue,
+      },
+      {
+        label: t("buy.orderStatusDelivered"),
+        value: by("delivered"),
+        tone: colors.brand.ecoLimelight,
+      },
+    ];
+  }, [orders, t]);
+
   if (!user) return <GuestGate />;
 
   return (
@@ -74,9 +96,9 @@ export default function MyOrders(): React.JSX.Element {
         options={{
           headerShown: true,
           title: t("buy.myOrdersTitle"),
-          headerStyle: { backgroundColor: colors.dark.bg },
-          headerTitleStyle: { color: "#fff" },
-          headerTintColor: "#fff",
+          headerStyle: { backgroundColor: palette.bg },
+          headerTitleStyle: { color: palette.text },
+          headerTintColor: palette.text,
         }}
       />
       {q.isLoading ? (
@@ -88,17 +110,18 @@ export default function MyOrders(): React.JSX.Element {
           style={styles.root}
           data={orders}
           keyExtractor={(o) => o.id}
+          ListHeaderComponent={orders.length > 0 ? <StatStrip stats={stats} /> : null}
           contentContainerStyle={{ padding: 14, gap: 10 }}
           refreshControl={
             <RefreshControl
               refreshing={q.isFetching}
               onRefresh={() => q.refetch()}
-              tintColor="#fff"
+              tintColor={palette.text}
             />
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Ionicons name="bag-outline" size={48} color="#666" />
+              <Ionicons name="bag-outline" size={48} color={palette.muted} />
               <Text style={styles.emptyText}>{t("buy.noOrdersYet")}</Text>
               <Pressable style={styles.cta} onPress={() => router.push("/(tabs)/buy")}>
                 <Text style={styles.ctaText}>{t("buy.browseCars")}</Text>
@@ -139,7 +162,7 @@ export default function MyOrders(): React.JSX.Element {
                 <View style={[styles.statusChip, { backgroundColor: tint }]}>
                   <Text style={styles.statusText}>{statusLabel}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#888" />
+                <Ionicons name="chevron-forward" size={18} color={palette.muted} />
               </Pressable>
             );
           }}
@@ -149,29 +172,31 @@ export default function MyOrders(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.dark.bg },
-  empty: { alignItems: "center", paddingTop: 80, gap: 12 },
-  emptyText: { color: "#aaa", fontSize: 14 },
-  cta: {
-    backgroundColor: colors.brand.trendyPink,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 999,
-    marginTop: 8,
-  },
-  ctaText: { color: "#fff", fontWeight: "700" },
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: colors.dark.card,
-    borderRadius: 12,
-    padding: 14,
-  },
-  title: { color: "#fff", fontSize: 15, fontWeight: "700" },
-  meta: { color: "#888", fontSize: 12 },
-  amount: { color: colors.brand.ecoLimelight, fontWeight: "700" },
-  statusChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  statusText: { color: "#fff", fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
-});
+function makeStyles(palette: Palette) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: palette.bg },
+    empty: { alignItems: "center", paddingTop: 80, gap: 12 },
+    emptyText: { color: palette.muted, fontSize: 14 },
+    cta: {
+      backgroundColor: colors.brand.trendyPink,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 999,
+      marginTop: 8,
+    },
+    ctaText: { color: "#fff", fontWeight: "700" },
+    card: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      backgroundColor: palette.card,
+      borderRadius: 12,
+      padding: 14,
+    },
+    title: { color: palette.text, fontSize: 15, fontWeight: "700" },
+    meta: { color: palette.muted, fontSize: 12 },
+    amount: { color: colors.brand.ecoLimelight, fontWeight: "700" },
+    statusChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+    statusText: { color: "#fff", fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
+  });
+}

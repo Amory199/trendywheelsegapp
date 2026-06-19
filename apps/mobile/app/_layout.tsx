@@ -97,6 +97,10 @@ export default function RootLayout(): JSX.Element {
               // edge swipe-back. Native-screen driven, so it's OTA-safe.
               animation: "slide_from_right",
               gestureEnabled: true,
+              // Chevron-only back button. Otherwise iOS labels it with the
+              // previous screen's title — which for id-based titles (order
+              // ids, ticket "#abc123", vehicle names) reads as a junk string.
+              headerBackButtonDisplayMode: "minimal",
             }}
           >
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />

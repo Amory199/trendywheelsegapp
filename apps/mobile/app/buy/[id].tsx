@@ -10,6 +10,7 @@ import { ImageCarousel } from "../../components/ImageCarousel";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
+import { useTheme } from "../../lib/use-theme";
 import { useDisplay, useTracking } from "../../lib/typography";
 import { useRequireAuth } from "../../lib/use-require-auth";
 
@@ -37,6 +38,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
   const track = useTracking();
   const qc = useQueryClient();
   const requireAuth = useRequireAuth();
+  const { palette } = useTheme();
   const [showSpecs, setShowSpecs] = useState(false);
 
   const q = useQuery({
@@ -78,10 +80,10 @@ export default function ProductDetailScreen(): React.JSX.Element {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#F7F7FB",
+          backgroundColor: palette.bg,
         }}
       >
-        <Text style={{ color: "rgba(2,1,31,0.6)" }}>
+        <Text style={{ color: palette.muted }}>
           {q.isLoading ? t("common.loading") : t("buy.notFound")}
         </Text>
       </View>
@@ -100,7 +102,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
     : p.category.replace("_", " ");
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F7F7FB" }}>
+    <View style={{ flex: 1, backgroundColor: palette.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Hero carousel */}
         <View
@@ -131,7 +133,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
             style={{
               fontSize: 11,
               letterSpacing: track(2),
-              color: "rgba(2,1,31,0.5)",
+              color: palette.muted,
               textTransform: "uppercase",
               marginBottom: 6,
             }}
@@ -139,7 +141,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
             {categoryLabel}
             {p.brand ? ` · ${p.brand}` : ""}
           </Text>
-          <Text style={[{ fontSize: 30, color: "#02011F", lineHeight: 32 }, display(0)]}>
+          <Text style={[{ fontSize: 30, color: palette.text, lineHeight: 32 }, display(0)]}>
             {p.name}
           </Text>
           <Text
@@ -156,7 +158,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
           </Text>
 
           {p.description ? (
-            <Text style={{ marginTop: 14, color: "rgba(2,1,31,0.75)", lineHeight: 22 }}>
+            <Text style={{ marginTop: 14, color: palette.text, lineHeight: 22 }}>
               {p.description}
             </Text>
           ) : null}
@@ -172,11 +174,11 @@ export default function ProductDetailScreen(): React.JSX.Element {
                 <View
                   style={{
                     marginTop: 10,
-                    backgroundColor: "#fff",
+                    backgroundColor: palette.card,
                     borderRadius: 14,
                     padding: 16,
                     borderWidth: 1,
-                    borderColor: "rgba(2,1,31,0.06)",
+                    borderColor: palette.border,
                     gap: 8,
                   }}
                 >
@@ -197,19 +199,19 @@ export default function ProductDetailScreen(): React.JSX.Element {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: "#fff",
+          backgroundColor: palette.card,
           paddingHorizontal: 16,
           paddingVertical: 14,
           paddingBottom: 28,
           borderTopWidth: 1,
-          borderTopColor: "rgba(2,1,31,0.06)",
+          borderTopColor: palette.border,
           flexDirection: "row",
           alignItems: "center",
           gap: 12,
         }}
       >
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 11, color: "rgba(2,1,31,0.55)" }}>{t("buy.total")}</Text>
+          <Text style={{ fontSize: 11, color: palette.muted }}>{t("buy.total")}</Text>
           <Text style={[{ fontSize: 22, color: colors.brand.trendyPink }, display(0)]}>
             {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
           </Text>
@@ -241,10 +243,11 @@ export default function ProductDetailScreen(): React.JSX.Element {
 }
 
 function Spec({ label, value }: { label: string; value: string }): React.JSX.Element {
+  const { palette } = useTheme();
   return (
     <View style={{ flexDirection: "row" }}>
-      <Text style={{ width: 72, color: "rgba(2,1,31,0.55)" }}>{label}</Text>
-      <Text style={{ flex: 1, fontWeight: "600", color: "#02011F" }}>{value}</Text>
+      <Text style={{ width: 72, color: palette.muted }}>{label}</Text>
+      <Text style={{ flex: 1, fontWeight: "600", color: palette.text }}>{value}</Text>
     </View>
   );
 }

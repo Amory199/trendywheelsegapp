@@ -4,10 +4,13 @@ import { Image } from "expo-image";
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { useTheme } from "../lib/use-theme";
 import { useDisplay, useTracking } from "../lib/typography";
 
+// On-card chrome that always sits over a fixed surface (white rating pill,
+// image placeholder) keeps its own ink; the title/location render on the page
+// background, so those follow the theme palette instead.
 const INK = "#02011F";
-const MUTED = "rgba(2,1,31,0.55)";
 
 export interface ListingCardProps {
   title: string;
@@ -51,6 +54,7 @@ function ListingCardImpl({
 }: ListingCardProps): JSX.Element {
   const display = useDisplay();
   const track = useTracking();
+  const { palette } = useTheme();
   const imgH = Math.round(width * imageRatio);
   const ratingNum = Number(rating) || 0;
   return (
@@ -95,14 +99,14 @@ function ListingCardImpl({
         ) : null}
       </View>
 
-      <Text numberOfLines={1} style={styles.title}>
+      <Text numberOfLines={1} style={[styles.title, { color: palette.text }]}>
         {title}
       </Text>
 
       {location ? (
         <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={11} color={MUTED} />
-          <Text numberOfLines={1} style={styles.location}>
+          <Ionicons name="location-outline" size={11} color={palette.muted} />
+          <Text numberOfLines={1} style={[styles.location, { color: palette.muted }]}>
             {location}
           </Text>
         </View>
@@ -153,9 +157,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   overlayText: { color: "#fff", fontWeight: "700", fontSize: 11 },
-  title: { marginTop: 8, fontSize: 13, fontWeight: "700", color: INK },
+  title: { marginTop: 8, fontSize: 13, fontWeight: "700" },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
-  location: { fontSize: 11, color: MUTED, flexShrink: 1 },
+  location: { fontSize: 11, flexShrink: 1 },
   price: {
     fontSize: 17,
     color: colors.brand.trendyPink,

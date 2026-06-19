@@ -80,6 +80,11 @@ export default function ProfileScreen(): React.JSX.Element {
     queryFn: () => api.getMyOrders().catch(() => ({ data: [] })),
     enabled: !!user,
   });
+  const tradeInsQ = useQuery({
+    queryKey: ["profile-trade-ins"],
+    queryFn: () => api.getTradeIns().catch(() => ({ data: [] })),
+    enabled: !!user,
+  });
 
   // Signed-out fallback.
   if (!user) {
@@ -123,6 +128,7 @@ export default function ProfileScreen(): React.JSX.Element {
     0;
   const unreadCount = unreadQ.data?.count ?? 0;
   const ordersCount = (ordersQ.data as { data?: unknown[] } | undefined)?.data?.length ?? 0;
+  const tradeInsCount = (tradeInsQ.data as { data?: unknown[] } | undefined)?.data?.length ?? 0;
 
   const latestBooking = (bookingsQ.data as { data?: Array<{ status?: string }> } | undefined)
     ?.data?.[0];
@@ -251,7 +257,21 @@ export default function ProfileScreen(): React.JSX.Element {
                 : `${rentalsCount} ${t("profile.activity.total")}`
           }
           tone="purple"
-          onPress={() => router.push("/sell/list-for-rent")}
+          onPress={() => router.push("/sell/list-for-rent/my")}
+        />
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.duration(475).delay(345)}>
+        <ActivityCard
+          icon="swap-horizontal-outline"
+          title={t("profile.activity.tradeInsTitle")}
+          subtitle={
+            tradeInsCount === 0
+              ? t("profile.activity.tradeInsEmpty")
+              : `${tradeInsCount} ${t("profile.activity.total")}`
+          }
+          tone="pool"
+          onPress={() => router.push("/sell/trade-in/my")}
         />
       </Animated.View>
 

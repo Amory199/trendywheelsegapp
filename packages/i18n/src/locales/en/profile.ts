@@ -23,6 +23,8 @@ export default {
     repairsEmpty: "No repair requests",
     rentalsTitle: "Rental listings",
     rentalsEmpty: "List your cart for managed rental",
+    tradeInsTitle: "My trade-ins",
+    tradeInsEmpty: "Trade your cart toward a new one",
     messagesTitle: "Messages",
     messagesEmpty: "No new messages",
     // Composed subtitles: "{count} total" and "{count} total · latest: {status}"

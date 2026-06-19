@@ -12,6 +12,7 @@ import type {
   RepairRequest,
   SalesListing,
   SupportTicket,
+  TradeIn,
   User,
   Vehicle,
   VehicleFilters,
@@ -410,8 +411,12 @@ class ApiClient {
     return this.request("POST", "/api/trade-in", { body: data });
   }
 
-  async getTradeIns(): Promise<ApiResponse<unknown[]>> {
+  async getTradeIns(): Promise<ApiResponse<TradeIn[]>> {
     return this.request("GET", "/api/trade-in");
+  }
+
+  async getTradeIn(id: string): Promise<ApiResponse<TradeIn>> {
+    return this.request("GET", `/api/trade-in/${encodeURIComponent(id)}`);
   }
 
   // ─── Repair Requests ─────────────────────────────────────
