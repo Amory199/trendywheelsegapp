@@ -5,6 +5,8 @@ import { createCustomerNoteSchema, updateSystemConfigSchema } from "@trendywheel
 import { PAGINATION } from "../../config/limits.js";
 import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
+import { getIO } from "../../utils/io-registry.js";
+import { notifyUser } from "../../utils/notify.js";
 
 const router: RouterType = Router();
 
@@ -349,6 +351,78 @@ router.get("/conversations", async (req, res) => {
   ]);
 
   res.json({ data: conversations, total, page: pageNum, limit: limitNum });
+});
+
+// One conversation's full thread, for the admin web inbox detail view.
+// Participants carry accountType so the UI can tell customer from team.
+router.get("/conversations/:id", async (req, res) => {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: req.params.id },
+    include: {
+      participants: {
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, phone: true, accountType: true },
+          },
+        },
+      },
+      messages: { orderBy: { createdAt: "asc" }, take: 200 },
+    },
+  });
+  if (!conversation) {
+    res.status(404).json({ message: "Conversation not found" });
+    return;
+  }
+  res.json({ data: conversation });
+});
+
+// Admin/staff reply into a conversation from the web inbox. Posts to the
+// conversation's customer participant, reusing the Message model + the same
+// customer notification path as a mobile reply.
+router.post("/conversations/:id/reply", async (req, res) => {
+  const message = String((req.body as { message?: unknown })?.message ?? "").trim();
+  if (!message) {
+    res.status(400).json({ message: "Message required" });
+    return;
+  }
+  if (message.length > 2000) {
+    res.status(400).json({ message: "Message too long" });
+    return;
+  }
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: req.params.id },
+    include: { participants: { include: { user: { select: { id: true, accountType: true } } } } },
+  });
+  if (!conversation) {
+    res.status(404).json({ message: "Conversation not found" });
+    return;
+  }
+  const customer = conversation.participants.find((p) => p.user?.accountType === "customer");
+  if (!customer) {
+    res.status(400).json({ message: "No customer participant in this conversation" });
+    return;
+  }
+  const senderId = req.user!.userId;
+  const created = await prisma.message.create({
+    data: { senderId, recipientId: customer.userId, conversationId: conversation.id, message },
+  });
+  await prisma.conversation.update({
+    where: { id: conversation.id },
+    data: { lastMessageAt: new Date() },
+  });
+  const io = getIO();
+  if (io) io.of("/messages").to(`user:${customer.userId}`).emit("message:new", created);
+  await notifyUser(customer.userId, `message-${created.id}`, {
+    type: "message_new",
+    title: "Support",
+    body: message.slice(0, 140),
+    data: {
+      conversationId: conversation.id,
+      messageId: created.id,
+      url: `/messages/${conversation.id}`,
+    },
+  });
+  res.status(201).json({ data: created });
 });
 
 // ─── Platform-wide notifications feed ────────────────────────

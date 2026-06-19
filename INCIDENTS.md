@@ -75,6 +75,7 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 | 035 | 2026-06-18 | Support messages routed to one admin only — no team notify, no response                                                                        | Fixed               | P1  |
 | 036 | 2026-06-18 | Play block: expo-audio leaks FOREGROUND_SERVICE_MEDIA_PLAYBACK + RECORD_AUDIO                                                                  | Fixed (needs build) | P1  |
 | 037 | 2026-06-19 | Customer flows: sell-submit silent 400, rent card opened create, no rental/trade-in tracking, home/buy stuck light, rentals invisible in admin | Fixed               | P1  |
+| 038 | 2026-06-19 | Roles: demote-to-customer left stray staffRole; support recorded but unrepliable in web admin; staff "Vehicles" opened admin console           | Fixed               | P1  |
 
 ---
 
@@ -1124,6 +1125,29 @@ A library's _own_ manifest contributes permissions you can't strip with a plugin
 
 **Pattern to follow next time**
 Client forms must mirror the Zod schema's required fields/min-lengths in their step gating, or the server 400 surfaces as a mystery to the user. A "create" route is not a "my X" route — every submit flow needs a matching tracking list+detail. When theming, prefer swapping a hardcoded ink constant for `palette.text` only when the constant equals the light value (zero light-mode risk).
+
+---
+
+### INC-038 — Role leak on demotion + support invisible in web admin + staff→admin vehicle leak (2026-06-19)
+
+**Status:** Fixed
+**Severity:** P1 (owner: a customer logs in as staff; support "goes nowhere"; staff land in the admin console)
+**Touched:** apps/api/src/modules/users/controller.ts, apps/api/src/modules/admin/routes.ts, apps/api/scripts/smoke-test.sh, apps/admin/src/app/messages/page.tsx + messages/[id]/page.tsx (new), apps/mobile/app/crm/inventory.tsx; + a one-off prod data fix.
+
+**Symptoms (owner)**
+
+1. Phone +201225389846 is meant to be a customer but logs in as staff; "roles changed by the customer don't stick."
+2. Started a support message, saw nothing in the web admin panel and unclear if staff got it; "you said you fixed it but nothing changed."
+3. Staff tapping "Vehicles" get transferred into the admin console.
+
+**Root causes & fixes**
+
+1. The user row was `accountType:customer` but still had `staffRole:sales` — a leftover. The admin role-update handler (`users/controller.ts` update) never cleared `staffRole` when `accountType` was set to customer, so demotions half-applied; staffRole-keyed UI lists + `isAdmin()` (which trusts `staffRole==="admin"` on DB rows) then mis-treated the row. Fix: in `update()`, force `staffRole=null` when `accountType==="customer"` (the existing privilege-diff then revokes the user's sessions). One-off prod data fix: `updateMany({where:{accountType:"customer",staffRole:{not:null}},data:{staffRole:null}})` (1 row). Cold-start routing (`app/index.tsx`) and `authorize()` are correctly accountType-based, so this was NOT a server access-control hole for a `sales` leftover — but a stray `staffRole:"admin"` on a customer WOULD be (isAdmin trusts it on rows); clearing it removes that risk too.
+2. INC-035 routing actually worked (DB had the support thread with all staff/admin as participants). The real gap: the web admin **Messages** page was read-only and undiscoverable, so the owner thought it was lost. Fix: new `GET /api/admin/conversations/:id` (full thread, participants carry accountType) + `POST /api/admin/conversations/:id/reply` (posts to the customer participant, reuses Message model + notifyUser); admin web messages rows now open a thread+reply detail page. Mobile staff already saw it (they're participants) — push only lands if device notifications are on. Smoke 1d extended to open + reply via the admin endpoints.
+3. `crm/inventory.tsx` pushed staff to `/admin/vehicles/[id]` (admin console). Fix: route to the existing sales-scoped `/inventory/[id]` (view + standard available/reserved/sold toggle), not the admin edit screen.
+
+**Pattern to follow next time**
+accountType is the source of truth — when it changes, reconcile staffRole (clear it for customers). Never gate UI or `isAdmin` on `staffRole` from a DB row without also trusting accountType. "Routed/stored" ≠ "visible + actionable" — a fix isn't done until there's a UI surface to see AND act on it.
 
 ---
 

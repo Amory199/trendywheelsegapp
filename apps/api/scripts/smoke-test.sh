@@ -106,6 +106,18 @@ SALES_SEES=$(curl -fsS -A "$SMOKE_UA" "$BASE/messages/conversations" \
   || fail "sales agent (not the recipient) can't see the support thread — fan-out broken (count=$SALES_SEES)"
 pass "support thread shared with the whole team"
 
+# Admin web inbox: open the thread + reply (the new /admin/conversations/:id + /reply).
+ADMIN_THREAD=$(curl -fsS -A "$SMOKE_UA" "$BASE/admin/conversations/$SUP_CONV" \
+  -H "Authorization: Bearer $ADMIN_TOKEN")
+echo "$ADMIN_THREAD" | jq -e '.data.participants | length > 0' >/dev/null \
+  || fail "admin can't load conversation thread: $ADMIN_THREAD"
+ADMIN_REPLY=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/admin/conversations/$SUP_CONV/reply" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"message":"smoke-test admin reply — please ignore"}')
+echo "$ADMIN_REPLY" | jq -e '.data.id' >/dev/null \
+  || fail "admin web reply failed: $ADMIN_REPLY"
+pass "admin can open + reply to a support thread from the web inbox"
+
 # ─── 2. CRM — createLeadSchema with the formerly-failing mobile sources ───
 note "2. CRM lead create (mobile-friendly source)"
 LEAD_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/crm/leads" \
