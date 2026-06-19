@@ -146,6 +146,15 @@ export async function update(req: Request, res: Response): Promise<void> {
     data.preferences = preferences === null ? Prisma.DbNull : preferences;
   }
 
+  // A customer must never retain a staff role. Demoting accountType -> customer
+  // without clearing staffRole left a stray role on the row; since some checks
+  // (isAdmin) and UI lists key off staffRole, the "customer" was still treated
+  // as staff. Force it null so the demotion fully takes effect (and the
+  // privilege-diff below revokes their session, dropping any staff access).
+  if (data.accountType === "customer") {
+    data.staffRole = null;
+  }
+
   // An admin changing accountType/staffRole/status must force the affected user
   // to re-authenticate — otherwise their existing token keeps the old role for
   // up to JWT_ACCESS_EXPIRY (INC-013). Snapshot the privilege fields first so we
