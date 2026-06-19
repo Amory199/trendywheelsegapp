@@ -49,6 +49,12 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/sales", label: "Sales listings", icon: "tag", allowedRoles: ["sales", "admin"] },
       { href: "/trade-ins", label: "Trade-ins", icon: "tag", allowedRoles: ["sales", "admin"] },
+      {
+        href: "/rentals",
+        label: "Rental listings",
+        icon: "calendar",
+        allowedRoles: ["sales", "admin"],
+      },
       { href: "/orders", label: "Orders", icon: "tag", allowedRoles: ["sales", "admin"] },
       {
         href: "/pricing-rules",
