@@ -181,7 +181,11 @@ export default function CrmInventory(): JSX.Element {
             <Pressable
               style={styles.card}
               onPress={() =>
-                router.push({ pathname: "/admin/vehicles/[id]", params: { id: item.id } })
+                // Staff stay in the sales-scoped vehicle screen (view + the
+                // standard available/reserved/sold toggle), NOT the admin
+                // console at /admin/vehicles/[id] — tapping a vehicle was
+                // dumping sales agents into admin-only edit screens.
+                router.push({ pathname: "/inventory/[id]", params: { id: item.id } })
               }
             >
               {item.images?.[0]?.url ? (
