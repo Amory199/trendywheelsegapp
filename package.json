@@ -12,6 +12,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "clean": "turbo run clean && rm -rf node_modules",
+    "scan:supply-chain": "node scripts/security/scan-supply-chain.mjs",
     "prepare": "husky"
   },
   "keywords": [
