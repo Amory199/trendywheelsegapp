@@ -18,7 +18,7 @@ Closed/Open testing → Production once the timer expires.
 | App title (≤30 chars)    | ✅                          | `TrendyWheels`                                  |
 | Short description (≤80)  | ✅                          | See below                                       |
 | Full description (≤4000) | ✅                          | See below                                       |
-| Phone screenshots (2–8)  | ⚠️ Take these now           | See § Screenshots below                         |
+| Phone screenshots (2–8)  | ✅ Ready (branded set)      | `store-assets/android-phone/` (1080×1920, ×5)   |
 
 ## Production build (run once the preview build proves boot works)
 
@@ -82,24 +82,27 @@ Built in Egypt for Egypt's growing resort economy.
 
 ---
 
-## Screenshots — take these now
+## Screenshots — READY (branded set)
 
-Need **2 to 8 phone screenshots**. Minimum dimensions: 320×480 short side; recommended 1080×1920 or higher.
+A designed, on-brand set is already rendered and sized — just upload them.
 
-**Easiest path:** install the new APK (once the React-mismatch fix lands), then on the phone:
+- **Play phone (×5):** `store-assets/android-phone/01–05.png` (1080×1920)
+- **App Store 6.7" (×6):** `store-assets/ios-6.7/01–06.png` (1290×2796)
 
-1. Cold-launch → land on phone-OTP screen → Power+VolumeDown
-2. Enter OTP → land on home with carts → screenshot
-3. Tap a cart → image-led detail → screenshot
-4. Booking flow step 1 → screenshot
-5. Sell landing (3 cards) → screenshot
-6. Profile → screenshot
+Each frame is a real in-app capture inside a device mockup on the TrendyWheels
+gradient with an Anton caption + brand wordmark — they read as a story
+(super-app → buy → explore → sell/trade → service → transport). Upload in
+filename order.
 
-Save them to `store-assets/android-phone/` then upload to Play Console.
+**To regenerate / re-caption / swap a screen** (e.g. after a UI refresh), see
+[`store-assets/screenshot-builder/`](./screenshot-builder/README.md): drop fresh
+captures in `screenshot-builder/sources/`, tweak the `FRAMES` array, run
+`./render.sh`. No Photoshop needed.
 
 Optional but recommended:
 
-- **Tablet screenshots** (7-inch or 10-inch): same flow on a tablet — boosts visibility on tablet searches.
+- **Tablet screenshots** (7-inch or 10-inch): boosts visibility on tablet
+  searches. Add a tablet `SPEC` entry to the builder if you want these.
 
 ## Step-by-step Play Console flow
 

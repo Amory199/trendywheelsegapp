@@ -7,6 +7,10 @@ dist/
 .expo/
 *.tsbuildinfo
 
+# Store-asset bundles (derived; regenerate with screenshot-builder/render.sh)
+store-assets/*.zip
+store-assets/screenshot-builder/work/
+
 # Environment files
 .env
 .env.local
