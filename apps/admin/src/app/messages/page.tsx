@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { EmptyState } from "@trendywheels/ui-brand/empty-state";
+import { useRouter } from "next/navigation";
 import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
@@ -21,6 +22,7 @@ interface ConversationRow {
 }
 
 export default function AdminMessagesPage(): JSX.Element {
+  const router = useRouter();
   const { data, isLoading } = useQuery({
     queryKey: ["admin-conversations"],
     queryFn: () =>
@@ -71,7 +73,11 @@ export default function AdminMessagesPage(): JSX.Element {
               conversations.map((c) => {
                 const last = c.messages[0];
                 return (
-                  <tr key={c.id} className="hover:bg-gray-50">
+                  <tr
+                    key={c.id}
+                    onClick={() => router.push(`/messages/${c.id}`)}
+                    className="hover:bg-gray-50 cursor-pointer"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
                         {c.participants.map((p) => (
