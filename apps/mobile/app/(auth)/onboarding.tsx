@@ -24,6 +24,8 @@ interface FormData {
   name: string;
   age: string; // string until submit, then parsed to int
   email: string;
+  password: string;
+  confirmPassword: string;
 }
 
 export default function OnboardingScreen(): JSX.Element {
@@ -34,6 +36,8 @@ export default function OnboardingScreen(): JSX.Element {
     name: user?.name ?? "",
     age: user?.age ? String(user.age) : "",
     email: user?.email ?? "",
+    password: "",
+    confirmPassword: "",
   });
 
   const set = <K extends keyof FormData>(key: K, value: FormData[K]): void =>
@@ -42,16 +46,22 @@ export default function OnboardingScreen(): JSX.Element {
   const ageNum = Number(form.age);
   const nameValid = form.name.trim().length >= 2;
   const ageValid = Number.isInteger(ageNum) && ageNum >= 13 && ageNum <= 120;
-  const emailValid = form.email.trim() === "" || /^\S+@\S+\.\S+$/.test(form.email.trim());
-  const canSubmit = nameValid && ageValid && emailValid;
+  const emailValid = /^\S+@\S+\.\S+$/.test(form.email.trim());
+  const passwordValid = form.password.length >= 8;
+  const confirmValid = form.confirmPassword === form.password;
+  const showMismatch = form.confirmPassword.length > 0 && !confirmValid;
+  const canSubmit = nameValid && ageValid && emailValid && passwordValid && confirmValid;
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not authenticated");
-      return api.updateUser(user.id, {
+      // Sets name + email + password (the customer can log in with these next
+      // time, no OTP). Returns the updated user; hydrate() refreshes hasPassword.
+      return api.setCredentials({
         name: form.name.trim(),
+        email: form.email.trim(),
+        password: form.password,
         age: ageNum,
-        email: form.email.trim() || null,
       });
     },
     onSuccess: async () => {
@@ -99,6 +109,32 @@ export default function OnboardingScreen(): JSX.Element {
           autoCapitalize="none"
           autoCorrect={false}
         />
+
+        <Field
+          label={t("components.onboarding.passwordLabel")}
+          placeholder={t("components.onboarding.passwordPlaceholder")}
+          value={form.password}
+          onChangeText={(v) => set("password", v)}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Field
+          label={t("components.onboarding.confirmLabel")}
+          placeholder={t("components.onboarding.confirmPlaceholder")}
+          value={form.confirmPassword}
+          onChangeText={(v) => set("confirmPassword", v)}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        {showMismatch && (
+          <Text style={styles.mismatchText}>{t("components.onboarding.passwordMismatch")}</Text>
+        )}
+
+        <Text style={styles.hintText}>{t("components.onboarding.credentialsHint")}</Text>
 
         {mutation.isError && (
           <View style={styles.errorBox}>
@@ -175,6 +211,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   errorText: { color: colors.error, fontSize: 13 },
+  mismatchText: { color: colors.error, fontSize: 12, marginTop: -4 },
+  hintText: { color: colors.text.secondary, fontSize: 12, lineHeight: 17 },
   bottomBar: {
     position: "absolute",
     bottom: 0,

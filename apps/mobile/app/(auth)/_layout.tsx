@@ -11,6 +11,7 @@ export default function AuthLayout(): JSX.Element {
       <Stack.Screen name="phone" />
       <Stack.Screen name="otp" />
       <Stack.Screen name="onboarding" />
+      <Stack.Screen name="login-email" />
     </Stack>
   );
 }

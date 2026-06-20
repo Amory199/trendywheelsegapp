@@ -41,9 +41,11 @@ export default function Index(): JSX.Element {
   if (user.accountType === "admin") return <Redirect href="/admin/dashboard" />;
   if (user.accountType === "staff") return <Redirect href="/crm/pipeline" />;
 
-  // First-time customers must finish onboarding (name is the gate now —
-  // license is collected later when they actually try to rent).
-  if (user.accountType === "customer" && !user.name) {
+  // First-time customers must finish onboarding: name + email + password are
+  // required so they can sign in with credentials next time (OTP is first-time
+  // only). Existing OTP-only customers are funnelled here on next launch to set
+  // a password. License is still collected later, at first rent.
+  if (user.accountType === "customer" && (!user.name || !user.email || !user.hasPassword)) {
     return <Redirect href="/(auth)/onboarding" />;
   }
 

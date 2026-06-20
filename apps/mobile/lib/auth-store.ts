@@ -11,6 +11,7 @@ interface AuthState {
   hydrate: () => Promise<void>;
   sendOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, otp: string) => Promise<void>;
+  loginWithPassword: (email: string, password: string) => Promise<void>;
   verifyFirebaseIdToken: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
@@ -53,6 +54,14 @@ export const useAuth = create<AuthState>((set) => ({
     set({ user: res.user });
     setAnalyticsUser(res.user.id);
     logEvent("login", { method: "trial_otp" });
+  },
+
+  async loginWithPassword(email, password) {
+    const res = await api.loginWithPassword(email, password);
+    await setTokens(res.token, res.refreshToken);
+    set({ user: res.user });
+    setAnalyticsUser(res.user.id);
+    logEvent("login", { method: "password" });
   },
 
   async verifyFirebaseIdToken(idToken) {

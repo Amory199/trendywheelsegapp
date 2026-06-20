@@ -167,6 +167,15 @@ export default function PhoneScreen(): JSX.Element {
           >
             <Text style={styles.skipText}>{t("auth.browseAsGuest")}</Text>
           </TouchableOpacity>
+
+          {/* Returning users who already set a password skip OTP entirely. */}
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={() => router.push("/(auth)/login-email")}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.skipText}>{t("auth.haveAccountLogin")}</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
