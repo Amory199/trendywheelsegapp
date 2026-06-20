@@ -237,6 +237,15 @@ export interface TradeIn {
   updatedAt: string;
 }
 
+export interface TicketMessage {
+  id: string;
+  ticketId: string;
+  senderId: string;
+  body: string;
+  createdAt: string;
+  sender?: { id: string; name: string | null; accountType: AccountType };
+}
+
 export interface SupportTicket {
   id: string;
   userId: string;
@@ -246,6 +255,8 @@ export interface SupportTicket {
   assignedAgentId: string | null;
   createdAt: string;
   updatedAt: string;
+  // Present on detail/create responses — the ticket's own message thread.
+  messages?: TicketMessage[];
 }
 
 export interface KBArticle {
