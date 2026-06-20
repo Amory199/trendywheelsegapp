@@ -4,11 +4,19 @@ import { scheduleTransportSchema, submitTransportSchema } from "@trendywheels/va
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
+import { notifyAdmins } from "../../utils/notify.js";
 
 export async function submit(req: Request, res: Response): Promise<void> {
   const input = submitTransportSchema.parse(req.body);
   const item = await prisma.transportRequest.create({
     data: { ...input, userId: req.user!.userId },
+  });
+  // Every customer request must reach the team (admin + staff) as a push.
+  await notifyAdmins(`transport-${item.id}`, {
+    type: "transport_requested",
+    title: "New transport request",
+    body: "A customer requested door-to-door transport — review and schedule it.",
+    data: { transportId: item.id, url: "/admin/service-requests" },
   });
   res.status(201).json({ data: item });
 }

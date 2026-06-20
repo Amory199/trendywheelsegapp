@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import { prisma } from "../../config/database.js";
 import { requireOwner, scopeListToOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
-import { emitDomainEvent } from "../../utils/notify.js";
+import { emitDomainEvent, notifyAdmins } from "../../utils/notify.js";
 
 import { transitionRepair, type RepairDbStatus } from "./service.js";
 
@@ -74,6 +74,13 @@ export async function create(req: Request, res: Response): Promise<void> {
   emitDomainEvent("repair.created", repair.id, req.user!.userId, {
     category: repair.category,
     priority: repair.priority,
+  });
+  // Every customer request must reach the team (admin + staff) as a push.
+  await notifyAdmins(`repair-${repair.id}`, {
+    type: "repair_requested",
+    title: "New repair request",
+    body: `A customer booked a repair${repair.category ? ` — ${repair.category}` : ""}.`,
+    data: { repairId: repair.id, url: "/admin/service-requests" },
   });
   res.status(201).json({ data: fromDbStatus(repair), id: repair.id });
 }

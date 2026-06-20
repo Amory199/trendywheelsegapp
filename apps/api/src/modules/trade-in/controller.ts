@@ -4,11 +4,19 @@ import { quoteTradeInSchema, submitTradeInSchema } from "@trendywheels/validator
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
+import { notifyAdmins } from "../../utils/notify.js";
 
 export async function submit(req: Request, res: Response): Promise<void> {
   const input = submitTradeInSchema.parse(req.body);
   const ti = await prisma.tradeInQuote.create({
     data: { ...input, userId: req.user!.userId },
+  });
+  // Every customer request must reach the team (admin + staff) as a push.
+  await notifyAdmins(`trade-in-${ti.id}`, {
+    type: "trade_in_submitted",
+    title: "New trade-in request",
+    body: "A customer submitted a trade-in — review and send a quote.",
+    data: { tradeInId: ti.id, url: "/admin/service-requests" },
   });
   res.status(201).json({ data: ti });
 }

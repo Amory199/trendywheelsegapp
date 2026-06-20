@@ -77,6 +77,7 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 | 037 | 2026-06-19 | Customer flows: sell-submit silent 400, rent card opened create, no rental/trade-in tracking, home/buy stuck light, rentals invisible in admin                                                     | Fixed               | P1  |
 | 038 | 2026-06-19 | Roles: demote-to-customer left stray staffRole; support recorded but unrepliable in web admin; staff "Vehicles" opened admin console                                                               | Fixed               | P1  |
 | 039 | 2026-06-20 | Staff over-privileged: in-app `/admin/*` had no client guard + `/api/admin` allowed accountType=staff → any sales agent saw the admin console, metrics, revenue, all customers, cancelled listings | Fixed               | P0  |
+| 040 | 2026-06-20 | Notifications: blank Android small-icon rendered as a blue square; permission only requested after login; trade-in/transport/order/repair requests never alerted the team                          | Fixed               | P1  |
 
 ---
 
@@ -1174,6 +1175,21 @@ Two missing gates, one on each side:
 
 **Pattern to follow next time**
 A redirect is routing, not authorization. Every privileged route tree needs BOTH a layout-level role guard (client) AND `authorize(...)` on its API (server) — and the API is the real boundary. `authorize("admin","staff")` is only correct when a staff screen genuinely calls that endpoint; default privileged modules to `authorize("admin")` and widen deliberately. Prove access-control fixes with a real lower-privilege token (here: the smoke test's SALES_TOKEN → expect 403), not by reading the code.
+
+### INC-040 — Notifications: blue-square icon, permission asked too late, half the client requests never alerted the team (2026-06-20)
+
+**Status:** Fixed. Server coverage + permission prompt live (API restart + OTA group `7d9e2e36-b470-4445-bfb3-649aa9287060`). **Icon fix is native — ships with the NEXT Android build (not OTA-able).**
+**Severity:** P1 (owner: notifications show a blue square not the logo; never asked for permission; "every request a client makes must reach admin + staff")
+**Touched:** apps/mobile/assets/notification-icon.png, apps/mobile/lib/push.ts, apps/mobile/app/\_layout.tsx, apps/api/src/modules/{trade-in,transport,orders,repairs}/controller.ts
+
+**Three problems, three fixes**
+
+1. **Blue square icon.** `assets/notification-icon.png` was a ~320-byte near-blank 96×96 — Android needs a _white silhouette on transparent_ for the status-bar small icon; a blank/opaque one renders as a solid square tinted by the accent `color` (#2B0FF8 → "blue square"). Fix: regenerated it as a white silhouette of the brand mark from `adaptive-icon.png` (`-channel RGB -evaluate set 100% +channel -trim -resize 76x76 -extent 96x96`, transparent bg). The plugin already set `color:"#2B0FF8"` + `defaultChannel`. **Native asset → requires a rebuild to take effect.**
+2. **Never asked for permission.** `registerPushToken()` (which requests permission) was only called `if (user?.id)` — so guests were never asked, and a logged-in user only saw the dialog if the OS status was still undetermined. Fix: split out `ensureNotificationPermission()` (no auth) and call it on app mount (1.2s after splash) in `_layout.tsx`, independent of login. `registerPushToken` now reuses it.
+3. **Half the client requests were silent.** `notifyAdmins` already fans out to every active admin **and** staff, but only bookings, sales, rental-listings, support messages, and the service-requests trio called it. **trade-in, transport, orders, and repairs created rows with no team alert.** Fix: added `notifyAdmins(...)` to each of those four create handlers (deduped jobIdPrefix per entity, `data.url` deep-link to the relevant admin screen).
+
+**Pattern to follow next time**
+Android notification small-icons MUST be white-on-transparent silhouettes — anything else shows as a tinted square. Native config (icons, manifest, permissions) is NOT OTA-able; it needs a build. When adding a customer-facing "create" endpoint, wiring `notifyAdmins` is part of done — grep new `prisma.*.create` in customer-reachable controllers for a matching notify call.
 
 ---
 

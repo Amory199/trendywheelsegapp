@@ -4,6 +4,7 @@ import { createOrderSchema, updateOrderStatusSchema } from "@trendywheels/valida
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
+import { notifyAdmins } from "../../utils/notify.js";
 
 export async function create(req: Request, res: Response): Promise<void> {
   const input = createOrderSchema.parse(req.body);
@@ -51,6 +52,14 @@ export async function create(req: Request, res: Response): Promise<void> {
       data: { status: "accepted", appliedToOrderId: order.id },
     });
   }
+
+  // Every customer request must reach the team (admin + staff) as a push.
+  await notifyAdmins(`order-${order.id}`, {
+    type: "order_placed",
+    title: "New order",
+    body: `New order — EGP ${total.toLocaleString()} · ${order.items.length} item(s).`,
+    data: { orderId: order.id, url: "/admin/orders" },
+  });
 
   res.status(201).json({ data: order });
 }
