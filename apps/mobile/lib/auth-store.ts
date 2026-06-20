@@ -1,25 +1,46 @@
-import type { User } from "@trendywheels/types";
+import type { AccountType, User } from "@trendywheels/types";
 import { create } from "zustand";
 
 import { logEvent, setAnalyticsUser } from "./analytics";
-import { api, clearTokens, getAccessToken, registerLogoutHandler, setTokens } from "./api";
+import {
+  api,
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  registerLogoutHandler,
+  setTokens,
+} from "./api";
 import { getLastPushToken } from "./push";
+
+// The real admin access token, kept in memory while "acting as" another role so
+// exit can restore it instantly. Null after a reload — exitActing then falls
+// back to refreshing with the admin refresh token (which is never overwritten).
+let savedAdminToken: string | null = null;
+
+export interface ActingAs {
+  role: AccountType;
+  staffRole?: string | null;
+}
 
 interface AuthState {
   user: User | null;
   initialized: boolean;
+  actingAs: ActingAs | null;
   hydrate: () => Promise<void>;
   sendOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, otp: string) => Promise<void>;
   loginWithPassword: (email: string, password: string) => Promise<void>;
   verifyFirebaseIdToken: (idToken: string) => Promise<void>;
+  assumeRole: (role: "customer" | "staff", staffRole?: string) => Promise<void>;
+  exitActing: () => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
 }
 
-export const useAuth = create<AuthState>((set) => ({
+export const useAuth = create<AuthState>((set, get) => ({
   user: null,
   initialized: false,
+  actingAs: null,
 
   async hydrate() {
     const token = await getAccessToken();
@@ -35,7 +56,14 @@ export const useAuth = create<AuthState>((set) => ({
       // throws WITHOUT clearing, so a flaky boot keeps the session for the next
       // launch instead of silently logging the user out.
       const res = await api.request<{ data: User }>("GET", "/api/users/me");
-      set({ user: res.data, initialized: true });
+      set({
+        user: res.data,
+        initialized: true,
+        // Re-derive acting state so a reload mid-"act as" keeps the banner.
+        actingAs: res.data.actingAsAdminId
+          ? { role: res.data.accountType, staffRole: res.data.staffRole ?? null }
+          : null,
+      });
     } catch {
       // Either a dead session (tokens already cleared by onAuthError → user
       // reset to null) or a network blip (tokens preserved, retried next
@@ -76,6 +104,36 @@ export const useAuth = create<AuthState>((set) => ({
     logEvent("login", { method: "firebase_phone" });
   },
 
+  // Admin only: assume a customer/staff role. Keeps the admin refresh token in
+  // place (setTokens without a refresh arg) so exitActing can always recover.
+  async assumeRole(role, staffRole) {
+    const current = await getAccessToken();
+    const res = await api.assumeRole({ role, staffRole });
+    savedAdminToken = current;
+    await setTokens(res.token);
+    set({ user: res.user, actingAs: { role, staffRole: staffRole ?? null } });
+    setAnalyticsUser(res.user.id);
+    logEvent("assume_role", { role, staffRole: staffRole ?? "" });
+  },
+
+  // Leave the previewed role and restore the real admin session. Prefer the
+  // in-memory admin token; after a reload that's gone, so refresh with the
+  // admin refresh token (never overwritten while acting) to mint a fresh one.
+  async exitActing() {
+    set({ actingAs: null });
+    if (savedAdminToken) {
+      await setTokens(savedAdminToken);
+      savedAdminToken = null;
+    } else {
+      const refresh = await getRefreshToken();
+      if (refresh) {
+        const tokens = await api.refreshToken(refresh);
+        await setTokens(tokens.token, tokens.refreshToken);
+      }
+    }
+    await get().hydrate();
+  },
+
   async logout() {
     try {
       // Pass this device's push token so the API unbinds only this device —
@@ -85,7 +143,8 @@ export const useAuth = create<AuthState>((set) => ({
       /* ignore */
     }
     await clearTokens();
-    set({ user: null });
+    savedAdminToken = null;
+    set({ user: null, actingAs: null });
     setAnalyticsUser(null);
     logEvent("sign_out");
   },
@@ -98,4 +157,7 @@ export const useAuth = create<AuthState>((set) => ({
 // When a request hits an unrecoverable 401 (the server revoked this session
 // after a role/status change), the api layer clears tokens and calls this to
 // drop the in-memory user — bouncing the app straight back to the login screen.
-registerLogoutHandler(() => useAuth.setState({ user: null }));
+registerLogoutHandler(() => {
+  savedAdminToken = null;
+  useAuth.setState({ user: null, actingAs: null });
+});

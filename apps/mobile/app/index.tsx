@@ -45,7 +45,11 @@ export default function Index(): JSX.Element {
   // required so they can sign in with credentials next time (OTP is first-time
   // only). Existing OTP-only customers are funnelled here on next launch to set
   // a password. License is still collected later, at first rent.
-  if (user.accountType === "customer" && (!user.name || !user.email || !user.hasPassword)) {
+  if (
+    user.accountType === "customer" &&
+    !user.actingAsAdminId &&
+    (!user.name || !user.email || !user.hasPassword)
+  ) {
     return <Redirect href="/(auth)/onboarding" />;
   }
 

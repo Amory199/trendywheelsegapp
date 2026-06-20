@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ActingBanner } from "../components/ActingBanner";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { LanguageGate } from "../components/LanguageGate";
 import { MobileIntro } from "../components/MobileIntro";
@@ -119,6 +120,8 @@ export default function RootLayout(): JSX.Element {
           </Stack>
           <OfflineBanner />
           <UpdateGate />
+          {/* Admin "act as" indicator — global, top of everything when active. */}
+          <ActingBanner />
           {/* Branded cold-start intro, then (first launch only) the language
               gate on top of it — both above the app, gate wins z-order. */}
           <MobileIntro />

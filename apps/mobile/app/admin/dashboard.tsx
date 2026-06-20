@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 
+import { RoleSwitcher } from "../../components/RoleSwitcher";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
@@ -75,6 +76,9 @@ export default function AdminDashboard(): JSX.Element {
           />
         }
       >
+        <View style={styles.switcherRow}>
+          <RoleSwitcher />
+        </View>
         <View style={styles.grid}>
           <Kpi
             label={t("admin.kpiPendingBookings")}
@@ -146,6 +150,7 @@ const styles = StyleSheet.create({
   hello: { color: colors.text.light, fontSize: 20, fontWeight: "700" },
   role: { color: colors.brand.friendlyBlue, fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
   scroll: { padding: 14, paddingBottom: 120, gap: 12 },
+  switcherRow: { marginBottom: 2 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   card: {
     flexBasis: "47%",
