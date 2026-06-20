@@ -10,7 +10,11 @@ import { notifyUser } from "../../utils/notify.js";
 
 const router: RouterType = Router();
 
-router.use(authenticate, authorize("admin", "staff"));
+// Admin console backend — admin-only. Staff have their own surfaces (/api/crm,
+// /api/inventory, /api/maintenance, /api/repairs); nothing staff-facing calls
+// /api/admin. Granting "staff" here exposed platform metrics, revenue, every
+// customer/conversation, and system-config to any sales/support agent (INC-039).
+router.use(authenticate, authorize("admin"));
 
 // ─── Global search (admin ⌘K palette) ────────────────────────
 // One round-trip for the three entity types the top-bar search promises.

@@ -34,8 +34,10 @@ router.post("/client-errors", async (req, res) => {
   res.status(202).json({ accepted: true });
 });
 
-// ─── Admin / staff log viewer ──────────────────────────────────────────────
-router.use("/admin/error-logs", authenticate, authorize("admin", "staff"));
+// ─── Admin log viewer ──────────────────────────────────────────────────────
+// Admin-only: error logs can carry PII/tokens in captured payloads, and only
+// the admin console reads them (no staff screen does). See INC-039.
+router.use("/admin/error-logs", authenticate, authorize("admin"));
 
 router.get("/admin/error-logs", async (req, res) => {
   const limit = Math.min(500, Number(req.query.limit) || 100);
