@@ -2,6 +2,7 @@ import {
   createTicketSchema,
   idParamSchema,
   paginationSchema,
+  ticketMessageSchema,
   updateTicketSchema,
 } from "@trendywheels/validators";
 import { Router, type Router as RouterType } from "express";
@@ -16,6 +17,12 @@ const router: RouterType = Router();
 router.get("/", authenticate, validate({ query: paginationSchema }), ticketsController.list);
 router.get("/:id", authenticate, validate({ params: idParamSchema }), ticketsController.getOne);
 router.post("/", authenticate, validate({ body: createTicketSchema }), ticketsController.create);
+router.post(
+  "/:id/messages",
+  authenticate,
+  validate({ params: idParamSchema, body: ticketMessageSchema }),
+  ticketsController.postMessage,
+);
 router.put(
   "/:id",
   authenticate,
