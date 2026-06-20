@@ -36,48 +36,52 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 
 ## Index
 
-| INC | Date       | Symptom                                                                                                                                                                                            | Status              | Sev |
-| --- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | --- |
-| 001 | 2026-05-21 | EAS project re-init silently replaced the Android signing keystore                                                                                                                                 | Fixed               | P0  |
-| 002 | 2026-05-21 | AU-11 lockfile bumped but four app `package.json` files were not                                                                                                                                   | Fixed               | P1  |
-| 003 | 2026-05-21 | React 19 removed global JSX namespace — 102 .tsx files broke                                                                                                                                       | Fixed               | P1  |
-| 004 | 2026-05-23 | Web login forms prefilled non-existent users (401 on first submit)                                                                                                                                 | Fixed               | P2  |
-| 005 | 2026-05-24 | `VehicleCategory` enum casing mismatch — validator (kebab) vs Prisma                                                                                                                               | Workaround          | P2  |
-| 006 | 2026-05-24 | Customer rent page filter chips used car-template enums (sedan/van)                                                                                                                                | Fixed               | P2  |
-| 007 | 2026-05-24 | Smoke-test 4xx assertions polluted Sentry every run                                                                                                                                                | Fixed               | P3  |
-| 008 | 2026-05-24 | Play Console rejected AAB — upload-key fingerprint mismatch                                                                                                                                        | Fixed               | P0  |
-| 009 | 2026-05-24 | `/api/health` returns 401 for unauthenticated probes                                                                                                                                               | Fixed               | P3  |
-| 010 | 2026-05-24 | Customer web has no phone+OTP login (staff-only portal)                                                                                                                                            | Open                | P2  |
-| 011 | 2026-05-24 | 4 mobile screens use `as unknown as <Type>` instead of runtime parse                                                                                                                               | Open                | P3  |
-| 012 | 2026-05-28 | Refresh-token lookup scans every active token (CPU DoS at scale)                                                                                                                                   | Open                | P0  |
-| 013 | 2026-05-28 | Access-token revocation missing (stolen token usable up to 24h)                                                                                                                                    | Open                | P1  |
-| 014 | 2026-05-28 | Cascade delete on `User → Booking/Notification` destroys records                                                                                                                                   | Open                | P1  |
-| 015 | 2026-05-28 | No soft-delete on `User` (GDPR / Play Store deletion)                                                                                                                                              | Open                | P1  |
-| 016 | 2026-05-28 | Composite indexes missing on hot query paths                                                                                                                                                       | Open                | P1  |
-| 017 | 2026-05-28 | BullMQ workers lack retry/concurrency/idempotency/DLQ                                                                                                                                              | Open                | P1  |
-| 018 | 2026-05-28 | Mass-assignment in `sales`, `repairs`, `kb` controllers                                                                                                                                            | Open                | P1  |
-| 019 | 2026-05-28 | Web tokens in localStorage (XSS escalation path)                                                                                                                                                   | Open                | P1  |
-| 020 | 2026-05-28 | Prod infra SPOFs + no uptime monitor + no secret-rotation runbook                                                                                                                                  | Open                | P1  |
-| 021 | 2026-05-28 | No certificate pinning on mobile API calls                                                                                                                                                         | Open                | P2  |
-| 022 | 2026-06-08 | EAS iOS Distribution Cert can't be set up non-interactively (CLI bug)                                                                                                                              | Workaround          | P1  |
-| 023 | 2026-06-08 | `GoogleService-Info.plist` gitignored → EAS Cloud build fails                                                                                                                                      | Fixed               | P0  |
-| 024 | 2026-06-08 | RN 0.79.x bundled fmt 11.0.2 + Xcode 16.2+/26.x consteval error                                                                                                                                    | Workaround          | P0  |
-| 025 | 2026-06-08 | Apple requires Xcode 26+ as of 2026-04-28 (policy, not technical)                                                                                                                                  | Fixed               | P0  |
-| 026 | 2026-06-08 | Mobile app had zero Jest tests + pnpm node_modules pattern trap                                                                                                                                    | Fixed               | P1  |
-| 027 | 2026-06-08 | Customer storage prefix allowlist missed sell/sales/rental flows                                                                                                                                   | Fixed               | P0  |
-| 028 | 2026-06-08 | Customer mutations silently fail with no Alert on error                                                                                                                                            | Fixed               | P1  |
-| 029 | 2026-06-08 | WhatsApp CRM button fire-and-forget mutation (Call awaits, WA didn't)                                                                                                                              | Fixed               | P2  |
-| 030 | 2026-06-11 | Every OTA baked localhost:4000 as API URL — recurring network errors                                                                                                                               | Fixed               | P0  |
-| 031 | 2026-06-12 | Sale cars leaked into Rent; photos never rendered; catalog double-entry                                                                                                                            | Fixed               | P1  |
-| 032 | 2026-06-15 | Mobile sessions not persisted across app relaunches                                                                                                                                                | Fixed               | P1  |
-| 033 | 2026-06-15 | `STAFF_TEST_PHONES` + Firebase fixed codes → no-password superadmin                                                                                                                                | Fixed               | P0  |
-| 034 | 2026-06-17 | Refresh-token rotation race → spurious logout on relaunch/OTA update                                                                                                                               | Fixed               | P1  |
-| 035 | 2026-06-18 | Support messages routed to one admin only — no team notify, no response                                                                                                                            | Fixed               | P1  |
-| 036 | 2026-06-18 | Play block: expo-audio leaks FOREGROUND_SERVICE_MEDIA_PLAYBACK + RECORD_AUDIO                                                                                                                      | Fixed (needs build) | P1  |
-| 037 | 2026-06-19 | Customer flows: sell-submit silent 400, rent card opened create, no rental/trade-in tracking, home/buy stuck light, rentals invisible in admin                                                     | Fixed               | P1  |
-| 038 | 2026-06-19 | Roles: demote-to-customer left stray staffRole; support recorded but unrepliable in web admin; staff "Vehicles" opened admin console                                                               | Fixed               | P1  |
-| 039 | 2026-06-20 | Staff over-privileged: in-app `/admin/*` had no client guard + `/api/admin` allowed accountType=staff → any sales agent saw the admin console, metrics, revenue, all customers, cancelled listings | Fixed               | P0  |
-| 040 | 2026-06-20 | Notifications: blank Android small-icon rendered as a blue square; permission only requested after login; trade-in/transport/order/repair requests never alerted the team                          | Fixed               | P1  |
+| INC | Date       | Symptom                                                                                                                                                                                                | Status              | Sev |
+| --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- | --- |
+| 001 | 2026-05-21 | EAS project re-init silently replaced the Android signing keystore                                                                                                                                     | Fixed               | P0  |
+| 002 | 2026-05-21 | AU-11 lockfile bumped but four app `package.json` files were not                                                                                                                                       | Fixed               | P1  |
+| 003 | 2026-05-21 | React 19 removed global JSX namespace — 102 .tsx files broke                                                                                                                                           | Fixed               | P1  |
+| 004 | 2026-05-23 | Web login forms prefilled non-existent users (401 on first submit)                                                                                                                                     | Fixed               | P2  |
+| 005 | 2026-05-24 | `VehicleCategory` enum casing mismatch — validator (kebab) vs Prisma                                                                                                                                   | Workaround          | P2  |
+| 006 | 2026-05-24 | Customer rent page filter chips used car-template enums (sedan/van)                                                                                                                                    | Fixed               | P2  |
+| 007 | 2026-05-24 | Smoke-test 4xx assertions polluted Sentry every run                                                                                                                                                    | Fixed               | P3  |
+| 008 | 2026-05-24 | Play Console rejected AAB — upload-key fingerprint mismatch                                                                                                                                            | Fixed               | P0  |
+| 009 | 2026-05-24 | `/api/health` returns 401 for unauthenticated probes                                                                                                                                                   | Fixed               | P3  |
+| 010 | 2026-05-24 | Customer web has no phone+OTP login (staff-only portal)                                                                                                                                                | Open                | P2  |
+| 011 | 2026-05-24 | 4 mobile screens use `as unknown as <Type>` instead of runtime parse                                                                                                                                   | Open                | P3  |
+| 012 | 2026-05-28 | Refresh-token lookup scans every active token (CPU DoS at scale)                                                                                                                                       | Open                | P0  |
+| 013 | 2026-05-28 | Access-token revocation missing (stolen token usable up to 24h)                                                                                                                                        | Open                | P1  |
+| 014 | 2026-05-28 | Cascade delete on `User → Booking/Notification` destroys records                                                                                                                                       | Open                | P1  |
+| 015 | 2026-05-28 | No soft-delete on `User` (GDPR / Play Store deletion)                                                                                                                                                  | Open                | P1  |
+| 016 | 2026-05-28 | Composite indexes missing on hot query paths                                                                                                                                                           | Open                | P1  |
+| 017 | 2026-05-28 | BullMQ workers lack retry/concurrency/idempotency/DLQ                                                                                                                                                  | Open                | P1  |
+| 018 | 2026-05-28 | Mass-assignment in `sales`, `repairs`, `kb` controllers                                                                                                                                                | Open                | P1  |
+| 019 | 2026-05-28 | Web tokens in localStorage (XSS escalation path)                                                                                                                                                       | Open                | P1  |
+| 020 | 2026-05-28 | Prod infra SPOFs + no uptime monitor + no secret-rotation runbook                                                                                                                                      | Open                | P1  |
+| 021 | 2026-05-28 | No certificate pinning on mobile API calls                                                                                                                                                             | Open                | P2  |
+| 022 | 2026-06-08 | EAS iOS Distribution Cert can't be set up non-interactively (CLI bug)                                                                                                                                  | Workaround          | P1  |
+| 023 | 2026-06-08 | `GoogleService-Info.plist` gitignored → EAS Cloud build fails                                                                                                                                          | Fixed               | P0  |
+| 024 | 2026-06-08 | RN 0.79.x bundled fmt 11.0.2 + Xcode 16.2+/26.x consteval error                                                                                                                                        | Workaround          | P0  |
+| 025 | 2026-06-08 | Apple requires Xcode 26+ as of 2026-04-28 (policy, not technical)                                                                                                                                      | Fixed               | P0  |
+| 026 | 2026-06-08 | Mobile app had zero Jest tests + pnpm node_modules pattern trap                                                                                                                                        | Fixed               | P1  |
+| 027 | 2026-06-08 | Customer storage prefix allowlist missed sell/sales/rental flows                                                                                                                                       | Fixed               | P0  |
+| 028 | 2026-06-08 | Customer mutations silently fail with no Alert on error                                                                                                                                                | Fixed               | P1  |
+| 029 | 2026-06-08 | WhatsApp CRM button fire-and-forget mutation (Call awaits, WA didn't)                                                                                                                                  | Fixed               | P2  |
+| 030 | 2026-06-11 | Every OTA baked localhost:4000 as API URL — recurring network errors                                                                                                                                   | Fixed               | P0  |
+| 031 | 2026-06-12 | Sale cars leaked into Rent; photos never rendered; catalog double-entry                                                                                                                                | Fixed               | P1  |
+| 032 | 2026-06-15 | Mobile sessions not persisted across app relaunches                                                                                                                                                    | Fixed               | P1  |
+| 033 | 2026-06-15 | `STAFF_TEST_PHONES` + Firebase fixed codes → no-password superadmin                                                                                                                                    | Fixed               | P0  |
+| 034 | 2026-06-17 | Refresh-token rotation race → spurious logout on relaunch/OTA update                                                                                                                                   | Fixed               | P1  |
+| 035 | 2026-06-18 | Support messages routed to one admin only — no team notify, no response                                                                                                                                | Fixed               | P1  |
+| 036 | 2026-06-18 | Play block: expo-audio leaks FOREGROUND_SERVICE_MEDIA_PLAYBACK + RECORD_AUDIO                                                                                                                          | Fixed (needs build) | P1  |
+| 037 | 2026-06-19 | Customer flows: sell-submit silent 400, rent card opened create, no rental/trade-in tracking, home/buy stuck light, rentals invisible in admin                                                         | Fixed               | P1  |
+| 038 | 2026-06-19 | Roles: demote-to-customer left stray staffRole; support recorded but unrepliable in web admin; staff "Vehicles" opened admin console                                                                   | Fixed               | P1  |
+| 039 | 2026-06-20 | Staff over-privileged: in-app `/admin/*` had no client guard + `/api/admin` allowed accountType=staff → any sales agent saw the admin console, metrics, revenue, all customers, cancelled listings     | Fixed               | P0  |
+| 040 | 2026-06-20 | Notifications: blank Android small-icon rendered as a blue square; permission only requested after login; trade-in/transport/order/repair requests never alerted the team                              | Fixed               | P1  |
+| 041 | 2026-06-20 | Language selector showed Arabic while the app rendered English; saving then flipped to Arabic — selector read stale server prefs, not the live locale store                                            | Fixed               | P2  |
+| 042 | 2026-06-20 | Customer "sell" listings created `pending` were invisible in the admin Sales board (public `/api/sales` is active-only + the route has no auth so its staff branch was dead) — couldn't approve/reject | Fixed               | P1  |
+| 043 | 2026-06-20 | Support was one rolling chat: a new request reopened the same conversation (showed old messages); SupportTicket had no messages and staff replies went to an unrelated conversation                    | Fixed               | P1  |
+| 044 | 2026-06-20 | Dark mode home: 7 components hardcoded `INK=#02011F` text on the themed dark `#02011F` bg → invisible dark-on-dark text                                                                                | Fixed               | P2  |
 
 ---
 
@@ -1190,6 +1194,90 @@ A redirect is routing, not authorization. Every privileged route tree needs BOTH
 
 **Pattern to follow next time**
 Android notification small-icons MUST be white-on-transparent silhouettes — anything else shows as a tinted square. Native config (icons, manifest, permissions) is NOT OTA-able; it needs a build. When adding a customer-facing "create" endpoint, wiring `notifyAdmins` is part of done — grep new `prisma.*.create` in customer-reachable controllers for a matching notify call.
+
+---
+
+### INC-041 — Language selector showed Arabic while the app rendered English; Save then flipped it (2026-06-20)
+
+**Status:** Fixed (OTA group `fc9b4e8d-603d-435c-b12d-da85eef68d75`)
+**Severity:** P2
+**Touched:** `apps/mobile/app/profile/settings.tsx`
+**Related:** —
+
+**Symptom**
+Opening Settings → Language showed Arabic as the selected option while the entire UI was in English. Pressing the global Save then switched the app to Arabic.
+
+**Root cause**
+The settings screen seeded its `language` state from `user.preferences.language` (server-cached, fetched via auth hydrate) instead of from the live `useLocale()` store that the whole app actually renders from. When the two diverged (server said `ar`, the live store was `en`), the selector displayed `ar` while everything rendered `en`, and the global Save persisted whatever the selector showed.
+
+**Fix**
+The selector now mirrors the **single source of truth** it renders from: `const activeLocale = useLocale((s) => s.locale)`, with `language` initialised from it and a `useEffect` keeping it synced. Removed the `setLanguage(prefs.language)` seeding from the prefs effect.
+
+**Pattern to follow next time**
+A control that displays "the current X" must read X from the same store the app renders X from — never from a second, lazily-hydrated copy (server prefs, a separate default). Two sources of truth for one user-visible setting is the bug.
+
+---
+
+### INC-042 — Customer "sell" listings stuck `pending` were invisible/unactionable in the admin Sales board (2026-06-20)
+
+**Status:** Fixed (API restart + admin build + smoke 12o)
+**Severity:** P1
+**Touched:** `apps/api/src/modules/sales/controller.ts`, `apps/api/src/modules/sales/routes.ts`, `apps/admin/src/app/sales/page.tsx`
+**Related:** INC-039
+
+**Symptom**
+A customer-submitted sale listing (created `pending`) showed nowhere in the admin Sales board, so the owner could neither approve nor reject it — it sat in limbo.
+
+**Root cause**
+`GET /api/sales` forces `where.status = "active"` unless an explicit status is passed by a staff caller — but that route has **no `authenticate` middleware**, so `req.user` is always undefined there and the `isStaff` branch was dead. The admin page hit that public route, so even selecting the "pending" filter still returned active-only. Pending listings were unreachable from admin entirely. The status was also mislabelled "Taken down".
+
+**Fix**
+Added a dedicated authed board endpoint `GET /api/sales/admin/all` (`authenticate` + `authorize("admin","staff")`) that returns every status with owner info — mirroring the existing `rental-listings/admin/all` pattern. Pointed the admin Sales page at it, relabelled `pending` → "Pending review", and gave the drawer explicit **Approve & publish** (`/restore` → active) and **Reject** (DELETE) actions. Public `/api/sales` stays active-only.
+
+**Pattern to follow next time**
+A moderation queue needs its own authenticated endpoint — don't overload the public list route and rely on `req.user` that the route never populates. If staff must see non-public statuses, add `authenticate` + an `/admin/...` route; the cached public path stays active-only.
+
+---
+
+### INC-043 — Support was one rolling chat, not discrete tickets; new requests showed old messages; staff replies were unlinked (2026-06-20)
+
+**Status:** Fixed (migration `20260620120000_ticket_messages` + API restart + admin build + OTA `fc9b4e8d` + smoke 12n)
+**Severity:** P1
+**Touched:** `packages/db/prisma/schema.prisma` (+migration), `apps/api/src/modules/tickets/{controller,routes}.ts`, `packages/validators/src/index.ts`, `packages/types/src/index.ts`, `packages/api-client/src/index.ts`, `apps/mobile/app/support/tickets.tsx` + `tickets/[id].tsx` + new `tickets/new.tsx`, `apps/mobile/app/messages/index.tsx`, `apps/admin/src/app/tickets/[id]/page.tsx`, `packages/i18n/src/locales/{en,ar}/support.ts`
+**Related:** INC-038
+
+**Symptom**
+Support behaved like a single continuous chat per user: starting a "new request" reopened the same conversation and showed all prior messages. Tickets and messages were conflated; the customer couldn't keep separate issues apart, and the model the staff replied into wasn't the ticket.
+
+**Root cause**
+Two disconnected systems. Customer "Contact support" called `findOrCreateSupportConversation`, which **reuses** the existing customer↔staff conversation (so old messages reappear). `SupportTicket` was metadata-only — it had **no messages relation at all** (the UI even read `ticket.message`, a field the DB never stored), and staff "replies" posted to the generic `/api/messages` conversation, unlinked from any ticket.
+
+**Fix**
+Gave tickets their own thread: new `TicketMessage` model (`ticket_messages`, additive migration) with `ticket.messages[]`. `POST /api/tickets` now creates the ticket **with** its opening message as the first thread entry (so each request is a fresh, history-free thread) and notifies the team; `GET /api/tickets/:id` includes the thread; new `POST /api/tickets/:id/messages` appends a reply (owner or staff), moves an open ticket → in-progress on a staff reply, and notifies the other party. Mobile: customer "Contact support" + the messages inbox now route to a new-request form (`tickets/new`); the detail screen renders the per-ticket thread with a reply box (staff controls gated by role). Admin detail renders the thread and replies via the ticket endpoint.
+
+**Pattern to follow next time**
+"Separate instances the staff respond to" = a parent row with a scoped child thread (`Ticket` → `TicketMessage`), created fresh per request. Never model discrete support requests as a found-or-created shared conversation — find-or-create is exactly what makes a new request show old history.
+
+---
+
+### INC-044 — Dark mode home: invisible dark-on-dark text (2026-06-20)
+
+**Status:** Fixed (OTA group `fc9b4e8d-603d-435c-b12d-da85eef68d75`)
+**Severity:** P2
+**Touched:** `apps/mobile/components/{QuickAccessGrid,CategoryCircles,ContinueCard,RedeemSaveRow,ServicesRail,HomeSearchBar}.tsx`
+**Related:** —
+
+**Symptom**
+In dark mode, chunks of the home screen text were invisible — dark text on the dark background.
+
+**Root cause**
+The app has a real theme system (`useTheme()` → `palette`), and the home page background respects it (`palette.bg` = `#02011F` in dark). But six home components hardcoded a `const INK = "#02011F"` ink color (and white card backgrounds) for their text — light-mode-only values. In dark mode that ink sits on the same-colour dark bg = invisible.
+
+**Fix**
+Made each offending component theme-aware: pull `palette` from `useTheme()` and apply `palette.text`/`palette.muted` to text and `palette.card`/`palette.hairline` to surfaces inline (kept the static stylesheets for layout). `INK` survives only where it's a legit opaque shadow colour. `Rail`/`SectionHeader`/`ListingCard` already did this correctly — used as the reference.
+
+**Pattern to follow next time**
+Any `Text`/surface on the home (or any themed) screen must take its colour from `useTheme().palette`, never a hardcoded hex. A literal `#02011F`/`#fff` colour in a component that renders over `palette.bg` is a dark-mode bug waiting to happen.
 
 ---
 
