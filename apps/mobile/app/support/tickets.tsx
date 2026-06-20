@@ -63,6 +63,7 @@ export default function SupportTickets(): JSX.Element {
   const logout = useAuth((s) => s.logout);
   const track = useTracking();
   const [status, setStatus] = useState("open");
+  const isStaff = user?.accountType === "admin" || user?.accountType === "staff";
 
   const listQ = useQuery({
     queryKey: ["support", "tickets", status],
@@ -81,21 +82,30 @@ export default function SupportTickets(): JSX.Element {
       <View style={styles.header}>
         <View>
           <Text style={styles.hello}>
-            {t("support.ticketsGreeting")} {user?.name?.split(" ")[0] ?? t("support.ticketsAgent")}
+            {isStaff
+              ? `${t("support.ticketsGreeting")} ${user?.name?.split(" ")[0] ?? t("support.ticketsAgent")}`
+              : t("support.yourRequests")}
           </Text>
           <Text style={[styles.role, { letterSpacing: track(1.5) }]}>
-            {t("support.ticketsRole")}
+            {isStaff ? t("support.ticketsRole") : t("support.yourRequestsRole")}
           </Text>
         </View>
-        <Pressable
-          hitSlop={12}
-          onPress={async () => {
-            await logout();
-            router.replace("/(auth)/phone");
-          }}
-        >
-          <Ionicons name="log-out-outline" size={22} color={colors.text.light} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable hitSlop={12} onPress={() => router.push("/support/tickets/new")}>
+            <Ionicons name="add-circle" size={26} color={colors.brand.poolBlue} />
+          </Pressable>
+          {isStaff && (
+            <Pressable
+              hitSlop={12}
+              onPress={async () => {
+                await logout();
+                router.replace("/(auth)/phone");
+              }}
+            >
+              <Ionicons name="log-out-outline" size={22} color={colors.text.light} />
+            </Pressable>
+          )}
+        </View>
       </View>
 
       <View style={styles.filterRow}>
@@ -130,7 +140,9 @@ export default function SupportTickets(): JSX.Element {
             <View style={styles.empty}>
               <Ionicons name="checkmark-done-outline" size={48} color={colors.text.secondary} />
               <Text style={styles.emptyText}>
-                {t(EMPTY_KEY[status as keyof typeof EMPTY_KEY] ?? "support.emptyOpen")}
+                {isStaff
+                  ? t(EMPTY_KEY[status as keyof typeof EMPTY_KEY] ?? "support.emptyOpen")
+                  : t("support.emptyCustomer")}
               </Text>
             </View>
           }
@@ -179,6 +191,7 @@ const styles = StyleSheet.create({
   },
   hello: { color: colors.text.light, fontSize: 20, fontWeight: "700" },
   role: { color: colors.brand.poolBlue, fontSize: 11, fontWeight: "800" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
   filterRow: { flexDirection: "row", paddingHorizontal: 14, paddingBottom: 10, gap: 8 },
   filter: {
     paddingHorizontal: 14,

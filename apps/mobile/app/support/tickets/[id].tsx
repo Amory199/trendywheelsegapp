@@ -24,6 +24,14 @@ import { useAuth } from "../../../lib/auth-store";
 import { useT } from "../../../lib/locale";
 import { useTracking } from "../../../lib/typography";
 
+interface TicketThreadMessage {
+  id: string;
+  senderId: string;
+  body: string;
+  createdAt: string;
+  sender?: { id: string; name: string | null; accountType: string };
+}
+
 interface Ticket {
   id: string;
   userId?: string;
@@ -36,6 +44,7 @@ interface Ticket {
   user?: { id?: string; name?: string; phone?: string; email?: string };
   agent?: { id?: string; name?: string };
   assignedAgentId?: string | null;
+  messages?: TicketThreadMessage[];
 }
 
 interface Agent {
@@ -102,7 +111,21 @@ export default function SupportTicketDetail(): React.JSX.Element {
       ),
   });
 
+  const sendReply = useMutation({
+    mutationFn: async (body: string) => api.postTicketMessage(id!, body),
+    onSuccess: () => {
+      setReply("");
+      void qc.invalidateQueries({ queryKey: ["support", "ticket", id] });
+    },
+    onError: (err) =>
+      Alert.alert(
+        t("support.sendFailed"),
+        err instanceof Error ? err.message : t("common.tryAgain"),
+      ),
+  });
+
   const ticket = ticketQ.data;
+  const isStaff = user?.accountType === "admin" || user?.accountType === "staff";
 
   if (!user) return <GuestGate />;
 
@@ -164,133 +187,147 @@ export default function SupportTicketDetail(): React.JSX.Element {
               )}
             </View>
 
-            {ticket.message && (
-              <View style={styles.card}>
-                <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
-                  {t("support.customerMessage")}
-                </Text>
-                <Text style={styles.body}>{ticket.message}</Text>
-              </View>
+            <View style={styles.card}>
+              <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+                {t("support.conversation")}
+              </Text>
+              {ticket.messages && ticket.messages.length > 0 ? (
+                ticket.messages.map((m) => {
+                  const mine = m.senderId === user?.id;
+                  const fromStaff =
+                    m.sender?.accountType === "admin" || m.sender?.accountType === "staff";
+                  return (
+                    <View
+                      key={m.id}
+                      style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}
+                    >
+                      <Text style={styles.bubbleAuthor}>
+                        {mine
+                          ? t("support.you")
+                          : fromStaff
+                            ? t("support.supportTeam")
+                            : (m.sender?.name ?? t("support.detailCustomer"))}
+                      </Text>
+                      <Text style={styles.body}>{m.body}</Text>
+                      <Text style={styles.bubbleTime}>
+                        {new Date(m.createdAt).toLocaleString()}
+                      </Text>
+                    </View>
+                  );
+                })
+              ) : (
+                <Text style={styles.meta}>{t("support.threadEmpty")}</Text>
+              )}
+            </View>
+
+            {isStaff && (
+              <>
+                <View style={styles.card}>
+                  <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+                    {t("support.priority")}
+                  </Text>
+                  <View style={styles.chipRow}>
+                    {PRIORITIES.map((p) => (
+                      <Pressable
+                        key={p}
+                        onPress={() => update.mutate({ priority: p })}
+                        style={[
+                          styles.chip,
+                          ticket.priority === p && {
+                            backgroundColor: PRIORITY_COLOR[p],
+                            borderColor: PRIORITY_COLOR[p],
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.chipText, ticket.priority === p && { color: "#fff" }]}>
+                          {PRIORITY_KEY[p as keyof typeof PRIORITY_KEY]
+                            ? t(PRIORITY_KEY[p as keyof typeof PRIORITY_KEY])
+                            : p}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
+                    {t("support.status")}
+                  </Text>
+                  <View style={styles.chipRow}>
+                    {STATUSES.map((s) => (
+                      <Pressable
+                        key={s}
+                        onPress={() => update.mutate({ status: s })}
+                        style={[
+                          styles.chip,
+                          ticket.status === s && {
+                            backgroundColor: colors.brand.poolBlue,
+                            borderColor: colors.brand.poolBlue,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.chipText, ticket.status === s && { color: "#000" }]}>
+                          {STATUS_KEY[s as keyof typeof STATUS_KEY]
+                            ? t(STATUS_KEY[s as keyof typeof STATUS_KEY])
+                            : s.replace("_", " ").replace("-", " ")}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.actionRow}>
+                  <Pressable
+                    style={[styles.assignBtn, { flex: 1 }]}
+                    onPress={() => setAssignOpen(true)}
+                  >
+                    <Ionicons name="person-add" size={14} color="#fff" />
+                    <Text style={styles.assignText}>
+                      {ticket.agent?.name ? t("support.reassign") : t("support.assign")}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.closeBtn, { flex: 1 }]}
+                    onPress={() =>
+                      Alert.alert(t("support.closeTitle"), t("support.closeMessage"), [
+                        { text: t("common.cancel"), style: "cancel" },
+                        {
+                          text: t("support.close"),
+                          onPress: () => update.mutate({ status: "closed" }),
+                        },
+                      ])
+                    }
+                  >
+                    <Ionicons name="checkmark-done" size={14} color="#000" />
+                    <Text style={styles.closeText}>{t("support.close")}</Text>
+                  </Pressable>
+                </View>
+              </>
             )}
 
             <View style={styles.card}>
               <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
-                {t("support.priority")}
-              </Text>
-              <View style={styles.chipRow}>
-                {PRIORITIES.map((p) => (
-                  <Pressable
-                    key={p}
-                    onPress={() => update.mutate({ priority: p })}
-                    style={[
-                      styles.chip,
-                      ticket.priority === p && {
-                        backgroundColor: PRIORITY_COLOR[p],
-                        borderColor: PRIORITY_COLOR[p],
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.chipText, ticket.priority === p && { color: "#fff" }]}>
-                      {PRIORITY_KEY[p as keyof typeof PRIORITY_KEY]
-                        ? t(PRIORITY_KEY[p as keyof typeof PRIORITY_KEY])
-                        : p}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.card}>
-              <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
-                {t("support.status")}
-              </Text>
-              <View style={styles.chipRow}>
-                {STATUSES.map((s) => (
-                  <Pressable
-                    key={s}
-                    onPress={() => update.mutate({ status: s })}
-                    style={[
-                      styles.chip,
-                      ticket.status === s && {
-                        backgroundColor: colors.brand.poolBlue,
-                        borderColor: colors.brand.poolBlue,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.chipText, ticket.status === s && { color: "#000" }]}>
-                      {STATUS_KEY[s as keyof typeof STATUS_KEY]
-                        ? t(STATUS_KEY[s as keyof typeof STATUS_KEY])
-                        : s.replace("_", " ").replace("-", " ")}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.actionRow}>
-              <Pressable
-                style={[styles.assignBtn, { flex: 1 }]}
-                onPress={() => setAssignOpen(true)}
-              >
-                <Ionicons name="person-add" size={14} color="#fff" />
-                <Text style={styles.assignText}>
-                  {ticket.agent?.name ? t("support.reassign") : t("support.assign")}
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.closeBtn, { flex: 1 }]}
-                onPress={() =>
-                  Alert.alert(t("support.closeTitle"), t("support.closeMessage"), [
-                    { text: t("common.cancel"), style: "cancel" },
-                    {
-                      text: t("support.close"),
-                      onPress: () => update.mutate({ status: "closed" }),
-                    },
-                  ])
-                }
-              >
-                <Ionicons name="checkmark-done" size={14} color="#000" />
-                <Text style={styles.closeText}>{t("support.close")}</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.card}>
-              <Text style={[styles.sectionTitle, { letterSpacing: track(1) }]}>
-                {t("support.replyTitle")}
+                {isStaff ? t("support.replyTitle") : t("support.conversation")}
               </Text>
               <TextInput
                 value={reply}
                 onChangeText={setReply}
                 multiline
-                placeholder={t("support.replyPlaceholder")}
+                placeholder={
+                  isStaff ? t("support.replyPlaceholder") : t("support.yourReplyPlaceholder")
+                }
                 placeholderTextColor={colors.text.secondary}
                 style={styles.replyInput}
               />
               <Pressable
-                style={[styles.sendBtn, !reply.trim() && { opacity: 0.4 }]}
-                disabled={!reply.trim()}
-                onPress={() => {
-                  const userId = ticket.user?.id ?? ticket.userId;
-                  if (!userId) {
-                    Alert.alert(t("support.noRecipient"));
-                    return;
-                  }
-                  api
-                    .sendMessage(userId, reply.trim())
-                    .then(() => {
-                      setReply("");
-                      Alert.alert(t("support.sentTitle"), t("support.sentMessage"));
-                    })
-                    .catch((err) =>
-                      Alert.alert(
-                        t("support.sendFailed"),
-                        err instanceof Error ? err.message : t("common.tryAgain"),
-                      ),
-                    );
-                }}
+                style={[styles.sendBtn, (!reply.trim() || sendReply.isPending) && { opacity: 0.4 }]}
+                disabled={!reply.trim() || sendReply.isPending}
+                onPress={() => sendReply.mutate(reply.trim())}
               >
                 <Ionicons name="send" size={14} color="#000" />
-                <Text style={styles.sendBtnText}>{t("support.sendReply")}</Text>
+                <Text style={styles.sendBtnText}>
+                  {isStaff ? t("support.sendReply") : t("support.send")}
+                </Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -376,6 +413,25 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { color: colors.text.secondary, fontSize: 11, fontWeight: "700" },
   body: { color: colors.text.light, fontSize: 14, lineHeight: 20 },
+  bubble: {
+    borderRadius: 12,
+    padding: 10,
+    gap: 3,
+    maxWidth: "88%",
+    borderWidth: 1,
+  },
+  bubbleMine: {
+    alignSelf: "flex-end",
+    backgroundColor: "rgba(0,199,234,0.14)",
+    borderColor: "rgba(0,199,234,0.35)",
+  },
+  bubbleTheirs: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.dark.bg,
+    borderColor: colors.dark.border,
+  },
+  bubbleAuthor: { color: colors.brand.poolBlue, fontSize: 10, fontWeight: "800" },
+  bubbleTime: { color: colors.text.secondary, fontSize: 9 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   chip: {
     paddingHorizontal: 12,

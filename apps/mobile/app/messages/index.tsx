@@ -1,16 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { colors, spacing, typography } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { GuestGate } from "../../components/GuestGate";
@@ -37,20 +29,9 @@ export default function MessagesScreen(): JSX.Element {
 
   const conversations = (data?.data ?? []) as Conversation[];
 
-  const openSupportChat = useMutation({
-    mutationFn: async () => {
-      const support = await api.getSupportContact();
-      const conv = await api.createConversation(support.data.id);
-      return { id: conv.data.id, peerId: support.data.id };
-    },
-    onSuccess: ({ id, peerId }) =>
-      router.push({ pathname: "/messages/[id]", params: { id, peerId } }),
-    onError: (err) =>
-      Alert.alert(
-        t("messages.supportOpenFailedTitle"),
-        err instanceof Error ? err.message : t("common.tryAgain"),
-      ),
-  });
+  // Support is ticket-based now: starting a new request opens a fresh, discrete
+  // ticket (its own thread) rather than reopening one rolling support chat.
+  const openSupport = (): void => router.push("/support/tickets/new");
 
   if (!user) return <GuestGate />;
 
@@ -61,16 +42,8 @@ export default function MessagesScreen(): JSX.Element {
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
         <Text style={styles.title}>{t("messages.title")}</Text>
-        <Pressable
-          onPress={() => openSupportChat.mutate()}
-          disabled={openSupportChat.isPending}
-          hitSlop={12}
-        >
-          <Ionicons
-            name="add-circle"
-            size={28}
-            color={openSupportChat.isPending ? colors.text.secondary : colors.brand.friendlyBlue}
-          />
+        <Pressable onPress={openSupport} hitSlop={12}>
+          <Ionicons name="add-circle" size={28} color={colors.brand.friendlyBlue} />
         </Pressable>
       </View>
 
@@ -80,19 +53,9 @@ export default function MessagesScreen(): JSX.Element {
         <View style={styles.empty}>
           <Ionicons name="chatbubbles-outline" size={64} color={colors.text.secondary} />
           <Text style={styles.emptyText}>{t("messages.emptyTitle")}</Text>
-          <Pressable
-            style={styles.cta}
-            onPress={() => openSupportChat.mutate()}
-            disabled={openSupportChat.isPending}
-          >
-            {openSupportChat.isPending ? (
-              <ActivityIndicator color="#000" size="small" />
-            ) : (
-              <>
-                <Ionicons name="headset" size={18} color="#000" />
-                <Text style={styles.ctaText}>{t("messages.messageSupport")}</Text>
-              </>
-            )}
+          <Pressable style={styles.cta} onPress={openSupport}>
+            <Ionicons name="headset" size={18} color="#000" />
+            <Text style={styles.ctaText}>{t("messages.messageSupport")}</Text>
           </Pressable>
         </View>
       ) : (

@@ -78,6 +78,7 @@ export default function SupportLayout(): JSX.Element {
         }}
       />
       <Tabs.Screen name="tickets/[id]" options={{ href: null }} />
+      <Tabs.Screen name="tickets/new" options={{ href: null }} />
     </Tabs>
   );
 }
