@@ -22,7 +22,7 @@ import { GuestGate } from "../../components/GuestGate";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
-import { applyLanguage, useT } from "../../lib/locale";
+import { applyLanguage, useLocale, useT } from "../../lib/locale";
 import { useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
@@ -37,9 +37,15 @@ export default function SettingsScreen(): JSX.Element {
   const router = useRouter();
   const { user, hydrate } = useAuth();
   const prefs = user?.preferences;
+  // The selector MUST reflect the language the app is actually rendering, which
+  // is the live locale store (persisted in SecureStore) — NOT the server-cached
+  // prefs.language, which can lag behind and showed "Arabic" while the UI was
+  // English (then the global Save flipped it). The store is the single source
+  // of truth for what the user sees, so mirror it. (INC-041)
+  const activeLocale = useLocale((s) => s.locale);
 
   const [theme, setTheme] = useState<Theme>((prefs?.theme as Theme) ?? "dark");
-  const [language, setLanguage] = useState<Language>(prefs?.language ?? "en");
+  const [language, setLanguage] = useState<Language>(activeLocale);
   const [notifEmail, setNotifEmail] = useState(prefs?.notifications?.email ?? true);
   const [notifSms, setNotifSms] = useState(prefs?.notifications?.sms ?? true);
   const [notifPush, setNotifPush] = useState(prefs?.notifications?.push ?? true);
@@ -50,7 +56,9 @@ export default function SettingsScreen(): JSX.Element {
   useEffect(() => {
     if (prefs) {
       setTheme((prefs.theme as Theme) ?? "dark");
-      setLanguage(prefs.language ?? "en");
+      // NOTE: language is intentionally NOT seeded from prefs here — it tracks
+      // the live locale store below so the selector can never disagree with the
+      // language the app is actually showing.
       setNotifEmail(prefs.notifications?.email ?? true);
       setNotifSms(prefs.notifications?.sms ?? true);
       setNotifPush(prefs.notifications?.push ?? true);
@@ -58,6 +66,12 @@ export default function SettingsScreen(): JSX.Element {
       setMarketingOptIn(prefs.marketingOptIn ?? false);
     }
   }, [prefs]);
+
+  // Keep the selector pinned to the live locale (updates when SecureStore
+  // hydration resolves, or after applyLanguage changes it).
+  useEffect(() => {
+    setLanguage(activeLocale);
+  }, [activeLocale]);
 
   const mutation = useMutation({
     mutationFn: () => {
