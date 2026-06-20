@@ -50,9 +50,13 @@ export default function SalesPage(): JSX.Element {
   const { data, isLoading } = useQuery({
     queryKey: ["sales", statusFilter],
     queryFn: () => {
-      const params = new URLSearchParams({ limit: "100" });
+      // Admin board endpoint — returns EVERY status (incl. pending customer
+      // submissions awaiting review). The public /api/sales only ever returns
+      // active rows, which is why pending listings were invisible here.
+      const params = new URLSearchParams();
       if (statusFilter) params.set("status", statusFilter);
-      return authedFetch<{ data: SaleRow[] }>(`/api/sales?${params}`);
+      const qs = params.toString();
+      return authedFetch<{ data: SaleRow[] }>(`/api/sales/admin/all${qs ? `?${qs}` : ""}`);
     },
   });
 
@@ -81,9 +85,9 @@ export default function SalesPage(): JSX.Element {
               onChange={(v) => setStatusFilter(v as SaleRow["status"] | "")}
               options={[
                 { value: "", label: "All statuses" },
+                { value: "pending", label: "Pending review", color: "#B45309" },
                 { value: "active", label: "Active", color: "#0A6B0A" },
                 { value: "sold", label: "Sold", color: "#1338A8" },
-                { value: "pending", label: "Taken down", color: "#888899" },
               ]}
             />
             <button
@@ -221,7 +225,7 @@ export default function SalesPage(): JSX.Element {
                           <span
                             className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${LISTING_STATUS_CLASS[l.status]}`}
                           >
-                            {l.status === "pending" ? "taken down" : l.status}
+                            {l.status === "pending" ? "pending review" : l.status}
                           </span>
                         </td>
                         <td className="px-4 py-3">{l.viewsCount}</td>
@@ -460,6 +464,10 @@ function SaleDrawer({
     mutationFn: () => authedFetch(`/api/sales/${listing.id}/restore`, { method: "POST" }),
     onSuccess: () => onChange(),
   });
+  const reject = useMutation({
+    mutationFn: () => authedFetch(`/api/sales/${listing.id}`, { method: "DELETE" }),
+    onSuccess: () => onChange(),
+  });
 
   const firstImage = Array.isArray(listing.images) ? listing.images[0] : undefined;
 
@@ -500,7 +508,7 @@ function SaleDrawer({
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${LISTING_STATUS_CLASS[listing.status]}`}
             >
-              {listing.status === "pending" ? "taken down" : listing.status}
+              {listing.status === "pending" ? "pending review" : listing.status}
             </span>
           </Row>
           <Row label="Views">{listing.viewsCount}</Row>
@@ -537,13 +545,30 @@ function SaleDrawer({
             </>
           )}
           {listing.status === "pending" && (
-            <button
-              onClick={() => restore.mutate()}
-              disabled={restore.isPending}
-              className="w-full px-4 py-2 border border-green-500 text-green-600 hover:bg-green-50 text-sm font-medium rounded-md disabled:opacity-40"
-            >
-              {restore.isPending ? "…" : "Restore listing"}
-            </button>
+            <>
+              <p className="text-xs text-gray-500 mb-1">
+                Awaiting review. Approve to publish it to the customer Sales feed, or reject to
+                remove it.
+              </p>
+              <button
+                onClick={() => restore.mutate()}
+                disabled={restore.isPending || reject.isPending}
+                className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md disabled:opacity-40"
+              >
+                {restore.isPending ? "…" : "Approve & publish"}
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm("Reject and permanently remove this listing?")) {
+                    reject.mutate();
+                  }
+                }}
+                disabled={restore.isPending || reject.isPending}
+                className="w-full px-4 py-2 border border-red-500 text-red-600 hover:bg-red-50 text-sm font-medium rounded-md disabled:opacity-40"
+              >
+                {reject.isPending ? "…" : "Reject"}
+              </button>
+            </>
           )}
           {listing.status === "sold" && (
             <p className="text-xs text-gray-500">

@@ -50,17 +50,14 @@ export default function AdminTicketDetailPage(): JSX.Element {
 
   const [reply, setReply] = useState("");
   const replyMutation = useMutation({
-    mutationFn: (message: string) => {
-      if (!data?.data) throw new Error("No ticket");
-      return authedFetch(`/api/messages`, {
+    // Ticket-scoped reply — appends to THIS ticket's own thread (and pushes a
+    // notification to the customer), instead of the old generic /api/messages
+    // conversation that wasn't tied to the ticket.
+    mutationFn: (message: string) =>
+      authedFetch(`/api/tickets/${id}/messages`, {
         method: "POST",
-        body: JSON.stringify({
-          recipientId: data.data.userId,
-          message,
-          attachments: [],
-        }),
-      });
-    },
+        body: JSON.stringify({ message }),
+      }),
     onSuccess: () => {
       setReply("");
       void qc.invalidateQueries({ queryKey: ["admin-ticket", id] });
@@ -102,12 +99,48 @@ export default function AdminTicketDetailPage(): JSX.Element {
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="text-xs text-gray-500 mb-1">Customer report</div>
-            <p className="text-sm text-gray-800">{ticket.subject}</p>
-            <p className="text-xs text-gray-500 mt-3">
-              Submitted {new Date(ticket.createdAt).toLocaleString()}
-            </p>
+          <div className="bg-white border rounded-lg p-4">
+            <div className="text-xs text-gray-500 uppercase tracking-wider mb-3">Conversation</div>
+            {ticket.messages && ticket.messages.length > 0 ? (
+              <div className="space-y-3">
+                {ticket.messages.map((m) => {
+                  const fromStaff =
+                    m.sender?.accountType === "admin" || m.sender?.accountType === "staff";
+                  return (
+                    <div
+                      key={m.id}
+                      className={`flex ${fromStaff ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                          fromStaff ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        <div
+                          className={`text-[10px] font-semibold mb-0.5 ${
+                            fromStaff ? "text-blue-100" : "text-gray-500"
+                          }`}
+                        >
+                          {fromStaff
+                            ? (m.sender?.name ?? "Support")
+                            : (m.sender?.name ?? "Customer")}
+                        </div>
+                        <p className="whitespace-pre-wrap">{m.body}</p>
+                        <div
+                          className={`text-[10px] mt-1 ${
+                            fromStaff ? "text-blue-100" : "text-gray-400"
+                          }`}
+                        >
+                          {new Date(m.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">No messages yet.</p>
+            )}
           </div>
 
           <div className="bg-white border rounded-lg p-4 space-y-3">
