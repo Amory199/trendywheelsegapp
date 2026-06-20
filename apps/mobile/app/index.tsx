@@ -2,11 +2,16 @@ import { colors } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { Redirect } from "expo-router";
 import { useEffect } from "react";
-import { StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { useAuth } from "../lib/auth-store";
 
-const LOADING_SRC = require("../assets/loading.webp");
+// The crisp brand lockup (same asset the <MobileIntro> overlay uses) on the
+// brand-navy stage, with a quiet spinner. Replaces the old animated
+// loading.webp — an 84-frame WebP that, upscaled on the boot screen, looked
+// pixelated/glitchy and read as "broken" when the intro faded over it. (INC-045)
+const LOGO = require("../assets/brand-logo.png");
+const LOGO_RATIO = 720 / 416; // brand-logo.png native dimensions
 
 // The cold-start brand animation is the <MobileIntro> overlay (SVG lockup),
 // mounted in _layout.tsx — NOT a separate route. The old /intro mp4 reel was
@@ -21,7 +26,8 @@ export default function Index(): JSX.Element {
   if (!initialized) {
     return (
       <View style={styles.splash}>
-        <Image source={LOADING_SRC} style={styles.logo} contentFit="contain" transition={120} />
+        <Image source={LOGO} style={styles.logo} contentFit="contain" transition={120} />
+        <ActivityIndicator color={colors.brand.poolBlue} style={styles.spinner} />
       </View>
     );
   }
@@ -64,9 +70,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logo: {
-    width: "70%",
-    aspectRatio: 4 / 5,
-    maxWidth: 360,
-    maxHeight: 450,
+    width: "62%",
+    aspectRatio: LOGO_RATIO,
+    maxWidth: 280,
   },
+  spinner: { marginTop: 28 },
 });

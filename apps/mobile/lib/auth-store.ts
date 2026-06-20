@@ -48,6 +48,14 @@ export const useAuth = create<AuthState>((set, get) => ({
       set({ initialized: true });
       return;
     }
+    // The boot screen (app/index.tsx) shows the loading splash while
+    // `initialized` is false. A STALLED connection (online but the socket
+    // hangs) makes /me neither resolve nor reject, so without this cap
+    // `initialized` would stay false forever and the app sits trapped on the
+    // splash — the user could only get in by booting OFFLINE (which fails the
+    // request fast) then reconnecting. So always release the boot within a few
+    // seconds; tokens stay put and a late /me still fills in the user. (INC-045)
+    const releaseBoot = setTimeout(() => set({ initialized: true }), 6000);
     try {
       // Go through the ApiClient (not a raw fetch) so an expired access token
       // is transparently refreshed via the stored refresh token. The client
@@ -69,6 +77,8 @@ export const useAuth = create<AuthState>((set, get) => ({
       // reset to null) or a network blip (tokens preserved, retried next
       // launch). Never clear tokens here.
       set({ initialized: true });
+    } finally {
+      clearTimeout(releaseBoot);
     }
   },
 
