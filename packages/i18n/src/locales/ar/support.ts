@@ -54,6 +54,26 @@ const support: Stringify<typeof enNs> = {
   priorityMedium: "متوسطة",
   priorityHigh: "عالية",
   priorityUrgent: "عاجلة",
+
+  // واجهة العميل (كل طلب تذكرة ومحادثة مستقلة)
+  yourRequests: "طلباتك",
+  yourRequestsRole: "الدعم · المساعدة",
+  emptyCustomer: "لا توجد طلبات بعد. اضغط + لبدء طلب.",
+  newRequest: "طلب جديد",
+  newRequestTitle: "كيف يمكننا مساعدتك؟",
+  subjectLabel: "الموضوع",
+  subjectPlaceholder: "ملخص موجز لمشكلتك",
+  messageLabel: "اشرح مشكلتك",
+  messagePlaceholder: "أخبرنا بما يحدث…",
+  submitRequest: "إرسال الطلب",
+  submitting: "جارٍ الإرسال…",
+  createFailed: "تعذّر إنشاء طلبك",
+  conversation: "المحادثة",
+  you: "أنت",
+  supportTeam: "الدعم",
+  yourReplyPlaceholder: "اكتب رسالتك…",
+  send: "إرسال",
+  threadEmpty: "لا توجد رسائل بعد.",
 };
 
 export default support;
