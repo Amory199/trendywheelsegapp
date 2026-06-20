@@ -1,14 +1,11 @@
-import { Ionicons } from "@expo/vector-icons";
-import { isRTL } from "@trendywheels/i18n";
 import { colors } from "@trendywheels/ui-tokens";
-import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
   StyleSheet,
-  Text,
   useWindowDimensions,
   View,
   type NativeScrollEvent,
@@ -16,63 +13,38 @@ import {
 } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 
-import { useLocale, useT } from "../lib/locale";
-import { useDisplay } from "../lib/typography";
-
-const INK = "#02011F";
 const H_PAD = 16;
 const CARD_HEIGHT = 170;
 const AUTO_ADVANCE_MS = 4500;
 
-// Static, fully guest-safe promo deck. Replaces the old expo-video promo banner
-// (expo-video is NOT in the OTA allowlist). Every string is an i18n key, every
-// CTA routes to a public, guest-browsable tab. No video asset, no countdowns,
-// no fabricated discounts — chips state real, non-time-bound facts only.
+// Static, fully guest-safe promo deck — now branded banner images (the artwork
+// carries its own messaging) instead of the old gradient+text cards. Each banner
+// is tappable and routes to a public, guest-browsable tab. No video asset, no
+// countdowns; OTA-safe (expo-image is in the allowlist, bundled PNGs ship fine).
 type Promo = {
   key: string;
-  titleKey: string;
-  // 1–2 honest, non-time-bound fact chips.
-  chipKeys: string[];
-  gradient: [string, string];
+  image: number;
   route: string;
 };
 
 const PROMOS: Promo[] = [
-  {
-    key: "browse",
-    titleKey: "home.promoBrowseTitle",
-    chipKeys: ["home.promoChipRentBuy", "home.promoChipNoAccount"],
-    gradient: [colors.brand.friendlyBlue, colors.brand.trendyPink],
-    route: "/(tabs)/buy",
-  },
-  {
-    key: "cross",
-    titleKey: "home.promoCrossTitle",
-    chipKeys: ["home.promoChipRentBuy"],
-    gradient: [colors.brand.poolBlue, colors.brand.ecoLimelight],
-    route: "/(tabs)/rent",
-  },
+  { key: "browse", image: require("../assets/promos/promo-1.png"), route: "/(tabs)/buy" },
+  { key: "cross", image: require("../assets/promos/promo-2.png"), route: "/(tabs)/rent" },
   {
     key: "service",
-    titleKey: "home.promoServiceTitle",
-    chipKeys: ["home.promoChipFreeDelivery"],
-    gradient: [colors.brand.friendlyBlue, colors.brand.poolBlue],
+    image: require("../assets/promos/promo-3.png"),
     route: "/service/pickup-delivery",
   },
 ];
 
 /**
- * Home promo carousel. Horizontal paging FlatList (reuses ImageCarousel's
- * onMomentumScrollEnd → active-index + tappable expanding-dots pattern) with
- * a setInterval auto-advance that pauses while the user drags and clears on
- * unmount. Renders identically for guests; all CTAs land on public tabs.
+ * Home promo carousel. Horizontal paging FlatList with active-index +
+ * tappable expanding-dots, and a setInterval auto-advance that pauses while the
+ * user drags and clears on unmount. Renders identically for guests; all CTAs
+ * land on public tabs.
  */
 export function PromoCarousel(): JSX.Element {
   const router = useRouter();
-  const t = useT();
-  const display = useDisplay();
-  const locale = useLocale((s) => s.locale);
-  const rtl = isRTL(locale);
   const { width } = useWindowDimensions();
 
   const [idx, setIdx] = useState(0);
@@ -139,33 +111,13 @@ export function PromoCarousel(): JSX.Element {
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <Pressable onPress={() => router.push(item.route as never)} style={{ width: cardWidth }}>
-            <LinearGradient
-              colors={item.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <Image
+              source={item.image}
               style={styles.card}
-            >
-              <Text style={[styles.title, display(0.3)]} numberOfLines={2}>
-                {t(item.titleKey)}
-              </Text>
-
-              <View style={styles.chipRow}>
-                {item.chipKeys.map((ck) => (
-                  <View key={ck} style={styles.chip}>
-                    <Text style={styles.chipText} numberOfLines={1}>
-                      {t(ck)}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.ctaRow}>
-                <View style={styles.cta}>
-                  <Text style={styles.ctaText}>{t("home.promoCta")}</Text>
-                  <Ionicons name={rtl ? "arrow-back" : "arrow-forward"} size={15} color={INK} />
-                </View>
-              </View>
-            </LinearGradient>
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+            />
           </Pressable>
         )}
       />
@@ -204,48 +156,9 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: H_PAD },
   card: {
     height: CARD_HEIGHT,
+    width: "100%",
     borderRadius: 20,
-    padding: 20,
-    justifyContent: "space-between",
     overflow: "hidden",
-  },
-  title: {
-    fontSize: 26,
-    color: "#fff",
-    lineHeight: 28,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    backgroundColor: "rgba(255,255,255,0.22)",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  chipText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  ctaRow: {
-    flexDirection: "row",
-  },
-  cta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#fff",
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  ctaText: {
-    color: INK,
-    fontSize: 13,
-    fontWeight: "800",
   },
   dots: {
     flexDirection: "row",
