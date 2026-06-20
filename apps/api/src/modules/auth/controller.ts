@@ -40,6 +40,19 @@ export async function login(req: Request, res: Response): Promise<void> {
   res.json(result);
 }
 
+// Set name + email + password on the authenticated user (post-OTP signup or
+// profile). Lets the customer sign in with credentials next time.
+export async function setCredentials(req: Request, res: Response): Promise<void> {
+  const { name, email, password, age } = req.body;
+  const result = await authService.setCredentials(req.user!.userId, {
+    name,
+    email,
+    password,
+    age,
+  });
+  res.json(result);
+}
+
 /**
  * Exchange a Firebase Phone Auth ID token for our JWT pair. Trust boundary:
  * Firebase already verified the SMS code on-device + minted the ID token,

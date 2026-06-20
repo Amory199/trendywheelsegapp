@@ -63,10 +63,13 @@ export async function getMe(req: Request, res: Response): Promise<void> {
       loyaltyTier: true,
       loyaltyPoints: true,
       createdAt: true,
+      // Mapped to a boolean below — never expose the hash itself.
+      passwordHash: true,
     },
   });
   if (!user) throw AppError.notFound("User not found");
-  res.json({ data: user });
+  const { passwordHash, ...safe } = user;
+  res.json({ data: { ...safe, hasPassword: !!passwordHash } });
 }
 
 // PATCH /api/users/me/preferences

@@ -217,6 +217,7 @@ export async function verifyOtp(
       age: user.age,
       accountType: user.accountType,
       staffRole: user.staffRole,
+      hasPassword: !!user.passwordHash,
       loyaltyTier: user.loyaltyTier,
       loyaltyPoints: user.loyaltyPoints,
     },
@@ -318,6 +319,7 @@ export async function issueTokensForPhone(
       age: user.age,
       accountType: user.accountType,
       staffRole: user.staffRole,
+      hasPassword: !!user.passwordHash,
       loyaltyTier: user.loyaltyTier,
       loyaltyPoints: user.loyaltyPoints,
     },
@@ -431,6 +433,46 @@ export async function loginWithPassword(
       age: user.age,
       accountType: user.accountType,
       staffRole: user.staffRole,
+      hasPassword: !!user.passwordHash,
+      loyaltyTier: user.loyaltyTier,
+      loyaltyPoints: user.loyaltyPoints,
+    },
+  };
+}
+
+/**
+ * Set the caller's name + email + password after first-time phone verification
+ * (or from the profile screen). Email becomes a login identifier so it must be
+ * unique. Afterwards the user can sign in with email + password instead of OTP.
+ */
+export async function setCredentials(
+  userId: string,
+  input: { name: string; email: string; password: string; age?: number },
+): Promise<{ user: object }> {
+  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  if (existing && existing.id !== userId) {
+    throw AppError.badRequest("That email is already in use");
+  }
+  const passwordHash = await bcrypt.hash(input.password, 12);
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      name: input.name,
+      email: input.email,
+      passwordHash,
+      ...(input.age !== undefined ? { age: input.age } : {}),
+    },
+  });
+  return {
+    user: {
+      id: user.id,
+      phone: user.phone,
+      name: user.name,
+      email: user.email,
+      age: user.age,
+      accountType: user.accountType,
+      staffRole: user.staffRole,
+      hasPassword: true,
       loyaltyTier: user.loyaltyTier,
       loyaltyPoints: user.loyaltyPoints,
     },
