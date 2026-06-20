@@ -208,6 +208,22 @@ class ApiClient {
     return this.request("POST", "/api/auth/verify-otp", { body: { phone, otp } });
   }
 
+  // Email + password login (customers who've set credentials, and staff/admin).
+  async loginWithPassword(email: string, password: string): Promise<LoginResponse> {
+    return this.request("POST", "/api/auth/login", { body: { email, password } });
+  }
+
+  // Set name + email + password on the authenticated user (post-OTP signup or
+  // profile). Returns the updated user (hasPassword === true).
+  async setCredentials(body: {
+    name: string;
+    email: string;
+    password: string;
+    age?: number;
+  }): Promise<{ user: User }> {
+    return this.request("POST", "/api/auth/set-credentials", { body });
+  }
+
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
     return this.request("POST", "/api/auth/refresh-token", { body: { refreshToken } });
   }

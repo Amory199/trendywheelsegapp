@@ -57,6 +57,8 @@ export interface User {
   accountType: AccountType;
   staffRole?: StaffRole | null;
   status: UserStatus;
+  // True once the user has set an email + password (so they can skip OTP).
+  hasPassword?: boolean;
   preferences: UserPreferences | null;
   loyaltyTier: LoyaltyTier;
   loyaltyPoints: number;
