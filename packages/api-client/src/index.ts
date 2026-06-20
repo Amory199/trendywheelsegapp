@@ -12,6 +12,7 @@ import type {
   RepairRequest,
   SalesListing,
   SupportTicket,
+  TicketMessage,
   TradeIn,
   User,
   Vehicle,
@@ -787,6 +788,13 @@ class ApiClient {
     data: Partial<SupportTicket>,
   ): Promise<ApiResponse<SupportTicket>> {
     return this.request("PUT", `/api/tickets/${encodeURIComponent(id)}`, { body: data });
+  }
+
+  // Append a reply to a ticket's own thread (owner or staff).
+  async postTicketMessage(id: string, message: string): Promise<ApiResponse<TicketMessage>> {
+    return this.request("POST", `/api/tickets/${encodeURIComponent(id)}/messages`, {
+      body: { message },
+    });
   }
 
   // ─── Storage ─────────────────────────────────────────────
