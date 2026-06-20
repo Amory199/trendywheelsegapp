@@ -2,9 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { BlurView } from "expo-blur";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { useAdminLeadRealtime } from "../../lib/realtime";
 
@@ -39,11 +40,21 @@ function GlassTabBar(): JSX.Element {
 }
 
 export default function AdminLayout(): JSX.Element {
+  const { user, initialized } = useAuth();
   // Live-invalidate admin caches when sales agents fire CRM mutations. Drives
   // the "admin sees sales activity right away" requirement via Socket.IO.
   const qc = useQueryClient();
   useAdminLeadRealtime(qc);
   const t = useT();
+
+  // Role guard: the whole /admin/* tree is admin-only. A staff (or customer)
+  // who deep-links or lands here via a stale nav target must never render the
+  // console — bounce them to their own home. This is the UI half of the gate;
+  // the server enforces it too via authorize("admin") on /api/admin (INC-039).
+  if (!initialized) return <View style={styles.gate} />;
+  if (user?.accountType !== "admin") {
+    return <Redirect href={user?.accountType === "staff" ? "/crm/pipeline" : "/(tabs)"} />;
+  }
 
   return (
     <Tabs
@@ -122,3 +133,9 @@ export default function AdminLayout(): JSX.Element {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  // Brand-INK hold shown for the split second before auth hydration resolves,
+  // so non-admins never see admin content flash before the redirect.
+  gate: { flex: 1, backgroundColor: colors.brand.trustWorth },
+});
