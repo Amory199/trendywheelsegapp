@@ -37,6 +37,19 @@ export const setCredentialsSchema = z.object({
   age: z.number().int().min(13).max(120).optional(),
 });
 
+// Admin "act as" — assume a customer or staff role (with a staffRole) to preview
+// that experience under the role's real permissions. Admin can't assume "admin"
+// (that's their real role) and staffRole is required when assuming staff.
+export const assumeRoleSchema = z
+  .object({
+    role: z.enum(["customer", "staff"]),
+    staffRole: z.enum(["sales", "support", "inventory", "mechanic"]).optional(),
+  })
+  .refine((v) => v.role !== "staff" || !!v.staffRole, {
+    message: "staffRole is required when assuming a staff role",
+    path: ["staffRole"],
+  });
+
 // ─── Vehicles ────────────────────────────────────────────────
 
 const vehicleTypeEnum = z.enum(["4-seater", "6-seater", "LED"]);
