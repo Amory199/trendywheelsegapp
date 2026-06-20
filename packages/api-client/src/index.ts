@@ -224,6 +224,14 @@ class ApiClient {
     return this.request("POST", "/api/auth/set-credentials", { body });
   }
 
+  // Admin "act as": mint a scoped token to preview a customer/staff role.
+  async assumeRole(body: {
+    role: "customer" | "staff";
+    staffRole?: string;
+  }): Promise<{ token: string; user: User }> {
+    return this.request("POST", "/api/auth/assume-role", { body });
+  }
+
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
     return this.request("POST", "/api/auth/refresh-token", { body: { refreshToken } });
   }
