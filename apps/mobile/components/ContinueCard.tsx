@@ -11,11 +11,13 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-store";
 import { useLocale, useT } from "../lib/locale";
 import { useDisplay } from "../lib/typography";
+import { useTheme } from "../lib/use-theme";
 import { useRequireAuth } from "../lib/use-require-auth";
 import { vehicleImageUrl } from "../lib/vehicle";
 
+// INK stays only as an opaque shadow color; all visible text/surfaces now read
+// from the theme palette so the card is legible in dark mode too.
 const INK = "#02011F";
-const MUTED = "rgba(2,1,31,0.55)";
 
 // The single item the card surfaces, off whichever auth-only, user-scoped
 // source resolved first (a COMPLETED purchase → saved favorite).
@@ -65,6 +67,7 @@ export function ContinueCard(): JSX.Element | null {
   const display = useDisplay();
   const router = useRouter();
   const requireAuth = useRequireAuth();
+  const { palette } = useTheme();
   const rtl = isRTL(useLocale((s) => s.locale));
 
   const ordersQ = useQuery({
@@ -86,11 +89,15 @@ export function ContinueCard(): JSX.Element | null {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>{t(item.titleKey)}</Text>
+      <Text style={[styles.label, { color: palette.text }]}>{t(item.titleKey)}</Text>
       <Pressable
         onPress={() => requireAuth(() => router.push(item.route as never))}
         android_ripple={{ color: "rgba(43,15,248,0.10)", borderless: false }}
-        style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.98 }] }]}
+        style={({ pressed }) => [
+          styles.card,
+          { backgroundColor: palette.card, borderWidth: 1, borderColor: palette.hairline },
+          pressed && { transform: [{ scale: 0.98 }] },
+        ]}
       >
         <View style={styles.thumb}>
           {item.image ? (
@@ -110,7 +117,7 @@ export function ContinueCard(): JSX.Element | null {
         </View>
 
         <View style={styles.middle}>
-          <Text numberOfLines={1} style={styles.title}>
+          <Text numberOfLines={1} style={[styles.title, { color: palette.text }]}>
             {item.title}
           </Text>
           <Text numberOfLines={1} style={[styles.price, display(0.3)]}>

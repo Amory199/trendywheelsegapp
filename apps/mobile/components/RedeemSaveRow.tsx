@@ -9,8 +9,11 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-store";
 import { useT } from "../lib/locale";
 import { useDisplay, useTracking } from "../lib/typography";
+import { useTheme } from "../lib/use-theme";
 import { useRequireAuth } from "../lib/use-require-auth";
 
+// Defaults; overridden inline from the theme palette so text stays legible on
+// the brand-tinted cards in dark mode.
 const INK = "#02011F";
 const MUTED = "rgba(2,1,31,0.55)";
 
@@ -41,6 +44,7 @@ export function RedeemSaveRow(): JSX.Element {
   const t = useT();
   const display = useDisplay();
   const track = useTracking();
+  const { palette } = useTheme();
 
   // Refresh-only: skipped entirely for guests, and a dead/expired token falls
   // back to null rather than throwing on the home screen.
@@ -67,7 +71,10 @@ export function RedeemSaveRow(): JSX.Element {
             <Ionicons name="gift" size={26} color={colors.brand.trendyPink} />
           </View>
           <View style={styles.guestText}>
-            <Text style={[styles.guestTitle, display(0.2)]} numberOfLines={2}>
+            <Text
+              style={[styles.guestTitle, display(0.2), { color: palette.text }]}
+              numberOfLines={2}
+            >
               {t("home.redeemGuestTitle")}
             </Text>
           </View>
@@ -99,15 +106,18 @@ export function RedeemSaveRow(): JSX.Element {
         android_ripple={{ color: "rgba(169,244,83,0.18)" }}
       >
         <View style={[styles.iconWrap, { backgroundColor: colors.brand.ecoLimelight + "33" }]}>
-          <Ionicons name="medal" size={22} color={INK} />
+          <Ionicons name="medal" size={22} color={palette.text} />
         </View>
-        <Text style={[styles.cardLabel, { letterSpacing: track(0.6) }]} numberOfLines={1}>
+        <Text
+          style={[styles.cardLabel, { letterSpacing: track(0.6), color: palette.muted }]}
+          numberOfLines={1}
+        >
           {t("home.loyaltyTitle")}
         </Text>
-        <Text style={[styles.points, display(0.3)]} numberOfLines={1}>
+        <Text style={[styles.points, display(0.3), { color: palette.text }]} numberOfLines={1}>
           {points.toLocaleString()}
         </Text>
-        <Text style={styles.cardSub} numberOfLines={1}>
+        <Text style={[styles.cardSub, { color: palette.muted }]} numberOfLines={1}>
           {t("home.loyaltyPoints")} · {t(`home.tier.${tier}` as never)}
         </Text>
       </Pressable>
@@ -125,10 +135,13 @@ export function RedeemSaveRow(): JSX.Element {
         <View style={[styles.iconWrap, { backgroundColor: colors.brand.poolBlue + "33" }]}>
           <Ionicons name="gift" size={22} color={colors.brand.poolBlue} />
         </View>
-        <Text style={[styles.cardLabel, { letterSpacing: track(0.6) }]} numberOfLines={1}>
+        <Text
+          style={[styles.cardLabel, { letterSpacing: track(0.6), color: palette.muted }]}
+          numberOfLines={1}
+        >
           {t("home.referTitle")}
         </Text>
-        <Text style={[styles.referSub, display(0.2)]} numberOfLines={2}>
+        <Text style={[styles.referSub, display(0.2), { color: palette.text }]} numberOfLines={2}>
           {t("home.referSub")}
         </Text>
       </Pressable>

@@ -3,8 +3,7 @@ import { Image } from "expo-image";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useT } from "../lib/locale";
-
-const INK = "#02011F";
+import { useTheme } from "../lib/use-theme";
 
 // Mirrors CategoryStrip's image map. All 7 categories now have art; kept local
 // so this lightweight row carries no dependency on the heavier strip component.
@@ -25,6 +24,7 @@ interface Props {
 /** Talabat-style round category shortcuts for the home discovery feed. */
 export function CategoryCircles({ onPress }: Props): JSX.Element {
   const t = useT();
+  const { palette } = useTheme();
   return (
     <ScrollView
       horizontal
@@ -45,7 +45,7 @@ export function CategoryCircles({ onPress }: Props): JSX.Element {
               transition={200}
             />
           </View>
-          <Text numberOfLines={1} style={styles.label}>
+          <Text numberOfLines={1} style={[styles.label, { color: palette.text }]}>
             {t(`home.categories.${c.key}`)}
           </Text>
         </Pressable>
@@ -68,5 +68,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(2,1,31,0.06)",
   },
-  label: { marginTop: 6, fontSize: 11, fontWeight: "600", color: INK, textAlign: "center" },
+  label: { marginTop: 6, fontSize: 11, fontWeight: "600", textAlign: "center" },
 });

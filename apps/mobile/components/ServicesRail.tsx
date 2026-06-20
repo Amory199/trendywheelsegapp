@@ -6,11 +6,12 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useLocale, useT } from "../lib/locale";
 import { useDisplay } from "../lib/typography";
+import { useTheme } from "../lib/use-theme";
 
 import { SectionHeader } from "./SectionHeader";
 
+// INK stays only as an opaque shadow color; surfaces/text read from the palette.
 const INK = "#02011F";
-const MUTED = "rgba(2,1,31,0.55)";
 
 // Evergreen service entry points, rendered as rich Talabat-style cards. Static
 // config (icons + brand tints + routes + i18n keys) — no network. Each route is
@@ -74,6 +75,7 @@ export function ServicesRail(): JSX.Element {
   const t = useT();
   const rtl = isRTL(useLocale((s) => s.locale));
   const display = useDisplay();
+  const { palette } = useTheme();
 
   return (
     <View style={styles.section}>
@@ -89,18 +91,26 @@ export function ServicesRail(): JSX.Element {
           <Pressable
             onPress={() => router.push(item.route as never)}
             android_ripple={{ color: "rgba(43,15,248,0.10)", borderless: false }}
-            style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.97 }] }]}
+            style={({ pressed }) => [
+              styles.card,
+              { backgroundColor: palette.card, borderWidth: 1, borderColor: palette.hairline },
+              pressed && { transform: [{ scale: 0.97 }] },
+            ]}
           >
             <View style={styles.cardTop}>
               <View style={[styles.iconWrap, { backgroundColor: item.tint + "1A" }]}>
                 <Ionicons name={item.icon} size={22} color={item.tint} />
               </View>
-              <Ionicons name={rtl ? "arrow-back" : "arrow-forward"} size={18} color={MUTED} />
+              <Ionicons
+                name={rtl ? "arrow-back" : "arrow-forward"}
+                size={18}
+                color={palette.muted}
+              />
             </View>
-            <Text numberOfLines={1} style={[styles.title, display(0.3)]}>
+            <Text numberOfLines={1} style={[styles.title, display(0.3), { color: palette.text }]}>
               {t(item.titleKey)}
             </Text>
-            <Text numberOfLines={2} style={styles.sub}>
+            <Text numberOfLines={2} style={[styles.sub, { color: palette.muted }]}>
               {t(item.subKey)}
             </Text>
           </Pressable>
@@ -142,5 +152,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: { fontSize: 16, color: INK },
-  sub: { fontSize: 12, color: MUTED, lineHeight: 16 },
+  sub: { fontSize: 12, lineHeight: 16 },
 });

@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
 
 import { useT } from "../lib/locale";
+import { useTheme } from "../lib/use-theme";
 
 /**
  * Tap-to-search entry on the home feed. Looks like a field but routes to the
@@ -12,13 +13,20 @@ import { useT } from "../lib/locale";
 export function HomeSearchBar(): JSX.Element {
   const router = useRouter();
   const t = useT();
+  const { palette } = useTheme();
   return (
     <Pressable
       onPress={() => router.push("/search")}
-      style={({ pressed }) => [styles.bar, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [
+        styles.bar,
+        { backgroundColor: palette.card, borderColor: palette.border },
+        pressed && { opacity: 0.85 },
+      ]}
     >
-      <Ionicons name="search" size={18} color="rgba(2,1,31,0.45)" />
-      <Text style={styles.placeholder}>{t("home.searchPlaceholder")}</Text>
+      <Ionicons name="search" size={18} color={palette.muted} />
+      <Text style={[styles.placeholder, { color: palette.muted }]}>
+        {t("home.searchPlaceholder")}
+      </Text>
     </Pressable>
   );
 }
@@ -28,10 +36,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#fff",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(2,1,31,0.08)",
     paddingHorizontal: 14,
     paddingVertical: 13,
     marginHorizontal: 16,
@@ -40,5 +46,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
   },
-  placeholder: { fontSize: 14, color: "rgba(2,1,31,0.45)" },
+  placeholder: { fontSize: 14 },
 });

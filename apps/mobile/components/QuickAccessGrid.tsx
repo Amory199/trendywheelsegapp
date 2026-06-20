@@ -5,8 +5,8 @@ import * as React from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { useT } from "../lib/locale";
+import { useTheme } from "../lib/use-theme";
 
-const INK = "#02011F";
 const GREEN = "#16A34A";
 const AMBER = "#F5B800";
 
@@ -69,12 +69,13 @@ const COLS = 4;
 export function QuickAccessGrid(): React.JSX.Element {
   const router = useRouter();
   const t = useT();
+  const { palette } = useTheme();
   const { width } = useWindowDimensions();
   const tileW = (width - H_PAD * 2 - GAP * (COLS - 1)) / COLS;
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>{t("home.quickTitle")}</Text>
+      <Text style={[styles.title, { color: palette.text }]}>{t("home.quickTitle")}</Text>
       <View style={styles.grid}>
         {TILES.map((tile) => (
           <Pressable
@@ -86,7 +87,7 @@ export function QuickAccessGrid(): React.JSX.Element {
             <View style={[styles.iconWrap, { backgroundColor: tile.tint + "1A" }]}>
               <Ionicons name={tile.icon} size={22} color={tile.tint} />
             </View>
-            <Text style={styles.label} numberOfLines={1}>
+            <Text style={[styles.label, { color: palette.text }]} numberOfLines={1}>
               {t(tile.labelKey)}
             </Text>
           </Pressable>
@@ -101,7 +102,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: "800",
-    color: INK,
     paddingHorizontal: H_PAD,
     marginBottom: 12,
   },
@@ -119,5 +119,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  label: { fontSize: 11, color: INK, fontWeight: "700", textAlign: "center" },
+  label: { fontSize: 11, fontWeight: "700", textAlign: "center" },
 });
