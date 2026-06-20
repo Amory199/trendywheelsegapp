@@ -69,7 +69,23 @@ export async function getMe(req: Request, res: Response): Promise<void> {
   });
   if (!user) throw AppError.notFound("User not found");
   const { passwordHash, ...safe } = user;
-  res.json({ data: { ...safe, hasPassword: !!passwordHash } });
+  // When this is an admin "act as" token, present the ASSUMED role (from the
+  // token) instead of the admin's real DB identity, so the app stays in the
+  // previewed role across reloads. The real admin is in req.user.actingAs.
+  const acting = req.user!.actingAs;
+  res.json({
+    data: {
+      ...safe,
+      hasPassword: !!passwordHash,
+      ...(acting
+        ? {
+            accountType: req.user!.accountType,
+            staffRole: req.user!.staffRole ?? null,
+            actingAsAdminId: acting,
+          }
+        : {}),
+    },
+  });
 }
 
 // PATCH /api/users/me/preferences

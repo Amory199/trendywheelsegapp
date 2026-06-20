@@ -478,3 +478,47 @@ export async function setCredentials(
     },
   };
 }
+
+/**
+ * Admin "act as": mint a short-lived token that assumes a customer or staff
+ * role so the admin can preview that experience under the role's REAL
+ * permissions (authorize() enforces it via the assumed accountType). The
+ * token keeps the admin's own userId (data ownership) and carries `actingAs`
+ * so mutations are audited back to the real admin and CRM scoping treats the
+ * session as non-admin. No refresh token is issued — it's ephemeral; exiting
+ * restores the admin token the client kept. Caller MUST already be admin-gated.
+ */
+export async function assumeRole(
+  adminId: string,
+  role: "customer" | "staff",
+  staffRole?: "sales" | "support" | "inventory" | "mechanic",
+): Promise<{ token: string; user: object }> {
+  const admin = await prisma.user.findUnique({ where: { id: adminId } });
+  if (!admin || admin.accountType !== "admin") {
+    throw AppError.forbidden("Only an admin can switch roles");
+  }
+  const assumedStaffRole = role === "staff" ? (staffRole ?? null) : null;
+  const payload: AuthPayload = {
+    userId: adminId,
+    accountType: role,
+    staffRole: assumedStaffRole,
+    actingAs: adminId,
+  };
+  const token = signAccessToken(payload, "2h");
+  return {
+    token,
+    user: {
+      id: admin.id,
+      phone: admin.phone,
+      name: admin.name,
+      email: admin.email,
+      age: admin.age,
+      accountType: role,
+      staffRole: assumedStaffRole,
+      hasPassword: !!admin.passwordHash,
+      loyaltyTier: admin.loyaltyTier,
+      loyaltyPoints: admin.loyaltyPoints,
+      actingAsAdminId: adminId,
+    },
+  };
+}

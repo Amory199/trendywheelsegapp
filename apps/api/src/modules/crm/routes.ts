@@ -27,7 +27,7 @@ router.get("/leads", async (req, res) => {
   const userId = req.user!.userId;
 
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const admin = isAdmin(me);
+  const admin = isAdmin(me) && !req.user!.actingAs;
 
   const where: Record<string, unknown> = {};
 
@@ -66,7 +66,7 @@ router.get("/leads", async (req, res) => {
 router.get("/pipeline", async (req, res) => {
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const admin = isAdmin(me);
+  const admin = isAdmin(me) && !req.user!.actingAs;
 
   // Pipeline KPIs exclude inactive leads from sales' view so the buckets only
   // reflect actionable work. Admin keeps the full picture.
@@ -123,7 +123,7 @@ router.get("/pipeline", async (req, res) => {
 // ─── Team list (admin-only) ──────────────────────────────────
 router.get("/team", async (req, res) => {
   const me = await prisma.user.findUnique({ where: { id: req.user!.userId } });
-  const admin = isAdmin(me);
+  const admin = isAdmin(me) && !req.user!.actingAs;
   if (!admin) {
     res.status(403).json({ error: "Team view is admin-only" });
     return;
@@ -250,7 +250,7 @@ router.get("/my-earnings", async (req, res) => {
 router.get("/leads/:id", async (req, res) => {
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const admin = isAdmin(me);
+  const admin = isAdmin(me) && !req.user!.actingAs;
 
   const lead = await prisma.lead.findUnique({
     where: { id: req.params.id },
@@ -365,7 +365,7 @@ router.patch("/leads/:id", async (req, res) => {
   if (!lead) throw AppError.notFound("Lead not found");
 
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const admin = isAdmin(me);
+  const admin = isAdmin(me) && !req.user!.actingAs;
   if (!admin && lead.ownerId !== userId) {
     throw AppError.forbidden("You don't own this lead");
   }
@@ -423,7 +423,7 @@ router.patch("/leads/:id", async (req, res) => {
 router.post("/leads/:id/rotate", async (req, res) => {
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const admin = isAdmin(me);
+  const admin = isAdmin(me) && !req.user!.actingAs;
   const lead = await prisma.lead.findUnique({ where: { id: req.params.id } });
   if (!lead) throw AppError.notFound("Lead not found");
   if (!admin && lead.ownerId !== userId) {
@@ -439,7 +439,7 @@ router.post("/leads/:id/reassign", async (req, res) => {
   const body = reassignSchema.parse(req.body);
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const admin = isAdmin(me);
+  const admin = isAdmin(me) && !req.user!.actingAs;
   if (!admin) throw AppError.forbidden("Admins only");
 
   const lead = await prisma.lead.findUnique({ where: { id: req.params.id } });
@@ -483,7 +483,7 @@ router.post("/leads/:id/activities", async (req, res) => {
   const body = activitySchema.parse(req.body);
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const admin = isAdmin(me);
+  const admin = isAdmin(me) && !req.user!.actingAs;
   const lead = await prisma.lead.findUnique({ where: { id: req.params.id } });
   if (!lead) throw AppError.notFound("Lead not found");
   // Same 404 semantics as GET /leads/:id — if the lead rotated away from this
@@ -516,7 +516,7 @@ const rulesSchema = z.object({
 router.patch("/rules", async (req, res) => {
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const admin = isAdmin(me);
+  const admin = isAdmin(me) && !req.user!.actingAs;
   if (!admin) throw AppError.forbidden("Admins only");
 
   const body = rulesSchema.parse(req.body);
@@ -559,7 +559,7 @@ router.post("/inventory/attach", async (req, res) => {
   const body = matchSchema.parse(req.body);
   const userId = req.user!.userId;
   const me = await prisma.user.findUnique({ where: { id: userId } });
-  const admin = isAdmin(me);
+  const admin = isAdmin(me) && !req.user!.actingAs;
 
   const lead = await prisma.lead.findUnique({ where: { id: body.leadId } });
   if (!lead) throw AppError.notFound("Lead not found");

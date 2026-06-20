@@ -1,4 +1,4 @@
-import type { AccountType } from "@trendywheels/types";
+import type { AccountType, StaffRole } from "@trendywheels/types";
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
@@ -10,6 +10,9 @@ import { AppError } from "../utils/errors.js";
 export interface AuthPayload {
   userId: string;
   accountType: AccountType;
+  // Present only on admin "act as" tokens: the assumed staffRole (when the
+  // assumed accountType is "staff") and the real admin's id behind the mask.
+  staffRole?: StaffRole | null;
   actingAs?: string;
   // Standard JWT claim (seconds). Auto-added by jwt.sign; used to compare a
   // token against the per-user session-revocation marker (see INC-013).

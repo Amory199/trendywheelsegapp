@@ -4,10 +4,11 @@ import {
   refreshTokenSchema,
   staffLoginSchema,
   setCredentialsSchema,
+  assumeRoleSchema,
 } from "@trendywheels/validators";
 import { Router, type Router as RouterType } from "express";
 
-import { authenticate } from "../../middleware/auth.js";
+import { authenticate, authorize } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 
 import * as authController from "./controller.js";
@@ -23,6 +24,13 @@ router.post(
   authenticate,
   validate({ body: setCredentialsSchema }),
   authController.setCredentials,
+);
+router.post(
+  "/assume-role",
+  authenticate,
+  authorize("admin"),
+  validate({ body: assumeRoleSchema }),
+  authController.assumeRole,
 );
 router.post("/refresh-token", validate({ body: refreshTokenSchema }), authController.refreshToken);
 router.post("/logout", authenticate, authController.logout);

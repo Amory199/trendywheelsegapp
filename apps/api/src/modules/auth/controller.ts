@@ -53,6 +53,18 @@ export async function setCredentials(req: Request, res: Response): Promise<void>
   res.json(result);
 }
 
+// Admin "act as": mint a scoped token for a customer/staff preview. Route is
+// admin-gated; we additionally refuse to assume FROM an already-acting token so
+// an impersonation session can never be used to re-escalate.
+export async function assumeRole(req: Request, res: Response): Promise<void> {
+  if (req.user!.actingAs) {
+    throw AppError.forbidden("Exit the current role before switching again");
+  }
+  const { role, staffRole } = req.body;
+  const result = await authService.assumeRole(req.user!.userId, role, staffRole);
+  res.json(result);
+}
+
 /**
  * Exchange a Firebase Phone Auth ID token for our JWT pair. Trust boundary:
  * Firebase already verified the SMS code on-device + minted the ID token,
