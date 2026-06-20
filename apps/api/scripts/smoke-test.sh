@@ -559,6 +559,73 @@ curl -fsS -A "$SMOKE_UA" "$BASE/loyalty/me" -H "Authorization: Bearer $SALES_TOK
   | jq -e '.data | has("points") and has("tier")' >/dev/null || fail "/loyalty/me shape wrong"
 pass "loyalty/me shape ok"
 
+# ─── 12n. Support tickets — discrete per-ticket threads ──────
+# Each support request is now its OWN ticket + thread. A new ticket starts a
+# fresh thread (no carry-over of a prior request's messages), staff replies
+# append to THAT ticket and move open→in-progress. Replaces the old reused-
+# conversation model. (INC-043)
+note "12n. Support tickets — discrete threads"
+TK1=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/tickets" \
+  -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+  -d '{"subject":"smoke ticket one","message":"first ticket opening message","priority":"medium"}') \
+  || fail "POST /tickets (create with opening message) failed"
+TK1_ID=$(echo "$TK1" | jq -r '.data.id // .id')
+[ -n "$TK1_ID" ] && [ "$TK1_ID" != "null" ] || fail "no ticket id: $TK1"
+[ "$(echo "$TK1" | jq '.data.messages | length')" = "1" ] \
+  || fail "new ticket should carry exactly its 1 opening message"
+pass "ticket created with its opening message (id=$TK1_ID)"
+
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/tickets/$TK1_ID/messages" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"message":"admin smoke reply on ticket one"}' >/dev/null \
+  || fail "POST /tickets/:id/messages (admin reply) failed"
+TK1_AFTER=$(curl -fsS -A "$SMOKE_UA" "$BASE/tickets/$TK1_ID" -H "Authorization: Bearer $ADMIN_TOKEN")
+[ "$(echo "$TK1_AFTER" | jq '.data.messages | length')" = "2" ] \
+  || fail "reply did not append to the ticket thread"
+[ "$(echo "$TK1_AFTER" | jq -r '.data.status')" = "in-progress" ] \
+  || fail "staff reply on an open ticket didn't move it to in-progress"
+pass "reply appends to thread + open→in-progress"
+
+TK2=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/tickets" \
+  -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+  -d '{"subject":"smoke ticket two","message":"second ticket opening message","priority":"low"}')
+[ "$(echo "$TK2" | jq '.data.messages | length')" = "1" ] \
+  || fail "a NEW ticket carried over prior messages — discrete-ticket separation regressed"
+pass "second ticket is a fresh, separate thread (no old messages)"
+
+# ─── 12o. Sales admin board surfaces pending + approve/reject ─
+# Customer listings are created "pending"; the public /sales is active-only, so
+# they were invisible to admin. The authed /sales/admin/all board returns every
+# status. Admin can approve (→active) or reject (delete). (INC-042)
+note "12o. Sales admin board — pending visibility + approve/reject"
+SL=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/sales" \
+  -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+  -d '{"title":"smoke pending listing","category":"golf-cart","make":"Club Car","model":"Precedent","year":2021,"price":50000,"mileage":1000,"transmission":"automatic","fuelType":"electric","color":"white","description":"smoke-test pending sales listing"}') \
+  || fail "POST /sales (customer) failed"
+SL_ID=$(echo "$SL" | jq -r '.data.id // .id')
+[ -n "$SL_ID" ] && [ "$SL_ID" != "null" ] || fail "no sales listing id: $SL"
+[ "$(echo "$SL" | jq -r '.data.status')" = "pending" ] \
+  || fail "customer listing not pending: $(echo "$SL" | jq -r '.data.status')"
+pass "customer sales listing created pending (id=$SL_ID)"
+
+ADMIN_SEES=$(curl -fsS -A "$SMOKE_UA" "$BASE/sales/admin/all" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  | jq "[.data[] | select(.id == \"$SL_ID\")] | length")
+[ "$ADMIN_SEES" = "1" ] || fail "admin board can't see the pending listing (count=$ADMIN_SEES) — INC-042 regressed"
+PUBLIC_SEES=$(curl -fsS -A "$SMOKE_UA" "$BASE/sales?limit=200" \
+  | jq "[.data[] | select(.id == \"$SL_ID\")] | length")
+[ "$PUBLIC_SEES" = "0" ] || fail "pending listing leaked into the public /sales feed"
+SL_ANON=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" "$BASE/sales/admin/all")
+[ "$SL_ANON" = "401" ] || [ "$SL_ANON" = "403" ] || fail "/sales/admin/all not staff-gated (got $SL_ANON)"
+pass "pending visible to admin board, hidden from public, board staff-gated"
+
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/sales/$SL_ID/restore" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || fail "approve (/restore) failed"
+[ "$(curl -fsS -A "$SMOKE_UA" "$BASE/sales/$SL_ID" | jq -r '.data.status')" = "active" ] \
+  || fail "listing not active after approve"
+curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/sales/$SL_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
+  || fail "reject (DELETE) failed"
+pass "approve→active, reject→removed"
+
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
 # No DELETE endpoint on /crm/leads, so leave the smoke-test lead. The contact
