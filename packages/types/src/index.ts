@@ -59,6 +59,8 @@ export interface User {
   status: UserStatus;
   // True once the user has set an email + password (so they can skip OTP).
   hasPassword?: boolean;
+  // Set only while an admin is "acting as" this role: the real admin's id.
+  actingAsAdminId?: string | null;
   preferences: UserPreferences | null;
   loyaltyTier: LoyaltyTier;
   loyaltyPoints: number;
