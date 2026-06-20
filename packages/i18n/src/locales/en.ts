@@ -75,6 +75,20 @@ const en = {
     invalidCredentials: "Wrong email or password.",
     noAccountSignup: "New here? Sign up with your phone",
   },
+  roleSwitch: {
+    viewAs: "View as another role",
+    subtitle:
+      "Preview the app as a customer or a staff member, with that role's real permissions. Only an admin can do this.",
+    actingAs: "Viewing as",
+    exit: "Exit",
+    customer: "Customer",
+    sales: "Sales",
+    support: "Support",
+    inventory: "Inventory",
+    mechanic: "Mechanic",
+    cancel: "Cancel",
+    failed: "Couldn't switch role",
+  },
   tabs: {
     home: "Home",
     buy: "Buy",
