@@ -6,7 +6,7 @@ import {
 } from "@trendywheels/validators";
 import { Router, type Router as RouterType } from "express";
 
-import { authenticate } from "../../middleware/auth.js";
+import { authenticate, authorize } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 
 import * as salesController from "./controller.js";
@@ -14,6 +14,9 @@ import * as salesController from "./controller.js";
 const router: RouterType = Router();
 
 router.get("/", validate({ query: paginationSchema }), salesController.list);
+// Admin/staff moderation board — all statuses, incl. pending customer
+// submissions. Defined before "/:id" so it isn't swallowed as an id.
+router.get("/admin/all", authenticate, authorize("admin", "staff"), salesController.listForAdmin);
 router.get("/:id", validate({ params: idParamSchema }), salesController.getById);
 router.post(
   "/",
@@ -27,12 +30,7 @@ router.put(
   validate({ params: idParamSchema, body: updateSalesListingSchema }),
   salesController.update,
 );
-router.delete(
-  "/:id",
-  authenticate,
-  validate({ params: idParamSchema }),
-  salesController.remove,
-);
+router.delete("/:id", authenticate, validate({ params: idParamSchema }), salesController.remove);
 router.post(
   "/:id/mark-sold",
   authenticate,

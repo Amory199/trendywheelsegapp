@@ -67,6 +67,26 @@ export async function list(req: Request, res: Response): Promise<void> {
   res.json(result);
 }
 
+// Admin/staff sales board. Unlike the public `list`, this returns listings of
+// EVERY status (active, pending-review, sold) so customer-submitted listings —
+// which are created "pending" — actually surface in the approval queue. The
+// public route can't do this: it has no `authenticate`, so `req.user` is always
+// undefined there and its staff branch was dead (INC-042). Optional `status`
+// query narrows the board; owner info is included for the moderation drawer.
+export async function listForAdmin(req: Request, res: Response): Promise<void> {
+  const { status } = req.query as Record<string, string>;
+  const where: Record<string, unknown> = {};
+  if (status) where.status = status;
+
+  const data = await prisma.salesListing.findMany({
+    where,
+    include: { user: { select: { id: true, name: true, phone: true, email: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 300,
+  });
+  res.json({ data });
+}
+
 export async function getById(req: Request, res: Response): Promise<void> {
   const listing = await prisma.salesListing.findUnique({
     where: { id: req.params.id },
