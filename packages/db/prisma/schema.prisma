@@ -89,6 +89,7 @@ model User {
   salesListings            SalesListing[]
   supportTickets           SupportTicket[]           @relation("UserTickets")
   assignedTickets          SupportTicket[]           @relation("AgentTickets")
+  ticketMessages           TicketMessage[]           @relation("TicketMessageSender")
   refreshTokens            RefreshToken[]
   otpCodes                 OtpCode[]
   auditLogs                AuditLog[]
@@ -535,13 +536,32 @@ model SupportTicket {
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
-  user  User  @relation("UserTickets", fields: [userId], references: [id])
-  agent User? @relation("AgentTickets", fields: [assignedAgentId], references: [id])
+  user     User            @relation("UserTickets", fields: [userId], references: [id])
+  agent    User?           @relation("AgentTickets", fields: [assignedAgentId], references: [id])
+  messages TicketMessage[]
 
   @@index([userId])
   @@index([status])
   @@index([priority])
   @@map("support_tickets")
+}
+
+// Per-ticket message thread. Each support request is a discrete ticket with its
+// OWN messages — replacing the old reused-conversation model where every new
+// support request reopened one rolling chat (showing prior messages). The first
+// message is the customer's opening note; staff/customer replies append here.
+model TicketMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  senderId  String   @map("sender_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender User          @relation("TicketMessageSender", fields: [senderId], references: [id])
+
+  @@index([ticketId])
+  @@map("ticket_messages")
 }
 
 model KBArticle {
