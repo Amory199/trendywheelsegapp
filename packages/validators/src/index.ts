@@ -298,6 +298,11 @@ export const updateTicketSchema = z.object({
   assignedAgentId: z.string().uuid().optional(),
 });
 
+// A reply appended to a ticket's own message thread.
+export const ticketMessageSchema = z.object({
+  message: z.string().min(1).max(2000),
+});
+
 // ─── Pagination ──────────────────────────────────────────────
 
 export const paginationSchema = z.object({
