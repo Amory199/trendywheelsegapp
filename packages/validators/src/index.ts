@@ -28,6 +28,15 @@ export const staffLoginSchema = z.object({
   totpCode: z.string().length(6).optional(),
 });
 
+// Customer sets up name + email + password after first-time phone verification,
+// so subsequent logins use credentials (no OTP). Reused by the profile screen.
+export const setCredentialsSchema = z.object({
+  name: z.string().min(2, "Name is too short").max(100),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(100),
+  age: z.number().int().min(13).max(120).optional(),
+});
+
 // ─── Vehicles ────────────────────────────────────────────────
 
 const vehicleTypeEnum = z.enum(["4-seater", "6-seater", "LED"]);
