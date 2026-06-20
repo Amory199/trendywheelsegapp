@@ -14,7 +14,7 @@ import { initAppCheck } from "../lib/app-check";
 import { useAuth } from "../lib/auth-store";
 import { installMobileErrorReporter } from "../lib/error-reporter";
 import { routeNotification } from "../lib/notification-router";
-import { registerPushToken } from "../lib/push";
+import { ensureNotificationPermission, registerPushToken } from "../lib/push";
 import { initMobileSentry } from "../lib/sentry";
 
 // Wrap in try/catch — nothing at module-load should ever block first paint.
@@ -40,6 +40,14 @@ const queryClient = new QueryClient({
 export default function RootLayout(): JSX.Element {
   const user = useAuth((s) => s.user);
   const router = useRouter();
+  // Ask for notification permission in-app on first launch — independent of
+  // login, so guests and staff alike actually get the system prompt. Delayed
+  // slightly so the dialog doesn't collide with the cold-start splash.
+  useEffect(() => {
+    const t = setTimeout(() => void ensureNotificationPermission(), 1200);
+    return () => clearTimeout(t);
+  }, []);
+
   useEffect(() => {
     if (user?.id) void registerPushToken();
   }, [user?.id]);
