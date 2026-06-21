@@ -628,14 +628,17 @@ curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/sales/$SL_ID" -H "Authorization: Bearer
   || fail "reject (DELETE) failed"
 pass "approve→active, reject→removed"
 
-# ─── 12p. Login routing + admin set-password + email login + deleted-user hiding ───
-# Registered accounts (staff/admin, or a customer who set a password) are routed
-# to email+password; admin can set/reset a user's password; the email+password
-# login then works; and a soft-deleted user disappears from the admin list.
-note "12p. login-method routing + admin set-password + email login + deleted-user hiding"
+# ─── 12p. Phone/email login + OTP-bootstrap routing + set-password + email-optional ───
+# The phone number is the username. A PASSWORDLESS account (incl. staff/admin)
+# routes to OTP so it can bootstrap a password (this was the lockout bug — it
+# used to route them to a password screen they had no password for). Once it has
+# a password it routes to password. Login works by phone OR email; email is
+# optional on set-credentials; soft-deleted users disappear from the list.
+note "12p. phone/email login + login-method routing + set-password + email-optional"
 PW_STAMP=$(date +%s)
 PW_EMAIL="smoke-pw-$PW_STAMP@trendywheelseg.com"
-PW_PHONE="+20157$(printf '%07d' $((PW_STAMP % 10000000)))"
+PW_LOCAL="10$(printf '%08d' $((PW_STAMP % 100000000)))" # 10-digit Egypt mobile (1X…)
+PW_PHONE="+20${PW_LOCAL}"
 PW_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
   -d "{\"name\":\"Smoke Pw\",\"email\":\"$PW_EMAIL\",\"phone\":\"$PW_PHONE\",\"staffRole\":\"support\"}") \
@@ -643,33 +646,52 @@ PW_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/users" \
 PW_ID=$(echo "$PW_CREATE" | jq -r '.data.id // .id')
 [ -n "$PW_ID" ] && [ "$PW_ID" != "null" ] || fail "no id for throwaway staff: $PW_CREATE"
 
-LM_STAFF=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login-method" -H "$JSON" \
+# Passwordless staff → OTP (so they can bootstrap). Unknown phone → OTP (signup).
+LM_NOPW=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login-method" -H "$JSON" \
   -d "{\"phone\":\"$PW_PHONE\"}" | jq -r '.method')
-[ "$LM_STAFF" = "password" ] || fail "login-method(staff phone)=$LM_STAFF (expected password)"
+[ "$LM_NOPW" = "otp" ] \
+  || fail "login-method(passwordless staff)=$LM_NOPW (expected otp — lockout regression)"
 LM_NEW=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login-method" -H "$JSON" \
   -d '{"phone":"+201598887776"}' | jq -r '.method')
 [ "$LM_NEW" = "otp" ] || fail "login-method(unknown phone)=$LM_NEW (expected otp)"
-pass "login-method routes registered→password, unknown→otp"
+pass "passwordless account routes to OTP (can bootstrap); unknown→otp"
 
 PW_NEW="SmokePw@123456"
 curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/users/$PW_ID/password" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
   -d "{\"password\":\"$PW_NEW\"}" >/dev/null \
   || fail "admin set-password failed"
+LM_HASPW=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login-method" -H "$JSON" \
+  -d "{\"phone\":\"$PW_PHONE\"}" | jq -r '.method')
+[ "$LM_HASPW" = "password" ] || fail "login-method after set-password=$LM_HASPW (expected password)"
+
+# Login by EMAIL (case-insensitive) AND by PHONE (the username), full + local forms.
 PW_LOGIN=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
   -d "{\"email\":\"$PW_EMAIL\",\"password\":\"$PW_NEW\"}") \
-  || fail "email+password login FAILED after admin set-password"
+  || fail "email login FAILED after set-password"
 PW_TOKEN=$(echo "$PW_LOGIN" | jq -r '.token // .accessToken')
 [ -n "$PW_TOKEN" ] && [ "$PW_TOKEN" != "null" ] || fail "no token from email login: $PW_LOGIN"
-WRONG=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/auth/login" -H "$JSON" \
-  -d "{\"email\":\"$PW_EMAIL\",\"password\":\"definitely-wrong\"}")
-[ "$WRONG" = "401" ] || fail "wrong password got $WRONG (expected 401)"
-# Case-INSENSITIVE email login: the UPPERCASE form of the address must also work.
 PW_EMAIL_UP=$(printf '%s' "$PW_EMAIL" | tr '[:lower:]' '[:upper:]')
 curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
   -d "{\"email\":\"$PW_EMAIL_UP\",\"password\":\"$PW_NEW\"}" >/dev/null \
   || fail "email login is case-sensitive — UPPERCASE email rejected"
-pass "admin set-password → email login works (case-insensitive); wrong password 401"
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$PW_PHONE\",\"password\":\"$PW_NEW\"}" >/dev/null \
+  || fail "login by FULL phone number failed — username login broken"
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$PW_LOCAL\",\"password\":\"$PW_NEW\"}" >/dev/null \
+  || fail "login by LOCAL phone (no +20) failed — phone normalization broken"
+WRONG=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$PW_PHONE\",\"password\":\"definitely-wrong\"}")
+[ "$WRONG" = "401" ] || fail "wrong password got $WRONG (expected 401)"
+pass "login works by email AND phone (full + local); wrong password 401"
+
+# Email is OPTIONAL on set-credentials: update name + password with NO email field.
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/set-credentials" \
+  -H "Authorization: Bearer $PW_TOKEN" -H "$JSON" \
+  -d "{\"name\":\"Smoke NoEmail\",\"password\":\"$PW_NEW\"}" >/dev/null \
+  || fail "set-credentials rejected without an email — email not optional"
+pass "set-credentials works without an email (email optional)"
 
 curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/users/$PW_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || fail "delete throwaway failed"

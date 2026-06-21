@@ -134,9 +134,12 @@ export async function verifyOtp(
   // Find or create user
   let user = await prisma.user.findUnique({ where: { phone } });
   let isNewSignup = false;
-  if (user && user.accountType !== "customer") {
-    // Phone-OTP is customer-only. Staff and admins must use email + password.
-    throw AppError.forbidden("Staff and admins must sign in with email and password.");
+  if (user && user.accountType !== "customer" && user.passwordHash) {
+    // A privileged account that ALREADY has a password must sign in with it — a
+    // single SMS factor must not bypass a set password on staff/admin. A
+    // passwordless staff/admin falls through so they can bootstrap a password
+    // (then this guard kicks in on the next login).
+    throw AppError.forbidden("Please sign in with your password.", "USE_PASSWORD");
   }
   if (user && user.status !== "active") {
     throw AppError.forbidden("Account is not active");
@@ -240,8 +243,10 @@ export async function issueTokensForPhone(
   // accounts and so a lost/ported SIM can't take over an admin. This mirrors the
   // same guard in verifyOtp(); the mobile login-method pre-check routes these
   // accounts to the email/password screen before they ever request an OTP.
-  if (user && user.accountType !== "customer") {
-    throw AppError.forbidden("Staff and admins must sign in with email and password.");
+  if (user && user.accountType !== "customer" && user.passwordHash) {
+    // See verifyOtp: a privileged account with a password must use it; a
+    // passwordless one may bootstrap via the verified phone, then set a password.
+    throw AppError.forbidden("Please sign in with your password.", "USE_PASSWORD");
   }
   if (user && user.status !== "active") {
     throw AppError.forbidden("Account is not active");
@@ -333,10 +338,12 @@ export async function issueTokensForPhone(
 export async function getLoginMethod(phone: string): Promise<{ method: "password" | "otp" }> {
   const user = await prisma.user.findUnique({
     where: { phone },
-    select: { accountType: true, passwordHash: true },
+    select: { passwordHash: true },
   });
-  const usesPassword = !!user && (user.accountType !== "customer" || !!user.passwordHash);
-  return { method: usesPassword ? "password" : "otp" };
+  // Has a password → sign in with it. No password yet (new customer, or a
+  // staff/admin who was just created/promoted and never set one) → OTP, which
+  // lets them in to set a password. The phone number is the username.
+  return { method: user?.passwordHash ? "password" : "otp" };
 }
 
 export async function refreshAccessToken(
@@ -411,22 +418,40 @@ export async function logout(userId: string, pushToken?: string): Promise<void> 
   }
 }
 
+// The login identifier (the `email` request field) is a USERNAME — a phone
+// number or an email address. For phones, accept any common shape the user
+// might type (local "1001234567", "01001234567", full "+201001234567") by
+// expanding to the canonical stored forms.
+function phoneVariants(raw: string): string[] {
+  const trimmed = raw.trim();
+  const digits = trimmed.replace(/[^0-9]/g, "");
+  const out = new Set<string>([trimmed]);
+  if (!digits) return [...out];
+  out.add(`+${digits}`); // "201001234567" → "+201001234567"
+  let local = digits;
+  if (local.startsWith("20")) local = local.slice(2);
+  if (local.startsWith("0")) local = local.slice(1);
+  out.add(`+20${local}`); // "1001234567" / "01001234567" → "+201001234567"
+  return [...out];
+}
+
 export async function loginWithPassword(
-  email: string,
+  identifier: string,
   password: string,
 ): Promise<{ token: string; refreshToken: string; user: object }> {
-  // Case-INSENSITIVE email match: emails were historically stored as typed
-  // (e.g. an admin created as "SHADY@GMAIL.COM"), so an exact match made
-  // "shady@gmail.com" fail to log in. Match case-insensitively and trim so
-  // login works regardless of how the address was capitalised.
+  // Match the identifier against PHONE or EMAIL. Email match is case-insensitive
+  // (addresses were historically stored as typed, e.g. "SHADY@GMAIL.COM").
+  const id = identifier.trim();
   const user = await prisma.user.findFirst({
-    where: { email: { equals: email.trim(), mode: "insensitive" } },
+    where: {
+      OR: [{ phone: { in: phoneVariants(id) } }, { email: { equals: id, mode: "insensitive" } }],
+    },
   });
   // Distinct, honest failures so a user knows what to do next. The owner wants
   // clarity over email-enumeration hardening for this app; the auth rate
   // limiter on /api/auth/login already bounds guessing/scraping abuse.
   if (!user) {
-    throw AppError.unauthorized("No account found with that email address.", "NO_ACCOUNT");
+    throw AppError.unauthorized("No account found with that phone number or email.", "NO_ACCOUNT");
   }
   if (!user.passwordHash) {
     throw AppError.unauthorized(
@@ -482,23 +507,26 @@ export async function loginWithPassword(
  */
 export async function setCredentials(
   userId: string,
-  input: { name: string; email: string; password: string; age?: number },
+  input: { name: string; email?: string; password: string; age?: number },
 ): Promise<{ user: object }> {
-  // Normalise the email to lowercase so it's stored consistently and the
-  // case-insensitive login lookup always lands on a single canonical row.
-  const normalizedEmail = input.email.trim().toLowerCase();
-  const existing = await prisma.user.findFirst({
-    where: { email: { equals: normalizedEmail, mode: "insensitive" } },
-  });
-  if (existing && existing.id !== userId) {
-    throw AppError.badRequest("That email is already in use");
+  // Email is OPTIONAL — the phone number is the identifier. Only touch the email
+  // column when a non-empty address is supplied (so we never wipe an existing
+  // one or trip a uniqueness check on an empty string).
+  const normalizedEmail = input.email?.trim().toLowerCase() || null;
+  if (normalizedEmail) {
+    const existing = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+    });
+    if (existing && existing.id !== userId) {
+      throw AppError.badRequest("That email is already in use");
+    }
   }
   const passwordHash = await bcrypt.hash(input.password, 12);
   const user = await prisma.user.update({
     where: { id: userId },
     data: {
       name: input.name,
-      email: normalizedEmail,
+      ...(normalizedEmail ? { email: normalizedEmail } : {}),
       passwordHash,
       ...(input.age !== undefined ? { age: input.age } : {}),
     },
