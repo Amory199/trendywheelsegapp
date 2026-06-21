@@ -23,16 +23,22 @@ export const refreshTokenSchema = z.object({
 });
 
 export const staffLoginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  // The login identifier — a PHONE NUMBER (the username) or an email address.
+  // Field name kept as "email" for request-shape compatibility with existing
+  // clients; the server matches it against phone OR email. No length/format
+  // rule here (a wrong value should fail at the credential check with a clear
+  // message, not a vague validation error).
+  email: z.string().min(1, "Enter your phone number or email"),
+  password: z.string().min(1, "Enter your password"),
   totpCode: z.string().length(6).optional(),
 });
 
-// Customer sets up name + email + password after first-time phone verification,
-// so subsequent logins use credentials (no OTP). Reused by the profile screen.
+// Set up name + password (+ optional email) after first-time phone verification,
+// so subsequent logins use the phone number + password (no OTP). Reused by the
+// profile screen. Email is OPTIONAL — the phone number is the identifier.
 export const setCredentialsSchema = z.object({
   name: z.string().min(2, "Name is too short").max(100),
-  email: z.string().email("Invalid email address"),
+  email: z.string().email("Enter a valid email address").or(z.literal("")).optional(),
   password: z.string().min(8, "Password must be at least 8 characters").max(100),
   age: z.number().int().min(13).max(120).optional(),
 });
@@ -613,8 +619,8 @@ export const createStaffSchema = z
     password: z.string().min(8).max(72).optional(),
     staffRole: z.enum(["admin", "sales", "support", "inventory", "mechanic"]),
   })
-  .refine((data) => data.staffRole !== "admin" || (data.email && data.password), {
-    message: "Admins require email and password (used for web login).",
+  .refine((data) => data.staffRole !== "admin" || !!data.password, {
+    message: "Admins require a password (used for web login). Email is optional.",
     path: ["password"],
   });
 
