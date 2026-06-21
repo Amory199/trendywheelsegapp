@@ -205,6 +205,12 @@ class ApiClient {
     return this.request("POST", "/api/auth/send-otp", { body: { phone } });
   }
 
+  // Pre-login routing: "password" → registered (staff/admin or a customer who
+  // set credentials) → send to email/password screen; "otp" → new / OTP-only.
+  async loginMethod(phone: string): Promise<{ method: "password" | "otp" }> {
+    return this.request("POST", "/api/auth/login-method", { body: { phone } });
+  }
+
   async verifyOtp(phone: string, otp: string): Promise<LoginResponse> {
     return this.request("POST", "/api/auth/verify-otp", { body: { phone, otp } });
   }
