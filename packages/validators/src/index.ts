@@ -36,9 +36,20 @@ export const staffLoginSchema = z.object({
 // Set up name + password (+ optional email) after first-time phone verification,
 // so subsequent logins use the phone number + password (no OTP). Reused by the
 // profile screen. Email is OPTIONAL — the phone number is the identifier.
+// A username must contain at least one letter so it can never be mistaken for a
+// phone number (login matches username OR phone OR email). 3–30 chars, letters/
+// digits/_/. only.
+export const usernameRule = z
+  .string()
+  .regex(
+    /^(?=.*[a-zA-Z])[a-zA-Z0-9_.]{3,30}$/,
+    "Username must be 3–30 characters (letters, numbers, _ or .) and include a letter",
+  );
+
 export const setCredentialsSchema = z.object({
   name: z.string().min(2, "Name is too short").max(100),
   email: z.string().email("Enter a valid email address").or(z.literal("")).optional(),
+  username: usernameRule.or(z.literal("")).optional(),
   password: z.string().min(8, "Password must be at least 8 characters").max(100),
   age: z.number().int().min(13).max(120).optional(),
 });
@@ -616,6 +627,7 @@ export const createStaffSchema = z
     name: z.string().min(1).max(100),
     phone: z.string().min(6).max(40),
     email: z.string().email().optional(),
+    username: usernameRule.optional(),
     password: z.string().min(8).max(72).optional(),
     staffRole: z.enum(["admin", "sales", "support", "inventory", "mechanic"]),
   })
