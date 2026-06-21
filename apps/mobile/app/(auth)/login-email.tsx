@@ -43,11 +43,19 @@ export default function LoginEmailScreen(): JSX.Element {
       await loginWithPassword(email.trim(), password);
       router.replace("/");
     } catch (err) {
-      setError(
-        err instanceof Error && /invalid|credential|password/i.test(err.message)
-          ? t("auth.invalidCredentials")
-          : t("auth.loginFailed"),
-      );
+      // The API now returns a specific reason + a machine code. Prefer a
+      // localised string for the known cases (keeps Arabic), and fall back to
+      // the server's own message — which is already a clear sentence — so the
+      // user always learns what's actually wrong instead of "Login failed".
+      const code = (err as { code?: string } | null)?.code;
+      const byCode: Record<string, string> = {
+        NO_ACCOUNT: t("auth.noAccount"),
+        NO_PASSWORD_SET: t("auth.noPasswordSet"),
+        WRONG_PASSWORD: t("auth.wrongPassword"),
+        ACCOUNT_INACTIVE: t("auth.accountInactive"),
+      };
+      const serverMsg = err instanceof Error ? err.message : "";
+      setError((code && byCode[code]) || serverMsg || t("auth.loginFailed"));
     } finally {
       setLoading(false);
     }
