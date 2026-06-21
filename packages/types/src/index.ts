@@ -51,6 +51,7 @@ export interface User {
   id: string;
   phone: string;
   email: string | null;
+  username?: string | null;
   name: string;
   age?: number | null;
   avatarUrl: string | null;
