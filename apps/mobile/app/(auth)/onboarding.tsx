@@ -46,7 +46,8 @@ export default function OnboardingScreen(): JSX.Element {
   const ageNum = Number(form.age);
   const nameValid = form.name.trim().length >= 2;
   const ageValid = Number.isInteger(ageNum) && ageNum >= 13 && ageNum <= 120;
-  const emailValid = /^\S+@\S+\.\S+$/.test(form.email.trim());
+  // Email is OPTIONAL — only validate the format when something was typed.
+  const emailValid = form.email.trim() === "" || /^\S+@\S+\.\S+$/.test(form.email.trim());
   const passwordValid = form.password.length >= 8;
   const confirmValid = form.confirmPassword === form.password;
   const showMismatch = form.confirmPassword.length > 0 && !confirmValid;
@@ -55,11 +56,11 @@ export default function OnboardingScreen(): JSX.Element {
   const mutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not authenticated");
-      // Sets name + email + password (the customer can log in with these next
-      // time, no OTP). Returns the updated user; hydrate() refreshes hasPassword.
+      // Sets name + password (+ optional email). The user signs in next time with
+      // their phone number + password — no OTP. hydrate() refreshes hasPassword.
       return api.setCredentials({
         name: form.name.trim(),
-        email: form.email.trim(),
+        email: form.email.trim() || undefined,
         password: form.password,
         age: ageNum,
       });
@@ -67,7 +68,10 @@ export default function OnboardingScreen(): JSX.Element {
     onSuccess: async () => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await hydrate();
-      router.replace("/(tabs)");
+      // Back to the index router, which lands them at the right home for their
+      // role now that they have a password (staff → hub, admin → console,
+      // customer → tabs).
+      router.replace("/");
     },
   });
 

@@ -38,26 +38,21 @@ export default function Index(): JSX.Element {
   // via <GuestGate> / useRequireAuth.
   if (!user) return <Redirect href="/(tabs)" />;
 
-  // Role-aware cold-start routing. Admin → admin console. ANY staff member
-  // (regardless of staffRole — sales, support, inventory, mechanic, or none)
-  // → the unified staff hub, which carries pipeline + inventory + repairs +
-  // tickets + team in one place. A staff person does all of these jobs, so
-  // there's no per-subrole split anymore — previously inventory/mechanic
-  // staff fell through to the customer tabs.
-  if (user.accountType === "admin") return <Redirect href="/admin/dashboard" />;
-  if (user.accountType === "staff") return <Redirect href="/crm/pipeline" />;
-
-  // First-time customers must finish onboarding: name + email + password are
-  // required so they can sign in with credentials next time (OTP is first-time
-  // only). Existing OTP-only customers are funnelled here on next launch to set
-  // a password. License is still collected later, at first rent.
-  if (
-    user.accountType === "customer" &&
-    !user.actingAsAdminId &&
-    (!user.name || !user.email || !user.hasPassword)
-  ) {
+  // Credential gate — runs for EVERY role before routing home. Anyone without a
+  // password (or name) must set one: this is the re-credential path for a
+  // locked-out staff/admin who just bootstrapped via OTP, and for a first-time
+  // or OTP-only customer. The phone number is the username; email is optional.
+  // An admin who is "acting as" another role keeps their own credentials, so
+  // they skip this.
+  if (!user.actingAsAdminId && (!user.hasPassword || !user.name)) {
     return <Redirect href="/(auth)/onboarding" />;
   }
+
+  // Role-aware cold-start routing. Admin → admin console. ANY staff member
+  // (regardless of staffRole) → the unified staff hub (pipeline + inventory +
+  // repairs + tickets). A staff person does all of these jobs.
+  if (user.accountType === "admin") return <Redirect href="/admin/dashboard" />;
+  if (user.accountType === "staff") return <Redirect href="/crm/pipeline" />;
 
   return <Redirect href="/(tabs)" />;
 }

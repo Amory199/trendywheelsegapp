@@ -28,19 +28,20 @@ export default function LoginEmailScreen(): JSX.Element {
   const { palette: p } = useTheme();
   const styles = useMemo(() => makeStyles(p), [p]);
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const emailValid = /^\S+@\S+\.\S+$/.test(email.trim());
-  const canSubmit = emailValid && password.length >= 1 && !loading;
+  // The identifier is the username — a phone number or an email. Don't gate the
+  // button on a strict email regex anymore; just require something + a password.
+  const canSubmit = identifier.trim().length > 0 && password.length >= 1 && !loading;
 
   const handleLogin = async (): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
-      await loginWithPassword(email.trim(), password);
+      await loginWithPassword(identifier.trim(), password);
       router.replace("/");
     } catch (err) {
       // The API now returns a specific reason + a machine code. Prefer a
@@ -75,16 +76,16 @@ export default function LoginEmailScreen(): JSX.Element {
           <Text style={styles.title}>{t("auth.loginTitle")}</Text>
           <Text style={styles.subtitle}>{t("auth.loginSubtitle")}</Text>
 
-          <Text style={styles.label}>{t("auth.emailLabel")}</Text>
+          <Text style={styles.label}>{t("auth.identifierLabel")}</Text>
           <TextInput
             style={styles.input}
-            placeholder={t("auth.emailPlaceholder")}
+            placeholder={t("auth.identifierPlaceholder")}
             placeholderTextColor={colors.text.placeholder}
-            keyboardType="email-address"
+            keyboardType="default"
             autoCapitalize="none"
             autoCorrect={false}
-            value={email}
-            onChangeText={setEmail}
+            value={identifier}
+            onChangeText={setIdentifier}
           />
 
           <Text style={styles.label}>{t("auth.passwordLabel")}</Text>
