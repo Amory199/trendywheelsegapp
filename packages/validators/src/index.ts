@@ -303,6 +303,11 @@ export const ticketMessageSchema = z.object({
   message: z.string().min(1).max(2000),
 });
 
+// Admin sets/resets another user's login password.
+export const adminSetPasswordSchema = z.object({
+  password: z.string().min(8).max(100),
+});
+
 // ─── Pagination ──────────────────────────────────────────────
 
 export const paginationSchema = z.object({
