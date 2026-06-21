@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -84,102 +85,106 @@ export default function OnboardingScreen(): JSX.Element {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t("components.onboarding.title")}</Text>
       </View>
 
-      <Animated.View entering={FadeInDown.springify()} style={styles.body}>
-        <Text style={styles.subtitle}>{t("components.onboarding.subtitle")}</Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View entering={FadeInDown.springify()} style={styles.body}>
+          <Text style={styles.subtitle}>{t("components.onboarding.subtitle")}</Text>
 
-        <Field
-          label={t("components.onboarding.nameLabel")}
-          placeholder={t("components.onboarding.namePlaceholder")}
-          value={form.name}
-          onChangeText={(v) => set("name", v)}
-          autoCapitalize="words"
-        />
+          <Field
+            label={t("components.onboarding.nameLabel")}
+            placeholder={t("components.onboarding.namePlaceholder")}
+            value={form.name}
+            onChangeText={(v) => set("name", v)}
+            autoCapitalize="words"
+          />
 
-        <Field
-          label={t("components.onboarding.ageLabel")}
-          placeholder={t("components.onboarding.agePlaceholder")}
-          value={form.age}
-          onChangeText={(v) => set("age", v.replace(/[^0-9]/g, "").slice(0, 3))}
-          keyboardType="number-pad"
-          maxLength={3}
-        />
+          <Field
+            label={t("components.onboarding.ageLabel")}
+            placeholder={t("components.onboarding.agePlaceholder")}
+            value={form.age}
+            onChangeText={(v) => set("age", v.replace(/[^0-9]/g, "").slice(0, 3))}
+            keyboardType="number-pad"
+            maxLength={3}
+          />
 
-        <Field
-          label={t("components.onboarding.usernameLabel")}
-          placeholder={t("components.onboarding.usernamePlaceholder")}
-          value={form.username}
-          onChangeText={(v) => set("username", v.replace(/[^a-zA-Z0-9_.]/g, "").slice(0, 30))}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+          <Field
+            label={t("components.onboarding.usernameLabel")}
+            placeholder={t("components.onboarding.usernamePlaceholder")}
+            value={form.username}
+            onChangeText={(v) => set("username", v.replace(/[^a-zA-Z0-9_.]/g, "").slice(0, 30))}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
 
-        <Field
-          label={t("components.onboarding.emailLabel")}
-          placeholder={t("components.onboarding.emailPlaceholder")}
-          value={form.email}
-          onChangeText={(v) => set("email", v)}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+          <Field
+            label={t("components.onboarding.emailLabel")}
+            placeholder={t("components.onboarding.emailPlaceholder")}
+            value={form.email}
+            onChangeText={(v) => set("email", v)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
 
-        <Field
-          label={t("components.onboarding.passwordLabel")}
-          placeholder={t("components.onboarding.passwordPlaceholder")}
-          value={form.password}
-          onChangeText={(v) => set("password", v)}
-          secureTextEntry
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+          <Field
+            label={t("components.onboarding.passwordLabel")}
+            placeholder={t("components.onboarding.passwordPlaceholder")}
+            value={form.password}
+            onChangeText={(v) => set("password", v)}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
 
-        <Field
-          label={t("components.onboarding.confirmLabel")}
-          placeholder={t("components.onboarding.confirmPlaceholder")}
-          value={form.confirmPassword}
-          onChangeText={(v) => set("confirmPassword", v)}
-          secureTextEntry
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+          <Field
+            label={t("components.onboarding.confirmLabel")}
+            placeholder={t("components.onboarding.confirmPlaceholder")}
+            value={form.confirmPassword}
+            onChangeText={(v) => set("confirmPassword", v)}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
 
-        {showMismatch && (
-          <Text style={styles.mismatchText}>{t("components.onboarding.passwordMismatch")}</Text>
-        )}
-
-        <Text style={styles.hintText}>{t("components.onboarding.credentialsHint")}</Text>
-
-        {mutation.isError && (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>
-              {(mutation.error as Error).message || t("components.onboarding.saveError")}
-            </Text>
-          </View>
-        )}
-      </Animated.View>
-
-      <View style={styles.bottomBar}>
-        <Pressable
-          style={[styles.cta, (!canSubmit || mutation.isPending) && styles.ctaDisabled]}
-          disabled={!canSubmit || mutation.isPending}
-          onPress={() => mutation.mutate()}
-        >
-          {mutation.isPending ? (
-            <ActivityIndicator size="small" color="#000" />
-          ) : (
-            <>
-              <Text style={styles.ctaText}>{t("components.onboarding.getStarted")}</Text>
-              <Ionicons name="arrow-forward" size={18} color="#000" />
-            </>
+          {showMismatch && (
+            <Text style={styles.mismatchText}>{t("components.onboarding.passwordMismatch")}</Text>
           )}
-        </Pressable>
-      </View>
+
+          <Text style={styles.hintText}>{t("components.onboarding.credentialsHint")}</Text>
+
+          {mutation.isError && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>
+                {(mutation.error as Error).message || t("components.onboarding.saveError")}
+              </Text>
+            </View>
+          )}
+          <Pressable
+            style={[styles.cta, (!canSubmit || mutation.isPending) && styles.ctaDisabled]}
+            disabled={!canSubmit || mutation.isPending}
+            onPress={() => mutation.mutate()}
+          >
+            {mutation.isPending ? (
+              <ActivityIndicator size="small" color="#000" />
+            ) : (
+              <>
+                <Text style={styles.ctaText}>{t("components.onboarding.getStarted")}</Text>
+                <Ionicons name="arrow-forward" size={18} color="#000" />
+              </>
+            )}
+          </Pressable>
+        </Animated.View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -206,6 +211,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   headerTitle: { color: colors.text.light, fontSize: 22, fontWeight: "700" },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: spacing["2xl"] },
   body: { padding: spacing.lg, gap: spacing.md },
   subtitle: {
     color: colors.text.secondary,
@@ -232,21 +239,12 @@ const styles = StyleSheet.create({
   errorText: { color: colors.error, fontSize: 13 },
   mismatchText: { color: colors.error, fontSize: 12, marginTop: -4 },
   hintText: { color: colors.text.secondary, fontSize: 12, lineHeight: 17 },
-  bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: spacing.lg,
-    backgroundColor: colors.dark.bg,
-    borderTopWidth: 1,
-    borderTopColor: colors.dark.border,
-  },
   cta: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
+    marginTop: spacing.sm,
     backgroundColor: colors.accent.DEFAULT,
     borderRadius: 12,
     paddingVertical: 14,

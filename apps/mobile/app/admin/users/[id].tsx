@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -121,140 +123,151 @@ export default function AdminUserEdit(): React.JSX.Element {
         {q.isLoading || !user ? (
           <ActivityIndicator color={colors.brand.friendlyBlue} style={{ marginTop: 40 }} />
         ) : (
-          <ScrollView
-            contentContainerStyle={{
-              padding: 14,
-              paddingTop: insets.top + 14,
-              paddingBottom: 200,
-              gap: 12,
-            }}
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
           >
-            <View style={styles.card}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarTxt}>
-                  {(user.name ?? user.phone).slice(0, 2).toUpperCase()}
-                </Text>
-              </View>
-              <Text style={styles.name}>{user.name ?? t("admin.userUnnamed")}</Text>
-              <Text style={styles.meta}>{user.phone}</Text>
-              {user.email ? <Text style={styles.meta}>{user.email}</Text> : null}
-            </View>
-
-            <Field
-              label={t("admin.userFieldName")}
-              value={form.name ?? ""}
-              onChange={(v) => setForm((s) => ({ ...s, name: v }))}
-            />
-            <Field
-              label={t("admin.userFieldEmail")}
-              value={form.email ?? ""}
-              onChange={(v) => setForm((s) => ({ ...s, email: v }))}
-              keyboardType="email-address"
-            />
-
-            {isAdmin && (
-              <>
-                <View style={styles.card}>
-                  <Text style={styles.label}>{t("admin.userAccountType")}</Text>
-                  <View style={styles.chipRow}>
-                    {ACCOUNT_TYPES.map((at) => (
-                      <Pressable
-                        key={at}
-                        onPress={() => setForm((s) => ({ ...s, accountType: at }))}
-                        style={[styles.chip, form.accountType === at && styles.chipActive]}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            form.accountType === at && styles.chipTextActive,
-                          ]}
-                        >
-                          {ACCOUNT_TYPE_KEY[at] ? t(ACCOUNT_TYPE_KEY[at]) : at}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
+            <ScrollView
+              contentContainerStyle={{
+                padding: 14,
+                paddingTop: insets.top + 14,
+                paddingBottom: 200,
+                gap: 12,
+              }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.card}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarTxt}>
+                    {(user.name ?? user.phone).slice(0, 2).toUpperCase()}
+                  </Text>
                 </View>
+                <Text style={styles.name}>{user.name ?? t("admin.userUnnamed")}</Text>
+                <Text style={styles.meta}>{user.phone}</Text>
+                {user.email ? <Text style={styles.meta}>{user.email}</Text> : null}
+              </View>
 
-                {form.accountType !== "customer" && (
+              <Field
+                label={t("admin.userFieldName")}
+                value={form.name ?? ""}
+                onChange={(v) => setForm((s) => ({ ...s, name: v }))}
+              />
+              <Field
+                label={t("admin.userFieldEmail")}
+                value={form.email ?? ""}
+                onChange={(v) => setForm((s) => ({ ...s, email: v }))}
+                keyboardType="email-address"
+              />
+
+              {isAdmin && (
+                <>
                   <View style={styles.card}>
-                    <Text style={styles.label}>{t("admin.userStaffRole")}</Text>
+                    <Text style={styles.label}>{t("admin.userAccountType")}</Text>
                     <View style={styles.chipRow}>
-                      {STAFF_ROLES.map((r) => (
+                      {ACCOUNT_TYPES.map((at) => (
                         <Pressable
-                          key={r}
-                          onPress={() => setForm((s) => ({ ...s, staffRole: r }))}
-                          style={[styles.chip, form.staffRole === r && styles.chipActive]}
+                          key={at}
+                          onPress={() => setForm((s) => ({ ...s, accountType: at }))}
+                          style={[styles.chip, form.accountType === at && styles.chipActive]}
                         >
                           <Text
-                            style={[styles.chipText, form.staffRole === r && styles.chipTextActive]}
+                            style={[
+                              styles.chipText,
+                              form.accountType === at && styles.chipTextActive,
+                            ]}
                           >
-                            {STAFF_ROLE_KEY[r] ? t(STAFF_ROLE_KEY[r]) : r}
+                            {ACCOUNT_TYPE_KEY[at] ? t(ACCOUNT_TYPE_KEY[at]) : at}
                           </Text>
                         </Pressable>
                       ))}
                     </View>
                   </View>
-                )}
 
-                <View style={styles.card}>
-                  <Text style={styles.label}>{t("admin.userStatus")}</Text>
-                  <View style={styles.chipRow}>
-                    {STATUSES.map((s) => (
-                      <Pressable
-                        key={s}
-                        onPress={() => setForm((f) => ({ ...f, status: s }))}
-                        style={[styles.chip, form.status === s && styles.chipActive]}
-                      >
-                        <Text style={[styles.chipText, form.status === s && styles.chipTextActive]}>
-                          {STATUS_KEY[s] ? t(STATUS_KEY[s]) : s}
-                        </Text>
-                      </Pressable>
-                    ))}
+                  {form.accountType !== "customer" && (
+                    <View style={styles.card}>
+                      <Text style={styles.label}>{t("admin.userStaffRole")}</Text>
+                      <View style={styles.chipRow}>
+                        {STAFF_ROLES.map((r) => (
+                          <Pressable
+                            key={r}
+                            onPress={() => setForm((s) => ({ ...s, staffRole: r }))}
+                            style={[styles.chip, form.staffRole === r && styles.chipActive]}
+                          >
+                            <Text
+                              style={[
+                                styles.chipText,
+                                form.staffRole === r && styles.chipTextActive,
+                              ]}
+                            >
+                              {STAFF_ROLE_KEY[r] ? t(STAFF_ROLE_KEY[r]) : r}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  <View style={styles.card}>
+                    <Text style={styles.label}>{t("admin.userStatus")}</Text>
+                    <View style={styles.chipRow}>
+                      {STATUSES.map((s) => (
+                        <Pressable
+                          key={s}
+                          onPress={() => setForm((f) => ({ ...f, status: s }))}
+                          style={[styles.chip, form.status === s && styles.chipActive]}
+                        >
+                          <Text
+                            style={[styles.chipText, form.status === s && styles.chipTextActive]}
+                          >
+                            {STATUS_KEY[s] ? t(STATUS_KEY[s]) : s}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
                   </View>
-                </View>
-              </>
-            )}
+                </>
+              )}
 
-            <Pressable
-              style={[styles.saveBtn, save.isPending && { opacity: 0.5 }]}
-              disabled={save.isPending}
-              onPress={() => save.mutate()}
-            >
-              <Ionicons name="checkmark-circle" size={18} color="#fff" />
-              <Text style={styles.saveBtnText}>
-                {save.isPending ? t("admin.userSaving") : t("admin.userSave")}
-              </Text>
-            </Pressable>
-
-            {user.status === "active" ? (
               <Pressable
-                style={styles.dangerBtn}
-                onPress={() =>
-                  Alert.alert(t("admin.userDisableTitle"), t("admin.userDisableMessage"), [
-                    { text: t("common.cancel"), style: "cancel" },
-                    {
-                      text: t("admin.userDisable"),
-                      style: "destructive",
-                      onPress: () => disable.mutate(),
-                    },
-                  ])
-                }
+                style={[styles.saveBtn, save.isPending && { opacity: 0.5 }]}
+                disabled={save.isPending}
+                onPress={() => save.mutate()}
               >
-                <Ionicons name="ban" size={16} color="#FF5577" />
-                <Text style={styles.dangerBtnText}>{t("admin.userDisableUser")}</Text>
+                <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                <Text style={styles.saveBtnText}>
+                  {save.isPending ? t("admin.userSaving") : t("admin.userSave")}
+                </Text>
               </Pressable>
-            ) : (
-              <Pressable style={styles.enableBtn} onPress={() => enable.mutate()}>
-                <Ionicons
-                  name="checkmark-done"
-                  size={16}
-                  color={colors.brand.ecoLimelight ?? "#A9F453"}
-                />
-                <Text style={styles.enableBtnText}>{t("admin.userReenableUser")}</Text>
-              </Pressable>
-            )}
-          </ScrollView>
+
+              {user.status === "active" ? (
+                <Pressable
+                  style={styles.dangerBtn}
+                  onPress={() =>
+                    Alert.alert(t("admin.userDisableTitle"), t("admin.userDisableMessage"), [
+                      { text: t("common.cancel"), style: "cancel" },
+                      {
+                        text: t("admin.userDisable"),
+                        style: "destructive",
+                        onPress: () => disable.mutate(),
+                      },
+                    ])
+                  }
+                >
+                  <Ionicons name="ban" size={16} color="#FF5577" />
+                  <Text style={styles.dangerBtnText}>{t("admin.userDisableUser")}</Text>
+                </Pressable>
+              ) : (
+                <Pressable style={styles.enableBtn} onPress={() => enable.mutate()}>
+                  <Ionicons
+                    name="checkmark-done"
+                    size={16}
+                    color={colors.brand.ecoLimelight ?? "#A9F453"}
+                  />
+                  <Text style={styles.enableBtnText}>{t("admin.userReenableUser")}</Text>
+                </Pressable>
+              )}
+            </ScrollView>
+          </KeyboardAvoidingView>
         )}
       </View>
     </>

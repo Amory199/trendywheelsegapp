@@ -14,7 +14,10 @@ import {
 import Animated, { FadeIn } from "react-native-reanimated";
 
 const H_PAD = 16;
-const CARD_HEIGHT = 170;
+// Banner artwork is 1080×593 (≈1.82:1). Size the card to that exact ratio so
+// contentFit="cover" fills it with ZERO crop on every device width — the old
+// fixed 170dp height was shorter than the art and clipped the top + bottom.
+const BANNER_ASPECT = 1080 / 593;
 const AUTO_ADVANCE_MS = 4500;
 
 // Static, fully guest-safe promo deck — now branded banner images (the artwork
@@ -115,6 +118,7 @@ export function PromoCarousel(): JSX.Element {
               source={item.image}
               style={styles.card}
               contentFit="cover"
+              contentPosition="top"
               transition={200}
               cachePolicy="memory-disk"
             />
@@ -155,8 +159,8 @@ const styles = StyleSheet.create({
   wrap: { marginTop: 22 },
   listContent: { paddingHorizontal: H_PAD },
   card: {
-    height: CARD_HEIGHT,
     width: "100%",
+    aspectRatio: BANNER_ASPECT,
     borderRadius: 20,
     overflow: "hidden",
   },

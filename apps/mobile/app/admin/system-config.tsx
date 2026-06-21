@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -71,77 +73,83 @@ export default function AdminSystemConfig(): React.JSX.Element {
         {q.isLoading ? (
           <ActivityIndicator color={colors.brand.friendlyBlue} style={{ marginTop: 40 }} />
         ) : (
-          <ScrollView
-            contentContainerStyle={{
-              padding: 14,
-              paddingTop: insets.top + 14,
-              paddingBottom: 200,
-              gap: 12,
-            }}
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
           >
-            <Field
-              label={t("admin.configCompanyName")}
-              value={form.companyName ?? ""}
-              onChange={(v) => setForm((s) => ({ ...s, companyName: v }))}
-            />
-            <Field
-              label={t("admin.configEmail")}
-              value={form.companyEmail ?? ""}
-              onChange={(v) => setForm((s) => ({ ...s, companyEmail: v }))}
-              keyboardType="email-address"
-            />
-            <Field
-              label={t("admin.configPhone")}
-              value={form.companyPhone ?? ""}
-              onChange={(v) => setForm((s) => ({ ...s, companyPhone: v }))}
-              keyboardType="phone-pad"
-            />
-            <Field
-              label={t("admin.configAddress")}
-              value={form.companyAddress ?? ""}
-              onChange={(v) => setForm((s) => ({ ...s, companyAddress: v }))}
-              multiline
-            />
-            <Field
-              label={t("admin.configBusinessHours")}
-              value={form.companyHours ?? ""}
-              onChange={(v) => setForm((s) => ({ ...s, companyHours: v }))}
-            />
-            <Field
-              label={t("admin.configTaxRate")}
-              value={form.taxRatePct?.toString() ?? ""}
-              onChange={(v) => setForm((s) => ({ ...s, taxRatePct: Number(v) }))}
-              keyboardType="numeric"
-            />
-
-            <View style={styles.card}>
-              <Text style={styles.label}>{t("admin.configCurrency")}</Text>
-              <View style={styles.chipRow}>
-                {CURRENCIES.map((c) => (
-                  <Pressable
-                    key={c}
-                    onPress={() => setForm((s) => ({ ...s, currency: c }))}
-                    style={[styles.chip, form.currency === c && styles.chipActive]}
-                  >
-                    <Text style={[styles.chipText, form.currency === c && styles.chipTextActive]}>
-                      {c}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            <Pressable
-              style={[styles.saveBtn, save.isPending && { opacity: 0.5 }]}
-              disabled={save.isPending}
-              onPress={() => save.mutate()}
+            <ScrollView
+              contentContainerStyle={{
+                padding: 14,
+                paddingTop: insets.top + 14,
+                paddingBottom: 200,
+                gap: 12,
+              }}
+              keyboardShouldPersistTaps="handled"
             >
-              <Ionicons name="checkmark-circle" size={18} color="#fff" />
-              <Text style={styles.saveBtnText}>
-                {save.isPending ? t("admin.configSaving") : t("admin.configSaveChanges")}
-              </Text>
-            </Pressable>
-          </ScrollView>
+              <Field
+                label={t("admin.configCompanyName")}
+                value={form.companyName ?? ""}
+                onChange={(v) => setForm((s) => ({ ...s, companyName: v }))}
+              />
+              <Field
+                label={t("admin.configEmail")}
+                value={form.companyEmail ?? ""}
+                onChange={(v) => setForm((s) => ({ ...s, companyEmail: v }))}
+                keyboardType="email-address"
+              />
+              <Field
+                label={t("admin.configPhone")}
+                value={form.companyPhone ?? ""}
+                onChange={(v) => setForm((s) => ({ ...s, companyPhone: v }))}
+                keyboardType="phone-pad"
+              />
+              <Field
+                label={t("admin.configAddress")}
+                value={form.companyAddress ?? ""}
+                onChange={(v) => setForm((s) => ({ ...s, companyAddress: v }))}
+                multiline
+              />
+              <Field
+                label={t("admin.configBusinessHours")}
+                value={form.companyHours ?? ""}
+                onChange={(v) => setForm((s) => ({ ...s, companyHours: v }))}
+              />
+              <Field
+                label={t("admin.configTaxRate")}
+                value={form.taxRatePct?.toString() ?? ""}
+                onChange={(v) => setForm((s) => ({ ...s, taxRatePct: Number(v) }))}
+                keyboardType="numeric"
+              />
+
+              <View style={styles.card}>
+                <Text style={styles.label}>{t("admin.configCurrency")}</Text>
+                <View style={styles.chipRow}>
+                  {CURRENCIES.map((c) => (
+                    <Pressable
+                      key={c}
+                      onPress={() => setForm((s) => ({ ...s, currency: c }))}
+                      style={[styles.chip, form.currency === c && styles.chipActive]}
+                    >
+                      <Text style={[styles.chipText, form.currency === c && styles.chipTextActive]}>
+                        {c}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <Pressable
+                style={[styles.saveBtn, save.isPending && { opacity: 0.5 }]}
+                disabled={save.isPending}
+                onPress={() => save.mutate()}
+              >
+                <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                <Text style={styles.saveBtnText}>
+                  {save.isPending ? t("admin.configSaving") : t("admin.configSaveChanges")}
+                </Text>
+              </Pressable>
+            </ScrollView>
+          </KeyboardAvoidingView>
         )}
       </View>
     </>

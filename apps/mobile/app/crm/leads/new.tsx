@@ -3,7 +3,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
@@ -71,71 +81,77 @@ export default function NewLead(): React.JSX.Element {
         <Text style={styles.topBarTitle}>{t("crm.newLead.title")}</Text>
         <View style={{ width: 24 }} />
       </View>
-      <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: 14,
-          paddingTop: 24,
-          paddingBottom: 200,
-          gap: 12,
-        }}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <Field
-          label={t("crm.newLead.contactNameRequired")}
-          value={form.contactName}
-          onChange={(v) => setForm((s) => ({ ...s, contactName: v }))}
-        />
-        <Field
-          label={t("crm.newLead.phone")}
-          value={form.contactPhone}
-          onChange={(v) => setForm((s) => ({ ...s, contactPhone: v }))}
-          keyboardType="phone-pad"
-        />
-        <Field
-          label={t("crm.newLead.email")}
-          value={form.contactEmail}
-          onChange={(v) => setForm((s) => ({ ...s, contactEmail: v }))}
-          keyboardType="email-address"
-        />
-        <View style={styles.card}>
-          <Text style={styles.label}>{t("crm.newLead.source")}</Text>
-          <View style={styles.chipRow}>
-            {SOURCES.map((s) => (
-              <Pressable
-                key={s.value}
-                onPress={() => setForm((f) => ({ ...f, source: s.value }))}
-                style={[styles.chip, form.source === s.value && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, form.source === s.value && styles.chipTextActive]}>
-                  {t(s.labelKey)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-        <Field
-          label={t("crm.newLead.estimatedValue")}
-          value={form.estimatedValue}
-          onChange={(v) => setForm((s) => ({ ...s, estimatedValue: v }))}
-          keyboardType="numeric"
-        />
-        <Field
-          label={t("crm.newLead.notes")}
-          value={form.notes}
-          onChange={(v) => setForm((s) => ({ ...s, notes: v }))}
-          multiline
-        />
-
-        <Pressable
-          style={[styles.saveBtn, (!canSubmit || create.isPending) && { opacity: 0.5 }]}
-          disabled={!canSubmit || create.isPending}
-          onPress={() => create.mutate()}
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 14,
+            paddingTop: 24,
+            paddingBottom: 200,
+            gap: 12,
+          }}
+          keyboardShouldPersistTaps="handled"
         >
-          <Ionicons name="checkmark-circle" size={18} color="#fff" />
-          <Text style={styles.saveBtnText}>
-            {create.isPending ? t("crm.newLead.creating") : t("crm.newLead.create")}
-          </Text>
-        </Pressable>
-      </ScrollView>
+          <Field
+            label={t("crm.newLead.contactNameRequired")}
+            value={form.contactName}
+            onChange={(v) => setForm((s) => ({ ...s, contactName: v }))}
+          />
+          <Field
+            label={t("crm.newLead.phone")}
+            value={form.contactPhone}
+            onChange={(v) => setForm((s) => ({ ...s, contactPhone: v }))}
+            keyboardType="phone-pad"
+          />
+          <Field
+            label={t("crm.newLead.email")}
+            value={form.contactEmail}
+            onChange={(v) => setForm((s) => ({ ...s, contactEmail: v }))}
+            keyboardType="email-address"
+          />
+          <View style={styles.card}>
+            <Text style={styles.label}>{t("crm.newLead.source")}</Text>
+            <View style={styles.chipRow}>
+              {SOURCES.map((s) => (
+                <Pressable
+                  key={s.value}
+                  onPress={() => setForm((f) => ({ ...f, source: s.value }))}
+                  style={[styles.chip, form.source === s.value && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, form.source === s.value && styles.chipTextActive]}>
+                    {t(s.labelKey)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          <Field
+            label={t("crm.newLead.estimatedValue")}
+            value={form.estimatedValue}
+            onChange={(v) => setForm((s) => ({ ...s, estimatedValue: v }))}
+            keyboardType="numeric"
+          />
+          <Field
+            label={t("crm.newLead.notes")}
+            value={form.notes}
+            onChange={(v) => setForm((s) => ({ ...s, notes: v }))}
+            multiline
+          />
+
+          <Pressable
+            style={[styles.saveBtn, (!canSubmit || create.isPending) && { opacity: 0.5 }]}
+            disabled={!canSubmit || create.isPending}
+            onPress={() => create.mutate()}
+          >
+            <Ionicons name="checkmark-circle" size={18} color="#fff" />
+            <Text style={styles.saveBtnText}>
+              {create.isPending ? t("crm.newLead.creating") : t("crm.newLead.create")}
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -154,124 +155,132 @@ export default function BookScreen(): JSX.Element {
 
       <StepIndicator current={step} />
 
-      <ScrollView contentContainerStyle={styles.body}>
-        {step === 0 && (
-          <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
-            <Text style={styles.stepHeading}>{t("rent.selectDates")}</Text>
-            <DateField label={t("rent.pickupDate")} value={startDate} onChange={setStartDate} />
-            <DateField
-              label={t("rent.returnDate")}
-              value={endDate}
-              onChange={setEndDate}
-              minimumDate={startDate ? new Date(startDate) : undefined}
-            />
-            {days > 0 && (
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryText}>
-                  {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} ·{" "}
-                  <Text style={styles.summaryPrice}>
-                    {totalCost.toLocaleString()} {t("rent.currency")} {t("rent.summaryTotalSuffix")}
+      <KeyboardAvoidingView
+        style={styles.kav}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          {step === 0 && (
+            <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
+              <Text style={styles.stepHeading}>{t("rent.selectDates")}</Text>
+              <DateField label={t("rent.pickupDate")} value={startDate} onChange={setStartDate} />
+              <DateField
+                label={t("rent.returnDate")}
+                value={endDate}
+                onChange={setEndDate}
+                minimumDate={startDate ? new Date(startDate) : undefined}
+              />
+              {days > 0 && (
+                <View style={styles.summaryCard}>
+                  <Text style={styles.summaryText}>
+                    {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} ·{" "}
+                    <Text style={styles.summaryPrice}>
+                      {totalCost.toLocaleString()} {t("rent.currency")}{" "}
+                      {t("rent.summaryTotalSuffix")}
+                    </Text>
                   </Text>
+                </View>
+              )}
+            </Animated.View>
+          )}
+
+          {step === 1 && (
+            <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
+              <Text style={styles.stepHeading}>{t("rent.yourInformation")}</Text>
+              <LabeledInput
+                label={t("rent.fullName")}
+                value={name}
+                onChangeText={setName}
+                placeholder={t("rent.fullNamePlaceholder")}
+              />
+              <LabeledInput
+                label={t("rent.email")}
+                value={email}
+                onChangeText={setEmail}
+                placeholder={t("rent.emailPlaceholder")}
+                keyboardType="email-address"
+              />
+              <LabeledInput
+                label={t("rent.phone")}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder={t("rent.phonePlaceholder")}
+                keyboardType="phone-pad"
+              />
+              <LabeledInput
+                label={t("rent.driversLicense")}
+                value={licenseNum}
+                onChangeText={setLicenseNum}
+                placeholder={t("rent.licensePlaceholder")}
+              />
+            </Animated.View>
+          )}
+
+          {step === 2 && (
+            <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
+              <Text style={styles.stepHeading}>{t("rent.paymentMethod")}</Text>
+              <PaymentOption
+                label={t("rent.cashOnPickup")}
+                icon="cash-outline"
+                selected={paymentMethod === "cash"}
+                onPress={() => setPaymentMethod("cash")}
+              />
+              <PaymentOption
+                label={t("rent.creditDebitCard")}
+                icon="card-outline"
+                selected={paymentMethod === "card"}
+                onPress={() => setPaymentMethod("card")}
+              />
+              <View style={styles.totalCard}>
+                <Text style={styles.totalLabel}>{t("rent.total")}</Text>
+                <Text style={styles.totalValue}>
+                  {totalCost.toLocaleString()} {t("rent.currency")}
+                </Text>
+                <Text style={styles.totalDays}>
+                  {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} @{" "}
+                  {Number(vehicle?.dailyRate).toLocaleString()} {t("rent.currency")}
+                  {t("rent.perDayPaymentSuffix")}
                 </Text>
               </View>
-            )}
-          </Animated.View>
-        )}
+            </Animated.View>
+          )}
+        </ScrollView>
 
-        {step === 1 && (
-          <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
-            <Text style={styles.stepHeading}>{t("rent.yourInformation")}</Text>
-            <LabeledInput
-              label={t("rent.fullName")}
-              value={name}
-              onChangeText={setName}
-              placeholder={t("rent.fullNamePlaceholder")}
-            />
-            <LabeledInput
-              label={t("rent.email")}
-              value={email}
-              onChangeText={setEmail}
-              placeholder={t("rent.emailPlaceholder")}
-              keyboardType="email-address"
-            />
-            <LabeledInput
-              label={t("rent.phone")}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder={t("rent.phonePlaceholder")}
-              keyboardType="phone-pad"
-            />
-            <LabeledInput
-              label={t("rent.driversLicense")}
-              value={licenseNum}
-              onChangeText={setLicenseNum}
-              placeholder={t("rent.licensePlaceholder")}
-            />
-          </Animated.View>
-        )}
-
-        {step === 2 && (
-          <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
-            <Text style={styles.stepHeading}>{t("rent.paymentMethod")}</Text>
-            <PaymentOption
-              label={t("rent.cashOnPickup")}
-              icon="cash-outline"
-              selected={paymentMethod === "cash"}
-              onPress={() => setPaymentMethod("cash")}
-            />
-            <PaymentOption
-              label={t("rent.creditDebitCard")}
-              icon="card-outline"
-              selected={paymentMethod === "card"}
-              onPress={() => setPaymentMethod("card")}
-            />
-            <View style={styles.totalCard}>
-              <Text style={styles.totalLabel}>{t("rent.total")}</Text>
-              <Text style={styles.totalValue}>
-                {totalCost.toLocaleString()} {t("rent.currency")}
-              </Text>
-              <Text style={styles.totalDays}>
-                {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} @{" "}
-                {Number(vehicle?.dailyRate).toLocaleString()} {t("rent.currency")}
-                {t("rent.perDayPaymentSuffix")}
-              </Text>
-            </View>
-          </Animated.View>
-        )}
-      </ScrollView>
-
-      <View style={styles.footer}>
-        {step < 2 ? (
-          <Pressable
-            style={[
-              styles.nextBtn,
-              !canProceed(step, { startDate, endDate, name, email, phone, licenseNum }) &&
-                styles.btnDisabled,
-            ]}
-            disabled={!canProceed(step, { startDate, endDate, name, email, phone, licenseNum })}
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setStep((s) => s + 1);
-            }}
-          >
-            <Text style={styles.nextBtnText}>{t("rent.continue")}</Text>
-            <Ionicons name="arrow-forward" size={18} color="#000" />
-          </Pressable>
-        ) : (
-          <Pressable
-            style={[styles.confirmBtn, mutation.isPending && styles.btnDisabled]}
-            disabled={mutation.isPending}
-            onPress={() => mutation.mutate()}
-          >
-            {mutation.isPending ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <Text style={styles.confirmBtnText}>{t("rent.confirmBooking")}</Text>
-            )}
-          </Pressable>
-        )}
-        {mutation.isError && <Text style={styles.errorText}>{t("rent.bookingFailedInline")}</Text>}
-      </View>
+        <View style={styles.footer}>
+          {step < 2 ? (
+            <Pressable
+              style={[
+                styles.nextBtn,
+                !canProceed(step, { startDate, endDate, name, email, phone, licenseNum }) &&
+                  styles.btnDisabled,
+              ]}
+              disabled={!canProceed(step, { startDate, endDate, name, email, phone, licenseNum })}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setStep((s) => s + 1);
+              }}
+            >
+              <Text style={styles.nextBtnText}>{t("rent.continue")}</Text>
+              <Ionicons name="arrow-forward" size={18} color="#000" />
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[styles.confirmBtn, mutation.isPending && styles.btnDisabled]}
+              disabled={mutation.isPending}
+              onPress={() => mutation.mutate()}
+            >
+              {mutation.isPending ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Text style={styles.confirmBtnText}>{t("rent.confirmBooking")}</Text>
+              )}
+            </Pressable>
+          )}
+          {mutation.isError && (
+            <Text style={styles.errorText}>{t("rent.bookingFailedInline")}</Text>
+          )}
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -413,6 +422,7 @@ function PaymentOption({
 function makeStyles(palette: Palette) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: palette.bg },
+    kav: { flex: 1 },
     header: {
       flexDirection: "row",
       alignItems: "center",
