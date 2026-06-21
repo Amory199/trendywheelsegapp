@@ -23,6 +23,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { isTrialPhone, sendFirebaseOtp } from "../../lib/firebase-phone-auth";
 import { useT } from "../../lib/locale";
@@ -66,6 +67,20 @@ export default function PhoneScreen(): JSX.Element {
     }
     setLoading(true);
     try {
+      // Registered accounts — any staff/admin, or a customer who already set a
+      // password — sign in with email + password, not OTP. Route them straight
+      // to the email login instead of sending a code that verifyOtp would reject.
+      // Fail-open: if the check errors, fall through to OTP so signup never breaks.
+      try {
+        const { method } = await api.loginMethod(fullPhone);
+        if (method === "password") {
+          router.push("/(auth)/login-email");
+          return;
+        }
+      } catch {
+        /* network/blip — proceed with the normal OTP path */
+      }
+
       const useFirebase = !isTrialPhone(fullPhone);
       if (useFirebase) {
         await sendFirebaseOtp(fullPhone);
