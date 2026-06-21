@@ -23,8 +23,13 @@ export async function list(req: Request, res: Response): Promise<void> {
   const pageNum = Math.max(1, Number(page));
   const limitNum = Math.min(PAGINATION.max, Math.max(1, Number(limit)));
 
+  // Hide soft-deleted accounts: deleteAccount() anonymizes the row and rewrites
+  // the phone to `deleted_<id>`. That prefix is the deletion marker, so the
+  // admin users list never shows ghost "Deleted User" rows.
+  const where: Prisma.UserWhereInput = { NOT: { phone: { startsWith: "deleted_" } } };
   const [users, total] = await Promise.all([
     prisma.user.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       skip: (pageNum - 1) * limitNum,
       take: limitNum,
@@ -41,7 +46,7 @@ export async function list(req: Request, res: Response): Promise<void> {
         createdAt: true,
       },
     }),
-    prisma.user.count(),
+    prisma.user.count({ where }),
   ]);
   res.json({ data: users, total, page: pageNum, limit: limitNum });
 }
@@ -164,6 +169,8 @@ export async function update(req: Request, res: Response): Promise<void> {
   if (preferences !== undefined) {
     data.preferences = preferences === null ? Prisma.DbNull : preferences;
   }
+  // Keep emails lowercased so the case-insensitive login lookup stays canonical.
+  if (typeof data.email === "string") data.email = data.email.trim().toLowerCase();
 
   // A customer must never retain a staff role. Demoting accountType -> customer
   // without clearing staffRole left a stray role on the row; since some checks
@@ -300,6 +307,25 @@ export async function deleteAccount(req: Request, res: Response): Promise<void> 
   res.json({ message: "Account deleted and personal data anonymized" });
 }
 
+// Admin sets/resets a user's login password. Forces re-auth everywhere so the
+// old password (and any live session) stops working immediately. Admin-gated in
+// routes.ts. Useful for onboarding staff/admins (who sign in by email+password)
+// and for helping a customer who's locked out.
+export async function setPassword(req: Request, res: Response): Promise<void> {
+  const { password } = req.body as { password: string };
+  const user = await prisma.user.findUnique({
+    where: { id: req.params.id },
+    select: { id: true },
+  });
+  if (!user) throw AppError.notFound("User not found");
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await prisma.user.update({ where: { id: req.params.id }, data: { passwordHash } });
+  await revokeUserSessions(req.params.id);
+
+  res.json({ success: true });
+}
+
 export async function disable(req: Request, res: Response): Promise<void> {
   const user = await prisma.user.update({
     where: { id: req.params.id },
@@ -323,15 +349,17 @@ export async function enable(req: Request, res: Response): Promise<void> {
 
 export async function createStaff(req: Request, res: Response): Promise<void> {
   const input = createStaffSchema.parse(req.body);
-  const conflictFilters: { email?: string; phone?: string }[] = [{ phone: input.phone }];
-  if (input.email) conflictFilters.push({ email: input.email });
+  // Store emails lowercased so login (case-insensitive) always matches.
+  const email = input.email ? input.email.trim().toLowerCase() : undefined;
+  const conflictFilters: Prisma.UserWhereInput[] = [{ phone: input.phone }];
+  if (email) conflictFilters.push({ email: { equals: email, mode: "insensitive" } });
   const existing = await prisma.user.findFirst({
     where: { OR: conflictFilters },
     select: { id: true, email: true, phone: true },
   });
   if (existing) {
     throw AppError.conflict(
-      input.email && existing.email === input.email
+      email && existing.email?.toLowerCase() === email
         ? "Email already in use"
         : "Phone already in use",
       "USER_EXISTS",
@@ -344,7 +372,7 @@ export async function createStaff(req: Request, res: Response): Promise<void> {
   const user = await prisma.user.create({
     data: {
       name: input.name,
-      email: input.email ?? null,
+      email: email ?? null,
       phone: input.phone,
       passwordHash,
       accountType: input.staffRole === "admin" ? "admin" : "staff",

@@ -1,4 +1,4 @@
-import { idParamSchema, updateUserSchema } from "@trendywheels/validators";
+import { adminSetPasswordSchema, idParamSchema, updateUserSchema } from "@trendywheels/validators";
 import { Router, type Router as RouterType } from "express";
 import rateLimit from "express-rate-limit";
 
@@ -64,6 +64,13 @@ router.delete(
   authenticate,
   validate({ params: idParamSchema }),
   userController.deleteAccount,
+);
+router.post(
+  "/:id/password",
+  authenticate,
+  authorize("admin"),
+  validate({ params: idParamSchema, body: adminSetPasswordSchema }),
+  userController.setPassword,
 );
 router.post(
   "/:id/disable",
