@@ -492,11 +492,30 @@ curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/rental-listings/$RL_ID" \
   || fail "admin PATCH status=reviewing rejected"
 pass "admin transitioned to reviewing"
 
-# Owner can no longer delete (status is reviewing, not submitted/withdrawn)
-DELETE_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XDELETE \
-  "$BASE/rental-listings/$RL_ID" -H "Authorization: Bearer $SALES_TOKEN")
-[ "$DELETE_CODE" = "403" ] || fail "owner DELETE on reviewing listing returned $DELETE_CODE, expected 403"
-pass "owner blocked from deleting non-deletable status"
+# Admin approves (what the admin "Approve" button sends) — sets reviewedAt
+RL_APPROVE=$(curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/rental-listings/$RL_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"status":"approved"}') \
+  || fail "admin PATCH status=approved rejected"
+[ "$(echo "$RL_APPROVE" | jq -r '.data.status')" = "approved" ] || fail "approve did not set status=approved: $RL_APPROVE"
+[ "$(echo "$RL_APPROVE" | jq -r '.data.reviewedAt')" != "null" ] || fail "approve did not stamp reviewedAt"
+pass "admin approve sets status=approved + reviewedAt"
+
+# Admin declines with a reason (what the admin "Decline" button sends)
+RL_DECLINE=$(curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/rental-listings/$RL_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"status":"declined","declineReason":"smoke-test decline reason"}') \
+  || fail "admin PATCH status=declined rejected"
+[ "$(echo "$RL_DECLINE" | jq -r '.data.status')" = "declined" ] || fail "decline did not set status=declined: $RL_DECLINE"
+[ "$(echo "$RL_DECLINE" | jq -r '.data.declineReason')" = "smoke-test decline reason" ] || fail "decline did not persist declineReason"
+pass "admin decline sets status=declined + declineReason"
+
+# A non-admin (owner) is blocked from approving — only admins transition there
+OWNER_APPROVE_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPATCH \
+  "$BASE/rental-listings/$RL_ID" -H "Authorization: Bearer $SALES_TOKEN" -H "$JSON" \
+  -d '{"status":"approved"}')
+[ "$OWNER_APPROVE_CODE" = "403" ] || fail "owner approve returned $OWNER_APPROVE_CODE, expected 403"
+pass "non-admin blocked from approving"
 
 # Admin deletes for cleanup
 curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/rental-listings/$RL_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
