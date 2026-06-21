@@ -1318,10 +1318,10 @@ Users — especially right after an admin reset their password, or during the pa
 `isSessionRevoked()` compared a **whole-second** JWT `iat` against a **millisecond** revocation marker: `iat * 1000 < Number(marker)`. `revokeUserSessions()` stamps `marker = Date.now()` (ms). When a revocation (admin password reset, disable, role change) and a subsequent login land in the same wall-clock second, the new token's `iat*1000` is the second floored to `.000`, while the marker carries the sub-second fraction (e.g. `.500`). So `…000 < …500` → the brand-new, post-revocation token is falsely judged "issued before revocation" and rejected. A 0–999 ms false-revocation window opened on every `revokeUserSessions` call.
 
 **Fix**
-Compare at second granularity: `iat < Math.floor(Number(marker) / 1000)`. A token is revoked only if issued in an _earlier second_ than the revocation — so a same-second post-reset login survives, while every genuinely-older token is still killed (the INC-013 guarantee holds). Refresh tokens are revoked immediately regardless, so the sub-second edge doesn't weaken the security intent.
+Second-granularity alone can't resolve this — it can't tell a token issued _just before_ a revocation (must die: INC-013 disable) from one issued _just after_ (must live: INC-046 reset), since both share the second. So `signAccessToken` now stamps a **millisecond** issue claim `iatMs = Date.now()`, and `isSessionRevoked` compares `iatMs < marker` — exact sub-second ordering that satisfies BOTH guarantees at once. Tokens issued before `iatMs` existed fall back to `iat*1000` (they expire within 24h).
 
 **Pattern to follow next time**
-When comparing a JWT `iat` (RFC 7519 — whole **seconds**) against a server clock, normalise both sides to the same unit/granularity. Mixing `iat*1000` with `Date.now()` ms is an off-by-sub-second trap that only bites under same-second races, so it sails through casual testing.
+When ordering an event against a JWT's issue time at sub-second resolution, `iat` (RFC 7519 — whole **seconds**) is too coarse and the precision mismatch with a millisecond clock is a same-second trap that sails through casual testing. Carry your own ms timestamp in the token instead.
 
 ---
 

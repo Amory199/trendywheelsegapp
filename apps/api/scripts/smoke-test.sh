@@ -39,6 +39,19 @@ ADMIN_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "Content-Type
 ADMIN_TOKEN=$(echo "$ADMIN_RESP" | jq -r '.token // .accessToken')
 [ -n "$ADMIN_TOKEN" ] && [ "$ADMIN_TOKEN" != "null" ] || fail "admin token missing in login response: $ADMIN_RESP"
 
+# Self-heal the SALES test credential. The sales account is a seed login whose
+# password can be wiped by a force-recredential reset (or never set). Rather than
+# depend on a fixed seed password, the admin (re)sets it to $SALES_PASSWORD each
+# run so the suite is robust. Look up the sales user id, then set the password.
+SALES_LOOKUP_ID=$(curl -fsS -A "$SMOKE_UA" "$BASE/users?limit=500" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  | jq -r --arg e "$SALES_EMAIL" '[.data[] | select((.email // "" | ascii_downcase) == ($e | ascii_downcase))][0].id // empty')
+if [ -n "$SALES_LOOKUP_ID" ]; then
+  curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/users/$SALES_LOOKUP_ID/password" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+    -d "{\"password\":\"$SALES_PASSWORD\"}" >/dev/null \
+    || fail "could not (re)set sales test password"
+fi
+
 SALES_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "Content-Type: application/json" \
   -d "{\"email\":\"$SALES_EMAIL\",\"password\":\"$SALES_PASSWORD\"}") \
   || fail "sales login HTTP error"
@@ -686,12 +699,21 @@ WRONG=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/aut
 [ "$WRONG" = "401" ] || fail "wrong password got $WRONG (expected 401)"
 pass "login works by email AND phone (full + local); wrong password 401"
 
-# Email is OPTIONAL on set-credentials: update name + password with NO email field.
+# Email is OPTIONAL + USERNAME is settable: set-credentials with a username and
+# no email, then sign in by that username.
+SMOKE_USER="smokeuser$PW_STAMP"
 curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/set-credentials" \
   -H "Authorization: Bearer $PW_TOKEN" -H "$JSON" \
-  -d "{\"name\":\"Smoke NoEmail\",\"password\":\"$PW_NEW\"}" >/dev/null \
-  || fail "set-credentials rejected without an email — email not optional"
-pass "set-credentials works without an email (email optional)"
+  -d "{\"name\":\"Smoke NoEmail\",\"username\":\"$SMOKE_USER\",\"password\":\"$PW_NEW\"}" >/dev/null \
+  || fail "set-credentials rejected (username + no email) — email-optional / username broken"
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$SMOKE_USER\",\"password\":\"$PW_NEW\"}" >/dev/null \
+  || fail "login by USERNAME failed"
+# Username match is case-insensitive (stored lowercased).
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$(printf '%s' "$SMOKE_USER" | tr '[:lower:]' '[:upper:]')\",\"password\":\"$PW_NEW\"}" >/dev/null \
+  || fail "username login is case-sensitive"
+pass "set-credentials sets a username (email optional); login by username works (case-insensitive)"
 
 curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/users/$PW_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || fail "delete throwaway failed"

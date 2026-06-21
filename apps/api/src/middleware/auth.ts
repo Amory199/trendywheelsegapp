@@ -17,6 +17,11 @@ export interface AuthPayload {
   // Standard JWT claim (seconds). Auto-added by jwt.sign; used to compare a
   // token against the per-user session-revocation marker (see INC-013).
   iat?: number;
+  // Millisecond issue time (our own claim). `iat` is only second-granular, so a
+  // token minted in the SAME second as a revocation can't be ordered against the
+  // millisecond marker (INC-046). iatMs preserves sub-second order for an exact
+  // comparison. Optional for backward-compat with tokens issued before it.
+  iatMs?: number;
 }
 
 declare global {

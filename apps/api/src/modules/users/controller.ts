@@ -71,6 +71,7 @@ export async function getMe(req: Request, res: Response): Promise<void> {
       id: true,
       phone: true,
       email: true,
+      username: true,
       name: true,
       age: true,
       avatarUrl: true,
@@ -362,19 +363,23 @@ export async function enable(req: Request, res: Response): Promise<void> {
 
 export async function createStaff(req: Request, res: Response): Promise<void> {
   const input = createStaffSchema.parse(req.body);
-  // Store emails lowercased so login (case-insensitive) always matches.
+  // Store emails + usernames lowercased so login (case-insensitive) always matches.
   const email = input.email ? input.email.trim().toLowerCase() : undefined;
+  const username = input.username ? input.username.trim().toLowerCase() : undefined;
   const conflictFilters: Prisma.UserWhereInput[] = [{ phone: input.phone }];
   if (email) conflictFilters.push({ email: { equals: email, mode: "insensitive" } });
+  if (username) conflictFilters.push({ username });
   const existing = await prisma.user.findFirst({
     where: { OR: conflictFilters },
-    select: { id: true, email: true, phone: true },
+    select: { id: true, email: true, phone: true, username: true },
   });
   if (existing) {
     throw AppError.conflict(
       email && existing.email?.toLowerCase() === email
         ? "Email already in use"
-        : "Phone already in use",
+        : username && existing.username === username
+          ? "Username already taken"
+          : "Phone already in use",
       "USER_EXISTS",
     );
   }
@@ -386,6 +391,7 @@ export async function createStaff(req: Request, res: Response): Promise<void> {
     data: {
       name: input.name,
       email: email ?? null,
+      username: username ?? null,
       phone: input.phone,
       passwordHash,
       accountType: input.staffRole === "admin" ? "admin" : "staff",

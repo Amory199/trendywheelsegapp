@@ -50,10 +50,11 @@ export async function login(req: Request, res: Response): Promise<void> {
 // Set name + email + password on the authenticated user (post-OTP signup or
 // profile). Lets the customer sign in with credentials next time.
 export async function setCredentials(req: Request, res: Response): Promise<void> {
-  const { name, email, password, age } = req.body;
+  const { name, email, username, password, age } = req.body;
   const result = await authService.setCredentials(req.user!.userId, {
     name,
     email,
+    username,
     password,
     age,
   });

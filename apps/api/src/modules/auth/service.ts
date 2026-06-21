@@ -62,7 +62,9 @@ const TRIAL_OTP_BYPASS: Record<string, string> = {
 };
 
 export function signAccessToken(payload: AuthPayload, expiresIn?: string): string {
-  return jwt.sign(payload, env.JWT_PRIVATE_KEY, {
+  // Stamp a millisecond issue time so session-revocation can order a token
+  // against the revocation marker even within the same second (INC-046).
+  return jwt.sign({ ...payload, iatMs: Date.now() }, env.JWT_PRIVATE_KEY, {
     algorithm: "RS256",
     expiresIn: (expiresIn ?? env.JWT_ACCESS_EXPIRY) as string,
   } as jwt.SignOptions);
@@ -439,12 +441,17 @@ export async function loginWithPassword(
   identifier: string,
   password: string,
 ): Promise<{ token: string; refreshToken: string; user: object }> {
-  // Match the identifier against PHONE or EMAIL. Email match is case-insensitive
-  // (addresses were historically stored as typed, e.g. "SHADY@GMAIL.COM").
+  // Match the identifier against USERNAME, PHONE, or EMAIL. Username is stored
+  // lowercased; email match is case-insensitive (addresses were historically
+  // stored as typed, e.g. "SHADY@GMAIL.COM").
   const id = identifier.trim();
   const user = await prisma.user.findFirst({
     where: {
-      OR: [{ phone: { in: phoneVariants(id) } }, { email: { equals: id, mode: "insensitive" } }],
+      OR: [
+        { username: id.toLowerCase() },
+        { phone: { in: phoneVariants(id) } },
+        { email: { equals: id, mode: "insensitive" } },
+      ],
     },
   });
   // Distinct, honest failures so a user knows what to do next. The owner wants
@@ -507,11 +514,11 @@ export async function loginWithPassword(
  */
 export async function setCredentials(
   userId: string,
-  input: { name: string; email?: string; password: string; age?: number },
+  input: { name: string; email?: string; username?: string; password: string; age?: number },
 ): Promise<{ user: object }> {
-  // Email is OPTIONAL — the phone number is the identifier. Only touch the email
-  // column when a non-empty address is supplied (so we never wipe an existing
-  // one or trip a uniqueness check on an empty string).
+  // Email + username are OPTIONAL login identifiers (the phone number is the
+  // account key). Only touch a column when a non-empty value is supplied, so we
+  // never wipe an existing one or trip a uniqueness check on an empty string.
   const normalizedEmail = input.email?.trim().toLowerCase() || null;
   if (normalizedEmail) {
     const existing = await prisma.user.findFirst({
@@ -521,12 +528,20 @@ export async function setCredentials(
       throw AppError.badRequest("That email is already in use");
     }
   }
+  const normalizedUsername = input.username?.trim().toLowerCase() || null;
+  if (normalizedUsername) {
+    const taken = await prisma.user.findFirst({ where: { username: normalizedUsername } });
+    if (taken && taken.id !== userId) {
+      throw AppError.badRequest("That username is already taken");
+    }
+  }
   const passwordHash = await bcrypt.hash(input.password, 12);
   const user = await prisma.user.update({
     where: { id: userId },
     data: {
       name: input.name,
       ...(normalizedEmail ? { email: normalizedEmail } : {}),
+      ...(normalizedUsername ? { username: normalizedUsername } : {}),
       passwordHash,
       ...(input.age !== undefined ? { age: input.age } : {}),
     },
@@ -537,6 +552,7 @@ export async function setCredentials(
       phone: user.phone,
       name: user.name,
       email: user.email,
+      username: user.username,
       age: user.age,
       accountType: user.accountType,
       staffRole: user.staffRole,

@@ -64,14 +64,14 @@ export async function isSessionRevoked(payload: AuthPayload): Promise<boolean> {
   try {
     const marker = await redis.get(`${KEY_PREFIX}${payload.userId}`);
     if (!marker) return false;
-    // Compare at SECOND granularity. `iat` is whole seconds (JWT standard) while
-    // the marker is Date.now() in millis — so `iat*1000 < marker` falsely
-    // revokes a token minted in the SAME second as the revocation whenever the
-    // marker has a sub-second fraction (e.g. admin resets a password at .500s,
-    // the user logs in at .900s → the brand-new token is wrongly rejected →
-    // "session expired"). Flooring the marker to seconds fixes that race while
-    // still killing every token issued in an EARLIER second than the revocation.
-    return iat < Math.floor(Number(marker) / 1000);
+    // Prefer our millisecond issue time so a token can be ordered against the
+    // (millisecond) marker EXACTLY — even within the same second. This satisfies
+    // both guarantees at once: a token minted AFTER a revocation (user logs in
+    // right after an admin password reset) survives (INC-046), while one minted
+    // BEFORE a revocation (a just-disabled user's token) is killed (INC-013).
+    // Tokens issued before iatMs existed fall back to second-granular `iat`.
+    const issuedMs = payload.iatMs ?? iat * 1000;
+    return issuedMs < Number(marker);
   } catch (err) {
     logger.warn(
       { err, userId: payload.userId },
