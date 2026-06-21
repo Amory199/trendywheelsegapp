@@ -16,6 +16,7 @@ import * as authController from "./controller.js";
 const router: RouterType = Router();
 
 router.post("/send-otp", validate({ body: sendOtpSchema }), authController.sendOtp);
+router.post("/login-method", validate({ body: sendOtpSchema }), authController.loginMethod);
 router.post("/verify-otp", validate({ body: verifyOtpSchema }), authController.verifyOtp);
 router.post("/firebase-token", authController.firebaseToken);
 router.post("/login", validate({ body: staffLoginSchema }), authController.login);

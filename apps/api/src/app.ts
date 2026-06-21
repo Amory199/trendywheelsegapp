@@ -180,6 +180,7 @@ app.use("/", healthRoutes);
 // /api/healthz + /api/readyz now resolve to the same handlers — closes INC-009.
 app.use("/api", healthRoutes);
 app.use("/api/auth/send-otp", authLimiter);
+app.use("/api/auth/login-method", authLimiter);
 app.use("/api/auth/verify-otp", otpVerifyLimiter);
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/refresh-token", refreshTokenLimiter);

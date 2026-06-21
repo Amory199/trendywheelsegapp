@@ -18,6 +18,13 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
   res.json(result);
 }
 
+// Pre-login routing: should this phone use password or OTP? (See service.)
+export async function loginMethod(req: Request, res: Response): Promise<void> {
+  const { phone } = req.body;
+  const result = await authService.getLoginMethod(phone);
+  res.json(result);
+}
+
 export async function refreshToken(req: Request, res: Response): Promise<void> {
   const { refreshToken } = req.body;
   const result = await authService.refreshAccessToken(refreshToken);

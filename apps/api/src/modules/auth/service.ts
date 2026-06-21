@@ -44,9 +44,10 @@ const APPLE_REVIEW_BYPASS: Record<string, string> = {
 // Prod-active demo logins. CUSTOMER-ONLY by construction: verifyOtp() still
 // blocks staff/admin on the bypass path (only a real Firebase SMS can mint a
 // privileged token), so a guessable code here can never reach a staff account.
-const DEMO_CUSTOMER_BYPASS: Record<string, string> = {
-  "+201111139358": "222222", // Owner demo — customer
-};
+// (+201111139358 was retired here once the owner promoted it to an admin
+// account — a fixed code must never point at a privileged phone. The Apple
+// review demo below is the remaining customer bypass.)
+const DEMO_CUSTOMER_BYPASS: Record<string, string> = {};
 const DEV_ONLY_TRIAL_BYPASS: Record<string, string> = {
   "+201000000001": "111111", // Admin — Mostafa
   "+201000000010": "222222", // Sales — Amira
@@ -234,18 +235,14 @@ export async function issueTokensForPhone(
 ): Promise<{ token: string; refreshToken: string; user: object }> {
   let user = await prisma.user.findUnique({ where: { phone } });
   let isNewSignup = false;
-  // Staff/admin may sign in by phone OTP (decision 2026-06-17). This function is
-  // ONLY reached from POST /api/auth/firebase-token, which cryptographically
-  // verifies the Firebase ID token first — so `phone` is proven to have received
-  // a real SMS on the account owner's SIM, which is a sound auth factor for
-  // staff/admin too. We therefore no longer force them onto email+password here.
-  //
-  // ⚠️ SECURITY PRECONDITION (INC-033): this is safe ONLY while Firebase has NO
-  // fixed-code test numbers — those mint a valid ID token with NO real SMS, which
-  // would be a no-password path to a staff/admin JWT. The hardcoded code bypasses
-  // (TRIAL_OTP_BYPASS) stay customer-only: verifyOtp() still blocks staff/admin
-  // on that path, so only a genuine Firebase SMS can mint a privileged token.
-  // An unknown phone still auto-creates a customer below.
+  // Phone OTP is CUSTOMER-ONLY (owner decision 2026-06-20). Staff and admins must
+  // sign in with email + password — both for a stronger factor on privileged
+  // accounts and so a lost/ported SIM can't take over an admin. This mirrors the
+  // same guard in verifyOtp(); the mobile login-method pre-check routes these
+  // accounts to the email/password screen before they ever request an OTP.
+  if (user && user.accountType !== "customer") {
+    throw AppError.forbidden("Staff and admins must sign in with email and password.");
+  }
   if (user && user.status !== "active") {
     throw AppError.forbidden("Account is not active");
   }
@@ -326,6 +323,22 @@ export async function issueTokensForPhone(
   };
 }
 
+/**
+ * Pre-login routing for the phone screen: tells the app whether this number
+ * should sign in with a password (registered account — any staff/admin, or a
+ * customer who already set credentials) or go through OTP (new / OTP-only
+ * customer). Only reveals "this number uses a password", which the owner
+ * explicitly wants so returning users skip OTP. Unknown numbers → OTP (signup).
+ */
+export async function getLoginMethod(phone: string): Promise<{ method: "password" | "otp" }> {
+  const user = await prisma.user.findUnique({
+    where: { phone },
+    select: { accountType: true, passwordHash: true },
+  });
+  const usesPassword = !!user && (user.accountType !== "customer" || !!user.passwordHash);
+  return { method: usesPassword ? "password" : "otp" };
+}
+
 export async function refreshAccessToken(
   refreshToken: string,
 ): Promise<{ token: string; refreshToken: string }> {
@@ -402,7 +415,13 @@ export async function loginWithPassword(
   email: string,
   password: string,
 ): Promise<{ token: string; refreshToken: string; user: object }> {
-  const user = await prisma.user.findUnique({ where: { email } });
+  // Case-INSENSITIVE email match: emails were historically stored as typed
+  // (e.g. an admin created as "SHADY@GMAIL.COM"), so an exact match made
+  // "shady@gmail.com" fail to log in. Match case-insensitively and trim so
+  // login works regardless of how the address was capitalised.
+  const user = await prisma.user.findFirst({
+    where: { email: { equals: email.trim(), mode: "insensitive" } },
+  });
   if (!user || !user.passwordHash) {
     throw AppError.unauthorized("Invalid credentials");
   }
@@ -449,7 +468,12 @@ export async function setCredentials(
   userId: string,
   input: { name: string; email: string; password: string; age?: number },
 ): Promise<{ user: object }> {
-  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  // Normalise the email to lowercase so it's stored consistently and the
+  // case-insensitive login lookup always lands on a single canonical row.
+  const normalizedEmail = input.email.trim().toLowerCase();
+  const existing = await prisma.user.findFirst({
+    where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+  });
   if (existing && existing.id !== userId) {
     throw AppError.badRequest("That email is already in use");
   }
@@ -458,7 +482,7 @@ export async function setCredentials(
     where: { id: userId },
     data: {
       name: input.name,
-      email: input.email,
+      email: normalizedEmail,
       passwordHash,
       ...(input.age !== undefined ? { age: input.age } : {}),
     },
