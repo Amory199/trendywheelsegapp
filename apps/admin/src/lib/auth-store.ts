@@ -54,6 +54,13 @@ export const useAuth = create<AuthState>((set) => ({
       );
       if (res.ok) {
         const data = (await res.json()) as { data: User };
+        // Back-office is staff/admin only. A customer token (e.g. copied from the
+        // app) authenticates fine but must not hold an admin session — drop it.
+        if (data.data.accountType === "customer") {
+          clearTokens();
+          set({ user: null, initialized: true });
+          return;
+        }
         set({ user: data.data, initialized: true });
       } else {
         clearTokens();

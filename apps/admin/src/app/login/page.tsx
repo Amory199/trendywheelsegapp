@@ -35,7 +35,19 @@ export default function LoginPage(): JSX.Element {
         const body = (await res.json().catch(() => ({}))) as { message?: string };
         throw new Error(body.message ?? "Invalid email or password");
       }
-      const data = (await res.json()) as { token: string; refreshToken: string };
+      const data = (await res.json()) as {
+        token: string;
+        refreshToken: string;
+        user?: { accountType?: string };
+      };
+      // This portal is staff/admin only. A customer's credentials are valid at
+      // the API (same login endpoint) but must never open the back office — stop
+      // before any token is written to localStorage.
+      if (data.user?.accountType === "customer") {
+        throw new Error(
+          "This portal is for staff and admins only. Please use the TrendyWheels app to sign in.",
+        );
+      }
       writeTokens({ token: data.token, refreshToken: data.refreshToken });
       await hydrate();
       router.replace("/");

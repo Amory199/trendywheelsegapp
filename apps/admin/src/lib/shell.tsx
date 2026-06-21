@@ -172,6 +172,24 @@ function visibleGroups(
     .filter((g) => g.items.length > 0);
 }
 
+// Admin-only sections (config / users / system). Hiding them from the sidebar
+// for non-admins isn't enough — a typed URL or a stale bookmark still loads the
+// page. We hard-block those at the page level. Operational pages (sales,
+// inventory, support work) stay reachable by any staff member; only the
+// sensitive admin-exclusive pages are walled. Derived from the same matrix so
+// the two never drift.
+const ADMIN_ONLY_PREFIXES: string[] = NAV_GROUPS.flatMap((g) => g.items)
+  .filter((it) => it.allowedRoles?.length === 1 && it.allowedRoles[0] === "admin")
+  .map((it) => it.href);
+
+function isAdminOnlyPath(path: string): boolean {
+  return ADMIN_ONLY_PREFIXES.some((href) => path === href || path.startsWith(`${href}/`));
+}
+
+function isSuperadmin(user: { accountType?: string | null; staffRole?: string | null }): boolean {
+  return user.accountType === "admin" || user.staffRole === "admin";
+}
+
 // Minimal stroke-icon set, mirroring the mockup's TWIcon library.
 const NAV_ICONS = {
   trend: <path d="M3 17l4-4 4 4 7-7M15 6h6v6" strokeLinecap="round" strokeLinejoin="round" />,
@@ -375,6 +393,50 @@ export function Shell({ children }: { children: React.ReactNode }): JSX.Element 
     );
   }
   if (!user) return null;
+
+  // Page-level guard: a non-admin staff member who lands on an admin-only page
+  // (typed URL / bookmark / shared link) gets a clear block, not a half-rendered
+  // page that 403s piecemeal. Superadmins always pass.
+  if (isAdminOnlyPath(path) && !isSuperadmin(user)) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          minHeight: "100vh",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          padding: 24,
+          background: "#02011F",
+          color: "#fff",
+        }}
+      >
+        <div style={{ fontSize: 48 }}>🔒</div>
+        <div style={{ fontSize: 20, fontWeight: 700 }}>This area is for admins only</div>
+        <div style={{ maxWidth: 420, opacity: 0.7, lineHeight: 1.5 }}>
+          Your role doesn’t have access to this page. If you think this is a mistake, ask a
+          superadmin to grant access.
+        </div>
+        <button
+          onClick={() => router.replace("/")}
+          style={{
+            marginTop: 8,
+            padding: "10px 20px",
+            borderRadius: 10,
+            border: "none",
+            cursor: "pointer",
+            background: "#FF0065",
+            color: "#fff",
+            fontWeight: 700,
+          }}
+        >
+          Back to dashboard
+        </button>
+      </div>
+    );
+  }
 
   const crumbs = [
     "Home",
