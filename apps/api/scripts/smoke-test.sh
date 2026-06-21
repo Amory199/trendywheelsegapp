@@ -74,13 +74,15 @@ OLD_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/
 [ "$OLD_CODE" = "401" ] || fail "old refresh token still valid after rotation (got $OLD_CODE) — replay risk"
 pass "refresh rotates: new pair works, old token revoked"
 
-# ─── 1c. Demo customer phone bypass (+201111139358 / 222222) ─
-# Prod-active demo login. MUST resolve to a customer — verifyOtp blocks staff
-# on the bypass path, so a guessable code can never mint a privileged token.
-note "1c. Demo customer phone OTP bypass"
+# ─── 1c. Customer phone OTP bypass (+201234567000 / 730284) ──
+# Prod-active customer demo (Apple review account). MUST resolve to a customer —
+# verifyOtp blocks staff/admin on the bypass path, so a guessable code can never
+# mint a privileged token. (The old +201111139358 demo was retired — the owner
+# promoted that phone to an admin account, which now uses email+password.)
+note "1c. Customer phone OTP bypass"
 DEMO_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/verify-otp" -H "$JSON" \
-  -d '{"phone":"+201111139358","otp":"222222"}') \
-  || fail "demo bypass verify-otp failed (ENABLE_TRIAL_OTP_BYPASS off or bypass not wired)"
+  -d '{"phone":"+201234567000","otp":"730284"}') \
+  || fail "customer bypass verify-otp failed (ENABLE_TRIAL_OTP_BYPASS off or bypass not wired)"
 DEMO_TOKEN=$(echo "$DEMO_RESP" | jq -r '.token // empty')
 DEMO_TYPE=$(echo "$DEMO_RESP" | jq -r '.user.accountType // empty')
 [ -n "$DEMO_TOKEN" ] || fail "demo bypass returned no token: $DEMO_RESP"
@@ -625,6 +627,56 @@ curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/sales/$SL_ID/restore" \
 curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/sales/$SL_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
   || fail "reject (DELETE) failed"
 pass "approve→active, reject→removed"
+
+# ─── 12p. Login routing + admin set-password + email login + deleted-user hiding ───
+# Registered accounts (staff/admin, or a customer who set a password) are routed
+# to email+password; admin can set/reset a user's password; the email+password
+# login then works; and a soft-deleted user disappears from the admin list.
+note "12p. login-method routing + admin set-password + email login + deleted-user hiding"
+PW_STAMP=$(date +%s)
+PW_EMAIL="smoke-pw-$PW_STAMP@trendywheelseg.com"
+PW_PHONE="+20157$(printf '%07d' $((PW_STAMP % 10000000)))"
+PW_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/users" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"name\":\"Smoke Pw\",\"email\":\"$PW_EMAIL\",\"phone\":\"$PW_PHONE\",\"staffRole\":\"support\"}") \
+  || fail "could not create throwaway staff for password test"
+PW_ID=$(echo "$PW_CREATE" | jq -r '.data.id // .id')
+[ -n "$PW_ID" ] && [ "$PW_ID" != "null" ] || fail "no id for throwaway staff: $PW_CREATE"
+
+LM_STAFF=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login-method" -H "$JSON" \
+  -d "{\"phone\":\"$PW_PHONE\"}" | jq -r '.method')
+[ "$LM_STAFF" = "password" ] || fail "login-method(staff phone)=$LM_STAFF (expected password)"
+LM_NEW=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login-method" -H "$JSON" \
+  -d '{"phone":"+201598887776"}' | jq -r '.method')
+[ "$LM_NEW" = "otp" ] || fail "login-method(unknown phone)=$LM_NEW (expected otp)"
+pass "login-method routes registered→password, unknown→otp"
+
+PW_NEW="SmokePw@123456"
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/users/$PW_ID/password" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"password\":\"$PW_NEW\"}" >/dev/null \
+  || fail "admin set-password failed"
+PW_LOGIN=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$PW_EMAIL\",\"password\":\"$PW_NEW\"}") \
+  || fail "email+password login FAILED after admin set-password"
+PW_TOKEN=$(echo "$PW_LOGIN" | jq -r '.token // .accessToken')
+[ -n "$PW_TOKEN" ] && [ "$PW_TOKEN" != "null" ] || fail "no token from email login: $PW_LOGIN"
+WRONG=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$PW_EMAIL\",\"password\":\"definitely-wrong\"}")
+[ "$WRONG" = "401" ] || fail "wrong password got $WRONG (expected 401)"
+# Case-INSENSITIVE email login: the UPPERCASE form of the address must also work.
+PW_EMAIL_UP=$(printf '%s' "$PW_EMAIL" | tr '[:lower:]' '[:upper:]')
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$PW_EMAIL_UP\",\"password\":\"$PW_NEW\"}" >/dev/null \
+  || fail "email login is case-sensitive — UPPERCASE email rejected"
+pass "admin set-password → email login works (case-insensitive); wrong password 401"
+
+curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/users/$PW_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || fail "delete throwaway failed"
+STILL=$(curl -fsS -A "$SMOKE_UA" "$BASE/users?limit=500" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  | jq "[.data[] | select(.id == \"$PW_ID\")] | length")
+[ "$STILL" = "0" ] || fail "deleted user still shows in /api/users (count=$STILL)"
+pass "soft-deleted user hidden from the users list"
 
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
