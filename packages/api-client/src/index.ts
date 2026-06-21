@@ -230,6 +230,7 @@ class ApiClient {
   async setCredentials(body: {
     name: string;
     email?: string;
+    username?: string;
     password: string;
     age?: number;
   }): Promise<{ user: User }> {
