@@ -6,6 +6,8 @@ export default {
     namePlaceholder: "e.g. Mohamed Ghazaly",
     ageLabel: "Age *",
     agePlaceholder: "e.g. 28",
+    usernameLabel: "Username (optional)",
+    usernamePlaceholder: "A name you'll log in with",
     emailLabel: "Email (optional)",
     emailPlaceholder: "you@example.com",
     passwordLabel: "Password *",

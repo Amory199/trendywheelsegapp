@@ -9,6 +9,8 @@ const components: Stringify<typeof enNs> = {
     namePlaceholder: "مثال: محمد غزالي",
     ageLabel: "العمر *",
     agePlaceholder: "مثال: 28",
+    usernameLabel: "اسم المستخدم (اختياري)",
+    usernamePlaceholder: "اسم تسجّل الدخول به",
     emailLabel: "البريد الإلكتروني (اختياري)",
     emailPlaceholder: "you@example.com",
     passwordLabel: "كلمة المرور *",
