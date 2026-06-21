@@ -3,7 +3,6 @@ import { ZodError } from "zod";
 
 import { contextFromRequest, writeError } from "../utils/error-sink.js";
 import { AppError } from "../utils/errors.js";
-import { Sentry } from "../utils/sentry.js";
 import { humanizeZodError } from "../utils/zod-error.js";
 
 // Smoke-test runs deliberately exercise 4xx paths (e.g. forbidden-on-non-
@@ -18,20 +17,27 @@ function isSmokeTest(req: { headers?: Record<string, unknown> }): boolean {
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   const smoke = isSmokeTest(req);
 
-  // Zod validation errors → 400. Do NOT persist to the errorLog table —
-  // these are pure client-side bugs (stale mobile build, cached browser,
-  // hand-crafted request) and the API already returned a clear 400 to the
-  // caller with the offending field + message. The HTTP access log + the
-  // 400 response itself carry everything needed to debug. Writing them to
-  // `/logs` floods the admin page with yellow noise that drowns out real
-  // server errors. Sentry similarly gets skipped because client validation
-  // is not a server fault.
+  // RECORD-EVERYTHING (owner directive 2026-06-21): nothing should go unnoticed.
+  // Every error — including client validation 400s — is sent to Sentry + the
+  // admin error log. The ONLY exception is our own smoke-test traffic, which
+  // deliberately exercises 4xx on every deploy; capturing it would bury the real
+  // errors (INC-007). Severity LEVEL is graded (5xx=error, 4xx=warn, validation
+  // 400=warn) so the dashboard stays triageable even at higher volume.
   if (err instanceof ZodError) {
     // Friendly, field-named messages so the client can show the user exactly
-    // what to fix instead of a bare "Validation error". `message` is a one-line
-    // summary (toast/banner); `errors[]` carries per-field detail for inline
-    // form errors.
+    // what to fix. `message` is a one-line summary; `errors[]` carries per-field
+    // detail for inline form errors.
     const { summary, fields } = humanizeZodError(err);
+    if (!smoke) {
+      void writeError({
+        level: "warn",
+        source: "api",
+        message: `Validation error: ${summary}`,
+        statusCode: 400,
+        ...contextFromRequest(req),
+        metadata: { code: "VALIDATION_ERROR", fields },
+      });
+    }
     res.status(400).json({
       message: summary,
       code: "VALIDATION_ERROR",
@@ -41,17 +47,8 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
-  // Known application errors → persist 5xx at error, 4xx at warn. Skip:
-  //  - anonymous 401/404 hits → scanner / probe traffic
-  //  - any 404 → routine "record not found / scope changed" (e.g. sales
-  //    GETting a rotated lead returns 404 "no longer in your pipeline",
-  //    which is the new owner's expected behaviour — not an error worth
-  //    surfacing in the admin log every time the smoke test runs).
-  // Keep 403 (real access-violation signal) and 400 (validation bugs).
   if (err instanceof AppError) {
-    const isAnonProbe = !req.user && (err.statusCode === 401 || err.statusCode === 404);
-    const isRoutine404 = err.statusCode === 404;
-    if (!isAnonProbe && !isRoutine404 && !smoke) {
+    if (!smoke) {
       void writeError({
         level: err.statusCode >= 500 ? "error" : "warn",
         source: "api",
@@ -71,7 +68,8 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   }
 
   // Unknown / uncaught errors → 500 + persisted at error level with full stack.
-  if (err instanceof Error) Sentry.captureException(err);
+  // writeError() forwards to Sentry itself, so no separate captureException here
+  // (that double-reported every 500).
   void writeError({
     level: "error",
     source: "api",
