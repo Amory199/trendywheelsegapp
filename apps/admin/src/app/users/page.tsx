@@ -425,12 +425,66 @@ function UserDrawer({
           </div>
         </div>
 
+        <SetPasswordSection user={user} />
+
         <LoyaltyAdjust user={user} onChange={onChange} />
 
         <div className="border-t pt-4 text-xs text-gray-500">
           Joined {new Date(user.createdAt).toLocaleDateString()}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SetPasswordSection({ user }: { user: UserRow }): JSX.Element {
+  const [password, setPassword] = useState("");
+  const [done, setDone] = useState(false);
+
+  const setPw = useMutation({
+    mutationFn: () =>
+      authedFetch(`/api/users/${user.id}/password`, {
+        method: "POST",
+        body: JSON.stringify({ password }),
+      }),
+    onSuccess: () => {
+      setPassword("");
+      setDone(true);
+      setTimeout(() => setDone(false), 2500);
+    },
+  });
+
+  const valid = password.length >= 8;
+
+  return (
+    <div className="border-t pt-4">
+      <div className="text-xs uppercase tracking-wider text-gray-500 mb-2">Password</div>
+      <p className="text-xs text-gray-500 mb-2">
+        Set or reset this user&apos;s email-login password (≥ 8 characters). They&apos;ll be signed
+        out everywhere and must sign in with the new password.
+      </p>
+      <input
+        type="password"
+        value={password}
+        placeholder="New password"
+        onChange={(e) => {
+          setPassword(e.target.value);
+          setDone(false);
+        }}
+        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+      />
+      <button
+        onClick={() => setPw.mutate()}
+        disabled={!valid || setPw.isPending}
+        className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md disabled:opacity-40"
+      >
+        {setPw.isPending ? "Setting…" : done ? "Password updated ✓" : "Set password"}
+      </button>
+      {setPw.isError ? (
+        <div className="text-xs text-red-600 mt-2">
+          {(setPw.error as Error)?.message ?? "Failed to set password"}
+        </div>
+      ) : null}
     </div>
   );
 }
