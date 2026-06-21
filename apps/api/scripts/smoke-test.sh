@@ -678,6 +678,46 @@ STILL=$(curl -fsS -A "$SMOKE_UA" "$BASE/users?limit=500" -H "Authorization: Bear
 [ "$STILL" = "0" ] || fail "deleted user still shows in /api/users (count=$STILL)"
 pass "soft-deleted user hidden from the users list"
 
+# ─── 12q. Clear, field-level error messages (no bare "Validation error") ─
+# A rejected input must come back with a SPECIFIC, human message naming the
+# field and what to fix — plus a per-field errors[] array for inline form
+# errors. A wrong password must say so (code WRONG_PASSWORD), an unknown email
+# must say so (code NO_ACCOUNT). This is what lets the app tell the user exactly
+# what went wrong instead of "Login failed" / "Validation error".
+note "12q. Specific, user-facing error messages"
+
+# (a) Validation: too-short listing title/description → friendly msg + errors[]
+VERR=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/sales" \
+  -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+  -d '{"title":"ab","category":"golf-cart","make":"Club Car","model":"Precedent","year":2021,"price":50000,"mileage":1000,"transmission":"automatic","fuelType":"electric","color":"white","description":"short"}')
+VMSG=$(echo "$VERR" | jq -r '.message // empty')
+VCODE=$(echo "$VERR" | jq -r '.code // empty')
+VLEN=$(echo "$VERR" | jq '(.errors // []) | length')
+[ "$VCODE" = "VALIDATION_ERROR" ] || fail "validation code=$VCODE (expected VALIDATION_ERROR)"
+{ [ -n "$VMSG" ] && [ "$VMSG" != "Validation error" ]; } \
+  || fail "validation message is still the generic '$VMSG' — humanizer not wired"
+echo "$VMSG" | grep -qiE "title|description|character" \
+  || fail "validation message '$VMSG' doesn't name the offending field"
+[ "$VLEN" -ge 1 ] || fail "validation response carries no per-field errors[] (len=$VLEN)"
+echo "$VERR" | jq -e '.errors[0] | has("path") and has("message")' >/dev/null \
+  || fail "errors[] entries missing path/message"
+pass "validation: specific message + field-level errors[] ($VMSG)"
+
+# (b) Wrong password → code WRONG_PASSWORD, message mentions the password
+WRONG_BODY=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"definitely-not-it\"}")
+[ "$(echo "$WRONG_BODY" | jq -r '.code')" = "WRONG_PASSWORD" ] \
+  || fail "wrong-password code=$(echo "$WRONG_BODY" | jq -r '.code') (expected WRONG_PASSWORD)"
+echo "$WRONG_BODY" | jq -r '.message' | grep -qi "password" \
+  || fail "wrong-password message doesn't mention the password: $(echo "$WRONG_BODY" | jq -r '.message')"
+
+# (c) Unknown email → code NO_ACCOUNT (distinct from a wrong password)
+NOACC_BODY=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d '{"email":"nobody-smoke-xyz@trendywheelseg.com","password":"whatever12"}')
+[ "$(echo "$NOACC_BODY" | jq -r '.code')" = "NO_ACCOUNT" ] \
+  || fail "unknown-email code=$(echo "$NOACC_BODY" | jq -r '.code') (expected NO_ACCOUNT)"
+pass "login failures are specific (wrong password ≠ no account)"
+
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
 # No DELETE endpoint on /crm/leads, so leave the smoke-test lead. The contact

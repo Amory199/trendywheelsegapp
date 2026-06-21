@@ -83,6 +83,21 @@ app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+// The checked-in smoke suite (apps/api/scripts/smoke-test.sh) fires ~100 requests
+// in seconds from the box itself on every deploy, which would otherwise trip the
+// 100/min global limiter mid-run (and made the suite fragile — one assertion away
+// from the cap). Exempt it, but ONLY when the request is BOTH from loopback AND
+// carries the smoke UA. External traffic always arrives via the reverse proxy
+// with a real client IP (trust proxy = 1), so a loopback source address can't be
+// forged from the internet; the UA is a second gate. Worst case a bypass only
+// sidesteps a coarse anti-DoS limit — never auth or authorization.
+const isLoopbackIp = (ip: string | undefined): boolean =>
+  ip === "::1" || ip === "127.0.0.1" || ip === "::ffff:127.0.0.1";
+const skipSmokeLocalhost = (req: Request): boolean => {
+  const ua = req.headers["user-agent"];
+  return isLoopbackIp(req.ip) && typeof ua === "string" && ua.startsWith("tw-smoke-test");
+};
+
 // Rate limiting — global
 app.use(
   rateLimit({
@@ -90,6 +105,7 @@ app.use(
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: skipSmokeLocalhost,
     message: { message: "Too many requests", code: "RATE_LIMIT", statusCode: 429 },
   }),
 );
@@ -102,6 +118,7 @@ const authLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipSmokeLocalhost,
   message: {
     message: "Too many auth attempts, please try again later",
     code: "RATE_LIMIT_AUTH",
