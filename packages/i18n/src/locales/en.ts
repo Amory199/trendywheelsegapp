@@ -73,6 +73,11 @@ const en = {
     loggingIn: "Logging in…",
     loginFailed: "Login failed",
     invalidCredentials: "Wrong email or password.",
+    noAccount: "No account found with that email.",
+    noPasswordSet:
+      "This account has no password yet. Sign in with your phone, or ask an admin to set one.",
+    wrongPassword: "Incorrect password. Please try again.",
+    accountInactive: "This account isn't active. Please contact an admin.",
     noAccountSignup: "New here? Sign up with your phone",
   },
   roleSwitch: {
