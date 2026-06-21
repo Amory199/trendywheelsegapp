@@ -176,11 +176,16 @@ class ApiClient {
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Request failed" }));
+      const error = (await response.json().catch(() => ({ message: "Request failed" }))) as {
+        message?: string;
+        code?: string;
+        errors?: FieldError[];
+      };
       throw new ApiClientError(
-        (error as { message?: string }).message || "Request failed",
+        error.message || "Request failed",
         response.status,
-        (error as { code?: string }).code || "UNKNOWN",
+        error.code || "UNKNOWN",
+        Array.isArray(error.errors) ? error.errors : undefined,
       );
     }
 
@@ -925,11 +930,21 @@ class ApiClient {
   }
 }
 
+// A single field-level validation error from the API (e.g. { path: "title",
+// message: "Title must be at least 5 characters" }). Forms can map these onto
+// their inputs to show the error right next to the offending field.
+export interface FieldError {
+  path: string;
+  message: string;
+}
+
 export class ApiClientError extends Error {
   constructor(
     message: string,
     public statusCode: number,
     public code: string,
+    // Per-field validation errors, when the API returned a 400 from a schema.
+    public fields?: FieldError[],
   ) {
     super(message);
     this.name = "ApiClientError";
