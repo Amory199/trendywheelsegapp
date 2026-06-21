@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { contextFromRequest, writeError } from "../utils/error-sink.js";
 import { AppError } from "../utils/errors.js";
 import { Sentry } from "../utils/sentry.js";
+import { humanizeZodError } from "../utils/zod-error.js";
 
 // Smoke-test runs deliberately exercise 4xx paths (e.g. forbidden-on-non-
 // deletable-status). Those flow through this handler and would otherwise
@@ -26,14 +27,16 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   // server errors. Sentry similarly gets skipped because client validation
   // is not a server fault.
   if (err instanceof ZodError) {
+    // Friendly, field-named messages so the client can show the user exactly
+    // what to fix instead of a bare "Validation error". `message` is a one-line
+    // summary (toast/banner); `errors[]` carries per-field detail for inline
+    // form errors.
+    const { summary, fields } = humanizeZodError(err);
     res.status(400).json({
-      message: "Validation error",
+      message: summary,
       code: "VALIDATION_ERROR",
       statusCode: 400,
-      errors: err.errors.map((e) => ({
-        path: e.path.join("."),
-        message: e.message,
-      })),
+      errors: fields,
     });
     return;
   }

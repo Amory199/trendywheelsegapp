@@ -422,12 +422,28 @@ export async function loginWithPassword(
   const user = await prisma.user.findFirst({
     where: { email: { equals: email.trim(), mode: "insensitive" } },
   });
-  if (!user || !user.passwordHash) {
-    throw AppError.unauthorized("Invalid credentials");
+  // Distinct, honest failures so a user knows what to do next. The owner wants
+  // clarity over email-enumeration hardening for this app; the auth rate
+  // limiter on /api/auth/login already bounds guessing/scraping abuse.
+  if (!user) {
+    throw AppError.unauthorized("No account found with that email address.", "NO_ACCOUNT");
+  }
+  if (!user.passwordHash) {
+    throw AppError.unauthorized(
+      "This account doesn't have a password yet. Sign in with your phone number, or ask an admin to set one for you.",
+      "NO_PASSWORD_SET",
+    );
   }
   const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) throw AppError.unauthorized("Invalid credentials");
-  if (user.status !== "active") throw AppError.forbidden("Account is not active");
+  if (!ok) {
+    throw AppError.unauthorized("Incorrect password. Please try again.", "WRONG_PASSWORD");
+  }
+  if (user.status !== "active") {
+    throw AppError.forbidden(
+      "This account isn't active. Please contact an admin.",
+      "ACCOUNT_INACTIVE",
+    );
+  }
 
   const payload: AuthPayload = { userId: user.id, accountType: user.accountType };
   const accessToken = signAccessToken(payload);
