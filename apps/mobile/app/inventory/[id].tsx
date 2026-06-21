@@ -6,7 +6,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -20,6 +20,7 @@ import {
 } from "react-native";
 
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 
 type SalesStatus = "available" | "reserved" | "sold";
@@ -49,6 +50,7 @@ export default function InventoryToggle(): React.JSX.Element {
   const router = useRouter();
   const t = useT();
   const qc = useQueryClient();
+  const user = useAuth((s) => s.user);
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [target, setTarget] = useState<SalesStatus | null>(null);
@@ -88,6 +90,13 @@ export default function InventoryToggle(): React.JSX.Element {
   });
 
   const current = (q.data?.status as SalesStatus | undefined) ?? "available";
+
+  // Staff-only screen (the toggle endpoints are staff/admin gated server-side).
+  // Bounce a customer/guest who reached it via a deep link instead of letting
+  // the API 403 fill the screen with an error.
+  if (!user || (user.accountType !== "admin" && user.accountType !== "staff")) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   return (
     <>

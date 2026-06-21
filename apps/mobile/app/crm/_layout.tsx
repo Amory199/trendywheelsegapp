@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@trendywheels/ui-tokens";
 import { BlurView } from "expo-blur";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 
 function GlassTabBar(): JSX.Element {
@@ -35,6 +36,18 @@ function GlassTabBar(): JSX.Element {
 
 export default function CrmLayout(): JSX.Element {
   const t = useT();
+  const user = useAuth((s) => s.user);
+  const initialized = useAuth((s) => s.initialized);
+
+  // Staff workspace guard. index.tsx already routes users to their home by role,
+  // but a deep link (push notification, saved URL) could drop a customer or
+  // guest straight here — bounce them. Admins pass too (they can act-as staff).
+  if (!initialized) return <View style={styles.gate} />;
+  if (!user) return <Redirect href="/(auth)/phone" />;
+  if (user.accountType !== "admin" && user.accountType !== "staff") {
+    return <Redirect href="/(tabs)" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -107,3 +120,7 @@ export default function CrmLayout(): JSX.Element {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  gate: { flex: 1, backgroundColor: colors.brand.trustWorth },
+});
