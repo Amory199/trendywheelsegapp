@@ -9,19 +9,26 @@ import auth, { type FirebaseAuthTypes } from "@react-native-firebase/auth";
 let pendingConfirmation: FirebaseAuthTypes.ConfirmationResult | null = null;
 
 /**
- * Phones that should keep using the legacy server OTP path (and trial bypass).
- * Lets staff/admin testers sign in without burning SMS, and keeps the bypass
- * codes working through the same UI.
+ * Phones that take the legacy server OTP path (fixed-code bypass) instead of a
+ * real Firebase SMS. In PRODUCTION this is ONLY the Apple App Review demo
+ * account — every real number goes through Firebase. The dev test numbers stay
+ * available in development builds so testers can sign in without burning SMS.
+ *
+ * Why prod is locked down: the API only honours the Apple-review bypass in prod
+ * anyway, so listing the dev numbers here just routed them to a path that minted
+ * a real-but-undeliverable OTP (looked like "a bypass phone is getting an OTP").
+ * And a fixed code must NEVER point at a privileged account — +201111139358 was
+ * removed because the owner promoted it to an admin.
  */
-const TRIAL_PHONES = new Set([
+const DEV_TRIAL_PHONES = [
   "+201000000001", // Admin — Mostafa
   "+201000000010", // Sales — Amira
   "+201000000011", // Sales — Youssef
   "+201000000020", // Support — Layla
   "+201112223344", // Customer — Mohamed
   "+201234567000", // Apple App Review demo account
-  "+201111139358", // Owner demo — customer (fixed code 222222)
-]);
+];
+const TRIAL_PHONES = new Set(__DEV__ ? DEV_TRIAL_PHONES : ["+201234567000"]);
 
 export function isTrialPhone(phone: string): boolean {
   return TRIAL_PHONES.has(phone);

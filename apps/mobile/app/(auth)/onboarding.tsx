@@ -23,6 +23,7 @@ import { useT } from "../../lib/locale";
 interface FormData {
   name: string;
   age: string; // string until submit, then parsed to int
+  username: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -35,6 +36,7 @@ export default function OnboardingScreen(): JSX.Element {
   const [form, setForm] = useState<FormData>({
     name: user?.name ?? "",
     age: user?.age ? String(user.age) : "",
+    username: user?.username ?? "",
     email: user?.email ?? "",
     password: "",
     confirmPassword: "",
@@ -46,12 +48,15 @@ export default function OnboardingScreen(): JSX.Element {
   const ageNum = Number(form.age);
   const nameValid = form.name.trim().length >= 2;
   const ageValid = Number.isInteger(ageNum) && ageNum >= 13 && ageNum <= 120;
-  // Email is OPTIONAL — only validate the format when something was typed.
+  // Email + username are OPTIONAL — only validate format when something's typed.
   const emailValid = form.email.trim() === "" || /^\S+@\S+\.\S+$/.test(form.email.trim());
+  const usernameValid =
+    form.username.trim() === "" || /^(?=.*[a-zA-Z])[a-zA-Z0-9_.]{3,30}$/.test(form.username.trim());
   const passwordValid = form.password.length >= 8;
   const confirmValid = form.confirmPassword === form.password;
   const showMismatch = form.confirmPassword.length > 0 && !confirmValid;
-  const canSubmit = nameValid && ageValid && emailValid && passwordValid && confirmValid;
+  const canSubmit =
+    nameValid && ageValid && usernameValid && emailValid && passwordValid && confirmValid;
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -60,6 +65,7 @@ export default function OnboardingScreen(): JSX.Element {
       // their phone number + password — no OTP. hydrate() refreshes hasPassword.
       return api.setCredentials({
         name: form.name.trim(),
+        username: form.username.trim() || undefined,
         email: form.email.trim() || undefined,
         password: form.password,
         age: ageNum,
@@ -102,6 +108,15 @@ export default function OnboardingScreen(): JSX.Element {
           onChangeText={(v) => set("age", v.replace(/[^0-9]/g, "").slice(0, 3))}
           keyboardType="number-pad"
           maxLength={3}
+        />
+
+        <Field
+          label={t("components.onboarding.usernameLabel")}
+          placeholder={t("components.onboarding.usernamePlaceholder")}
+          value={form.username}
+          onChangeText={(v) => set("username", v.replace(/[^a-zA-Z0-9_.]/g, "").slice(0, 30))}
+          autoCapitalize="none"
+          autoCorrect={false}
         />
 
         <Field
