@@ -225,11 +225,11 @@ class ApiClient {
     return this.request("POST", "/api/auth/login", { body: { email, password } });
   }
 
-  // Set name + email + password on the authenticated user (post-OTP signup or
-  // profile). Returns the updated user (hasPassword === true).
+  // Set name + password (+ optional email) on the authenticated user (post-OTP
+  // signup or profile). Returns the updated user (hasPassword === true).
   async setCredentials(body: {
     name: string;
-    email: string;
+    email?: string;
     password: string;
     age?: number;
   }): Promise<{ user: User }> {
