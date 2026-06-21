@@ -75,14 +75,14 @@ router.post(
 router.post(
   "/:id/disable",
   authenticate,
-  authorize("admin", "staff"),
+  authorize("admin"),
   validate({ params: idParamSchema }),
   userController.disable,
 );
 router.post(
   "/:id/enable",
   authenticate,
-  authorize("admin", "staff"),
+  authorize("admin"),
   validate({ params: idParamSchema }),
   userController.enable,
 );

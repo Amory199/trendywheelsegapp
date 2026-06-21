@@ -10,7 +10,7 @@ import {
 } from "@trendywheels/validators";
 
 import { prisma } from "../../config/database.js";
-import { authenticate } from "../../middleware/auth.js";
+import { authenticate, authorize } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { AppError } from "../../utils/errors.js";
 import { emitDomainEvent, notifyAdmins } from "../../utils/notify.js";
@@ -18,6 +18,9 @@ import { emitDomainEvent, notifyAdmins } from "../../utils/notify.js";
 const router: RouterType = Router();
 
 const STAFF = new Set(["admin", "staff"]);
+// Staff-only service-request status updates. Handlers also check STAFF, but the
+// route guard makes the rule explicit + refactor-proof (RBAC Phase 1).
+const staffOnly = authorize("admin", "staff");
 
 // ─── Maintenance ────────────────────────────────────────────────────────
 
@@ -75,6 +78,7 @@ router.post(
 router.patch(
   "/maintenance/:id",
   authenticate,
+  staffOnly,
   validate({ body: updateMaintenanceRequestSchema }),
   async (req, res) => {
     if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
@@ -140,6 +144,7 @@ router.post(
 router.patch(
   "/customization/:id",
   authenticate,
+  staffOnly,
   validate({ body: updateCustomizationRequestSchema }),
   async (req, res) => {
     if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();
@@ -203,6 +208,7 @@ router.post(
 router.patch(
   "/transport/:id",
   authenticate,
+  staffOnly,
   validate({ body: updateTransportRequestSchema }),
   async (req, res) => {
     if (!STAFF.has(req.user!.accountType)) throw AppError.forbidden();

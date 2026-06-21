@@ -27,6 +27,19 @@ export async function list(req: Request, res: Response): Promise<void> {
   // the phone to `deleted_<id>`. That prefix is the deletion marker, so the
   // admin users list never shows ghost "Deleted User" rows.
   const where: Prisma.UserWhereInput = { NOT: { phone: { startsWith: "deleted_" } } };
+
+  // RBAC: only an ADMIN may browse the whole user base. Non-admin staff hit
+  // this endpoint solely to pick a teammate (e.g. the support assign-agent
+  // picker), so they only ever see staff/admin rows — never the customer list.
+  if (req.user!.accountType !== "admin") {
+    where.accountType = { in: ["admin", "staff"] };
+  }
+  // Optional staffRole filter (assign-agent picker passes ?staffRole=support).
+  const { staffRole } = req.query as Record<string, string>;
+  const STAFF_ROLES = ["sales", "support", "inventory", "mechanic", "admin"];
+  if (staffRole && STAFF_ROLES.includes(staffRole)) {
+    where.staffRole = staffRole as Prisma.UserWhereInput["staffRole"];
+  }
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
