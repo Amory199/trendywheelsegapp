@@ -92,7 +92,7 @@ export default function LoginPage(): JSX.Element {
 
           <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Field
-              label="Phone or email"
+              label="Username, phone, or email"
               type="text"
               value={email}
               onChange={setEmail}
