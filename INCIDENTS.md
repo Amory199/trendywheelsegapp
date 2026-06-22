@@ -1325,6 +1325,47 @@ When ordering an event against a JWT's issue time at sub-second resolution, `iat
 
 ---
 
+### INC-047 — Admin vehicle edit loses category/type after a save (2026-06-22)
+
+**Status:** Fixed
+**Severity:** P2 (admin-reported; every saved vehicle re-opened with no category and an unset type, blocking clean edits)
+**Touched:** `apps/api/src/modules/vehicles/controller.ts`, `apps/admin/src/app/vehicles/[id]/page.tsx`
+**Related:** Track A (on-sale pricing) which surfaced the edit form
+
+**Symptom**
+"It doesn't save the category I choose — when I open it again to edit, it tells me choose a category, and the seaters [type] too." Also: a sale-only vehicle still forced a required Daily Rate.
+
+**Root cause**
+`VehicleCategory`/`VehicleType` are Prisma enums whose members are `@map`'d to kebab DB labels (`golf_cart → "golf-cart"`, `FOUR_SEATER → "4-seater"`). Inbound writes were normalized kebab→member (`normalizeVehicleData`), but **output was never reverse-mapped** — Prisma returns the member name. So `getById` returned `category:"golf_cart"`, which doesn't match the admin form's kebab `VEHICLE_CATEGORIES` keys → no chip active → "choose a category". Type had the same fault (`SIX_SEATER` vs option `"6-seater"`). Seed rows happened to read fine until the first save round-tripped them into member form. Separately, the edit form required `dailyRate > 0` unconditionally, even for `listingType=sale`.
+
+**Fix**
+Added `serializeVehicle()` (reverse of `normalizeVehicleData`) applied at all four response sites (list/getById/create/update) so the API always emits kebab. Added the missing `scooter-sidecar` inbound mapping and mapped the `type` list filter too. Admin edit form now requires/shows Daily Rate only for rent/both and keeps a placeholder for sale-only.
+
+**Pattern to follow next time**
+A `@map`'d Prisma enum needs symmetric translation: if you normalize on the way IN, you must denormalize on the way OUT, or clients that compare against the DB-label form silently mismatch. Grep for the inbound map and ensure every response path has a matching outbound map.
+
+---
+
+### INC-048 — Dashboard headcount read 63 (soft-delete tombstones) + smoke staff piling up (2026-06-22)
+
+**Status:** Fixed
+**Severity:** P3 (cosmetic but alarming — owner saw "63 users" with ~16 real accounts)
+**Touched:** `apps/api/src/modules/admin/routes.ts`, `apps/api/scripts/smoke-test.sh`
+
+**Symptom**
+Admin panel showed 63 users. Real accounts: 16. The other 47 were 44 anonymized "Deleted User" tombstones + 3 stale `smoke-*` accounts.
+
+**Root cause**
+`DELETE /users/:id` soft-deletes (anonymize → name "Deleted User", `phone = deleted_<id>`, `status=inactive`) — correct for staff audit, and the users **list** already filters `phone NOT LIKE 'deleted_%'`. But `/metrics` used a bare `prisma.user.count()`, counting every tombstone. The smoke test creates two temp staff per run and soft-deletes them, so tombstones grew unbounded (44 accumulated).
+
+**Fix**
+`/metrics` now counts `NOT phone startsWith "deleted_"`. The smoke test hard-purges (psql, best-effort) exactly the two ids it created plus stale `smoke-*` rows at the end — scoped by id/email so real admin-deleted staff tombstones are never touched. One-time cleanup of the 47 historical rows done out-of-band.
+
+**Pattern to follow next time**
+A soft-delete scheme needs its tombstone filter applied **everywhere** the entity is counted/shown, not just the primary list — aggregate metrics are the easy miss. And any test that creates real rows must hard-clean them, since the product's own delete is (correctly) a soft-delete.
+
+---
+
 ## How to add a new entry
 
 1. Pick the next `INC-NNN` number (zero-padded, monotonic).
