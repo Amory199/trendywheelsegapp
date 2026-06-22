@@ -134,9 +134,31 @@ export const updateVehicleSchema = z.object({
   saleDescription: z.string().max(2000).nullable().optional(),
 });
 
+// Optional Google Maps drop-off link for delivery. Blank / omitted = store
+// pickup. Kept permissive across the common Google Maps URL shapes (full
+// google.com/maps, maps.google.*, and the short goo.gl / maps.app.goo.gl share
+// links) so a link pasted from the app, a browser, or the share sheet all pass.
+// An empty string normalizes to null.
+export const dropoffLocationUrlSchema = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine(
+    (u) =>
+      // Empty = store pickup. Otherwise an http(s) URL whose host is a Google
+      // Maps / goo.gl domain (covers google.com/maps, maps.google.*, and the
+      // short goo.gl + maps.app.goo.gl share links).
+      u === "" || /^https?:\/\/([a-z0-9-]+\.)*(google\.[a-z.]+|goo\.gl)(\/|\?|#|$)/i.test(u),
+    { message: "Paste a valid Google Maps link (or leave it blank for store pickup)" },
+  )
+  .transform((u) => (u === "" ? null : u))
+  .optional()
+  .nullable();
+
 export const createReservationSchema = z.object({
   vehicleId: z.string().uuid(),
   notes: z.string().max(1000).optional().nullable(),
+  dropoffLocationUrl: dropoffLocationUrlSchema,
 });
 
 export const updateReservationSchema = z.object({
@@ -174,6 +196,7 @@ export const createBookingSchema = z
     endDate: z.string().datetime(),
     promoCode: z.string().min(2).max(40).optional(),
     loyaltyPointsRedeemed: z.number().int().min(0).optional(),
+    dropoffLocationUrl: dropoffLocationUrlSchema,
   })
   .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
     message: "End date must be after start date",
@@ -464,6 +487,7 @@ export const createOrderSchema = z.object({
     )
     .min(1, "At least one item required"),
   tradeInId: z.string().uuid().optional().nullable(),
+  dropoffLocationUrl: dropoffLocationUrlSchema,
 });
 
 export const updateOrderStatusSchema = z.object({ status: orderStatusEnum });
