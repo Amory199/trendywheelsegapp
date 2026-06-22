@@ -7,6 +7,7 @@ import * as React from "react";
 import { ActivityIndicator, Alert, Dimensions, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { DropoffLocationField } from "../../components/DropoffLocationField";
 import { ImageCarousel } from "../../components/ImageCarousel";
 import { TWBadge, TWButton, TWCard, TWChip, TWPressable } from "../../components/ui";
 import { api } from "../../lib/api";
@@ -38,8 +39,14 @@ export default function SaleDetailScreen(): React.JSX.Element {
     enabled: Boolean(id),
   });
 
+  const [dropoff, setDropoff] = React.useState("");
+
   const reserve = useMutation({
-    mutationFn: () => api.createReservation({ vehicleId: id as string }),
+    mutationFn: () =>
+      api.createReservation({
+        vehicleId: id as string,
+        dropoffLocationUrl: dropoff.trim() || null,
+      }),
     onSuccess: () => {
       Alert.alert(t("sale.reservedTitle"), t("sale.reservedBody"));
       router.back();
@@ -239,6 +246,10 @@ export default function SaleDetailScreen(): React.JSX.Element {
               </View>
             </Animated.View>
           ) : null}
+
+          <Animated.View entering={FadeInDown.delay(320).duration(420)}>
+            <DropoffLocationField value={dropoff} onChange={setDropoff} />
+          </Animated.View>
         </View>
       </Animated.ScrollView>
 

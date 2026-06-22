@@ -110,6 +110,15 @@ const en = {
     saveContinue: "Save & continue",
     saveErrorTitle: "Couldn't save your ID",
   },
+  dropoff: {
+    label: "Delivery drop-off location",
+    placeholder: "Paste your Google Maps link",
+    openMaps: "Maps",
+    helper:
+      "Paste a Google Maps link so we know where to deliver — or leave blank to collect from our store.",
+    invalidHint:
+      "That doesn't look like a Google Maps link. Tap Maps to grab your location, then paste it here.",
+  },
   tabs: {
     home: "Home",
     buy: "Buy",

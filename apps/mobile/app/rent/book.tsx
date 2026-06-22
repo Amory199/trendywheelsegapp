@@ -31,6 +31,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DropoffLocationField } from "../../components/DropoffLocationField";
 import { GuestGate } from "../../components/GuestGate";
 import { TWSkiaConfetti } from "../../components/skia/confetti";
 import { logEvent } from "../../lib/analytics";
@@ -85,6 +86,7 @@ export default function BookScreen(): JSX.Element {
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [licenseNum, setLicenseNum] = useState("");
+  const [dropoff, setDropoff] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
   const [booked, setBooked] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
@@ -115,6 +117,7 @@ export default function BookScreen(): JSX.Element {
         vehicleId: vehicleId!,
         startDate: new Date(startDate).toISOString(),
         endDate: new Date(endDate).toISOString(),
+        dropoffLocationUrl: dropoff.trim() || null,
       };
       if (__DEV__) console.log("[book] POST /bookings", payload);
       return api.createBooking(payload);
@@ -213,6 +216,7 @@ export default function BookScreen(): JSX.Element {
                 onChangeText={setLicenseNum}
                 placeholder={t("rent.licensePlaceholder")}
               />
+              <DropoffLocationField value={dropoff} onChange={setDropoff} />
             </Animated.View>
           )}
 

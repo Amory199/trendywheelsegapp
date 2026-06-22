@@ -6,6 +6,7 @@ import * as React from "react";
 import { useState } from "react";
 import { Alert, Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 
+import { DropoffLocationField } from "../../components/DropoffLocationField";
 import { ImageCarousel } from "../../components/ImageCarousel";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
@@ -42,6 +43,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
   const requireAuth = useRequireAuth();
   const { palette } = useTheme();
   const [showSpecs, setShowSpecs] = useState(false);
+  const [dropoff, setDropoff] = useState("");
 
   const q = useQuery({
     queryKey: ["mobile-product", id],
@@ -53,7 +55,10 @@ export default function ProductDetailScreen(): React.JSX.Element {
   const buy = useMutation({
     mutationFn: () =>
       api.request<{ data: { id: string } }>("POST", "/api/orders", {
-        body: { items: [{ productId: id, quantity: 1 }] },
+        body: {
+          items: [{ productId: id, quantity: 1 }],
+          dropoffLocationUrl: dropoff.trim() || null,
+        },
       }),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["my-orders"] });
@@ -191,6 +196,10 @@ export default function ProductDetailScreen(): React.JSX.Element {
               ) : null}
             </View>
           )}
+
+          <View style={{ marginTop: 18 }}>
+            <DropoffLocationField value={dropoff} onChange={setDropoff} />
+          </View>
         </View>
       </ScrollView>
 
