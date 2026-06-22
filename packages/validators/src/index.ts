@@ -98,12 +98,23 @@ export const createVehicleSchema = z
     images: z.array(z.string().url()).max(10).default([]),
     listingType: listingTypeEnum.default("rent"),
     salePrice: z.coerce.number().positive().optional(),
+    originalPriceEgp: z.coerce.number().positive().optional(),
     saleDescription: z.string().max(2000).optional(),
   })
   .refine((v) => v.listingType === "rent" || (v.salePrice !== undefined && v.salePrice > 0), {
     message: "salePrice is required when listingType is 'sale' or 'both'",
     path: ["salePrice"],
-  });
+  })
+  .refine(
+    (v) =>
+      v.originalPriceEgp === undefined ||
+      v.salePrice === undefined ||
+      v.originalPriceEgp > v.salePrice,
+    {
+      message: "Original price must be higher than the sale price",
+      path: ["originalPriceEgp"],
+    },
+  );
 
 export const updateVehicleSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -119,7 +130,17 @@ export const updateVehicleSchema = z.object({
   status: vehicleStatusEnum.optional(),
   listingType: listingTypeEnum.optional(),
   salePrice: z.coerce.number().positive().nullable().optional(),
+  originalPriceEgp: z.coerce.number().positive().nullable().optional(),
   saleDescription: z.string().max(2000).nullable().optional(),
+});
+
+export const createReservationSchema = z.object({
+  vehicleId: z.string().uuid(),
+  notes: z.string().max(1000).optional().nullable(),
+});
+
+export const updateReservationSchema = z.object({
+  status: z.enum(["pending", "confirmed", "completed", "cancelled"]),
 });
 
 export const vehicleFiltersSchema = z.object({
@@ -226,6 +247,8 @@ export const updateUserSchema = z.object({
   licenseNumber: z.string().min(3).max(40).nullable().optional(),
   licenseExpiry: z.string().datetime().nullable().optional(),
   licensePhotoUrl: z.string().url().nullable().optional(),
+  idFrontUrl: z.string().url().nullable().optional(),
+  idBackUrl: z.string().url().nullable().optional(),
   preferences: z
     .object({
       theme: z.enum(["light", "dark"]).optional(),
