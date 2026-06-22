@@ -333,6 +333,9 @@ class ApiClient {
     vehicleId: string;
     startDate: string;
     endDate: string;
+    promoCode?: string;
+    loyaltyPointsRedeemed?: number;
+    dropoffLocationUrl?: string | null;
   }): Promise<ApiResponse<Booking>> {
     return this.request("POST", "/api/bookings", { body: data });
   }
@@ -440,6 +443,7 @@ class ApiClient {
   async createReservation(data: {
     vehicleId: string;
     notes?: string | null;
+    dropoffLocationUrl?: string | null;
   }): Promise<ApiResponse<Reservation>> {
     return this.request("POST", "/api/reservations", { body: data });
   }
