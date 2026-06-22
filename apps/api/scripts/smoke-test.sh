@@ -828,5 +828,27 @@ curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/crm/leads/$LEAD_ID" \
   -d '{"status":"lost","notes":"smoke-test artifact — safe to ignore"}' >/dev/null || true
 pass "test lead marked lost"
 
+# The DELETE /users/:id endpoint SOFT-deletes (anonymizes → "Deleted User",
+# phone deleted_<id>) — correct for real staff audit, but it means every smoke
+# run would otherwise leave two tombstone rows that pile up forever. Hard-purge
+# exactly the two temp staff THIS run created (by id), plus any stale smoke-*
+# accounts a previously-aborted run left active. Scoped by id / smoke- email so
+# real admin-deleted staff tombstones are never touched. Best-effort: if psql or
+# the DB URL is unavailable the rows just stay (harmless — already excluded from
+# the dashboard metric), and a DB error can't fail the suite.
+SMOKE_DB=$(grep -m1 '^DATABASE_URL=' "$(dirname "$0")/../.env" 2>/dev/null \
+  | cut -d= -f2- | sed 's/^"//;s/"$//;s/?.*//')
+if [ -n "${SMOKE_DB:-}" ] && command -v psql >/dev/null 2>&1; then
+  if psql "$SMOKE_DB" -v ON_ERROR_STOP=1 -q >/dev/null 2>&1 <<SQL
+DELETE FROM audit_logs WHERE user_id IN ('${RVK_ID}','${PW_ID}');
+DELETE FROM users WHERE id IN ('${RVK_ID}','${PW_ID}') OR email LIKE 'smoke-%';
+SQL
+  then pass "smoke staff hard-purged (no tombstones left)"
+  else note "smoke staff purge skipped (db error) — tombstones harmless, excluded from metrics"
+  fi
+else
+  note "psql/DATABASE_URL unavailable — temp staff left as soft-deleted tombstones (harmless)"
+fi
+
 echo
 echo "✅ smoke-test PASSED — API ready for traffic"
