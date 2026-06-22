@@ -5,16 +5,17 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useT } from "../lib/locale";
 import { useTheme } from "../lib/use-theme";
 
-// Mirrors CategoryStrip's image map. All 7 categories now have art; kept local
-// so this lightweight row carries no dependency on the heavier strip component.
+// Branded category icons (sliced from the official icon board). Transparent
+// PNGs shown on a dark brand circle so the artwork pops the same way it does on
+// the brand sheet, in both light and dark app themes.
 const CATEGORY_IMAGES: Record<VehicleCategory, number> = {
-  "golf-cart": require("../assets/categories/golf-cart.jpg"),
-  scooter: require("../assets/categories/scooter.jpg"),
-  "scooter-sidecar": require("../assets/categories/scooter-sidecar.jpg"),
-  buggy: require("../assets/categories/buggy.jpg"),
-  utv: require("../assets/categories/utv.jpg"),
-  "jet-ski": require("../assets/categories/jet-ski.jpg"),
-  "hover-board": require("../assets/categories/hover-board.jpg"),
+  "golf-cart": require("../assets/icons/golf-cart.png"),
+  scooter: require("../assets/icons/scooter.png"),
+  "scooter-sidecar": require("../assets/icons/scooter-sidecar.png"),
+  buggy: require("../assets/icons/buggy.png"),
+  utv: require("../assets/icons/utv.png"),
+  "jet-ski": require("../assets/icons/jet-ski.png"),
+  "hover-board": require("../assets/icons/hover-board.png"),
 };
 
 interface Props {
@@ -40,8 +41,8 @@ export function CategoryCircles({ onPress }: Props): JSX.Element {
           <View style={styles.circle}>
             <Image
               source={CATEGORY_IMAGES[c.key]}
-              style={StyleSheet.absoluteFill}
-              contentFit="cover"
+              style={styles.icon}
+              contentFit="contain"
               transition={200}
             />
           </View>
@@ -64,9 +65,12 @@ const styles = StyleSheet.create({
     height: CIRCLE,
     borderRadius: CIRCLE / 2,
     overflow: "hidden",
-    backgroundColor: "#EAEAF0",
+    backgroundColor: "#0c0b3a",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(2,1,31,0.06)",
+    borderColor: "rgba(43,15,248,0.25)",
   },
+  icon: { width: CIRCLE - 8, height: CIRCLE - 8 },
   label: { marginTop: 6, fontSize: 11, fontWeight: "600", textAlign: "center" },
 });

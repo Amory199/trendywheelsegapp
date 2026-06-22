@@ -1,5 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@trendywheels/ui-tokens";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import * as React from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
@@ -7,57 +6,43 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-na
 import { useT } from "../lib/locale";
 import { useTheme } from "../lib/use-theme";
 
-const GREEN = "#16A34A";
-const AMBER = "#F5B800";
-
 // Talabat-style quick-access grid: every main flow one tap from the home
 // screen. Tiles deep-link straight into the relevant tab/route (all verified
-// to exist). Labels are i18n keys (en/ar parity); icons + brand tints stay
-// locale-agnostic.
+// to exist). Labels are i18n keys (en/ar parity); the branded action icons
+// (sliced from the official icon board) stay locale-agnostic.
 type Tile = {
   labelKey: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  tint: string;
+  img: number;
   route: string;
 };
 
 const TILES: Tile[] = [
+  { labelKey: "home.quickBuy", img: require("../assets/icons/buy.png"), route: "/(tabs)/buy" },
+  { labelKey: "home.quickRent", img: require("../assets/icons/rent.png"), route: "/(tabs)/rent" },
+  { labelKey: "home.quickSell", img: require("../assets/icons/sell.png"), route: "/(tabs)/sell" },
   {
-    labelKey: "home.quickBuy",
-    icon: "bag-handle",
-    tint: colors.brand.friendlyBlue,
-    route: "/(tabs)/buy",
+    labelKey: "home.quickTradeIn",
+    img: require("../assets/icons/trade-in.png"),
+    route: "/sell/trade-in",
   },
-  { labelKey: "home.quickRent", icon: "key", tint: colors.brand.poolBlue, route: "/(tabs)/rent" },
-  {
-    labelKey: "home.quickSell",
-    icon: "pricetag",
-    tint: colors.brand.trendyPink,
-    route: "/(tabs)/sell",
-  },
-  { labelKey: "home.quickTradeIn", icon: "swap-horizontal", tint: GREEN, route: "/sell/trade-in" },
   {
     labelKey: "home.quickMaintenance",
-    icon: "construct",
-    tint: AMBER,
+    img: require("../assets/icons/maintenance.png"),
     route: "/service/maintenance",
   },
   {
     labelKey: "home.quickCustomization",
-    icon: "color-palette",
-    tint: colors.brand.trendyPink,
+    img: require("../assets/icons/customize.png"),
     route: "/service/customization",
   },
   {
     labelKey: "home.quickDelivery",
-    icon: "cube",
-    tint: colors.brand.poolBlue,
+    img: require("../assets/icons/delivery.png"),
     route: "/service/pickup-delivery",
   },
   {
     labelKey: "home.quickSupport",
-    icon: "headset",
-    tint: colors.brand.friendlyBlue,
+    img: require("../assets/icons/support.png"),
     route: "/support/tickets",
   },
 ];
@@ -84,8 +69,8 @@ export function QuickAccessGrid(): React.JSX.Element {
             onPress={() => router.push(tile.route as never)}
             hitSlop={4}
           >
-            <View style={[styles.iconWrap, { backgroundColor: tile.tint + "1A" }]}>
-              <Ionicons name={tile.icon} size={22} color={tile.tint} />
+            <View style={styles.iconWrap}>
+              <Image source={tile.img} style={styles.iconImg} contentFit="contain" />
             </View>
             <Text style={[styles.label, { color: palette.text }]} numberOfLines={1}>
               {t(tile.labelKey)}
@@ -118,6 +103,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#0c0b3a",
+    borderWidth: 1,
+    borderColor: "rgba(43,15,248,0.25)",
   },
+  iconImg: { width: 44, height: 44 },
   label: { fontSize: 11, fontWeight: "700", textAlign: "center" },
 });
