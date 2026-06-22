@@ -22,6 +22,7 @@ interface BookingRow {
   status: "pending" | "confirmed" | "active" | "completed" | "cancelled";
   paymentStatus: "pending" | "paid" | "refunded";
   totalCost: string | number;
+  dropoffLocationUrl?: string | null;
   createdAt: string;
   user?: { id: string; name: string; phone: string };
   vehicle?: { id: string; name: string };
@@ -269,6 +270,20 @@ function BookingDrawer({
             >
               {booking.paymentStatus}
             </span>
+          </Row>
+          <Row label="Delivery">
+            {booking.dropoffLocationUrl ? (
+              <a
+                href={booking.dropoffLocationUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                📍 Open drop-off in Maps
+              </a>
+            ) : (
+              <span className="text-gray-400">Store pickup</span>
+            )}
           </Row>
         </div>
 

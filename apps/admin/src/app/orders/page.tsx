@@ -13,6 +13,7 @@ interface OrderRow {
   status: string;
   totalEgp: string;
   tradeInId: string | null;
+  dropoffLocationUrl: string | null;
   createdAt: string;
   user: { id: string; name: string; email: string | null; phone: string };
   items: Array<{
@@ -126,6 +127,18 @@ export default function AdminOrdersPage(): JSX.Element {
                   <td className="px-4 py-3">
                     <div className="font-medium">{o.user.name}</div>
                     <div className="text-xs text-gray-500">{o.user.email ?? o.user.phone}</div>
+                    {o.dropoffLocationUrl ? (
+                      <a
+                        href={o.dropoffLocationUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        📍 Drop-off in Maps
+                      </a>
+                    ) : (
+                      <div className="text-xs text-gray-400">Store pickup</div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-600">
                     {o.items.map((i) => (

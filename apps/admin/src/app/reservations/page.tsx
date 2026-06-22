@@ -12,6 +12,7 @@ interface Reservation {
   status: "pending" | "confirmed" | "completed" | "cancelled";
   amountEgp: string | number;
   notes: string | null;
+  dropoffLocationUrl: string | null;
   idFrontUrl: string | null;
   idBackUrl: string | null;
   createdAt: string;
@@ -163,6 +164,20 @@ function Drawer({
           <Row label="Amount">EGP {Number(item.amountEgp).toLocaleString()}</Row>
           <Row label="Status">
             <span className="capitalize">{item.status}</span>
+          </Row>
+          <Row label="Delivery">
+            {item.dropoffLocationUrl ? (
+              <a
+                href={item.dropoffLocationUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 hover:underline inline-flex items-center gap-1"
+              >
+                📍 Open drop-off in Maps
+              </a>
+            ) : (
+              <span className="text-gray-400">Store pickup</span>
+            )}
           </Row>
           {item.notes ? <Row label="Notes">{item.notes}</Row> : null}
         </div>
