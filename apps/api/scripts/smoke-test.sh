@@ -533,15 +533,26 @@ SV_ID=$(echo "$SV_CREATE" | jq -r '.id // .data.id')
 [ "$(echo "$SV_CREATE" | jq -r '.data.originalPriceEgp')" != "null" ] || fail "originalPriceEgp not persisted"
 pass "sale vehicle created with before/after price id=$SV_ID"
 
-# Customer (sales acts as the buyer here) reserves the for-sale vehicle.
+# Customer (sales acts as the buyer here) reserves the for-sale vehicle, with a
+# Google Maps drop-off link for delivery.
+DROPOFF_URL="https://maps.app.goo.gl/SmokeTestPin123"
 RES_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/reservations" \
   -H "Authorization: Bearer $SALES_TOKEN" -H "$JSON" \
-  -d "{\"vehicleId\":\"$SV_ID\"}") \
+  -d "{\"vehicleId\":\"$SV_ID\",\"dropoffLocationUrl\":\"$DROPOFF_URL\"}") \
   || fail "POST /reservations rejected"
 RES_ID=$(echo "$RES_CREATE" | jq -r '.data.id')
 [ -n "$RES_ID" ] && [ "$RES_ID" != "null" ] || fail "no reservation id: $RES_CREATE"
 [ "$(echo "$RES_CREATE" | jq -r '.data.amountEgp')" = "50000" ] || fail "reservation amount != salePrice"
-pass "reservation created id=$RES_ID amount=50000"
+[ "$(echo "$RES_CREATE" | jq -r '.data.dropoffLocationUrl')" = "$DROPOFF_URL" ] \
+  || fail "reservation did not persist dropoffLocationUrl"
+pass "reservation created id=$RES_ID amount=50000 + drop-off link persisted"
+
+# A non-maps link is rejected (the drop-off must be a Google Maps / goo.gl URL).
+BAD_DROPOFF=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/reservations" \
+  -H "Authorization: Bearer $SALES_TOKEN" -H "$JSON" \
+  -d "{\"vehicleId\":\"$SV_ID\",\"dropoffLocationUrl\":\"https://example.com/not-maps\"}")
+[ "$BAD_DROPOFF" = "400" ] || fail "non-maps drop-off link should be 400 (got $BAD_DROPOFF)"
+pass "non-maps drop-off link rejected (400)"
 
 # Admin generates a branded invoice PDF for the reservation.
 INV=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/invoices" \
@@ -828,26 +839,36 @@ curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/crm/leads/$LEAD_ID" \
   -d '{"status":"lost","notes":"smoke-test artifact — safe to ignore"}' >/dev/null || true
 pass "test lead marked lost"
 
-# The DELETE /users/:id endpoint SOFT-deletes (anonymizes → "Deleted User",
-# phone deleted_<id>) — correct for real staff audit, but it means every smoke
-# run would otherwise leave two tombstone rows that pile up forever. Hard-purge
-# exactly the two temp staff THIS run created (by id), plus any stale smoke-*
-# accounts a previously-aborted run left active. Scoped by id / smoke- email so
-# real admin-deleted staff tombstones are never touched. Best-effort: if psql or
-# the DB URL is unavailable the rows just stay (harmless — already excluded from
-# the dashboard metric), and a DB error can't fail the suite.
+# Several smoke endpoints SOFT-delete (staff: DELETE /users/:id anonymizes →
+# "Deleted User"; vehicles: DELETE /vehicles/:id flips status=inactive). Correct
+# for real audit, but it means every run would otherwise leave tombstone rows
+# (staff) and a stale "Smoke Sale Cart" + its reservation/invoice/synced product
+# that pile up forever. Hard-purge exactly the rows THIS run created (by id),
+# plus any stale smoke-* staff a previously-aborted run left active. Scoped by
+# id / smoke- email / the "Smoke Sale Cart" marker so real data is never touched.
+# Best-effort: if psql or the DB URL is unavailable the rows just stay (harmless
+# — soft-deleted rows are already hidden from lists/metrics), and a DB error
+# can't fail the suite.
 SMOKE_DB=$(grep -m1 '^DATABASE_URL=' "$(dirname "$0")/../.env" 2>/dev/null \
   | cut -d= -f2- | sed 's/^"//;s/"$//;s/?.*//')
 if [ -n "${SMOKE_DB:-}" ] && command -v psql >/dev/null 2>&1; then
   if psql "$SMOKE_DB" -v ON_ERROR_STOP=1 -q >/dev/null 2>&1 <<SQL
 DELETE FROM audit_logs WHERE user_id IN ('${RVK_ID}','${PW_ID}');
 DELETE FROM users WHERE id IN ('${RVK_ID}','${PW_ID}') OR email LIKE 'smoke-%';
+DELETE FROM invoices WHERE source_type = 'reservation' AND source_id IN (
+  SELECT id::text FROM reservations WHERE vehicle_id IN (
+    SELECT id FROM vehicles WHERE name = 'Smoke Sale Cart'));
+DELETE FROM reservations WHERE vehicle_id IN (
+  SELECT id FROM vehicles WHERE name = 'Smoke Sale Cart');
+DELETE FROM products WHERE name = 'Smoke Sale Cart' OR vehicle_id IN (
+  SELECT id FROM vehicles WHERE name = 'Smoke Sale Cart');
+DELETE FROM vehicles WHERE name = 'Smoke Sale Cart';
 SQL
-  then pass "smoke staff hard-purged (no tombstones left)"
-  else note "smoke staff purge skipped (db error) — tombstones harmless, excluded from metrics"
+  then pass "smoke artifacts hard-purged (no staff/vehicle tombstones left)"
+  else note "smoke purge skipped (db error) — soft-deleted rows harmless, hidden from lists/metrics"
   fi
 else
-  note "psql/DATABASE_URL unavailable — temp staff left as soft-deleted tombstones (harmless)"
+  note "psql/DATABASE_URL unavailable — temp rows left soft-deleted (harmless)"
 fi
 
 echo
