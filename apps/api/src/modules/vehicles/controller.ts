@@ -25,10 +25,35 @@ const VEHICLE_CATEGORY_MAP: Record<string, string> = {
   "golf-cart": "golf_cart",
   "hover-board": "hover_board",
   scooter: "scooter",
+  "scooter-sidecar": "scooter_sidecar",
   buggy: "buggy",
   utv: "utv",
   "jet-ski": "jet_ski",
 };
+
+// Reverse maps. Prisma returns enum MEMBER names (golf_cart / FOUR_SEATER), but
+// every client — the admin forms and the mobile app — speaks the kebab DB
+// labels (golf-cart / 4-seater). Map back on the way OUT so category/type
+// round-trip cleanly; without this, saving a vehicle in the admin rewrites the
+// value into a member-name the edit form's selects can no longer match, so it
+// reappears as "choose a category" / an unset type on the next open.
+const VEHICLE_CATEGORY_OUT: Record<string, string> = Object.fromEntries(
+  Object.entries(VEHICLE_CATEGORY_MAP).map(([kebab, member]) => [member, kebab]),
+);
+const VEHICLE_TYPE_OUT: Record<string, string> = Object.fromEntries(
+  Object.entries(VEHICLE_TYPE_MAP).map(([kebab, member]) => [member, kebab]),
+);
+
+function serializeVehicle<T extends Record<string, unknown>>(vehicle: T): T {
+  let out: Record<string, unknown> = vehicle;
+  if (typeof out.category === "string" && out.category in VEHICLE_CATEGORY_OUT) {
+    out = { ...out, category: VEHICLE_CATEGORY_OUT[out.category] };
+  }
+  if (typeof out.type === "string" && out.type in VEHICLE_TYPE_OUT) {
+    out = { ...out, type: VEHICLE_TYPE_OUT[out.type] };
+  }
+  return out as T;
+}
 
 function normalizeVehicleData<T extends { type?: unknown; category?: unknown }>(input: T): T {
   let out = input;
@@ -65,7 +90,7 @@ export async function list(req: Request, res: Response): Promise<void> {
   }
 
   const where: Record<string, unknown> = { status: { not: "inactive" } };
-  if (type) where.type = type;
+  if (type && type in VEHICLE_TYPE_MAP) where.type = VEHICLE_TYPE_MAP[type];
   if (category && category in VEHICLE_CATEGORY_MAP) where.category = VEHICLE_CATEGORY_MAP[category];
   if (available === "true") where.status = "available";
   if (listingType === "rent") where.listingType = { in: ["rent", "both"] };
@@ -88,7 +113,7 @@ export async function list(req: Request, res: Response): Promise<void> {
     prisma.vehicle.count({ where }),
   ]);
 
-  const result = { data, total, page: pageNum, limit: limitNum };
+  const result = { data: data.map(serializeVehicle), total, page: pageNum, limit: limitNum };
   await redis.setex(cacheKey, VEHICLES_CACHE_TTL, JSON.stringify(result));
   res.setHeader("X-Cache", "MISS");
   res.json(result);
@@ -101,7 +126,7 @@ export async function getById(req: Request, res: Response): Promise<void> {
   });
 
   if (!vehicle) throw AppError.notFound("Vehicle not found");
-  res.json({ data: vehicle });
+  res.json({ data: serializeVehicle(vehicle) });
 }
 
 export async function create(req: Request, res: Response): Promise<void> {
@@ -133,7 +158,7 @@ export async function create(req: Request, res: Response): Promise<void> {
   // Buy-section product in sync automatically.
   await syncVehicleProduct(vehicle!.id);
 
-  res.status(201).json({ data: vehicle, id: vehicle!.id });
+  res.status(201).json({ data: serializeVehicle(vehicle!), id: vehicle!.id });
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
@@ -172,7 +197,7 @@ export async function update(req: Request, res: Response): Promise<void> {
 
   await syncVehicleProduct(req.params.id);
 
-  res.json({ data: vehicle });
+  res.json({ data: serializeVehicle(vehicle!) });
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {
