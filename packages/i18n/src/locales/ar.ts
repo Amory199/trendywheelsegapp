@@ -7,6 +7,7 @@ import home from "./ar/home";
 import messages from "./ar/messages";
 import profile from "./ar/profile";
 import rent from "./ar/rent";
+import sale from "./ar/sale";
 import sell from "./ar/sell";
 import service from "./ar/service";
 import support from "./ar/support";
@@ -84,12 +85,25 @@ const ar: TranslationKeys = {
     actingAs: "تعرض كـ",
     exit: "خروج",
     customer: "عميل",
+    staff: "موظف",
     sales: "مبيعات",
     support: "دعم",
     inventory: "المخزون",
     mechanic: "فني",
     cancel: "إلغاء",
     failed: "تعذّر تبديل الدور",
+  },
+  verifyId: {
+    title: "توثيق الهوية",
+    heading: "أكّد هويتك",
+    subtitle:
+      "لأمانك وأماننا، نحتاج صورة لوجه وظهر بطاقة الرقم القومي قبل إتمام هذه المعاملة. تقوم بذلك مرة واحدة فقط.",
+    frontLabel: "البطاقة — الوجه",
+    backLabel: "البطاقة — الظهر",
+    tapToUpload: "اضغط للرفع",
+    privacy: "تُحفظ بطاقتك بشكل آمن وتُستخدم فقط للتحقق من الإيجار والشراء والإعلانات.",
+    saveContinue: "حفظ ومتابعة",
+    saveErrorTitle: "تعذّر حفظ بطاقتك",
   },
   tabs: {
     home: "الرئيسية",
@@ -106,6 +120,7 @@ const ar: TranslationKeys = {
   home,
   buy,
   rent,
+  sale,
   sell,
   service,
   profile,

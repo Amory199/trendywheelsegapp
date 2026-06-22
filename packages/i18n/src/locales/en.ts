@@ -6,6 +6,7 @@ import home from "./en/home";
 import messages from "./en/messages";
 import profile from "./en/profile";
 import rent from "./en/rent";
+import sale from "./en/sale";
 import sell from "./en/sell";
 import service from "./en/service";
 import support from "./en/support";
@@ -89,12 +90,25 @@ const en = {
     actingAs: "Viewing as",
     exit: "Exit",
     customer: "Customer",
+    staff: "Staff",
     sales: "Sales",
     support: "Support",
     inventory: "Inventory",
     mechanic: "Mechanic",
     cancel: "Cancel",
     failed: "Couldn't switch role",
+  },
+  verifyId: {
+    title: "Verify your ID",
+    heading: "Confirm your identity",
+    subtitle:
+      "For your security and ours, we need a photo of the front and back of your national ID before this transaction. You only do this once.",
+    frontLabel: "ID — front",
+    backLabel: "ID — back",
+    tapToUpload: "Tap to upload",
+    privacy: "Your ID is stored securely and only used to verify rentals, purchases and listings.",
+    saveContinue: "Save & continue",
+    saveErrorTitle: "Couldn't save your ID",
   },
   tabs: {
     home: "Home",
@@ -111,6 +125,7 @@ const en = {
   home,
   buy,
   rent,
+  sale,
   sell,
   service,
   profile,
