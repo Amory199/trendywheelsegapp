@@ -133,6 +133,7 @@ export interface Booking {
   totalCost: number;
   paymentStatus: PaymentStatus;
   notes: string | null;
+  dropoffLocationUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -229,6 +230,7 @@ export interface Reservation {
   status: ReservationStatus;
   amountEgp: number;
   notes: string | null;
+  dropoffLocationUrl?: string | null;
   idFrontUrl: string | null;
   idBackUrl: string | null;
   createdAt: string;
