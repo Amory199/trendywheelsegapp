@@ -28,6 +28,7 @@ const upload = multer({
 const CUSTOMER_PREFIX_ALLOWLIST = [
   "uploads",
   "license-photos",
+  "id-documents",
   "avatars",
   "reviews",
   "trade-ins",

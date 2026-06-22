@@ -17,7 +17,7 @@ const UPLOADS_DIR = env.UPLOADS_DIR;
 const PUBLIC_URL = env.UPLOADS_PUBLIC_URL.replace(/\/+$/, "");
 const SIGNING_SECRET = env.STORAGE_SIGNING_SECRET;
 
-function publicUrl(key: string): string {
+export function publicUrl(key: string): string {
   return `${PUBLIC_URL}/${key}`;
 }
 

@@ -26,7 +26,9 @@ import { metricsMiddleware, metricsRoutes } from "./modules/metrics/routes.js";
 import { notificationRoutes } from "./modules/notifications/routes.js";
 import { orderRoutes } from "./modules/orders/routes.js";
 import { productRoutes } from "./modules/products/routes.js";
+import { invoiceRoutes } from "./modules/invoices/routes.js";
 import { rentalListingRoutes } from "./modules/rental-listings/routes.js";
+import { reservationRoutes } from "./modules/reservations/routes.js";
 import { repairRoutes } from "./modules/repairs/routes.js";
 import { salesRoutes } from "./modules/sales/routes.js";
 import { serviceRequestsRoutes } from "./modules/service-requests/routes.js";
@@ -232,6 +234,8 @@ app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/trade-in", tradeInRoutes);
 app.use("/api/rental-listings", rentalListingRoutes);
+app.use("/api/reservations", reservationRoutes);
+app.use("/api/invoices", invoiceRoutes);
 app.use("/api/transport", transportRoutes);
 
 // OpenAPI docs — Swagger UI needs inline scripts/styles, so opt out of strict CSP.

@@ -81,6 +81,9 @@ export async function getMe(req: Request, res: Response): Promise<void> {
       preferences: true,
       loyaltyTier: true,
       loyaltyPoints: true,
+      idFrontUrl: true,
+      idBackUrl: true,
+      idVerified: true,
       createdAt: true,
       // Mapped to a boolean below — never expose the hash itself.
       passwordHash: true,
@@ -186,6 +189,25 @@ export async function update(req: Request, res: Response): Promise<void> {
   // Keep emails lowercased so the case-insensitive login lookup stays canonical.
   if (typeof data.email === "string") data.email = data.email.trim().toLowerCase();
 
+  // National-ID: once BOTH front and back are on file, mark the user verified
+  // (self-attested capture). We look at the post-update state — either the
+  // incoming patch provides a side, or the existing row already has it.
+  if (data.idFrontUrl !== undefined || data.idBackUrl !== undefined) {
+    const current = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { idFrontUrl: true, idBackUrl: true },
+    });
+    const front = data.idFrontUrl !== undefined ? data.idFrontUrl : current?.idFrontUrl;
+    const back = data.idBackUrl !== undefined ? data.idBackUrl : current?.idBackUrl;
+    if (front && back) {
+      data.idVerified = true;
+      data.idVerifiedAt = new Date();
+    } else {
+      data.idVerified = false;
+      data.idVerifiedAt = null;
+    }
+  }
+
   // A customer must never retain a staff role. Demoting accountType -> customer
   // without clearing staffRole left a stray role on the row; since some checks
   // (isAdmin) and UI lists key off staffRole, the "customer" was still treated
@@ -222,6 +244,9 @@ export async function update(req: Request, res: Response): Promise<void> {
       preferences: true,
       loyaltyTier: true,
       loyaltyPoints: true,
+      idFrontUrl: true,
+      idBackUrl: true,
+      idVerified: true,
     },
   });
 

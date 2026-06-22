@@ -522,6 +522,43 @@ curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/rental-listings/$RL_ID" -H "Authorizati
   || fail "admin DELETE /rental-listings/:id failed"
 pass "admin cleanup"
 
+# ─── 12i-2. Sale vehicle → reservation → invoice PDF ─────────
+note "12i-2. Sale pricing + reservation + invoice"
+SV_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/vehicles" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"name":"Smoke Sale Cart","category":"golf-cart","type":"4-seater","seating":4,"fuelType":"electric","transmission":"automatic","dailyRate":1,"location":"6th October","listingType":"sale","salePrice":50000,"originalPriceEgp":65000}') \
+  || fail "admin create sale vehicle rejected"
+SV_ID=$(echo "$SV_CREATE" | jq -r '.id // .data.id')
+[ -n "$SV_ID" ] && [ "$SV_ID" != "null" ] || fail "no sale-vehicle id: $SV_CREATE"
+[ "$(echo "$SV_CREATE" | jq -r '.data.originalPriceEgp')" != "null" ] || fail "originalPriceEgp not persisted"
+pass "sale vehicle created with before/after price id=$SV_ID"
+
+# Customer (sales acts as the buyer here) reserves the for-sale vehicle.
+RES_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/reservations" \
+  -H "Authorization: Bearer $SALES_TOKEN" -H "$JSON" \
+  -d "{\"vehicleId\":\"$SV_ID\"}") \
+  || fail "POST /reservations rejected"
+RES_ID=$(echo "$RES_CREATE" | jq -r '.data.id')
+[ -n "$RES_ID" ] && [ "$RES_ID" != "null" ] || fail "no reservation id: $RES_CREATE"
+[ "$(echo "$RES_CREATE" | jq -r '.data.amountEgp')" = "50000" ] || fail "reservation amount != salePrice"
+pass "reservation created id=$RES_ID amount=50000"
+
+# Admin generates a branded invoice PDF for the reservation.
+INV=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/invoices" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"sourceType\":\"reservation\",\"sourceId\":\"$RES_ID\",\"paidBy\":\"cash\"}") \
+  || fail "POST /invoices rejected"
+INV_URL=$(echo "$INV" | jq -r '.data.pdfUrl')
+INV_NO=$(echo "$INV" | jq -r '.data.number')
+[ -n "$INV_URL" ] && [ "$INV_URL" != "null" ] || fail "invoice has no pdfUrl: $INV"
+[ "$(echo "$INV" | jq -r '.data.taxEgp')" = "7000.00" ] || [ "$(echo "$INV" | jq -r '.data.taxEgp')" = "7000" ] || fail "invoice VAT 14% of 50000 != 7000 (got $(echo "$INV" | jq -r '.data.taxEgp'))"
+pass "invoice #$INV_NO generated with PDF + VAT"
+
+# Cleanup the sale vehicle (soft delete).
+curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/vehicles/$SV_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
+  || fail "admin DELETE sale vehicle failed"
+pass "sale-vehicle cleanup"
+
 # ─── 12j. Session revocation on disable (INC-013) ────────────
 # A disabled/role-changed user must lose their ACCESS token immediately, not
 # just their refresh token. Create a throwaway staff user, log in, disable them
