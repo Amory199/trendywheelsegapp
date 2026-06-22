@@ -76,6 +76,10 @@ model User {
   licenseNumber         String?     @map("license_number")
   licenseExpiry         DateTime?   @map("license_expiry")
   licensePhotoUrl       String?     @map("license_photo_url")
+  idFrontUrl            String?     @map("id_front_url")
+  idBackUrl             String?     @map("id_back_url")
+  idVerified            Boolean     @default(false) @map("id_verified")
+  idVerifiedAt          DateTime?   @map("id_verified_at")
   staffRole             StaffRole?  @map("staff_role")
   salesTargetMonthly    Decimal?    @map("sales_target_monthly") @db.Decimal(12, 2)
   salesAssignmentWeight Int         @default(1) @map("sales_assignment_weight")
@@ -83,6 +87,9 @@ model User {
   updatedAt             DateTime    @updatedAt @map("updated_at")
 
   bookings                 Booking[]
+  reservations             Reservation[]
+  invoices                 Invoice[]                 @relation("InvoiceCustomer")
+  invoicesIssued           Invoice[]                 @relation("InvoiceIssuer")
   sentMessages             Message[]                 @relation("SentMessages")
   receivedMessages         Message[]                 @relation("ReceivedMessages")
   repairRequests           RepairRequest[]           @relation("UserRepairs")
@@ -254,26 +261,27 @@ enum ListingType {
 }
 
 model Vehicle {
-  id              String          @id @default(uuid()) @db.Uuid
-  name            String
-  category        VehicleCategory @default(golf_cart)
-  type            VehicleType
-  seating         Int
-  fuelType        FuelType        @map("fuel_type")
-  transmission    Transmission
-  dailyRate       Decimal         @map("daily_rate") @db.Decimal(10, 2)
-  location        String
-  status          VehicleStatus   @default(available)
-  listingType     ListingType     @default(rent) @map("listing_type")
-  salePrice       Decimal?        @map("sale_price") @db.Decimal(12, 2)
-  saleDescription String?         @map("sale_description")
-  totalBookings   Int             @default(0) @map("total_bookings")
-  averageRating   Decimal         @default(0) @map("average_rating") @db.Decimal(3, 2)
-  reviewCount     Int             @default(0) @map("review_count")
-  quantity        Int             @default(1)
-  features        Json            @default("[]")
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
+  id               String          @id @default(uuid()) @db.Uuid
+  name             String
+  category         VehicleCategory @default(golf_cart)
+  type             VehicleType
+  seating          Int
+  fuelType         FuelType        @map("fuel_type")
+  transmission     Transmission
+  dailyRate        Decimal         @map("daily_rate") @db.Decimal(10, 2)
+  location         String
+  status           VehicleStatus   @default(available)
+  listingType      ListingType     @default(rent) @map("listing_type")
+  salePrice        Decimal?        @map("sale_price") @db.Decimal(12, 2)
+  originalPriceEgp Decimal?        @map("original_price_egp") @db.Decimal(12, 2)
+  saleDescription  String?         @map("sale_description")
+  totalBookings    Int             @default(0) @map("total_bookings")
+  averageRating    Decimal         @default(0) @map("average_rating") @db.Decimal(3, 2)
+  reviewCount      Int             @default(0) @map("review_count")
+  quantity         Int             @default(1)
+  features         Json            @default("[]")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
 
   images           VehicleImage[]
   bookings         Booking[]
@@ -286,6 +294,7 @@ model Vehicle {
   products         Product[]
   rentalListings   RentalListing[]
   statusChanges    VehicleStatusChange[]
+  reservations     Reservation[]
 
   @@index([status])
   @@index([type])
@@ -374,6 +383,71 @@ model Booking {
   @@index([startDate, endDate])
   @@index([userId, status])
   @@map("bookings")
+}
+
+// A reserve/buy intent on a FOR-SALE vehicle (listingType sale/both). Unlike a
+// Booking (rental, date-ranged), a Reservation holds a sale vehicle for a
+// customer until the deal closes. idFrontUrl/idBackUrl snapshot the customer's
+// ID at reservation time (see Track C — ID verification on every transaction).
+enum ReservationStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+}
+
+model Reservation {
+  id         String            @id @default(uuid()) @db.Uuid
+  userId     String            @map("user_id") @db.Uuid
+  vehicleId  String            @map("vehicle_id") @db.Uuid
+  status     ReservationStatus @default(pending)
+  amountEgp  Decimal           @map("amount_egp") @db.Decimal(12, 2)
+  notes      String?
+  idFrontUrl String?           @map("id_front_url")
+  idBackUrl  String?           @map("id_back_url")
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id])
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@index([status])
+  @@map("reservations")
+}
+
+// A branded receipt/invoice generated when a transaction completes (rental,
+// vehicle sale, service or customization). The rendered PDF lives in object
+// storage at pdfKey; `number` is the human-facing sequential receipt number.
+enum InvoiceType {
+  rental
+  sale
+  service
+  customization
+}
+
+model Invoice {
+  id          String      @id @default(uuid()) @db.Uuid
+  number      Int         @unique
+  type        InvoiceType
+  userId      String      @map("user_id") @db.Uuid
+  sourceType  String      @map("source_type")
+  sourceId    String      @map("source_id")
+  subtotalEgp Decimal     @map("subtotal_egp") @db.Decimal(12, 2)
+  taxEgp      Decimal     @map("tax_egp") @db.Decimal(12, 2)
+  totalEgp    Decimal     @map("total_egp") @db.Decimal(12, 2)
+  paidBy      String?     @map("paid_by")
+  pdfKey      String      @map("pdf_key")
+  issuedById  String?     @map("issued_by_id") @db.Uuid
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  user     User  @relation("InvoiceCustomer", fields: [userId], references: [id])
+  issuedBy User? @relation("InvoiceIssuer", fields: [issuedById], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@map("invoices")
 }
 
 // ─── Messages ────────────────────────────────────────────────
