@@ -68,6 +68,12 @@ export interface User {
   licenseNumber?: string | null;
   licenseExpiry?: string | null;
   licensePhotoUrl?: string | null;
+  // National-ID verification (front + back), captured once and reused for any
+  // transaction. idVerified flips true once both images are on file.
+  idFrontUrl?: string | null;
+  idBackUrl?: string | null;
+  idVerified?: boolean;
+  idVerifiedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +113,7 @@ export interface Vehicle {
   status: VehicleStatus;
   listingType: ListingType;
   salePrice: number | null;
+  originalPriceEgp: number | null;
   saleDescription: string | null;
   totalBookings: number;
   averageRating: number;
@@ -211,6 +218,23 @@ export interface RentalListing {
   vehicleId: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type ReservationStatus = "pending" | "confirmed" | "completed" | "cancelled";
+
+export interface Reservation {
+  id: string;
+  userId: string;
+  vehicleId: string;
+  status: ReservationStatus;
+  amountEgp: number;
+  notes: string | null;
+  idFrontUrl: string | null;
+  idBackUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  vehicle?: Vehicle;
+  user?: { id: string; name: string; email: string | null; phone: string };
 }
 
 export type TradeInStatus =
