@@ -9,7 +9,9 @@ import { Alert, Dimensions, Pressable, ScrollView, Text, View } from "react-nati
 import { ImageCarousel } from "../../components/ImageCarousel";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
+import { ensureId } from "../../lib/require-id";
 import { useTheme } from "../../lib/use-theme";
 import { useDisplay, useTracking } from "../../lib/typography";
 import { useRequireAuth } from "../../lib/use-require-auth";
@@ -218,7 +220,13 @@ export default function ProductDetailScreen(): React.JSX.Element {
         </View>
         <Pressable
           disabled={!p.inStock || buy.isPending}
-          onPress={() => requireAuth(() => buy.mutate())}
+          onPress={() =>
+            requireAuth(() => {
+              // Every transaction requires the customer's ID on file first.
+              if (!ensureId(useAuth.getState().user, router, `/buy/${id}`)) return;
+              buy.mutate();
+            })
+          }
           style={({ pressed }) => ({
             paddingHorizontal: 26,
             paddingVertical: 14,

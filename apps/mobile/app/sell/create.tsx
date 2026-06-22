@@ -25,6 +25,7 @@ import { GuestGate } from "../../components/GuestGate";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { ensureId } from "../../lib/require-id";
 import { useT } from "../../lib/locale";
 import { playSound } from "../../lib/sounds";
 import { uploadImages } from "../../lib/upload";
@@ -502,7 +503,10 @@ export default function SellCreateScreen(): JSX.Element {
           <Pressable
             style={[styles.nextBtn, mutation.isPending && styles.btnDisabled]}
             disabled={mutation.isPending}
-            onPress={() => mutation.mutate()}
+            onPress={() => {
+              if (!ensureId(user, router, "/sell/create")) return;
+              mutation.mutate();
+            }}
           >
             {mutation.isPending ? (
               <ActivityIndicator size="small" color="#000" />

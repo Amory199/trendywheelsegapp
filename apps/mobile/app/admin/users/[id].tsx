@@ -32,7 +32,6 @@ interface UserRow {
 }
 
 const ACCOUNT_TYPES = ["customer", "staff", "admin"];
-const STAFF_ROLES = ["sales", "support", "inventory", "mechanic", "admin"];
 const STATUSES = ["active", "inactive", "suspended"];
 
 const ACCOUNT_TYPE_KEY: Record<
@@ -42,20 +41,6 @@ const ACCOUNT_TYPE_KEY: Record<
   customer: "admin.accountTypeCustomer",
   staff: "admin.accountTypeStaff",
   admin: "admin.accountTypeAdmin",
-};
-const STAFF_ROLE_KEY: Record<
-  string,
-  | "admin.staffRoleSales"
-  | "admin.staffRoleSupport"
-  | "admin.staffRoleInventory"
-  | "admin.staffRoleMechanic"
-  | "admin.staffRoleAdmin"
-> = {
-  sales: "admin.staffRoleSales",
-  support: "admin.staffRoleSupport",
-  inventory: "admin.staffRoleInventory",
-  mechanic: "admin.staffRoleMechanic",
-  admin: "admin.staffRoleAdmin",
 };
 const STATUS_KEY: Record<
   string,
@@ -167,7 +152,14 @@ export default function AdminUserEdit(): React.JSX.Element {
                       {ACCOUNT_TYPES.map((at) => (
                         <Pressable
                           key={at}
-                          onPress={() => setForm((s) => ({ ...s, accountType: at }))}
+                          onPress={() =>
+                            setForm((s) => ({
+                              ...s,
+                              accountType: at,
+                              // Staff is unified — assign the canonical role; clear it otherwise.
+                              staffRole: at === "staff" ? "sales" : null,
+                            }))
+                          }
                           style={[styles.chip, form.accountType === at && styles.chipActive]}
                         >
                           <Text
@@ -182,30 +174,6 @@ export default function AdminUserEdit(): React.JSX.Element {
                       ))}
                     </View>
                   </View>
-
-                  {form.accountType !== "customer" && (
-                    <View style={styles.card}>
-                      <Text style={styles.label}>{t("admin.userStaffRole")}</Text>
-                      <View style={styles.chipRow}>
-                        {STAFF_ROLES.map((r) => (
-                          <Pressable
-                            key={r}
-                            onPress={() => setForm((s) => ({ ...s, staffRole: r }))}
-                            style={[styles.chip, form.staffRole === r && styles.chipActive]}
-                          >
-                            <Text
-                              style={[
-                                styles.chipText,
-                                form.staffRole === r && styles.chipTextActive,
-                              ]}
-                            >
-                              {STAFF_ROLE_KEY[r] ? t(STAFF_ROLE_KEY[r]) : r}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
-                    </View>
-                  )}
 
                   <View style={styles.card}>
                     <Text style={styles.label}>{t("admin.userStatus")}</Text>

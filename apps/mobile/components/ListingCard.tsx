@@ -15,6 +15,8 @@ const INK = "#02011F";
 export interface ListingCardProps {
   title: string;
   priceLabel: string;
+  /** Optional original price shown struck through before the (sale) priceLabel. */
+  strikePriceLabel?: string | null;
   onPress: () => void;
   image?: string | null;
   /**
@@ -42,6 +44,7 @@ export interface ListingCardProps {
 function ListingCardImpl({
   title,
   priceLabel,
+  strikePriceLabel,
   onPress,
   image,
   rating,
@@ -112,9 +115,16 @@ function ListingCardImpl({
         </View>
       ) : null}
 
-      <Text numberOfLines={1} style={[styles.price, display(0.3)]}>
-        {priceLabel}
-      </Text>
+      <View style={styles.priceRow}>
+        {strikePriceLabel ? (
+          <Text numberOfLines={1} style={[styles.strikePrice, { color: palette.muted }]}>
+            {strikePriceLabel}
+          </Text>
+        ) : null}
+        <Text numberOfLines={1} style={[styles.price, display(0.3)]}>
+          {priceLabel}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -160,9 +170,14 @@ const styles = StyleSheet.create({
   title: { marginTop: 8, fontSize: 13, fontWeight: "700" },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
   location: { fontSize: 11, flexShrink: 1 },
+  priceRow: { flexDirection: "row", alignItems: "baseline", gap: 6, marginTop: 2 },
   price: {
     fontSize: 17,
     color: colors.brand.trendyPink,
-    marginTop: 2,
+  },
+  strikePrice: {
+    fontSize: 12,
+    fontWeight: "600",
+    textDecorationLine: "line-through",
   },
 });

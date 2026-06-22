@@ -24,6 +24,7 @@ import { StepBar } from "../../../components/sell/StepBar";
 import { logEvent } from "../../../lib/analytics";
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-store";
+import { ensureId } from "../../../lib/require-id";
 import { useT } from "../../../lib/locale";
 import { useDisplay, useTracking } from "../../../lib/typography";
 import { uploadImages } from "../../../lib/upload";
@@ -315,6 +316,7 @@ export default function ListForRentScreen(): JSX.Element {
               if (!canProceed1) return;
               setStep(2);
             } else {
+              if (!ensureId(user, router, "/sell/list-for-rent")) return;
               submit.mutate();
             }
           }}

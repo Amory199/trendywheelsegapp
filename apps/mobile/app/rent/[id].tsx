@@ -21,6 +21,7 @@ import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
+import { ensureId } from "../../lib/require-id";
 import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
@@ -103,6 +104,15 @@ export default function RentDetailScreen(): React.JSX.Element {
   });
 
   const vehicle = q.data?.data;
+
+  // A for-sale-only vehicle must never render the rental (per-day) screen —
+  // bounce it to the sale detail so it shows the sale price, not a daily rate.
+  React.useEffect(() => {
+    if (vehicle && vehicle.listingType === "sale") {
+      router.replace(`/sale/${vehicle.id}` as never);
+    }
+  }, [vehicle, router]);
+
   // API returns image rows ({ url, sortOrder }); tolerate legacy string[]
   // payloads from older caches so the hero never silently falls back.
   const rawImages = (vehicle?.images ?? []) as Array<string | { url: string }>;
@@ -499,6 +509,8 @@ export default function RentDetailScreen(): React.JSX.Element {
               dailyRate: String(vehicle.dailyRate),
               name: vehicle.name,
             };
+            // Every transaction requires the customer's ID on file first.
+            if (!ensureId(u, router, `/rent/${vehicle.id}`)) return;
             if (!u?.licenseNumber) {
               router.push({
                 pathname: "/profile/license",

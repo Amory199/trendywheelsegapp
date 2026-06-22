@@ -100,18 +100,24 @@ export default function HomeScreen(): React.JSX.Element {
     [t, router],
   );
   const renderSaleVehicle = React.useCallback(
-    (v: Vehicle) => (
-      <ListingCard
-        title={v.name}
-        priceLabel={`${t("home.egp")} ${Number(v.salePrice).toLocaleString()}`}
-        image={vehicleImageUrl(v.images?.[0])}
-        rating={v.averageRating}
-        location={v.location}
-        badge={t("home.dealsBadge")}
-        badgeColor={colors.brand.ecoLimelight}
-        onPress={() => router.push(`/rent/${v.id}` as never)}
-      />
-    ),
+    (v: Vehicle) => {
+      const orig = v.originalPriceEgp != null ? Number(v.originalPriceEgp) : null;
+      const sale = Number(v.salePrice);
+      const hasDiscount = orig != null && orig > sale;
+      return (
+        <ListingCard
+          title={v.name}
+          priceLabel={`${t("home.egp")} ${sale.toLocaleString()}`}
+          strikePriceLabel={hasDiscount ? `${t("home.egp")} ${orig.toLocaleString()}` : null}
+          image={vehicleImageUrl(v.images?.[0])}
+          rating={v.averageRating}
+          location={v.location}
+          badge={t("home.dealsBadge")}
+          badgeColor={colors.brand.ecoLimelight}
+          onPress={() => router.push(`/sale/${v.id}` as never)}
+        />
+      );
+    },
     [t, router],
   );
   const renderProduct = React.useCallback(

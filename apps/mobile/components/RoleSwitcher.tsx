@@ -12,12 +12,13 @@ import { useT } from "../lib/locale";
 // for non-admins. The matching ActingBanner provides the exit.
 type Option = { key: string; role: "customer" | "staff"; staffRole?: string; home: string };
 
+// Staff is a single unified role in this product — one staff member does CRM,
+// inventory, support and repairs. So "view as" offers just Customer + Staff
+// (admin is the viewer). Staff assumes the canonical "sales" staffRole, which
+// the nav now treats as full operational access.
 const OPTIONS: Option[] = [
   { key: "customer", role: "customer", home: "/(tabs)" },
-  { key: "sales", role: "staff", staffRole: "sales", home: "/crm/pipeline" },
-  { key: "support", role: "staff", staffRole: "support", home: "/crm/pipeline" },
-  { key: "inventory", role: "staff", staffRole: "inventory", home: "/crm/pipeline" },
-  { key: "mechanic", role: "staff", staffRole: "mechanic", home: "/crm/pipeline" },
+  { key: "staff", role: "staff", staffRole: "sales", home: "/crm/pipeline" },
 ];
 
 export function RoleSwitcher(): JSX.Element | null {
