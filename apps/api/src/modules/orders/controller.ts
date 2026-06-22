@@ -41,6 +41,7 @@ export async function create(req: Request, res: Response): Promise<void> {
       userId: req.user!.userId,
       totalEgp: total,
       tradeInId: input.tradeInId ?? null,
+      dropoffLocationUrl: input.dropoffLocationUrl ?? null,
       items: { create: itemsData },
     },
     include: { items: { include: { product: true } } },

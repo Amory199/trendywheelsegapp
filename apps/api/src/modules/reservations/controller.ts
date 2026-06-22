@@ -11,7 +11,12 @@ import { createReservation, setReservationStatus } from "./service.js";
 // POST /api/reservations — a customer reserves/buys a for-sale vehicle.
 export async function create(req: Request, res: Response): Promise<void> {
   const input = createReservationSchema.parse(req.body);
-  const created = await createReservation(req.user!.userId, input.vehicleId, input.notes);
+  const created = await createReservation(
+    req.user!.userId,
+    input.vehicleId,
+    input.notes,
+    input.dropoffLocationUrl,
+  );
   res.status(201).json({ data: created });
 }
 
