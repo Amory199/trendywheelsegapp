@@ -209,6 +209,17 @@ function BookingDrawer({
     mutationFn: () => authedFetch(`/api/bookings/${booking.id}/refund`, { method: "POST" }),
     onSuccess: () => onChange(),
   });
+  // Generate a branded receipt PDF for this rental and open it in a new tab.
+  const invoiceMutation = useMutation({
+    mutationFn: () =>
+      authedFetch<{ data: { pdfUrl: string } }>(`/api/invoices`, {
+        method: "POST",
+        body: JSON.stringify({ sourceType: "booking", sourceId: booking.id, paidBy: "cash" }),
+      }),
+    onSuccess: (res) => {
+      if (res.data?.pdfUrl) window.open(res.data.pdfUrl, "_blank");
+    },
+  });
 
   const isCancelled = booking.status === "cancelled";
 
@@ -319,6 +330,13 @@ function BookingDrawer({
               {cancelMutation.isPending ? "…" : "Cancel booking"}
             </button>
           )}
+          <button
+            onClick={() => invoiceMutation.mutate()}
+            disabled={invoiceMutation.isPending}
+            className="w-full px-4 py-2 bg-[#2B0FF8] text-white hover:opacity-90 text-sm font-semibold rounded-md disabled:opacity-40"
+          >
+            {invoiceMutation.isPending ? "Generating…" : "Generate invoice (PDF)"}
+          </button>
         </div>
       </div>
     </div>

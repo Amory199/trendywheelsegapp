@@ -57,6 +57,12 @@ const NAV_GROUPS: NavGroup[] = [
       },
       { href: "/orders", label: "Orders", icon: "tag", allowedRoles: ["sales", "admin"] },
       {
+        href: "/reservations",
+        label: "Reservations",
+        icon: "tag",
+        allowedRoles: ["sales", "admin"],
+      },
+      {
         href: "/pricing-rules",
         label: "Pricing rules",
         icon: "trend",
@@ -161,13 +167,13 @@ function visibleGroups(
   // Superadmins (`accountType === "admin"`) see everything. If the user hasn't
   // hydrated yet, show every group so the sidebar doesn't flash empty.
   if (!user || user.accountType === "admin") return groups;
-  const role = (user.staffRole ?? null) as StaffRoleKey | null;
+  // Staff is unified — one staff member does sales, inventory, support and
+  // repairs. So every staff member sees ALL operational pages; only the
+  // admin-exclusive pages (allowedRoles === ["admin"]) are hidden.
   return groups
     .map((g) => ({
       ...g,
-      items: g.items.filter(
-        (item) => !item.allowedRoles || (role !== null && item.allowedRoles.includes(role)),
-      ),
+      items: g.items.filter((item) => !isAdminOnlyItem(item)),
     }))
     .filter((g) => g.items.length > 0);
 }
@@ -178,8 +184,12 @@ function visibleGroups(
 // inventory, support work) stay reachable by any staff member; only the
 // sensitive admin-exclusive pages are walled. Derived from the same matrix so
 // the two never drift.
+function isAdminOnlyItem(item: NavItem): boolean {
+  return item.allowedRoles?.length === 1 && item.allowedRoles[0] === "admin";
+}
+
 const ADMIN_ONLY_PREFIXES: string[] = NAV_GROUPS.flatMap((g) => g.items)
-  .filter((it) => it.allowedRoles?.length === 1 && it.allowedRoles[0] === "admin")
+  .filter(isAdminOnlyItem)
   .map((it) => it.href);
 
 function isAdminOnlyPath(path: string): boolean {

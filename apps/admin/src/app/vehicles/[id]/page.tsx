@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   FuelType,
+  ListingType,
   Transmission,
   Vehicle,
   VehicleCategory,
@@ -51,6 +52,9 @@ export default function VehicleEditPage(): JSX.Element {
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState<VehicleStatus>("available");
   const [features, setFeatures] = useState("");
+  const [listingType, setListingType] = useState<ListingType>("rent");
+  const [salePrice, setSalePrice] = useState(0);
+  const [originalPriceEgp, setOriginalPriceEgp] = useState(0);
   const [saleDescription, setSaleDescription] = useState("");
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<Array<{ file: File; preview: string }>>([]);
@@ -69,6 +73,9 @@ export default function VehicleEditPage(): JSX.Element {
       setLocation(vehicle.location);
       setStatus(vehicle.status);
       setFeatures(vehicle.features.join(", "));
+      setListingType(vehicle.listingType ?? "rent");
+      setSalePrice(vehicle.salePrice ?? 0);
+      setOriginalPriceEgp(vehicle.originalPriceEgp ?? 0);
       setSaleDescription(vehicle.saleDescription ?? "");
       // The API returns images as { url, sortOrder, ... } objects; the update
       // contract expects string URLs, so flatten on load.
@@ -99,6 +106,15 @@ export default function VehicleEditPage(): JSX.Element {
       setError("Please fill in all required fields.");
       return;
     }
+    const needsSale = listingType === "sale" || listingType === "both";
+    if (needsSale && salePrice <= 0) {
+      setError("Sale price is required when this vehicle is for sale.");
+      return;
+    }
+    if (needsSale && originalPriceEgp > 0 && originalPriceEgp <= salePrice) {
+      setError("Original price must be higher than the sale price.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -123,12 +139,15 @@ export default function VehicleEditPage(): JSX.Element {
         dailyRate,
         location,
         status,
+        listingType,
         images: [...existingImages, ...uploadedUrls],
         features: features
           .split(",")
           .map((f) => f.trim())
           .filter(Boolean),
-        // null clears it (schema is nullable); only sale/both listings surface it.
+        // null clears these (schema is nullable); only sale/both listings surface them.
+        salePrice: needsSale ? salePrice : null,
+        originalPriceEgp: needsSale && originalPriceEgp > 0 ? originalPriceEgp : null,
         saleDescription: saleDescription.trim() || null,
       });
 
@@ -308,6 +327,54 @@ export default function VehicleEditPage(): JSX.Element {
               </select>
             </div>
           </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Listing type</label>
+            <select
+              value={listingType}
+              onChange={(e) => setListingType(e.target.value as ListingType)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="rent">For rent</option>
+              <option value="sale">For sale</option>
+              <option value="both">Rent &amp; sale</option>
+            </select>
+          </div>
+          {listingType !== "rent" && (
+            <div className="space-y-4 rounded-lg border border-gray-200 p-4">
+              <h3 className="text-sm font-semibold">Sale pricing</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-500 block mb-1">
+                    Original price (EGP)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={originalPriceEgp}
+                    onChange={(e) => setOriginalPriceEgp(Number(e.target.value))}
+                    placeholder="Before discount — shown struck through"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 block mb-1">
+                    Sale price (EGP) *
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={salePrice}
+                    onChange={(e) => setSalePrice(Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-400">
+                Leave Original price blank for no discount. When it&apos;s higher than the Sale
+                price, the app shows it struck through next to the sale price.
+              </p>
+            </div>
+          )}
           <div>
             <label className="text-xs font-medium text-gray-500 block mb-1">Sale description</label>
             <textarea

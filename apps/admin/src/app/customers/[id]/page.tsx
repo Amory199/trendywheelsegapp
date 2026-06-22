@@ -24,6 +24,9 @@ interface CustomerProfile {
     accountType: string;
     loyaltyTier: string;
     loyaltyPoints: number;
+    idFrontUrl: string | null;
+    idBackUrl: string | null;
+    idVerified: boolean;
     createdAt: string;
     updatedAt: string;
   };
@@ -156,6 +159,13 @@ export default function AdminCustomerDetailPage(): JSX.Element {
                 <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 capitalize">
                   {user.loyaltyTier} · {user.loyaltyPoints} pts
                 </span>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    user.idVerified ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {user.idVerified ? "ID verified" : "ID not verified"}
+                </span>
               </div>
             </div>
           </div>
@@ -167,6 +177,33 @@ export default function AdminCustomerDetailPage(): JSX.Element {
             </div>
           </div>
         </div>
+        {user.idFrontUrl || user.idBackUrl ? (
+          <div className="mt-5 border-t pt-4">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              National ID
+            </div>
+            <div className="flex gap-3">
+              {(
+                [
+                  ["Front", user.idFrontUrl],
+                  ["Back", user.idBackUrl],
+                ] as const
+              ).map(([label, url]) =>
+                url ? (
+                  <a key={label} href={url} target="_blank" rel="noreferrer" className="block w-40">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={`ID ${label}`}
+                      className="w-40 h-24 object-cover rounded-lg border"
+                    />
+                    <div className="text-xs text-gray-500 mt-1">{label}</div>
+                  </a>
+                ) : null,
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-5 gap-4 mb-6">

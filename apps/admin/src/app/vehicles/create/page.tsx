@@ -29,6 +29,7 @@ interface VehicleForm {
   features: string;
   listingType: ListingType;
   salePrice: number;
+  originalPriceEgp: number;
   saleDescription: string;
 }
 
@@ -60,6 +61,7 @@ export default function VehicleCreatePage(): JSX.Element {
     features: "",
     listingType: "rent",
     salePrice: 0,
+    originalPriceEgp: 0,
     saleDescription: "",
   });
   // The `type` field ("4-seater" / "6-seater" / "LED") is golf-cart-specific.
@@ -111,6 +113,10 @@ export default function VehicleCreatePage(): JSX.Element {
       setError("Sale price is required when this vehicle is for sale.");
       return;
     }
+    if (needsSale && form.originalPriceEgp > 0 && form.originalPriceEgp <= form.salePrice) {
+      setError("Original price must be higher than the sale price.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -137,6 +143,8 @@ export default function VehicleCreatePage(): JSX.Element {
         status: form.status,
         listingType: form.listingType,
         salePrice: needsSale ? form.salePrice : undefined,
+        originalPriceEgp:
+          needsSale && form.originalPriceEgp > 0 ? form.originalPriceEgp : undefined,
         saleDescription: needsSale ? form.saleDescription || undefined : undefined,
         images: uploadedUrls,
         features: form.features
@@ -409,6 +417,21 @@ export default function VehicleCreatePage(): JSX.Element {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-medium text-gray-500 block mb-1">
+                  Original price (EGP)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.originalPriceEgp}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, originalPriceEgp: Number(e.target.value) }))
+                  }
+                  placeholder="Before discount — shown struck through"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">
                   Sale price (EGP) *
                 </label>
                 <input
@@ -420,6 +443,10 @@ export default function VehicleCreatePage(): JSX.Element {
                 />
               </div>
             </div>
+            <p className="text-xs text-gray-400">
+              Leave Original price blank for no discount. When set higher than the Sale price, the
+              app shows it struck through next to the sale price.
+            </p>
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">
                 Sale description
