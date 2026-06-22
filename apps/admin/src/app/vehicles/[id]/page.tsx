@@ -102,8 +102,13 @@ export default function VehicleEditPage(): JSX.Element {
   };
 
   const submit = async (): Promise<void> => {
-    if (!name || !location || dailyRate <= 0) {
-      setError("Please fill in all required fields.");
+    const needsRent = listingType === "rent" || listingType === "both";
+    if (!name || !location) {
+      setError("Please fill in the name and location.");
+      return;
+    }
+    if (needsRent && dailyRate <= 0) {
+      setError("Daily rate is required for rental listings.");
       return;
     }
     const needsSale = listingType === "sale" || listingType === "both";
@@ -136,7 +141,9 @@ export default function VehicleEditPage(): JSX.Element {
         seating,
         fuelType,
         transmission,
-        dailyRate,
+        // Sale-only vehicles don't show a daily rate; keep a harmless non-zero
+        // placeholder so the non-null column stays valid.
+        dailyRate: needsRent ? dailyRate : dailyRate || 1,
         location,
         status,
         listingType,
@@ -289,18 +296,20 @@ export default function VehicleEditPage(): JSX.Element {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">
-                Daily Rate (EGP) *
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={dailyRate}
-                onChange={(e) => setDailyRate(Number(e.target.value))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
+            {listingType !== "sale" && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">
+                  Daily Rate (EGP) *
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={dailyRate}
+                  onChange={(e) => setDailyRate(Number(e.target.value))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">Location *</label>
               <input
