@@ -9,6 +9,7 @@ import type {
   PaginatedResponse,
   RentalListing,
   RentalListingStatus,
+  Reservation,
   RepairRequest,
   SalesListing,
   SupportTicket,
@@ -433,6 +434,25 @@ class ApiClient {
 
   async deleteRentalListing(id: string): Promise<{ success: boolean }> {
     return this.request("DELETE", `/api/rental-listings/${encodeURIComponent(id)}`);
+  }
+
+  // ─── Reservations (reserve/buy a for-sale vehicle) ───────
+  async createReservation(data: {
+    vehicleId: string;
+    notes?: string | null;
+  }): Promise<ApiResponse<Reservation>> {
+    return this.request("POST", "/api/reservations", { body: data });
+  }
+
+  async getReservations(): Promise<ApiResponse<Reservation[]>> {
+    return this.request("GET", "/api/reservations");
+  }
+
+  async updateReservation(
+    id: string,
+    data: { status: "pending" | "confirmed" | "completed" | "cancelled" },
+  ): Promise<ApiResponse<Reservation>> {
+    return this.request("PATCH", `/api/reservations/${encodeURIComponent(id)}`, { body: data });
   }
 
   // ─── Trade-in ────────────────────────────────────────────
