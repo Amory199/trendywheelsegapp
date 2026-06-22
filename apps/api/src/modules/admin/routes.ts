@@ -88,7 +88,9 @@ router.get("/metrics", async (_req, res) => {
     openTickets,
     revenueAgg,
   ] = await Promise.all([
-    prisma.user.count(),
+    // Exclude soft-deleted users (anonymized with a `deleted_` phone marker) so
+    // the dashboard headcount reflects real accounts, not deletion tombstones.
+    prisma.user.count({ where: { NOT: { phone: { startsWith: "deleted_" } } } }),
     prisma.booking.count({ where: { status: "confirmed" } }),
     prisma.booking.count({ where: { status: "pending" } }),
     prisma.vehicle.count({ where: { status: "available" } }),
