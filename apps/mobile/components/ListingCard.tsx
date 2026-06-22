@@ -116,12 +116,15 @@ function ListingCardImpl({
       ) : null}
 
       <View style={styles.priceRow}>
+        {/* Struck original sits ON ITS OWN LINE above the sale price. Two full
+            EGP prices never fit side-by-side on a narrow card, so inlining them
+            overflowed the card edge into the next one. */}
         {strikePriceLabel ? (
           <Text numberOfLines={1} style={[styles.strikePrice, { color: palette.muted }]}>
             {strikePriceLabel}
           </Text>
         ) : null}
-        <Text numberOfLines={1} style={[styles.price, display(0.3)]}>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.price, display(0.3)]}>
           {priceLabel}
         </Text>
       </View>
@@ -170,7 +173,7 @@ const styles = StyleSheet.create({
   title: { marginTop: 8, fontSize: 13, fontWeight: "700" },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
   location: { fontSize: 11, flexShrink: 1 },
-  priceRow: { flexDirection: "row", alignItems: "baseline", gap: 6, marginTop: 2 },
+  priceRow: { marginTop: 3 },
   price: {
     fontSize: 17,
     color: colors.brand.trendyPink,
@@ -179,5 +182,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     textDecorationLine: "line-through",
+    marginBottom: 1,
   },
 });
