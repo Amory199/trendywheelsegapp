@@ -538,14 +538,23 @@ pass "sale vehicle created with before/after price id=$SV_ID"
 DROPOFF_URL="https://maps.app.goo.gl/SmokeTestPin123"
 RES_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/reservations" \
   -H "Authorization: Bearer $SALES_TOKEN" -H "$JSON" \
-  -d "{\"vehicleId\":\"$SV_ID\",\"dropoffLocationUrl\":\"$DROPOFF_URL\"}") \
+  -d "{\"vehicleId\":\"$SV_ID\",\"dropoffLocationUrl\":\"$DROPOFF_URL\",\"fulfillmentType\":\"delivery_now\"}") \
   || fail "POST /reservations rejected"
 RES_ID=$(echo "$RES_CREATE" | jq -r '.data.id')
 [ -n "$RES_ID" ] && [ "$RES_ID" != "null" ] || fail "no reservation id: $RES_CREATE"
 [ "$(echo "$RES_CREATE" | jq -r '.data.amountEgp')" = "50000" ] || fail "reservation amount != salePrice"
 [ "$(echo "$RES_CREATE" | jq -r '.data.dropoffLocationUrl')" = "$DROPOFF_URL" ] \
   || fail "reservation did not persist dropoffLocationUrl"
-pass "reservation created id=$RES_ID amount=50000 + drop-off link persisted"
+[ "$(echo "$RES_CREATE" | jq -r '.data.fulfillmentType')" = "delivery_now" ] \
+  || fail "reservation did not persist fulfillmentType"
+pass "reservation created id=$RES_ID amount=50000 + drop-off + fulfillment persisted"
+
+# A bad fulfillmentType (not in the enum) is rejected.
+BAD_FT=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/reservations" \
+  -H "Authorization: Bearer $SALES_TOKEN" -H "$JSON" \
+  -d "{\"vehicleId\":\"$SV_ID\",\"fulfillmentType\":\"teleport\"}")
+[ "$BAD_FT" = "400" ] || fail "invalid fulfillmentType should be 400 (got $BAD_FT)"
+pass "invalid fulfillmentType rejected (400)"
 
 # A non-maps link is rejected (the drop-off must be a Google Maps / goo.gl URL).
 BAD_DROPOFF=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/reservations" \
