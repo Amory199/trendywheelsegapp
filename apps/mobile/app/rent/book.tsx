@@ -41,6 +41,7 @@ import { TWSkiaConfetti } from "../../components/skia/confetti";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { useHumanizeError } from "../../lib/humanize-error";
 import { useT } from "../../lib/locale";
 import { playSound } from "../../lib/sounds";
 import { useTheme } from "../../lib/use-theme";
@@ -77,6 +78,7 @@ function StepIndicator({ current }: { current: number }): JSX.Element {
 export default function BookScreen(): JSX.Element {
   const { palette } = useTheme();
   const t = useT();
+  const humanize = useHumanizeError();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const insets = useSafeAreaInsets();
   const { vehicleId } = useLocalSearchParams<{ vehicleId: string }>();
@@ -140,10 +142,7 @@ export default function BookScreen(): JSX.Element {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       playSound("error");
       if (__DEV__) console.log("[book] POST /bookings failed:", err);
-      Alert.alert(
-        t("rent.bookingFailedTitle"),
-        err instanceof Error ? err.message : t("rent.bookingFailedMessage"),
-      );
+      Alert.alert(t("rent.bookingFailedTitle"), humanize(err));
     },
   });
 

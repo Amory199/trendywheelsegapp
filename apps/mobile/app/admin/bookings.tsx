@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 
+import { ErrorState } from "../../components/ErrorState";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 
@@ -100,6 +101,8 @@ export default function AdminBookings(): JSX.Element {
 
       {listQ.isLoading ? (
         <ActivityIndicator color={colors.brand.friendlyBlue} style={{ marginTop: 24 }} />
+      ) : listQ.isError ? (
+        <ErrorState onRetry={() => void listQ.refetch()} />
       ) : (
         <FlatList
           data={listQ.data ?? []}

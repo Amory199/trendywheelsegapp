@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 
+import { ErrorState } from "../../components/ErrorState";
 import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
@@ -124,6 +125,8 @@ export default function SupportTickets(): JSX.Element {
 
       {listQ.isLoading ? (
         <ActivityIndicator color={colors.brand.poolBlue} style={{ marginTop: 24 }} />
+      ) : listQ.isError ? (
+        <ErrorState onRetry={() => void listQ.refetch()} />
       ) : (
         <FlatList
           data={listQ.data ?? []}

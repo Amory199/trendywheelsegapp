@@ -18,6 +18,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CategoryVideoHero } from "../../../components/CategoryVideoHero";
+import { ErrorState } from "../../../components/ErrorState";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
 import { useRTL } from "../../../lib/typography";
@@ -181,6 +182,8 @@ export default function RentCategoryScreen(): JSX.Element {
           style={{ marginTop: 40 }}
           size="large"
         />
+      ) : q.isError ? (
+        <ErrorState onRetry={() => void q.refetch()} />
       ) : filtered.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="car-outline" size={64} color={palette.muted} />

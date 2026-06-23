@@ -15,6 +15,7 @@ import { logEvent } from "../lib/analytics";
 import { api } from "../lib/api";
 import { reportClientError } from "../lib/error-reporter";
 import { useAuth } from "../lib/auth-store";
+import { useHumanizeError } from "../lib/humanize-error";
 import { useT } from "../lib/locale";
 import { ensureId } from "../lib/require-id";
 import { useTheme } from "../lib/use-theme";
@@ -27,6 +28,7 @@ import { useTheme } from "../lib/use-theme";
 export default function CheckoutScreen(): React.JSX.Element {
   const router = useRouter();
   const t = useT();
+  const humanize = useHumanizeError();
   const { palette } = useTheme();
   const user = useAuth((s) => s.user);
   const params = useLocalSearchParams<{
@@ -91,7 +93,7 @@ export default function CheckoutScreen(): React.JSX.Element {
       });
       Alert.alert(
         t(kind === "buy" ? "buy.couldNotPlaceTitle" : "sale.reserveFailedTitle"),
-        err instanceof Error ? err.message : "",
+        humanize(err),
       );
     },
   });

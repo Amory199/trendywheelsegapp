@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { ErrorState } from "../../components/ErrorState";
 import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
@@ -22,7 +23,7 @@ export default function MessagesScreen(): JSX.Element {
   const t = useT();
   const user = useAuth((s) => s.user);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["conversations"],
     queryFn: () => api.getConversations(),
   });
@@ -49,6 +50,8 @@ export default function MessagesScreen(): JSX.Element {
 
       {isLoading ? (
         <ActivityIndicator color={colors.accent.DEFAULT} style={{ marginTop: 40 }} size="large" />
+      ) : isError ? (
+        <ErrorState onRetry={() => void refetch()} />
       ) : conversations.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="chatbubbles-outline" size={64} color={colors.text.secondary} />

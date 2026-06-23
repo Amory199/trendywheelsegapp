@@ -15,6 +15,7 @@ import Animated, {
   Extrapolation,
 } from "react-native-reanimated";
 
+import { ErrorState } from "../../components/ErrorState";
 import { ImageCarousel } from "../../components/ImageCarousel";
 import { TWBadge, TWButton, TWCard, TWChip, TWPressable } from "../../components/ui";
 import { logEvent } from "../../lib/analytics";
@@ -142,6 +143,10 @@ export default function RentDetailScreen(): React.JSX.Element {
       },
     ],
   }));
+
+  if (q.isError) {
+    return <ErrorState onRetry={() => void q.refetch()} />;
+  }
 
   if (q.isLoading || !vehicle) {
     return (

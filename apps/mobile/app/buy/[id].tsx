@@ -6,6 +6,7 @@ import * as React from "react";
 import { useState } from "react";
 import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 
+import { ErrorState } from "../../components/ErrorState";
 import { ImageCarousel } from "../../components/ImageCarousel";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
@@ -61,6 +62,10 @@ export default function ProductDetailScreen(): React.JSX.Element {
       });
     });
   };
+
+  if (q.isError) {
+    return <ErrorState onRetry={() => void q.refetch()} />;
+  }
 
   if (!p) {
     return (

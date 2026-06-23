@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { ErrorState } from "../../components/ErrorState";
 import { GuestGate } from "../../components/GuestGate";
 import { StatStrip } from "../../components/StatStrip";
 import { TWSkeletonCard } from "../../components/ui";
@@ -50,7 +51,7 @@ export default function MyListingsScreen(): JSX.Element {
   const qc = useQueryClient();
   const [menuId, setMenuId] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["my-listings", user?.id],
     queryFn: () => api.getSalesListings({ limit: 100 }),
     select: (res) => res.data.filter((l) => l.userId === user?.id),
@@ -117,6 +118,8 @@ export default function MyListingsScreen(): JSX.Element {
           <TWSkeletonCard height={120} />
           <TWSkeletonCard height={120} />
         </View>
+      ) : isError ? (
+        <ErrorState onRetry={() => void refetch()} />
       ) : listings.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="pricetag-outline" size={64} color={palette.muted} />

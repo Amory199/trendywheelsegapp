@@ -7,6 +7,7 @@ import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ErrorState } from "../../components/ErrorState";
 import { ListingCard } from "../../components/ListingCard";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
@@ -114,6 +115,8 @@ export default function BuyScreen(): React.JSX.Element {
       >
         {q.isLoading ? (
           <Text style={{ padding: 40, color: palette.muted }}>{t("common.loading")}</Text>
+        ) : q.isError ? (
+          <ErrorState onRetry={() => void q.refetch()} style={{ width: "100%", minHeight: 360 }} />
         ) : items.length === 0 ? (
           <Text style={{ padding: 40, color: palette.muted }}>{t("buy.emptyCatalog")}</Text>
         ) : (

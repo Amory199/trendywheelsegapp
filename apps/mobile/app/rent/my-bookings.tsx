@@ -9,6 +9,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ErrorState } from "../../components/ErrorState";
 import { GuestGate } from "../../components/GuestGate";
 import { ReviewModal } from "../../components/ReviewModal";
 import { TWSkeletonCard } from "../../components/ui";
@@ -62,7 +63,7 @@ export default function MyBookingsScreen(): JSX.Element {
   // reviewed) — the list payload has no review field, so track locally.
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["my-bookings", activeTab],
     queryFn: () => api.getBookings({ status: activeTab }),
   });
@@ -110,6 +111,8 @@ export default function MyBookingsScreen(): JSX.Element {
           <TWSkeletonCard height={130} />
           <TWSkeletonCard height={130} />
         </View>
+      ) : isError ? (
+        <ErrorState onRetry={() => void refetch()} />
       ) : bookings.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="calendar-outline" size={64} color={colors.text.secondary} />

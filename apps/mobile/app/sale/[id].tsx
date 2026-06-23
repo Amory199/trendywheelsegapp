@@ -7,6 +7,7 @@ import * as React from "react";
 import { ActivityIndicator, Dimensions, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { ErrorState } from "../../components/ErrorState";
 import { ImageCarousel } from "../../components/ImageCarousel";
 import { TWBadge, TWButton, TWCard, TWChip, TWPressable } from "../../components/ui";
 import { api } from "../../lib/api";
@@ -42,6 +43,10 @@ export default function SaleDetailScreen(): React.JSX.Element {
   const imageUrls = rawImages
     .map((img) => (typeof img === "string" ? img : img?.url))
     .filter((u): u is string => Boolean(u));
+
+  if (q.isError) {
+    return <ErrorState onRetry={() => void q.refetch()} />;
+  }
 
   if (q.isLoading || !vehicle) {
     return (
