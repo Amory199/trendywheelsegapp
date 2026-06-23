@@ -607,6 +607,32 @@ curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/users/$RVK_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
 pass "throwaway user cleaned up"
 
+# ─── 12j-3. Self-service account deletion (mobile "Delete account") ──
+# A signed-in user can delete THEIR OWN account (requireOwner allows owner) —
+# the row is anonymized and the session revoked immediately afterwards.
+note "12j-3. Self-service account deletion"
+SD_STAMP=$(date +%s)
+SD_EMAIL="smoke-selfdel-$SD_STAMP@trendywheelseg.com"
+SD_PHONE="+2017$(printf '%08d' $((SD_STAMP % 100000000)))"
+SD_PASS="SmokeSelfDel@123"
+SD_ID=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/users" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"name\":\"Smoke SelfDel\",\"email\":\"$SD_EMAIL\",\"phone\":\"$SD_PHONE\",\"password\":\"$SD_PASS\",\"staffRole\":\"support\"}" \
+  | jq -r '.data.id // .id')
+[ -n "$SD_ID" ] && [ "$SD_ID" != "null" ] || fail "no id for self-delete user"
+SD_TOKEN=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$SD_EMAIL\",\"password\":\"$SD_PASS\"}" | jq -r '.token // .accessToken')
+[ -n "$SD_TOKEN" ] && [ "$SD_TOKEN" != "null" ] || fail "self-delete user login failed"
+# The user deletes their OWN account with their OWN token (must be allowed).
+SD_DEL=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XDELETE "$BASE/users/$SD_ID" \
+  -H "Authorization: Bearer $SD_TOKEN")
+[ "$SD_DEL" = "200" ] || fail "self-service account deletion should be 200 (got $SD_DEL)"
+# Session is gone — the same token must now be rejected.
+SD_AFTER=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
+  "$BASE/users/me" -H "Authorization: Bearer $SD_TOKEN")
+[ "$SD_AFTER" = "401" ] || fail "deleted user's token still valid (got $SD_AFTER)"
+pass "user deleted their own account + session revoked"
+
 # ─── 12j. App-config (mobile force-update gate) ─────────────
 note "12j. GET /app-config"
 MINV=$(curl -fsS -A "$SMOKE_UA" "$BASE/app-config" | jq -r '.data.minSupportedVersion // empty')
@@ -853,8 +879,8 @@ SMOKE_DB=$(grep -m1 '^DATABASE_URL=' "$(dirname "$0")/../.env" 2>/dev/null \
   | cut -d= -f2- | sed 's/^"//;s/"$//;s/?.*//')
 if [ -n "${SMOKE_DB:-}" ] && command -v psql >/dev/null 2>&1; then
   if psql "$SMOKE_DB" -v ON_ERROR_STOP=1 -q >/dev/null 2>&1 <<SQL
-DELETE FROM audit_logs WHERE user_id IN ('${RVK_ID}','${PW_ID}');
-DELETE FROM users WHERE id IN ('${RVK_ID}','${PW_ID}') OR email LIKE 'smoke-%';
+DELETE FROM audit_logs WHERE user_id IN ('${RVK_ID}','${PW_ID}','${SD_ID}');
+DELETE FROM users WHERE id IN ('${RVK_ID}','${PW_ID}','${SD_ID}') OR email LIKE 'smoke-%';
 DELETE FROM invoices WHERE source_type = 'reservation' AND source_id IN (
   SELECT id::text FROM reservations WHERE vehicle_id IN (
     SELECT id FROM vehicles WHERE name = 'Smoke Sale Cart'));
