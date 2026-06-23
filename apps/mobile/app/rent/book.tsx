@@ -31,7 +31,11 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { DropoffLocationField } from "../../components/DropoffLocationField";
+import {
+  FulfillmentPicker,
+  optionNeedsLocation,
+  type FulfillmentValue,
+} from "../../components/FulfillmentPicker";
 import { GuestGate } from "../../components/GuestGate";
 import { TWSkiaConfetti } from "../../components/skia/confetti";
 import { logEvent } from "../../lib/analytics";
@@ -86,7 +90,7 @@ export default function BookScreen(): JSX.Element {
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [licenseNum, setLicenseNum] = useState("");
-  const [dropoff, setDropoff] = useState("");
+  const [fulfillment, setFulfillment] = useState<FulfillmentValue>({ type: null, location: "" });
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
   const [booked, setBooked] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
@@ -117,7 +121,10 @@ export default function BookScreen(): JSX.Element {
         vehicleId: vehicleId!,
         startDate: new Date(startDate).toISOString(),
         endDate: new Date(endDate).toISOString(),
-        dropoffLocationUrl: dropoff.trim() || null,
+        dropoffLocationUrl: optionNeedsLocation(fulfillment.type)
+          ? fulfillment.location.trim() || null
+          : null,
+        fulfillmentType: fulfillment.type,
       };
       if (__DEV__) console.log("[book] POST /bookings", payload);
       return api.createBooking(payload);
@@ -216,7 +223,7 @@ export default function BookScreen(): JSX.Element {
                 onChangeText={setLicenseNum}
                 placeholder={t("rent.licensePlaceholder")}
               />
-              <DropoffLocationField value={dropoff} onChange={setDropoff} />
+              <FulfillmentPicker side="buy" value={fulfillment} onChange={setFulfillment} />
             </Animated.View>
           )}
 

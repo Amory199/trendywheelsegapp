@@ -1,18 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as React from "react";
 import { useState } from "react";
-import { Alert, Dimensions, Pressable, ScrollView, Text, View } from "react-native";
+import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 
-import { DropoffLocationField } from "../../components/DropoffLocationField";
 import { ImageCarousel } from "../../components/ImageCarousel";
-import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
-import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
-import { ensureId } from "../../lib/require-id";
 import { useTheme } from "../../lib/use-theme";
 import { useDisplay, useTracking } from "../../lib/typography";
 import { useRequireAuth } from "../../lib/use-require-auth";
@@ -39,11 +35,9 @@ export default function ProductDetailScreen(): React.JSX.Element {
   const t = useT();
   const display = useDisplay();
   const track = useTracking();
-  const qc = useQueryClient();
   const requireAuth = useRequireAuth();
   const { palette } = useTheme();
   const [showSpecs, setShowSpecs] = useState(false);
-  const [dropoff, setDropoff] = useState("");
 
   const q = useQuery({
     queryKey: ["mobile-product", id],
@@ -52,33 +46,21 @@ export default function ProductDetailScreen(): React.JSX.Element {
   });
   const p = q.data?.data;
 
-  const buy = useMutation({
-    mutationFn: () =>
-      api.request<{ data: { id: string } }>("POST", "/api/orders", {
-        body: {
-          items: [{ productId: id, quantity: 1 }],
-          dropoffLocationUrl: dropoff.trim() || null,
+  // Tapping Buy hands off to the guided checkout (ID → fulfillment → location
+  // → confirm), which places the order. Keeps the product page clean.
+  const goToCheckout = (): void => {
+    requireAuth(() => {
+      router.push({
+        pathname: "/checkout",
+        params: {
+          kind: "buy",
+          id: String(id),
+          title: p?.name ?? "",
+          price: String(Number(p?.priceEgp ?? 0)),
         },
-      }),
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["my-orders"] });
-      const orderId = data?.data?.id;
-      logEvent("order_created", { order_id: orderId ?? "unknown" });
-      Alert.alert(
-        t("buy.orderPlacedTitle"),
-        orderId
-          ? `${t("buy.orderPlacedWithIdPrefix")}${orderId.slice(0, 8)}${t("buy.orderPlacedWithIdSuffix")}`
-          : t("buy.orderPlacedNoId"),
-        [{ text: t("buy.viewMyOrders"), onPress: () => router.push("/buy/my-orders") }],
-      );
-    },
-    onError: (err) => {
-      Alert.alert(
-        t("buy.couldNotPlaceTitle"),
-        err instanceof Error ? err.message : t("buy.couldNotPlaceMessage"),
-      );
-    },
-  });
+      });
+    });
+  };
 
   if (!p) {
     return (
@@ -196,10 +178,6 @@ export default function ProductDetailScreen(): React.JSX.Element {
               ) : null}
             </View>
           )}
-
-          <View style={{ marginTop: 18 }}>
-            <DropoffLocationField value={dropoff} onChange={setDropoff} />
-          </View>
         </View>
       </ScrollView>
 
@@ -228,14 +206,8 @@ export default function ProductDetailScreen(): React.JSX.Element {
           </Text>
         </View>
         <Pressable
-          disabled={!p.inStock || buy.isPending}
-          onPress={() =>
-            requireAuth(() => {
-              // Every transaction requires the customer's ID on file first.
-              if (!ensureId(useAuth.getState().user, router, `/buy/${id}`)) return;
-              buy.mutate();
-            })
-          }
+          disabled={!p.inStock}
+          onPress={goToCheckout}
           style={({ pressed }) => ({
             paddingHorizontal: 26,
             paddingVertical: 14,
@@ -245,13 +217,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
           })}
         >
           <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
-            {buy.isPending
-              ? t("buy.placing")
-              : !p.inStock
-                ? t("buy.unavailable")
-                : isCart
-                  ? t("buy.reserveNow")
-                  : t("buy.buyNow")}
+            {!p.inStock ? t("buy.unavailable") : isCart ? t("buy.reserveNow") : t("buy.buyNow")}
           </Text>
         </Pressable>
       </View>

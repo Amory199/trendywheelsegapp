@@ -19,6 +19,11 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import {
+  FulfillmentPicker,
+  optionNeedsLocation,
+  type FulfillmentValue,
+} from "../../../components/FulfillmentPicker";
 import { GuestGate } from "../../../components/GuestGate";
 import { StepBar } from "../../../components/sell/StepBar";
 import { logEvent } from "../../../lib/analytics";
@@ -59,6 +64,7 @@ export default function TradeInScreen(): JSX.Element {
   const [notes, setNotes] = useState("");
   const [localPhotos, setLocalPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [fulfillment, setFulfillment] = useState<FulfillmentValue>({ type: null, location: "" });
 
   const submit = useMutation({
     mutationFn: async () => {
@@ -70,6 +76,10 @@ export default function TradeInScreen(): JSX.Element {
         condition,
         notes: notes.trim() || undefined,
         photos: uploaded,
+        fulfillmentType: fulfillment.type,
+        dropoffLocationUrl: optionNeedsLocation(fulfillment.type)
+          ? fulfillment.location.trim() || null
+          : null,
       });
     },
     onSuccess: () => {
@@ -242,6 +252,9 @@ export default function TradeInScreen(): JSX.Element {
                 value={`${localPhotos.length} ${t("sell.tradeIn.photosAttachedSuffix")}`}
                 palette={palette}
               />
+            </View>
+            <View style={{ marginTop: 8 }}>
+              <FulfillmentPicker side="sell" value={fulfillment} onChange={setFulfillment} />
             </View>
             <View style={styles.note}>
               <Text style={styles.noteText}>{t("sell.tradeIn.reviewNote")}</Text>

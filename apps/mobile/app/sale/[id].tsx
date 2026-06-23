@@ -1,19 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { colors, twEGP } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as React from "react";
-import { ActivityIndicator, Alert, Dimensions, Text, View } from "react-native";
+import { ActivityIndicator, Dimensions, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { DropoffLocationField } from "../../components/DropoffLocationField";
 import { ImageCarousel } from "../../components/ImageCarousel";
 import { TWBadge, TWButton, TWCard, TWChip, TWPressable } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
-import { ensureId } from "../../lib/require-id";
 import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
@@ -37,25 +35,6 @@ export default function SaleDetailScreen(): React.JSX.Element {
     queryKey: ["vehicle", id],
     queryFn: () => api.getVehicle(id as string),
     enabled: Boolean(id),
-  });
-
-  const [dropoff, setDropoff] = React.useState("");
-
-  const reserve = useMutation({
-    mutationFn: () =>
-      api.createReservation({
-        vehicleId: id as string,
-        dropoffLocationUrl: dropoff.trim() || null,
-      }),
-    onSuccess: () => {
-      Alert.alert(t("sale.reservedTitle"), t("sale.reservedBody"));
-      // Send the customer to their reservations list (so the new reservation is
-      // visible) rather than back to the vehicle they just reserved.
-      router.replace("/sale/my-reservations");
-    },
-    onError: (err) => {
-      Alert.alert(t("sale.reserveFailedTitle"), err instanceof Error ? err.message : "");
-    },
   });
 
   const vehicle = q.data?.data;
@@ -90,9 +69,11 @@ export default function SaleDetailScreen(): React.JSX.Element {
       router.push("/(auth)/phone");
       return;
     }
-    // Every transaction requires the customer's ID on file first.
-    if (!ensureId(user, router, `/sale/${id}`)) return;
-    reserve.mutate();
+    // Hand off to the guided checkout (ID → fulfillment → location → confirm).
+    router.push({
+      pathname: "/checkout",
+      params: { kind: "reserve", id: String(id), title: vehicle.name, price: String(sale) },
+    });
   };
 
   return (
@@ -248,10 +229,6 @@ export default function SaleDetailScreen(): React.JSX.Element {
               </View>
             </Animated.View>
           ) : null}
-
-          <Animated.View entering={FadeInDown.delay(320).duration(420)}>
-            <DropoffLocationField value={dropoff} onChange={setDropoff} />
-          </Animated.View>
         </View>
       </Animated.ScrollView>
 
@@ -292,10 +269,9 @@ export default function SaleDetailScreen(): React.JSX.Element {
           icon="arrow-forward"
           iconRight
           onPress={onReserve}
-          disabled={reserve.isPending}
           style={{ paddingHorizontal: 28 }}
         >
-          {reserve.isPending ? t("sale.reserving") : t("sale.reserveCta")}
+          {t("sale.reserveCta")}
         </TWButton>
       </View>
     </View>

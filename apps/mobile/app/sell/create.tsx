@@ -21,6 +21,11 @@ import {
 } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
+import {
+  FulfillmentPicker,
+  optionNeedsLocation,
+  type FulfillmentValue,
+} from "../../components/FulfillmentPicker";
 import { GuestGate } from "../../components/GuestGate";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
@@ -105,6 +110,7 @@ export default function SellCreateScreen(): JSX.Element {
   // Year picker — Android shows a modal, iOS renders inline. Hide after each
   // pick so the spinner doesn't stick around in scroll view.
   const [showYearPicker, setShowYearPicker] = useState(false);
+  const [fulfillment, setFulfillment] = useState<FulfillmentValue>({ type: null, location: "" });
   const onYearChange = (event: DateTimePickerEvent, selected?: Date): void => {
     if (Platform.OS !== "ios") setShowYearPicker(false);
     if (event.type === "set" && selected) set("year", String(selected.getFullYear()));
@@ -127,6 +133,10 @@ export default function SellCreateScreen(): JSX.Element {
         color: form.color,
         description: form.description,
         images: uploadedUrls,
+        fulfillmentType: fulfillment.type,
+        dropoffLocationUrl: optionNeedsLocation(fulfillment.type)
+          ? fulfillment.location.trim() || null
+          : null,
       };
       if (__DEV__) console.log("[sell] POST /sales", payload);
       return api.createSalesListing(payload);
@@ -473,6 +483,8 @@ export default function SellCreateScreen(): JSX.Element {
               label={t("sell.create.reviewPhotos")}
               value={`${form.images.length} ${t("sell.create.photoCountSuffix")}`}
             />
+
+            <FulfillmentPicker side="sell" value={fulfillment} onChange={setFulfillment} />
 
             {mutation.isError && (
               <View style={styles.errorBox}>
