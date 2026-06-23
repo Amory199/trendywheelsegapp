@@ -104,4 +104,29 @@ httpServer.listen(env.PORT, async () => {
   }
 });
 
+// ─── Graceful shutdown ──────────────────────────────────────────
+// On a PM2 restart/reload (SIGINT/SIGTERM) stop accepting new connections and
+// let in-flight requests finish before exiting, so a deploy during campaign
+// traffic doesn't throw brief 5xx / dropped connections at customers. A
+// timeout force-exits so a stuck socket can never block the restart forever.
+let shuttingDown = false;
+function gracefulShutdown(signal: string): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info({ signal }, "Graceful shutdown — draining connections");
+  const forceExit = setTimeout(() => {
+    logger.warn("Drain timed out after 10s; forcing exit");
+    process.exit(0);
+  }, 10_000);
+  forceExit.unref();
+  io.close();
+  httpServer.close(() => {
+    clearTimeout(forceExit);
+    logger.info("Drain complete; exiting cleanly");
+    process.exit(0);
+  });
+}
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
 export { io };
