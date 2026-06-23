@@ -366,6 +366,8 @@ model Booking {
   notes         String?
   // Customer's Google Maps drop-off link for delivery. Null = store pickup.
   dropoffLocationUrl String?   @map("dropoff_location_url")
+  // How the deal is fulfilled — delivery_now / delivery_scheduled / showroom_visit.
+  fulfillmentType    String?   @map("fulfillment_type")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -407,6 +409,8 @@ model Reservation {
   notes      String?
   // Customer's Google Maps drop-off link for delivery. Null = store pickup.
   dropoffLocationUrl String?    @map("dropoff_location_url")
+  // How the deal is fulfilled — delivery_now / delivery_scheduled / showroom_visit.
+  fulfillmentType    String?    @map("fulfillment_type")
   idFrontUrl String?           @map("id_front_url")
   idBackUrl  String?           @map("id_back_url")
   createdAt  DateTime          @default(now()) @map("created_at")
@@ -577,6 +581,10 @@ model SalesListing {
   status         ListingStatus   @default(active)
   viewsCount     Int             @default(0) @map("views_count")
   inquiriesCount Int             @default(0) @map("inquiries_count")
+  // How the seller hands the vehicle over — pickup_from_me / dropoff_showroom.
+  fulfillmentType    String?     @map("fulfillment_type")
+  // Seller's Google Maps pickup location (when we collect from them).
+  dropoffLocationUrl String?     @map("dropoff_location_url")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
 
@@ -1165,6 +1173,10 @@ model TradeInQuote {
   notes            String?
   photos           String[]  @default([])
   status           String    @default("submitted")
+  // How the seller hands the vehicle over — pickup_from_me / dropoff_showroom.
+  fulfillmentType    String? @map("fulfillment_type")
+  // Seller's Google Maps pickup location (when we collect from them).
+  dropoffLocationUrl String? @map("dropoff_location_url")
   quoteEgp         Decimal?  @map("quote_egp") @db.Decimal(12, 2)
   quoteValidUntil  DateTime? @map("quote_valid_until")
   appliedToOrderId String?   @map("applied_to_order_id") @db.Uuid
@@ -1207,6 +1219,8 @@ model Order {
   tradeInId String?  @map("trade_in_id") @db.Uuid
   // Customer's Google Maps drop-off link for delivery. Null = store pickup.
   dropoffLocationUrl String? @map("dropoff_location_url")
+  // How the deal is fulfilled — delivery_now / delivery_scheduled / showroom_visit.
+  fulfillmentType    String? @map("fulfillment_type")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
