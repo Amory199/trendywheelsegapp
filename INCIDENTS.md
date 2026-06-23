@@ -1386,6 +1386,26 @@ A destructive action that "opens an email" is not a working feature — and app 
 
 ---
 
+### INC-050 — Admin web down: ChunkLoadError / 404 on \_next static chunks (2026-06-23)
+
+**Status:** Fixed
+**Severity:** P1 (admin panel fully unusable — "Application error: a client-side exception")
+**Touched:** ops only (rebuild + pm2 restart) — no code change
+
+**Symptom**
+`admin.trendywheelseg.com` showed "Application error: a client-side exception has occurred" with `GET /_next/static/chunks/5247-….js 404` and `ChunkLoadError: Loading chunk 5247 failed`.
+
+**Root cause**
+The `next start` (pm2 `trendywheels-admin`) process had been running since ~21h earlier — _before_ that day's two admin rebuilds. `next start` holds the build manifest from when it booted, but rebuilding `.next` rewrites chunk filenames on disk. So the live server served HTML/manifest referencing chunk hashes the rebuilds had replaced → 404 → ChunkLoadError. Earlier `pm2 restart` calls hadn't actually cycled the process (pm_uptime never updated).
+
+**Fix**
+`rm -rf .next && pnpm --filter @trendywheels/admin build`, then `pm2 restart trendywheels-admin` and **verify `pm_uptime` actually updated** (started_ago ~5s). Confirmed the formerly-404 chunk returns 200 locally and via the public domain. Users with the stale page cached need one hard refresh.
+
+**Pattern to follow next time**
+After every admin rebuild, the restart MUST cycle `next start` — confirm via `pm2 jlist` that the process start time moved, don't trust the "online" status. A rebuild without a real restart guarantees a stale-chunk outage. (Consider `next build` + reload only when paired; or run admin behind a process that reloads on build.) No nginx cache layer is involved.
+
+---
+
 ## How to add a new entry
 
 1. Pick the next `INC-NNN` number (zero-padded, monotonic).
