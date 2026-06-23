@@ -13,6 +13,7 @@ import bcrypt from "bcryptjs";
 import { PAGINATION } from "../../config/limits.js";
 import { prisma } from "../../config/database.js";
 import { requireOwner } from "../../utils/auth-roles.js";
+import { assertDeliverableEmail } from "../../utils/email-validation.js";
 import { AppError } from "../../utils/errors.js";
 import { revokeUserSessions } from "../auth/session-revocation.js";
 
@@ -188,6 +189,10 @@ export async function update(req: Request, res: Response): Promise<void> {
   }
   // Keep emails lowercased so the case-insensitive login lookup stays canonical.
   if (typeof data.email === "string") data.email = data.email.trim().toLowerCase();
+  // A non-empty email must be on a real, deliverable domain (no junk like x@kkkkkk.com).
+  if (typeof data.email === "string" && data.email.length > 0) {
+    await assertDeliverableEmail(data.email);
+  }
 
   // National-ID: once BOTH front and back are on file, mark the user verified
   // (self-attested capture). We look at the post-update state — either the
@@ -390,6 +395,7 @@ export async function createStaff(req: Request, res: Response): Promise<void> {
   const input = createStaffSchema.parse(req.body);
   // Store emails + usernames lowercased so login (case-insensitive) always matches.
   const email = input.email ? input.email.trim().toLowerCase() : undefined;
+  if (email) await assertDeliverableEmail(email);
   const username = input.username ? input.username.trim().toLowerCase() : undefined;
   const conflictFilters: Prisma.UserWhereInput[] = [{ phone: input.phone }];
   if (email) conflictFilters.push({ email: { equals: email, mode: "insensitive" } });

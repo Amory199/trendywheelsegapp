@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 
+import { assertDeliverableEmail } from "../../utils/email-validation.js";
 import { writeError } from "../../utils/error-sink.js";
 import { AppError } from "../../utils/errors.js";
 import { verifyFirebaseIdToken } from "../../utils/firebase.js";
@@ -51,6 +52,8 @@ export async function login(req: Request, res: Response): Promise<void> {
 // profile). Lets the customer sign in with credentials next time.
 export async function setCredentials(req: Request, res: Response): Promise<void> {
   const { name, email, username, password, age } = req.body;
+  // Email is optional here; when given it must be a real, deliverable domain.
+  if (email) await assertDeliverableEmail(email);
   const result = await authService.setCredentials(req.user!.userId, {
     name,
     email,

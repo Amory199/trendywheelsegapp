@@ -633,6 +633,16 @@ SD_AFTER=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
 [ "$SD_AFTER" = "401" ] || fail "deleted user's token still valid (got $SD_AFTER)"
 pass "user deleted their own account + session revoked"
 
+# ─── 12j-4. Junk email domains rejected (must be deliverable) ──
+# An email on a domain with no MX records (here a reserved .invalid TLD that can
+# never resolve) is rejected, so accounts like "x@kkkkkk.com" can't be created.
+note "12j-4. Undeliverable email domain rejected"
+JUNK_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/users" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"name\":\"Smoke Junk\",\"phone\":\"+2018$(printf '%08d' $(( $(date +%s) % 100000000 )))\",\"email\":\"junk-$(date +%s)@kkkkkk-nope-$(date +%s).invalid\",\"password\":\"SmokeJunk@123\",\"staffRole\":\"support\"}")
+[ "$JUNK_CODE" = "400" ] || fail "junk-domain email should be rejected with 400 (got $JUNK_CODE)"
+pass "undeliverable email domain rejected (400)"
+
 # ─── 12j. App-config (mobile force-update gate) ─────────────
 note "12j. GET /app-config"
 MINV=$(curl -fsS -A "$SMOKE_UA" "$BASE/app-config" | jq -r '.data.minSupportedVersion // empty')
