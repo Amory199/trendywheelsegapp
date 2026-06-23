@@ -34,6 +34,8 @@ const en = {
     noResults: "No results found",
     viewAll: "View All",
     tryAgain: "Try again",
+    errorBody: "Please check your connection and try again.",
+    nothingHere: "Nothing here yet",
   },
   auth: {
     enterPhone: "Enter your phone number",

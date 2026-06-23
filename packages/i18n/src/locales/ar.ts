@@ -30,6 +30,8 @@ const ar: TranslationKeys = {
     noResults: "لا توجد نتائج",
     viewAll: "عرض الكل",
     tryAgain: "حاول مرة أخرى",
+    errorBody: "يرجى التحقق من اتصالك والمحاولة مرة أخرى.",
+    nothingHere: "لا يوجد شيء هنا بعد",
   },
   auth: {
     enterPhone: "أدخل رقم هاتفك",
