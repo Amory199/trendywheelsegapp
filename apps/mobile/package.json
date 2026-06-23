@@ -10,6 +10,7 @@
     "lint": "eslint app/ lib/",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
+    "preflight:ota": "bash scripts/preflight-ota.sh",
     "clean": "rm -rf .expo dist"
   },
   "dependencies": {
