@@ -35,7 +35,27 @@ export default function SettingsScreen(): JSX.Element {
   const t = useT();
   const track = useTracking();
   const router = useRouter();
-  const { user, hydrate } = useAuth();
+  const { user, hydrate, logout } = useAuth();
+
+  // Self-service account deletion (Apple/Google require it in-app, not via
+  // email). Calls the API — which anonymizes the account, revokes sessions and
+  // unbinds push — then signs out locally and returns to the login screen.
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => {
+      if (!user) throw new Error("Not signed in");
+      return api.deleteAccount(user.id);
+    },
+    onSuccess: async () => {
+      logEvent("account_deleted");
+      await logout();
+      router.replace("/(auth)/phone");
+    },
+    onError: (err) =>
+      Alert.alert(
+        t("profile.settings.deleteFailedTitle"),
+        err instanceof Error ? err.message : t("common.error"),
+      ),
+  });
   const prefs = user?.preferences;
   // The selector MUST reflect the language the app is actually rendering, which
   // is the live locale store (persisted in SecureStore) — NOT the server-cached
@@ -373,10 +393,7 @@ export default function SettingsScreen(): JSX.Element {
                             {
                               text: t("profile.settings.deleteConfirmYes"),
                               style: "destructive",
-                              onPress: () =>
-                                void Linking.openURL(
-                                  "mailto:support@trendywheelseg.com?subject=Account%20Deletion%20Request",
-                                ),
+                              onPress: () => deleteAccountMutation.mutate(),
                             },
                           ],
                         );

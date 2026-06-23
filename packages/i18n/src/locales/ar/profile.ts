@@ -148,6 +148,7 @@ const profile: Stringify<typeof enNs> = {
     deleteConfirmTitle2: "هل أنت متأكد؟",
     deleteConfirmBody2: "سيتم إخفاء هوية حجوزاتك ورسائلك وكل نشاطك. وسيتم تسجيل خروجك.",
     deleteConfirmYes: "نعم، احذف حسابي",
+    deleteFailedTitle: "تعذّر حذف حسابك",
     appCopyright: "© 2026 تريندي ويلز مصر",
     saveFailed: "تعذّر حفظ الإعدادات",
     saved: "تم الحفظ!",

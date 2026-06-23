@@ -160,6 +160,7 @@ export default {
     deleteConfirmBody2:
       "Your bookings, messages, and all activity will be anonymized. You will be logged out.",
     deleteConfirmYes: "Yes, delete my account",
+    deleteFailedTitle: "Couldn't delete your account",
     appCopyright: "© 2026 TrendyWheels Egypt",
     saveFailed: "Failed to save settings",
     saved: "Saved!",
