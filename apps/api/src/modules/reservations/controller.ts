@@ -16,6 +16,7 @@ export async function create(req: Request, res: Response): Promise<void> {
     input.vehicleId,
     input.notes,
     input.dropoffLocationUrl,
+    input.fulfillmentType,
   );
   res.status(201).json({ data: created });
 }

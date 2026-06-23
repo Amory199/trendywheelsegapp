@@ -12,6 +12,7 @@ export async function createReservation(
   vehicleId: string,
   notes?: string | null,
   dropoffLocationUrl?: string | null,
+  fulfillmentType?: string | null,
 ): Promise<Prisma.ReservationGetPayload<{ include: { vehicle: true } }>> {
   const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
   if (!vehicle) throw AppError.notFound("Vehicle not found");
@@ -33,6 +34,7 @@ export async function createReservation(
       amountEgp: vehicle.salePrice,
       notes: notes ?? null,
       dropoffLocationUrl: dropoffLocationUrl ?? null,
+      fulfillmentType: fulfillmentType ?? null,
       idFrontUrl: user?.idFrontUrl ?? null,
       idBackUrl: user?.idBackUrl ?? null,
     },

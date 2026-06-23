@@ -42,6 +42,7 @@ export async function create(req: Request, res: Response): Promise<void> {
       totalEgp: total,
       tradeInId: input.tradeInId ?? null,
       dropoffLocationUrl: input.dropoffLocationUrl ?? null,
+      fulfillmentType: input.fulfillmentType ?? null,
       items: { create: itemsData },
     },
     include: { items: { include: { product: true } } },

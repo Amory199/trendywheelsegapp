@@ -41,8 +41,15 @@ export async function list(req: Request, res: Response): Promise<void> {
 }
 
 export async function create(req: Request, res: Response): Promise<void> {
-  const { vehicleId, startDate, endDate, promoCode, loyaltyPointsRedeemed, dropoffLocationUrl } =
-    req.body;
+  const {
+    vehicleId,
+    startDate,
+    endDate,
+    promoCode,
+    loyaltyPointsRedeemed,
+    dropoffLocationUrl,
+    fulfillmentType,
+  } = req.body;
   const userId = req.user!.userId;
 
   // Check vehicle availability
@@ -117,6 +124,7 @@ export async function create(req: Request, res: Response): Promise<void> {
       status: "pending",
       paymentStatus: "pending",
       dropoffLocationUrl: dropoffLocationUrl ?? null,
+      fulfillmentType: fulfillmentType ?? null,
       promoCode: validPromo?.code ?? null,
       promoDiscount: promoDiscount > 0 ? promoDiscount : null,
       loyaltyPointsRedeemed: loyaltyPts,
