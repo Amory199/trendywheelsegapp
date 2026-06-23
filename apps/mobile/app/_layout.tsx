@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as Notifications from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -13,7 +13,7 @@ import { OfflineBanner } from "../components/OfflineBanner";
 import { UpdateGate } from "../components/UpdateGate";
 import { initAppCheck } from "../lib/app-check";
 import { useAuth } from "../lib/auth-store";
-import { installMobileErrorReporter } from "../lib/error-reporter";
+import { installMobileErrorReporter, reportClientError } from "../lib/error-reporter";
 import { routeNotification } from "../lib/notification-router";
 import { ensureNotificationPermission, registerPushToken } from "../lib/push";
 import { initMobileSentry } from "../lib/sentry";
@@ -30,10 +30,32 @@ try {
 void initAppCheck();
 
 const queryClient = new QueryClient({
+  // Any query error that a screen doesn't surface itself still lands in the
+  // error log, so campaign-time failures are never silently swallowed.
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      reportClientError({
+        level: "error",
+        message: `query failed: ${error instanceof Error ? error.message : String(error)}`,
+        stack: error instanceof Error ? error.stack : undefined,
+        metadata: { queryKey: query.queryKey },
+      });
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       retry: 2,
+      // When the connection comes back (OfflineBanner clears), pull fresh data
+      // automatically so the user never lingers on stale content.
+      refetchOnReconnect: true,
+    },
+    mutations: {
+      // A single network blip on a money path (checkout / reserve / book)
+      // shouldn't fail the customer — retry once with a short backoff before
+      // the screen's own onError shows a friendly message.
+      retry: 1,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
     },
   },
 });
