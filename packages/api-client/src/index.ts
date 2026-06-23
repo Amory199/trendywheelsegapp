@@ -361,6 +361,12 @@ class ApiClient {
     return this.request("PUT", `/api/users/${encodeURIComponent(id)}`, { body: data });
   }
 
+  // Self-service account deletion. The API anonymizes the account, revokes all
+  // sessions, and unbinds push tokens. Callers should log the user out after.
+  async deleteAccount(id: string): Promise<{ message: string }> {
+    return this.request("DELETE", `/api/users/${encodeURIComponent(id)}`);
+  }
+
   async getUserInteractions(
     id: string,
     params?: PaginationParams & { type?: string },
