@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
+import { fulfillmentLabel } from "../../lib/fulfillment";
 
 interface Reservation {
   id: string;
@@ -13,6 +14,7 @@ interface Reservation {
   amountEgp: string | number;
   notes: string | null;
   dropoffLocationUrl: string | null;
+  fulfillmentType: string | null;
   idFrontUrl: string | null;
   idBackUrl: string | null;
   createdAt: string;
@@ -165,6 +167,9 @@ function Drawer({
           <Row label="Status">
             <span className="capitalize">{item.status}</span>
           </Row>
+          {fulfillmentLabel(item.fulfillmentType) ? (
+            <Row label="Fulfillment">{fulfillmentLabel(item.fulfillmentType)}</Row>
+          ) : null}
           <Row label="Delivery">
             {item.dropoffLocationUrl ? (
               <a

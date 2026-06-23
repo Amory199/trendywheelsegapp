@@ -8,6 +8,7 @@ import { useState } from "react";
 import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
+import { fulfillmentLabel } from "../../lib/fulfillment";
 import { TourHelpButton } from "../../lib/tour-help-button";
 import { TWSelect } from "../../lib/tw-select";
 
@@ -23,6 +24,7 @@ interface BookingRow {
   paymentStatus: "pending" | "paid" | "refunded";
   totalCost: string | number;
   dropoffLocationUrl?: string | null;
+  fulfillmentType?: string | null;
   createdAt: string;
   user?: { id: string; name: string; phone: string };
   vehicle?: { id: string; name: string };
@@ -271,6 +273,9 @@ function BookingDrawer({
               {booking.paymentStatus}
             </span>
           </Row>
+          {fulfillmentLabel(booking.fulfillmentType) ? (
+            <Row label="Fulfillment">{fulfillmentLabel(booking.fulfillmentType)}</Row>
+          ) : null}
           <Row label="Delivery">
             {booking.dropoffLocationUrl ? (
               <a

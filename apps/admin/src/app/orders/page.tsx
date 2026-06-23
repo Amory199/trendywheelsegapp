@@ -7,6 +7,7 @@ import { useState } from "react";
 import type { JSX } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
+import { fulfillmentLabel } from "../../lib/fulfillment";
 
 interface OrderRow {
   id: string;
@@ -14,6 +15,7 @@ interface OrderRow {
   totalEgp: string;
   tradeInId: string | null;
   dropoffLocationUrl: string | null;
+  fulfillmentType: string | null;
   createdAt: string;
   user: { id: string; name: string; email: string | null; phone: string };
   items: Array<{
@@ -127,6 +129,11 @@ export default function AdminOrdersPage(): JSX.Element {
                   <td className="px-4 py-3">
                     <div className="font-medium">{o.user.name}</div>
                     <div className="text-xs text-gray-500">{o.user.email ?? o.user.phone}</div>
+                    {fulfillmentLabel(o.fulfillmentType) ? (
+                      <div className="text-xs text-gray-500">
+                        {fulfillmentLabel(o.fulfillmentType)}
+                      </div>
+                    ) : null}
                     {o.dropoffLocationUrl ? (
                       <a
                         href={o.dropoffLocationUrl}
