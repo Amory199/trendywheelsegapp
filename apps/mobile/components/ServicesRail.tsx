@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { isRTL } from "@trendywheels/i18n";
 import { colors } from "@trendywheels/ui-tokens";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -20,17 +21,19 @@ const INK = "#02011F";
 // only the action prompts sign-in. Never a login wall on the home screen.
 type Service = {
   key: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  img: number;
   tint: string;
   titleKey: string;
   subKey: string;
   route: string;
 };
 
+// Branded service icons (sliced from the official icon board) replace the old
+// generic line-icons, matching the home category/quick-action tiles.
 const SERVICES: Service[] = [
   {
     key: "maintenance",
-    icon: "construct",
+    img: require("../assets/icons/maintenance.png"),
     tint: colors.brand.friendlyBlue,
     titleKey: "home.serviceMaintenance",
     subKey: "home.serviceMaintenanceSub",
@@ -38,7 +41,7 @@ const SERVICES: Service[] = [
   },
   {
     key: "customize",
-    icon: "color-palette",
+    img: require("../assets/icons/customize.png"),
     tint: colors.brand.trendyPink,
     titleKey: "home.serviceCustomize",
     subKey: "home.serviceCustomizeSub",
@@ -46,7 +49,7 @@ const SERVICES: Service[] = [
   },
   {
     key: "delivery",
-    icon: "cube",
+    img: require("../assets/icons/delivery.png"),
     tint: colors.brand.poolBlue,
     titleKey: "home.serviceDelivery",
     subKey: "home.serviceDeliverySub",
@@ -54,7 +57,7 @@ const SERVICES: Service[] = [
   },
   {
     key: "tradeIn",
-    icon: "swap-horizontal",
+    img: require("../assets/icons/trade-in.png"),
     tint: colors.brand.ecoLimelight,
     titleKey: "home.serviceTradeIn",
     subKey: "home.serviceTradeInSub",
@@ -98,8 +101,8 @@ export function ServicesRail(): JSX.Element {
             ]}
           >
             <View style={styles.cardTop}>
-              <View style={[styles.iconWrap, { backgroundColor: item.tint + "1A" }]}>
-                <Ionicons name={item.icon} size={22} color={item.tint} />
+              <View style={styles.iconWrap}>
+                <Image source={item.img} style={styles.iconImg} contentFit="contain" />
               </View>
               <Ionicons
                 name={rtl ? "arrow-back" : "arrow-forward"}
@@ -150,7 +153,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#0c0b3a",
   },
+  iconImg: { width: 34, height: 34 },
   title: { fontSize: 16, color: INK },
   sub: { fontSize: 12, lineHeight: 16 },
 });
