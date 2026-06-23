@@ -336,6 +336,7 @@ class ApiClient {
     promoCode?: string;
     loyaltyPointsRedeemed?: number;
     dropoffLocationUrl?: string | null;
+    fulfillmentType?: string | null;
   }): Promise<ApiResponse<Booking>> {
     return this.request("POST", "/api/bookings", { body: data });
   }
@@ -450,6 +451,7 @@ class ApiClient {
     vehicleId: string;
     notes?: string | null;
     dropoffLocationUrl?: string | null;
+    fulfillmentType?: string | null;
   }): Promise<ApiResponse<Reservation>> {
     return this.request("POST", "/api/reservations", { body: data });
   }
@@ -474,6 +476,8 @@ class ApiClient {
     condition: "excellent" | "good" | "fair" | "poor";
     notes?: string;
     photos?: string[];
+    dropoffLocationUrl?: string | null;
+    fulfillmentType?: string | null;
   }): Promise<ApiResponse<{ id: string; status: string }>> {
     return this.request("POST", "/api/trade-in", { body: data });
   }

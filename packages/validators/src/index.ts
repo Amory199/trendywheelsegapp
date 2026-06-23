@@ -155,10 +155,25 @@ export const dropoffLocationUrlSchema = z
   .optional()
   .nullable();
 
+// How a deal is fulfilled, captured in the guided checkout. Buy-side options
+// (buy / reserve / rent): delivery_now, delivery_scheduled, showroom_visit.
+// Sell-side options (sell / trade-in): pickup_from_me, dropoff_showroom.
+export const fulfillmentTypeSchema = z
+  .enum([
+    "delivery_now",
+    "delivery_scheduled",
+    "showroom_visit",
+    "pickup_from_me",
+    "dropoff_showroom",
+  ])
+  .optional()
+  .nullable();
+
 export const createReservationSchema = z.object({
   vehicleId: z.string().uuid(),
   notes: z.string().max(1000).optional().nullable(),
   dropoffLocationUrl: dropoffLocationUrlSchema,
+  fulfillmentType: fulfillmentTypeSchema,
 });
 
 export const updateReservationSchema = z.object({
@@ -197,6 +212,7 @@ export const createBookingSchema = z
     promoCode: z.string().min(2).max(40).optional(),
     loyaltyPointsRedeemed: z.number().int().min(0).optional(),
     dropoffLocationUrl: dropoffLocationUrlSchema,
+    fulfillmentType: fulfillmentTypeSchema,
   })
   .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
     message: "End date must be after start date",
@@ -341,6 +357,8 @@ export const createSalesListingSchema = z.object({
   color: z.string().min(1).max(30),
   description: z.string().min(10).max(2000),
   images: z.array(z.string().url()).max(10).optional().default([]),
+  dropoffLocationUrl: dropoffLocationUrlSchema,
+  fulfillmentType: fulfillmentTypeSchema,
 });
 
 export const updateSalesListingSchema = createSalesListingSchema.partial().extend({
@@ -488,6 +506,7 @@ export const createOrderSchema = z.object({
     .min(1, "At least one item required"),
   tradeInId: z.string().uuid().optional().nullable(),
   dropoffLocationUrl: dropoffLocationUrlSchema,
+  fulfillmentType: fulfillmentTypeSchema,
 });
 
 export const updateOrderStatusSchema = z.object({ status: orderStatusEnum });
@@ -564,6 +583,8 @@ export const submitTradeInSchema = z.object({
   condition: z.enum(["excellent", "good", "fair", "poor"]),
   notes: z.string().max(2000).optional(),
   photos: z.array(z.string().url()).max(8).default([]),
+  dropoffLocationUrl: dropoffLocationUrlSchema,
+  fulfillmentType: fulfillmentTypeSchema,
 });
 
 export const quoteTradeInSchema = z.object({

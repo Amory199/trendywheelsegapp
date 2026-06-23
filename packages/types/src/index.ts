@@ -134,6 +134,7 @@ export interface Booking {
   paymentStatus: PaymentStatus;
   notes: string | null;
   dropoffLocationUrl?: string | null;
+  fulfillmentType?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -189,6 +190,8 @@ export interface SalesListing {
   status: "active" | "sold" | "pending";
   viewsCount: number;
   inquiriesCount: number;
+  dropoffLocationUrl?: string | null;
+  fulfillmentType?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -231,6 +234,7 @@ export interface Reservation {
   amountEgp: number;
   notes: string | null;
   dropoffLocationUrl?: string | null;
+  fulfillmentType?: string | null;
   idFrontUrl: string | null;
   idBackUrl: string | null;
   createdAt: string;
