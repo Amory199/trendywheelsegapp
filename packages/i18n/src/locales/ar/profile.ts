@@ -15,6 +15,8 @@ const profile: Stringify<typeof enNs> = {
     bookingsEmpty: "لا توجد حجوزات نشطة بعد",
     ordersTitle: "طلباتي",
     ordersEmpty: "لا توجد مشتريات بعد",
+    reservationsTitle: "حجوزات الشراء",
+    reservationsSubtitle: "المركبات التي حجزتها للشراء",
     savedTitle: "المركبات المحفوظة",
     savedSubtitle: "المركبات التي حفظتها لوقت لاحق",
     listingsTitle: "إعلاناتي",

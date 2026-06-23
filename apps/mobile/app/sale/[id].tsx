@@ -49,7 +49,9 @@ export default function SaleDetailScreen(): React.JSX.Element {
       }),
     onSuccess: () => {
       Alert.alert(t("sale.reservedTitle"), t("sale.reservedBody"));
-      router.back();
+      // Send the customer to their reservations list (so the new reservation is
+      // visible) rather than back to the vehicle they just reserved.
+      router.replace("/sale/my-reservations");
     },
     onError: (err) => {
       Alert.alert(t("sale.reserveFailedTitle"), err instanceof Error ? err.message : "");

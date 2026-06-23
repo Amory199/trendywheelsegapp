@@ -8,4 +8,13 @@ export default {
   reservedTitle: "تم الحجز",
   reservedBody: "لقد حجزنا هذه المركبة لك — سيتواصل معك فريقنا لإتمام الصفقة.",
   reserveFailedTitle: "تعذّر الحجز",
+  // My reservations list — app/sale/my-reservations.tsx
+  myReservationsTitle: "حجوزاتي",
+  noReservationsYet: "لم تحجز أي شيء بعد.",
+  browse: "تصفّح المركبات",
+  reservationNumberPrefix: "حجز رقم ",
+  statusPending: "قيد الانتظار",
+  statusConfirmed: "مؤكد",
+  statusCompleted: "مكتمل",
+  statusCancelled: "ملغى",
 };

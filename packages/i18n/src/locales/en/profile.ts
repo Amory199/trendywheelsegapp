@@ -15,6 +15,8 @@ export default {
     bookingsEmpty: "No active bookings yet",
     ordersTitle: "My orders",
     ordersEmpty: "No purchases yet",
+    reservationsTitle: "My reservations",
+    reservationsSubtitle: "Vehicles you've reserved to buy",
     savedTitle: "Saved vehicles",
     savedSubtitle: "Vehicles you saved for later",
     listingsTitle: "My listings",

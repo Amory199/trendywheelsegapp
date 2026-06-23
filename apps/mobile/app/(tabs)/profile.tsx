@@ -203,6 +203,16 @@ export default function ProfileScreen(): React.JSX.Element {
         />
       </Animated.View>
 
+      <Animated.View entering={FadeInDown.duration(432).delay(217)}>
+        <ActivityCard
+          icon="pricetag-outline"
+          title={t("profile.activity.reservationsTitle")}
+          subtitle={t("profile.activity.reservationsSubtitle")}
+          tone="blue"
+          onPress={() => router.push("/sale/my-reservations")}
+        />
+      </Animated.View>
+
       <Animated.View entering={FadeInDown.duration(435).delay(225)}>
         <ActivityCard
           icon="heart-outline"
