@@ -68,17 +68,34 @@ export default function HomeScreen(): React.JSX.Element {
     () => vehicles.filter((v) => v.listingType === "rent" || v.listingType === "both").slice(0, 10),
     [vehicles],
   );
-  // Honest deals only: vehicles carrying a real, positive salePrice. No invented
-  // %-off, no countdown — Rail.hideWhenEmpty drops the section if none qualify.
+  // ON SALE = genuinely discounted vehicles: a before-price (originalPriceEgp)
+  // that's higher than the current salePrice. Plain for-sale carts (no discount)
+  // belong in the Buy rail, not here — so the two sections never duplicate.
   const onSale = React.useMemo(
-    () => vehicles.filter((v) => v.salePrice != null && Number(v.salePrice) > 0).slice(0, 10),
+    () =>
+      vehicles
+        .filter(
+          (v) =>
+            v.salePrice != null &&
+            v.originalPriceEgp != null &&
+            Number(v.originalPriceEgp) > Number(v.salePrice),
+        )
+        .slice(0, 10),
     [vehicles],
   );
-  const cartsForSale = React.useMemo(
-    () =>
-      products.filter((p) => p.category === "cart_new" || p.category === "cart_used").slice(0, 10),
-    [products],
-  );
+  // Carts for sale = cart products EXCLUDING the ones whose vehicle is currently
+  // discounted (those show in On Sale instead). Keeps Buy ↔ On Sale in sync so a
+  // cart never appears in both rails.
+  const cartsForSale = React.useMemo(() => {
+    const discountedVehicleIds = new Set(onSale.map((v) => v.id));
+    return products
+      .filter((p) => p.category === "cart_new" || p.category === "cart_used")
+      .filter((p) => {
+        const vid = (p as { vehicleId?: string | null }).vehicleId;
+        return !vid || !discountedVehicleIds.has(vid);
+      })
+      .slice(0, 10);
+  }, [products, onSale]);
   const partsShop = React.useMemo(
     () => products.filter((p) => p.category === "parts" || p.category === "accessory").slice(0, 10),
     [products],
