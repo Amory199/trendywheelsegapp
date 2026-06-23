@@ -14,8 +14,9 @@ import { UpdateGate } from "../components/UpdateGate";
 import { initAppCheck } from "../lib/app-check";
 import { useAuth } from "../lib/auth-store";
 import { installMobileErrorReporter, reportClientError } from "../lib/error-reporter";
+import { initOtaTelemetry } from "../lib/instrument-ota";
 import { routeNotification } from "../lib/notification-router";
-import { ensureNotificationPermission, registerPushToken } from "../lib/push";
+import { ensureNotificationPermission, initPushHandler, registerPushToken } from "../lib/push";
 import { initMobileSentry } from "../lib/sentry";
 
 // Wrap in try/catch — nothing at module-load should ever block first paint.
@@ -67,6 +68,9 @@ export default function RootLayout(): JSX.Element {
   // login, so guests and staff alike actually get the system prompt. Delayed
   // slightly so the dialog doesn't collide with the cold-start splash.
   useEffect(() => {
+    // Install the notification handler after first paint (not at module load,
+    // where a native call would run before the error reporters are ready).
+    initPushHandler();
     const t = setTimeout(() => void ensureNotificationPermission(), 1200);
     return () => clearTimeout(t);
   }, []);
@@ -78,7 +82,11 @@ export default function RootLayout(): JSX.Element {
   // Sentry init DEFERRED past first paint — the old SDK-53 native-init hang
   // froze the splash screen; even if that ever regresses, boot stays safe.
   useEffect(() => {
-    const timer = setTimeout(() => initMobileSentry(), 1500);
+    const timer = setTimeout(() => {
+      initMobileSentry();
+      // Report which OTA bundle this device actually booted (publish ≠ delivered).
+      initOtaTelemetry();
+    }, 1500);
     return () => clearTimeout(timer);
   }, []);
 

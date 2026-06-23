@@ -4,15 +4,32 @@ import { Platform } from "react-native";
 
 import { api } from "./api";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+let handlerInstalled = false;
+
+/**
+ * Install the foreground notification handler. Called from the root layout's
+ * deferred boot effect — NOT at module load. A native call at import time runs
+ * before Sentry/ErrorBoundary are ready, so a native hang/crash there would be
+ * invisible (the SDK-53 first-paint class of bug). Guarded + try/catch so it's
+ * safe to call repeatedly and can never break boot.
+ */
+export function initPushHandler(): void {
+  if (handlerInstalled) return;
+  handlerInstalled = true;
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  } catch {
+    /* no-op — notification setup must never crash the app */
+  }
+}
 
 // Last token we registered this session — passed to logout so the API can
 // unbind exactly this device's push registration.
