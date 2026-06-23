@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LOYALTY, rentalDays } from "@trendywheels/types";
 import { colors } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -50,14 +51,16 @@ export default function RentDetailPage(): JSX.Element {
 
   const v = q.data?.data;
 
-  const days = useMemo(() => {
-    const d = Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86400000);
-    return Math.max(d, 1);
-  }, [start, end]);
+  // Shared billable-days + loyalty rates (@trendywheels/types) so this estimate
+  // matches the authoritative API charge exactly.
+  const days = useMemo(() => rentalDays(start, end), [start, end]);
 
   const baseCost = v ? Number(v.dailyRate) * days : 0;
   const promoDiscount = appliedPromo?.discount ?? 0;
-  const loyaltyDiscount = Math.min(loyaltyPts * 0.1, (baseCost - promoDiscount) * 0.5);
+  const loyaltyDiscount = Math.min(
+    loyaltyPts * LOYALTY.REDEEM_VALUE_PER_POINT,
+    (baseCost - promoDiscount) * LOYALTY.MAX_DISCOUNT_FRACTION,
+  );
   const total = Math.max(0, baseCost - promoDiscount - loyaltyDiscount);
 
   const validatePromo = useMutation({
@@ -85,7 +88,7 @@ export default function RentDetailPage(): JSX.Element {
           startDate: new Date(start).toISOString(),
           endDate: new Date(end).toISOString(),
           promoCode: appliedPromo?.code,
-          loyaltyPointsRedeemed: loyaltyPts >= 500 ? loyaltyPts : undefined,
+          loyaltyPointsRedeemed: loyaltyPts >= LOYALTY.MIN_REDEEM_POINTS ? loyaltyPts : undefined,
         }),
       }),
     onSuccess: () => {

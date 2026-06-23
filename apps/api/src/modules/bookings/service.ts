@@ -3,15 +3,18 @@
 // Workers (booking-reminder, completion-sweeper, etc.) can call the same
 // functions without going through the HTTP layer.
 
+import { LOYALTY } from "@trendywheels/types";
+
 import { prisma } from "../../config/database.js";
 import { maybePromoteLoyaltyTier } from "../customer-features/loyalty-tiers.js";
 
-// Awarded points = floor(totalCost / 10). Matches the brand promise of
-// "10 points for every EGP 100 spent on rentals".
-const LOYALTY_POINTS_PER_EGP_100 = 10;
+// Loyalty/referral economics live in @trendywheels/types so the API and the
+// customer app share one source of truth. Awarded points = floor(totalCost/10),
+// matching the brand promise "10 points for every EGP 100 spent on rentals".
+const LOYALTY_POINTS_PER_EGP_100 = LOYALTY.POINTS_PER_EGP_100;
 
 // First-completed-booking referral bonus (both referrer and referee).
-const REFERRAL_BONUS_POINTS = 500;
+const REFERRAL_BONUS_POINTS = LOYALTY.REFERRAL_BONUS_POINTS;
 
 /**
  * Booking completion hook — mints loyalty + referral payouts. Idempotent:

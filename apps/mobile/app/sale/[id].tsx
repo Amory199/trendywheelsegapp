@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
+import { discountPercent, isVehicleOnSale } from "@trendywheels/types";
 import { colors, twEGP } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -65,8 +66,9 @@ export default function SaleDetailScreen(): React.JSX.Element {
 
   const sale = vehicle.salePrice != null ? Number(vehicle.salePrice) : 0;
   const original = vehicle.originalPriceEgp != null ? Number(vehicle.originalPriceEgp) : null;
-  const hasDiscount = original != null && original > sale;
-  const discountPct = hasDiscount ? Math.round((1 - sale / original) * 100) : 0;
+  // Shared sale/discount math (@trendywheels/types) — same rule as the home rail.
+  const hasDiscount = isVehicleOnSale(vehicle);
+  const discountPct = discountPercent(vehicle);
   const features = (vehicle.features as string[] | undefined) ?? [];
 
   const onReserve = (): void => {

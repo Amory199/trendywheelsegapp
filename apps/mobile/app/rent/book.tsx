@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { rentalDays } from "@trendywheels/types";
 import { colors, type Palette, spacing, typography } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -105,15 +106,9 @@ export default function BookScreen(): JSX.Element {
 
   const vehicle = vehicleData?.data;
 
-  const days =
-    startDate && endDate
-      ? Math.max(
-          1,
-          Math.ceil(
-            (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24),
-          ),
-        )
-      : 0;
+  // Shared billable-days rule (@trendywheels/types) so the estimate shown here
+  // matches what the API charges. 0 until both dates are picked.
+  const days = startDate && endDate ? rentalDays(startDate, endDate) : 0;
 
   const totalCost = days * Number(vehicle?.dailyRate ?? 0);
 

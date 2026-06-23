@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { isRTL } from "@trendywheels/i18n";
-import { type Vehicle } from "@trendywheels/types";
+import { isVehicleOnSale, type Vehicle } from "@trendywheels/types";
 import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -71,18 +71,7 @@ export default function HomeScreen(): React.JSX.Element {
   // ON SALE = genuinely discounted vehicles: a before-price (originalPriceEgp)
   // that's higher than the current salePrice. Plain for-sale carts (no discount)
   // belong in the Buy rail, not here — so the two sections never duplicate.
-  const onSale = React.useMemo(
-    () =>
-      vehicles
-        .filter(
-          (v) =>
-            v.salePrice != null &&
-            v.originalPriceEgp != null &&
-            Number(v.originalPriceEgp) > Number(v.salePrice),
-        )
-        .slice(0, 10),
-    [vehicles],
-  );
+  const onSale = React.useMemo(() => vehicles.filter(isVehicleOnSale).slice(0, 10), [vehicles]);
   // Carts for sale = cart products EXCLUDING the ones whose vehicle is currently
   // discounted (those show in On Sale instead). Keeps Buy ↔ On Sale in sync so a
   // cart never appears in both rails.

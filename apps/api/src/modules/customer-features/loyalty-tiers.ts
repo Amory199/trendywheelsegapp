@@ -1,16 +1,18 @@
+import { LOYALTY_TIER_THRESHOLDS } from "@trendywheels/types";
+
 import { prisma } from "../../config/database.js";
 import { logger } from "../../utils/logger.js";
 import { notifyUser } from "../../utils/notify.js";
 
 // Tier ladder based on LIFETIME EARNED points (not current balance), so
 // redeeming points can never demote anyone — once a tier is reached it's kept.
-// At 10 pts per EGP 100 spent: silver ≈ EGP 10k, gold ≈ EGP 50k,
-// platinum ≈ EGP 150k lifetime rental spend.
+// Thresholds live in @trendywheels/types (single source). At 10 pts per EGP 100
+// spent: silver ≈ EGP 10k, gold ≈ EGP 50k, platinum ≈ EGP 150k lifetime spend.
 const TIER_THRESHOLDS = [
-  { tier: "platinum", minEarned: 15000 },
-  { tier: "gold", minEarned: 5000 },
-  { tier: "silver", minEarned: 1000 },
-  { tier: "bronze", minEarned: 0 },
+  { tier: "platinum", minEarned: LOYALTY_TIER_THRESHOLDS.platinum },
+  { tier: "gold", minEarned: LOYALTY_TIER_THRESHOLDS.gold },
+  { tier: "silver", minEarned: LOYALTY_TIER_THRESHOLDS.silver },
+  { tier: "bronze", minEarned: LOYALTY_TIER_THRESHOLDS.bronze },
 ] as const;
 
 type Tier = (typeof TIER_THRESHOLDS)[number]["tier"];

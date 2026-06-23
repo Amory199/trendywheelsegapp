@@ -1,6 +1,8 @@
 import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 
+import { LOYALTY, rentalDays } from "@trendywheels/types";
+
 import { prisma } from "../../config/database.js";
 import { requireOwner, scopeListToOwner } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
@@ -72,11 +74,9 @@ export async function create(req: Request, res: Response): Promise<void> {
     throw AppError.conflict("Out of stock for these dates");
   }
 
-  // Calculate total cost
-  const days = Math.ceil(
-    (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24),
-  );
-  const baseCost = Number(vehicle.dailyRate) * Math.max(days, 1);
+  // Calculate total cost (shared billable-days rule — see @trendywheels/types).
+  const days = rentalDays(startDate as string, endDate as string);
+  const baseCost = Number(vehicle.dailyRate) * days;
 
   // Apply promo code if provided
   let promoDiscount = 0;
@@ -101,15 +101,16 @@ export async function create(req: Request, res: Response): Promise<void> {
     }
   }
 
-  // Apply loyalty redemption (1 pt = EGP 0.10, min 500 pts, max 50% of total)
+  // Apply loyalty redemption (rates centralized in @trendywheels/types so the
+  // server charge can never disagree with the customer-app estimate).
   let loyaltyDiscount = 0;
   let loyaltyPts = 0;
-  if (loyaltyPointsRedeemed && loyaltyPointsRedeemed >= 500) {
+  if (loyaltyPointsRedeemed && loyaltyPointsRedeemed >= LOYALTY.MIN_REDEEM_POINTS) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const reqPts = Math.min(loyaltyPointsRedeemed, user?.loyaltyPoints ?? 0);
-    const maxDiscount = (baseCost - promoDiscount) * 0.5;
-    loyaltyDiscount = Math.min(reqPts * 0.1, maxDiscount);
-    loyaltyPts = Math.ceil(loyaltyDiscount * 10);
+    const maxDiscount = (baseCost - promoDiscount) * LOYALTY.MAX_DISCOUNT_FRACTION;
+    loyaltyDiscount = Math.min(reqPts * LOYALTY.REDEEM_VALUE_PER_POINT, maxDiscount);
+    loyaltyPts = Math.ceil(loyaltyDiscount / LOYALTY.REDEEM_VALUE_PER_POINT);
   }
 
   const totalCost = Math.max(0, baseCost - promoDiscount - loyaltyDiscount);

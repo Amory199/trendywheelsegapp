@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
+import { rentalDays } from "@trendywheels/types";
+
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
 import { uploadObject } from "../../utils/storage.js";
@@ -43,11 +45,10 @@ async function resolveSource(sourceType: SourceType, sourceId: string): Promise<
       include: { user: true, vehicle: true },
     });
     if (!b) throw AppError.notFound("Booking not found");
-    const days =
-      Math.max(
-        1,
-        Math.round((b.endDate.getTime() - b.startDate.getTime()) / (1000 * 60 * 60 * 24)),
-      ) || 1;
+    // Use the shared billable-days rule so the invoice line matches what the
+    // booking actually charged (both ceil a partial day — previously this used
+    // Math.round and could disagree with the charge by a day).
+    const days = rentalDays(b.startDate, b.endDate);
     const subtotal = Number(b.totalCost);
     return {
       user: { name: b.user.name || b.user.phone, phone: b.user.phone, id: b.user.id },

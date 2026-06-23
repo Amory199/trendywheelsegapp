@@ -6,6 +6,7 @@ import {
   TWHamburgerIcon,
   TWLogoLockup,
 } from "@trendywheels/ui-brand/web";
+import type { StaffRole } from "@trendywheels/types";
 import { colors, initialsOf, twPalette } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -20,7 +21,9 @@ import { CommandPalette } from "./command-palette";
 // staff are filtered by `allowedRoles` against their `staffRole`. Items with
 // `allowedRoles` omitted are visible to all staff. An empty group (all items
 // filtered out) collapses silently so the sidebar doesn't show dead headers.
-type StaffRoleKey = "sales" | "support" | "inventory" | "mechanic" | "admin";
+// Single source of truth — imported from @trendywheels/types so the admin nav
+// can't drift from the canonical role list if a role is ever added/removed.
+type StaffRoleKey = StaffRole;
 
 type NavItem = {
   href: string;

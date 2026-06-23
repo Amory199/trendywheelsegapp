@@ -1,3 +1,74 @@
+// ─── Shared money + sale math ────────────────────────────────
+// Single source of truth used by the API, admin, mobile, and customer apps.
+// Before this, each was reimplemented per-app and drifted (e.g. the rental
+// day-count used Math.ceil when charging but Math.round on the invoice, so a
+// partial day could be charged but not invoiced). Import from here instead of
+// re-deriving. Kept inline in index.ts (not a separate module) so every
+// toolchain resolves it — Metro doesn't follow a "./x.js" → x.ts re-export.
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+/**
+ * Billable rental days for a date range. Always >= 1, and always rounds UP a
+ * partial day (Math.ceil) so the charge and the invoice agree. Accepts Date or
+ * ISO string. The CANONICAL definition — booking charge, booking-screen
+ * estimate, and invoice line MUST all use this.
+ */
+export function rentalDays(start: Date | string, end: Date | string): number {
+  const s = typeof start === "string" ? new Date(start) : start;
+  const e = typeof end === "string" ? new Date(end) : end;
+  const diff = (e.getTime() - s.getTime()) / MS_PER_DAY;
+  return Math.max(1, Math.ceil(diff));
+}
+
+interface SalePriced {
+  salePrice?: number | string | null;
+  originalPriceEgp?: number | string | null;
+}
+
+const toNum = (v: number | string | null | undefined): number | null =>
+  v == null || v === "" ? null : Number(v);
+
+/** A vehicle is on sale only with BOTH a salePrice and a higher originalPriceEgp. */
+export function isVehicleOnSale(v: SalePriced): boolean {
+  const sale = toNum(v.salePrice);
+  const original = toNum(v.originalPriceEgp);
+  return sale != null && original != null && original > sale;
+}
+
+/** Whole-number discount percent (0 when not on sale). */
+export function discountPercent(v: SalePriced): number {
+  const sale = toNum(v.salePrice);
+  const original = toNum(v.originalPriceEgp);
+  if (sale == null || original == null || original <= sale) return 0;
+  return Math.round(((original - sale) / original) * 100);
+}
+
+// Loyalty/referral economics. Single source so the API (authoritative charge)
+// and the customer-app estimate can't show one number and bill another. Not yet
+// admin-configurable — moving them to SystemConfig is a separate deferred change;
+// centralizing first removes the drift risk.
+export const LOYALTY = {
+  /** Points earned per EGP 100 of completed rental spend. */
+  POINTS_PER_EGP_100: 10,
+  /** EGP value of one redeemed point. */
+  REDEEM_VALUE_PER_POINT: 0.1,
+  /** Minimum points required to redeem any discount. */
+  MIN_REDEEM_POINTS: 500,
+  /** Cap on the loyalty discount as a fraction of the booking total. */
+  MAX_DISCOUNT_FRACTION: 0.5,
+  /** Points granted to BOTH referrer and referee on first completed booking. */
+  REFERRAL_BONUS_POINTS: 500,
+} as const;
+
+/** Lifetime-points thresholds for each tier. */
+export const LOYALTY_TIER_THRESHOLDS = {
+  platinum: 15000,
+  gold: 5000,
+  silver: 1000,
+  bronze: 0,
+} as const;
+
 // ─── Enums ───────────────────────────────────────────────────
 
 export type AccountType = "customer" | "staff" | "admin";
