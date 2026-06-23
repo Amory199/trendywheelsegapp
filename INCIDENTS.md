@@ -1366,6 +1366,26 @@ A soft-delete scheme needs its tombstone filter applied **everywhere** the entit
 
 ---
 
+### INC-049 — "Delete account" button did nothing (2026-06-23)
+
+**Status:** Fixed
+**Severity:** P2 (user-visible; also an App Store / Play compliance gap — both require real in-app account deletion)
+**Touched:** `apps/mobile/app/profile/settings.tsx`, `packages/api-client/src/index.ts`, `packages/i18n/src/locales/{en,ar}/profile.ts`, `apps/api/scripts/smoke-test.sh`
+
+**Symptom**
+Owner: "the delete button on the app doesn't work." Profile → Settings → Delete account ran through two confirms, then the final action only did `Linking.openURL("mailto:support@…?subject=Account Deletion Request")` — which silently no-ops on any device without a configured mail client, so nothing visibly happened.
+
+**Root cause**
+The button was never wired to the (already-existing) self-service endpoint. `DELETE /api/users/:id` → `deleteAccount` already anonymizes the row, revokes sessions, and unbinds push, and `requireOwner` already permits a customer to delete their own id — but the mobile screen punted to an email draft instead of calling it, and the api-client had no `deleteAccount` method.
+
+**Fix**
+Added `api.deleteAccount(id)` (DELETE /api/users/:id). Settings now runs a mutation that deletes the account, then `logout()` + `router.replace("/(auth)/phone")`. Added `profile.settings.deleteFailedTitle` (en/ar). Smoke §12j-3 creates a throwaway user, has it delete its OWN account (asserts 200 via requireOwner) and confirms the token is then 401; the throwaway is hard-purged by id in the end-of-run cleanup (its email is nulled on soft-delete, so it can't be caught by the `smoke-%` filter).
+
+**Pattern to follow next time**
+A destructive action that "opens an email" is not a working feature — and app stores explicitly require in-app account deletion. When an endpoint already exists, check the client wiring first. Watch the soft-delete tombstone trap: a self-deleted test user nulls its own email, so purge it by captured id, not by an email pattern.
+
+---
+
 ## How to add a new entry
 
 1. Pick the next `INC-NNN` number (zero-padded, monotonic).
