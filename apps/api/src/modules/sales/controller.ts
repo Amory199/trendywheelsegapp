@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 
+import type { Prisma } from "@prisma/client";
+
 import { redis } from "../../config/redis.js";
 import { prisma } from "../../config/database.js";
 import { requireOwner } from "../../utils/auth-roles.js";
@@ -110,12 +112,16 @@ export async function create(req: Request, res: Response): Promise<void> {
   // Staff-created listings start "active" (no review queue); customer-created
   // start "pending" until staff approve. Either way, images come from the body.
   const isStaffCreator = req.user!.accountType !== "customer";
+  // Cast to the real create-input type (not `never`) so a future schema/Prisma
+  // drift surfaces at compile time. `body` is the zod-validated payload (the
+  // route runs validate({ body: createSalesListingSchema }), which strips
+  // unknown keys), so fulfillmentType + dropoffLocationUrl flow through here.
   const listing = await prisma.salesListing.create({
     data: {
       ...body,
       userId: req.user!.userId,
       status: isStaffCreator ? "active" : "pending",
-    } as never,
+    } as Prisma.SalesListingUncheckedCreateInput,
   });
   await invalidateSalesCache();
   // Notify staff that a listing is awaiting approval.

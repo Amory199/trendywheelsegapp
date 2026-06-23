@@ -727,13 +727,17 @@ pass "second ticket is a fresh, separate thread (no old messages)"
 note "12o. Sales admin board — pending visibility + approve/reject"
 SL=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/sales" \
   -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
-  -d '{"title":"smoke pending listing","category":"golf-cart","make":"Club Car","model":"Precedent","year":2021,"price":50000,"mileage":1000,"transmission":"automatic","fuelType":"electric","color":"white","description":"smoke-test pending sales listing"}') \
+  -d "{\"title\":\"smoke pending listing\",\"category\":\"golf-cart\",\"make\":\"Club Car\",\"model\":\"Precedent\",\"year\":2021,\"price\":50000,\"mileage\":1000,\"transmission\":\"automatic\",\"fuelType\":\"electric\",\"color\":\"white\",\"description\":\"smoke-test pending sales listing\",\"fulfillmentType\":\"pickup_from_me\",\"dropoffLocationUrl\":\"$DROPOFF_URL\"}") \
   || fail "POST /sales (customer) failed"
 SL_ID=$(echo "$SL" | jq -r '.data.id // .id')
 [ -n "$SL_ID" ] && [ "$SL_ID" != "null" ] || fail "no sales listing id: $SL"
 [ "$(echo "$SL" | jq -r '.data.status')" = "pending" ] \
   || fail "customer listing not pending: $(echo "$SL" | jq -r '.data.status')"
-pass "customer sales listing created pending (id=$SL_ID)"
+# Sell-side fulfillment must persist (the controller spreads validated body —
+# this guards against the `as never` ever silently dropping the field).
+[ "$(echo "$SL" | jq -r '.data.fulfillmentType')" = "pickup_from_me" ] \
+  || fail "sell listing did not persist fulfillmentType"
+pass "customer sales listing created pending + fulfillment persisted (id=$SL_ID)"
 
 ADMIN_SEES=$(curl -fsS -A "$SMOKE_UA" "$BASE/sales/admin/all" -H "Authorization: Bearer $ADMIN_TOKEN" \
   | jq "[.data[] | select(.id == \"$SL_ID\")] | length")
@@ -752,6 +756,23 @@ curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/sales/$SL_ID/restore" \
 curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/sales/$SL_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
   || fail "reject (DELETE) failed"
 pass "approve→active, reject→removed"
+
+# ─── 12o-2. Trade-in submit persists fulfillment + rejects bad value ───
+# Trade-in is the 5th guided-checkout flow. It persists via a validated spread
+# (submitTradeInSchema.parse → create), so prove the field actually lands and a
+# bogus value is rejected — parity with the reservation/sell assertions.
+note "12o-2. Trade-in fulfillment persistence"
+TI=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/trade-in" \
+  -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+  -d "{\"brand\":\"SmokeTradeIn\",\"model\":\"Precedent\",\"year\":2021,\"condition\":\"good\",\"fulfillmentType\":\"pickup_from_me\",\"dropoffLocationUrl\":\"$DROPOFF_URL\"}") \
+  || fail "POST /trade-in failed"
+[ "$(echo "$TI" | jq -r '.data.fulfillmentType')" = "pickup_from_me" ] \
+  || fail "trade-in did not persist fulfillmentType"
+TI_BAD=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" -XPOST "$BASE/trade-in" \
+  -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+  -d '{"brand":"SmokeTradeIn","model":"x","year":2021,"condition":"good","fulfillmentType":"teleport"}')
+[ "$TI_BAD" = "400" ] || fail "invalid trade-in fulfillmentType should be 400 (got $TI_BAD)"
+pass "trade-in persists fulfillment + rejects invalid value (400)"
 
 # ─── 12p. Phone/email login + OTP-bootstrap routing + set-password + email-optional ───
 # The phone number is the username. A PASSWORDLESS account (incl. staff/admin)
@@ -908,6 +929,7 @@ DELETE FROM reservations WHERE vehicle_id IN (
 DELETE FROM products WHERE name = 'Smoke Sale Cart' OR vehicle_id IN (
   SELECT id FROM vehicles WHERE name = 'Smoke Sale Cart');
 DELETE FROM vehicles WHERE name = 'Smoke Sale Cart';
+DELETE FROM trade_in_quotes WHERE brand = 'SmokeTradeIn';
 SQL
   then pass "smoke artifacts hard-purged (no staff/vehicle tombstones left)"
   else note "smoke purge skipped (db error) — soft-deleted rows harmless, hidden from lists/metrics"
