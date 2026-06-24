@@ -447,10 +447,15 @@ router.post("/leads/:id/reassign", async (req, res) => {
   if (!lead) throw AppError.notFound("Lead not found");
 
   const ttlMs = 24 * 60 * 60 * 1000;
+  // Handing a parked (inactive) lead to an agent must wake it back up — agents'
+  // working views and the pipeline both hide `inactive`, so without this the
+  // lead would land on the agent's desk invisible. Revive it to `new`.
+  const reviving = !!body.ownerId && lead.status === "inactive";
   const updated = await prisma.lead.update({
     where: { id: lead.id },
     data: {
       ownerId: body.ownerId,
+      ...(reviving ? { status: "new" as const } : {}),
       assignedAt: body.ownerId ? new Date() : null,
       claimDeadline: body.ownerId ? new Date(Date.now() + ttlMs) : null,
       lastActivityAt: new Date(),
