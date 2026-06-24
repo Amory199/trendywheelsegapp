@@ -78,7 +78,20 @@ export async function listMine(req: Request, res: Response): Promise<void> {
 export async function getById(req: Request, res: Response): Promise<void> {
   const order = await prisma.order.findUnique({
     where: { id: req.params.id },
-    include: { items: { include: { product: true } } },
+    include: {
+      items: { include: { product: true } },
+      // Buyer + id images so staff opening the order in the app can verify them.
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          idFrontUrl: true,
+          idBackUrl: true,
+        },
+      },
+    },
   });
   if (!order) throw AppError.notFound("Order not found");
   const isStaff = req.user!.accountType === "admin" || req.user!.accountType === "staff";
@@ -90,7 +103,17 @@ export async function listAll(req: Request, res: Response): Promise<void> {
   const orders = await prisma.order.findMany({
     include: {
       items: { include: { product: true } },
-      user: { select: { id: true, name: true, email: true, phone: true } },
+      // idFront/Back so staff can verify the buyer when fulfilling the order.
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          idFrontUrl: true,
+          idBackUrl: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
     take: 100,

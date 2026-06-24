@@ -5,6 +5,7 @@ import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { isAdmin } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
+import { notifyUser } from "../../utils/notify.js";
 
 import { emitLeadUpdated } from "./realtime.js";
 import {
@@ -462,6 +463,16 @@ router.post("/leads/:id/reassign", async (req, res) => {
     "reassigned",
     body.ownerId ? `Reassigned to agent ${body.ownerId}` : "Returned to pool",
   );
+  // Tell the new owner they've been handed a lead — same as auto-assignment.
+  // (Previously only round-robin notified, so a manual reassign was silent.)
+  if (body.ownerId) {
+    await notifyUser(body.ownerId, `lead-reassigned-${lead.id}`, {
+      type: "lead_assigned",
+      title: "Lead assigned to you",
+      body: `${lead.contactName} (${lead.source}) was assigned to you`,
+      data: { leadId: lead.id, contactName: lead.contactName, source: lead.source },
+    });
+  }
   res.json({ data: updated });
 });
 

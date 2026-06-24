@@ -33,7 +33,20 @@ export async function list(req: Request, res: Response): Promise<void> {
       where,
       skip: (pageNum - 1) * limitNum,
       take: limitNum,
-      include: { vehicle: true },
+      // user (+ id images) so the admin booking drawer can verify the renter.
+      include: {
+        vehicle: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            idFrontUrl: true,
+            idBackUrl: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.booking.count({ where }),

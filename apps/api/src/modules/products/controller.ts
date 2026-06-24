@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 
+import { isVehicleOnSale } from "@trendywheels/types";
 import {
   createProductSchema,
   productListQuerySchema,
@@ -8,6 +9,26 @@ import {
 
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../utils/errors.js";
+
+// A cart product can be linked (vehicleId) to a Vehicle that is on sale. The
+// sale lives on the Vehicle, so the Buy feed never showed it. Surface the
+// linked vehicle's sale price onto the product (salePrice/originalPriceEgp)
+// when that vehicle is genuinely discounted — same rule as the home rail
+// (isVehicleOnSale) — so Buy and On-Sale always agree. Returns a plain object
+// without the nested vehicle relation.
+function withVehicleSale<
+  T extends {
+    vehicle?: { salePrice: unknown; originalPriceEgp: unknown } | null;
+  },
+>(product: T): Omit<T, "vehicle"> & { salePrice?: unknown; originalPriceEgp?: unknown } {
+  const { vehicle, ...rest } = product;
+  if (vehicle && isVehicleOnSale(vehicle as never)) {
+    return { ...rest, salePrice: vehicle.salePrice, originalPriceEgp: vehicle.originalPriceEgp };
+  }
+  return rest;
+}
+
+const SALE_SELECT = { select: { salePrice: true, originalPriceEgp: true } } as const;
 
 export async function list(req: Request, res: Response): Promise<void> {
   const q = productListQuerySchema.parse(req.query);
@@ -28,20 +49,21 @@ export async function list(req: Request, res: Response): Promise<void> {
       skip: (q.page - 1) * q.limit,
       take: q.limit,
       orderBy: { createdAt: "desc" },
+      include: { vehicle: SALE_SELECT },
     }),
     prisma.product.count({ where }),
   ]);
 
-  res.json({ data, total, page: q.page, limit: q.limit });
+  res.json({ data: data.map(withVehicleSale), total, page: q.page, limit: q.limit });
 }
 
 export async function getById(req: Request, res: Response): Promise<void> {
   const product = await prisma.product.findUnique({
     where: { id: req.params.id },
-    include: { vehicle: true },
+    include: { vehicle: SALE_SELECT },
   });
   if (!product) throw AppError.notFound("Product not found");
-  res.json({ data: product });
+  res.json({ data: withVehicleSale(product) });
 }
 
 export async function create(req: Request, res: Response): Promise<void> {
