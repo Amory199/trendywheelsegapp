@@ -26,7 +26,13 @@ interface BookingRow {
   dropoffLocationUrl?: string | null;
   fulfillmentType?: string | null;
   createdAt: string;
-  user?: { id: string; name: string; phone: string };
+  user?: {
+    id: string;
+    name: string;
+    phone: string;
+    idFrontUrl?: string | null;
+    idBackUrl?: string | null;
+  };
   vehicle?: { id: string; name: string };
 }
 
@@ -291,6 +297,22 @@ function BookingDrawer({
             )}
           </Row>
         </div>
+
+        {booking.user?.idFrontUrl || booking.user?.idBackUrl ? (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Customer ID</div>
+            <div className="flex gap-3">
+              {[booking.user?.idFrontUrl, booking.user?.idBackUrl].map((u, i) =>
+                u ? (
+                  <a key={i} href={u} target="_blank" rel="noreferrer" className="w-36">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={u} alt="ID" className="w-36 h-20 object-cover rounded border" />
+                  </a>
+                ) : null,
+              )}
+            </div>
+          </div>
+        ) : null}
 
         <div className="border-t pt-4 space-y-2">
           <div className="text-xs uppercase tracking-wider text-gray-500 mb-1">Actions</div>

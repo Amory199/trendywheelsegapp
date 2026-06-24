@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EmptyState } from "@trendywheels/ui-brand/empty-state";
 import Link from "next/link";
 import { useState } from "react";
-import type { JSX } from "react";
+import type { JSX, ReactNode } from "react";
 
 import { authedFetch } from "../../lib/fetcher";
 import { fulfillmentLabel } from "../../lib/fulfillment";
@@ -17,7 +17,14 @@ interface OrderRow {
   dropoffLocationUrl: string | null;
   fulfillmentType: string | null;
   createdAt: string;
-  user: { id: string; name: string; email: string | null; phone: string };
+  user: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string;
+    idFrontUrl?: string | null;
+    idBackUrl?: string | null;
+  };
   items: Array<{
     id: string;
     quantity: number;
@@ -38,6 +45,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AdminOrdersPage(): JSX.Element {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<string>("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ["admin-orders"],
@@ -45,6 +53,7 @@ export default function AdminOrdersPage(): JSX.Element {
   });
   const items = q.data?.data ?? [];
   const filtered = filter ? items.filter((o) => o.status === filter) : items;
+  const selected = items.find((o) => o.id === selectedId) ?? null;
 
   const setStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
@@ -119,7 +128,11 @@ export default function AdminOrdersPage(): JSX.Element {
             </thead>
             <tbody>
               {filtered.map((o) => (
-                <tr key={o.id} className="border-t">
+                <tr
+                  key={o.id}
+                  className="border-t hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setSelectedId(o.id)}
+                >
                   <td className="px-4 py-3">
                     <div className="font-mono text-xs">{o.id.slice(0, 8)}</div>
                     <div className="text-xs text-gray-500">
@@ -166,7 +179,7 @@ export default function AdminOrdersPage(): JSX.Element {
                       {o.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <select
                       value={o.status}
                       onChange={(e) => setStatus.mutate({ id: o.id, status: e.target.value })}
@@ -185,6 +198,94 @@ export default function AdminOrdersPage(): JSX.Element {
           </table>
         </div>
       )}
+
+      {selected ? <OrderDrawer order={selected} onClose={() => setSelectedId(null)} /> : null}
+    </div>
+  );
+}
+
+function OrderDrawer({ order, onClose }: { order: OrderRow; onClose: () => void }): JSX.Element {
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex sm:justify-end" onClick={onClose}>
+      <div
+        className="bg-white w-full sm:max-w-md sm:h-full overflow-y-auto p-6 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-2xl font-bold">Order</h2>
+        <p className="text-sm text-gray-500 font-mono">{order.id}</p>
+
+        <div className="space-y-2 text-sm bg-gray-50 rounded-lg p-4">
+          <Row label="Customer">{order.user.name}</Row>
+          <Row label="Phone">{order.user.phone}</Row>
+          {order.user.email ? <Row label="Email">{order.user.email}</Row> : null}
+          <Row label="Total">EGP {Number(order.totalEgp).toLocaleString()}</Row>
+          <Row label="Status">
+            <span className="capitalize">{order.status}</span>
+          </Row>
+          {fulfillmentLabel(order.fulfillmentType) ? (
+            <Row label="Fulfillment">{fulfillmentLabel(order.fulfillmentType)}</Row>
+          ) : null}
+          <Row label="Delivery">
+            {order.dropoffLocationUrl ? (
+              <a
+                href={order.dropoffLocationUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 hover:underline inline-flex items-center gap-1"
+              >
+                📍 Open drop-off in Maps
+              </a>
+            ) : (
+              <span className="text-gray-400">Store pickup</span>
+            )}
+          </Row>
+        </div>
+
+        <div>
+          <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Items</div>
+          <div className="space-y-1 text-sm">
+            {order.items.map((i) => (
+              <div key={i.id} className="flex justify-between">
+                <span>
+                  {i.quantity}× {i.product.name}
+                </span>
+                <span className="text-gray-500">EGP {Number(i.unitPriceEgp).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {order.user.idFrontUrl || order.user.idBackUrl ? (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Customer ID</div>
+            <div className="flex gap-3">
+              {[order.user.idFrontUrl, order.user.idBackUrl].map((u, i) =>
+                u ? (
+                  <a key={i} href={u} target="_blank" rel="noreferrer" className="w-36">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={u} alt="ID" className="w-36 h-20 object-cover rounded border" />
+                  </a>
+                ) : null,
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400">No ID uploaded by this customer.</p>
+        )}
+
+        <button onClick={onClose} className="text-sm text-gray-500 underline">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, children }: { label: string; children: ReactNode }): JSX.Element {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-gray-500">{label}</span>
+      <span className="text-right font-medium">{children}</span>
     </div>
   );
 }

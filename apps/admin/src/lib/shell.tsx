@@ -1,12 +1,12 @@
 "use client";
 
+import type { StaffRole } from "@trendywheels/types";
 import {
   MobileNavDrawer,
   TWCloseIcon,
   TWHamburgerIcon,
   TWLogoLockup,
 } from "@trendywheels/ui-brand/web";
-import type { StaffRole } from "@trendywheels/types";
 import { colors, initialsOf, twPalette } from "@trendywheels/ui-tokens";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
