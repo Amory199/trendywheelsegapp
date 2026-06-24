@@ -939,6 +939,8 @@ DELETE FROM trade_in_quotes WHERE brand = 'SmokeTradeIn';
 DELETE FROM ticket_messages WHERE ticket_id IN (SELECT id FROM support_tickets WHERE subject ILIKE '%smoke%');
 DELETE FROM support_tickets WHERE subject ILIKE '%smoke%';
 DELETE FROM repair_requests WHERE description ILIKE '%smoke%';
+DELETE FROM lead_activities WHERE lead_id IN (SELECT id FROM leads WHERE contact_name ILIKE '%smoke%');
+DELETE FROM leads WHERE contact_name ILIKE '%smoke%';
 SQL
   then pass "smoke artifacts hard-purged (no staff/vehicle tombstones left)"
   else note "smoke purge skipped (db error) — soft-deleted rows harmless, hidden from lists/metrics"
