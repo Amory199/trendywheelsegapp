@@ -82,7 +82,18 @@ export default function CheckoutScreen(): React.JSX.Element {
       Alert.alert(
         t(kind === "buy" ? "buy.orderPlacedTitle" : "sale.reservedTitle"),
         t(kind === "buy" ? "buy.orderPlacedNoId" : "sale.reservedBody"),
-        [{ text: t("common.confirm"), onPress: () => router.replace(dest) }],
+        [
+          {
+            text: t("common.confirm"),
+            onPress: () => {
+              // Wipe the whole purchase flow (cart → detail → checkout) off the
+              // stack first, so swiping back from Orders lands on Home — not
+              // back inside the screens where they just placed the order.
+              if (router.canDismiss()) router.dismissAll();
+              router.push(dest);
+            },
+          },
+        ],
       );
     },
     onError: (err) => {
