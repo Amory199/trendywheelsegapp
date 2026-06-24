@@ -150,6 +150,9 @@ export default {
   agentReassignFailed: "Reassign failed",
   agentSetTargetFailed: "Could not set target",
   agentInvalidAmount: "Enter a valid amount",
+  agentAssignLeadCta: "Assign a lead",
+  agentPickLead: "Choose a lead to assign",
+  agentNoPoolLeads: "No leads waiting in the pool.",
 
   // Sales listings — app/admin/sales/index.tsx
   salesKicker: "MARKETPLACE",

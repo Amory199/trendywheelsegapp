@@ -52,6 +52,7 @@ export default function AgentDetail(): React.JSX.Element {
   const isPool = id === "unassigned";
 
   const [pickFor, setPickFor] = useState<string | null>(null); // leadId awaiting agent pick
+  const [assignOpen, setAssignOpen] = useState(false); // agent-first lead picker
   const [targetOpen, setTargetOpen] = useState(false);
   const [targetInput, setTargetInput] = useState("");
 
@@ -67,13 +68,24 @@ export default function AgentDetail(): React.JSX.Element {
     queryKey: ["admin", "sales-team", "leads", id],
     queryFn: async (): Promise<Lead[]> => {
       const r = await api.crmLeads({ ownerId: id! });
-      // Pool aside, the team endpoint already counts open leads; here we want the
-      // working set, so drop terminal states.
-      return ((r.data ?? []) as Lead[]).filter(
-        (l) => !["won", "lost", "inactive"].includes(l.status ?? ""),
-      );
+      // For an agent we want their working set (drop terminal + parked states).
+      // For the pool, parked (inactive) leads ARE the backlog to hand out — keep
+      // them, only hide the truly closed ones.
+      const drop = isPool ? ["won", "lost"] : ["won", "lost", "inactive"];
+      return ((r.data ?? []) as Lead[]).filter((l) => !drop.includes(l.status ?? ""));
     },
     enabled: !!id,
+  });
+
+  // Agent-first assignment: the pool of unassigned leads the admin can hand to
+  // THIS agent (only fetched on an agent screen, not the pool itself).
+  const poolLeadsQ = useQuery({
+    queryKey: ["admin", "sales-team", "pool-leads"],
+    queryFn: async (): Promise<Lead[]> => {
+      const r = await api.crmLeads({ ownerId: "unassigned" });
+      return ((r.data ?? []) as Lead[]).filter((l) => !["won", "lost"].includes(l.status ?? ""));
+    },
+    enabled: !isPool,
   });
 
   const agent = (teamQ.data ?? []).find((a) => a.id === id);
@@ -89,6 +101,7 @@ export default function AgentDetail(): React.JSX.Element {
     onSuccess: () => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setPickFor(null);
+      setAssignOpen(false);
       invalidate();
     },
     onError: (e: Error) => Alert.alert(t("admin.agentReassignFailed"), e.message),
@@ -143,14 +156,20 @@ export default function AgentDetail(): React.JSX.Element {
                 tint={colors.brand.trendyPink}
               />
             </View>
-            <Pressable style={styles.targetBtn} onPress={() => setTargetOpen(true)}>
-              <Ionicons name="flag-outline" size={15} color="#fff" />
-              <Text style={styles.targetBtnText}>
-                {Number(agent.salesTargetMonthly ?? 0) > 0
-                  ? `${t("admin.agentTargetPrefix")}${Math.round(Number(agent.salesTargetMonthly)).toLocaleString()}`
-                  : t("admin.agentSetTarget")}
-              </Text>
-            </Pressable>
+            <View style={styles.headerBtnRow}>
+              <Pressable style={styles.assignLeadBtn} onPress={() => setAssignOpen(true)}>
+                <Ionicons name="person-add" size={15} color="#fff" />
+                <Text style={styles.targetBtnText}>{t("admin.agentAssignLeadCta")}</Text>
+              </Pressable>
+              <Pressable style={styles.targetBtn} onPress={() => setTargetOpen(true)}>
+                <Ionicons name="flag-outline" size={15} color="#fff" />
+                <Text style={styles.targetBtnText}>
+                  {Number(agent.salesTargetMonthly ?? 0) > 0
+                    ? `${t("admin.agentTargetPrefix")}${Math.round(Number(agent.salesTargetMonthly)).toLocaleString()}`
+                    : t("admin.agentSetTarget")}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
 
@@ -235,6 +254,52 @@ export default function AgentDetail(): React.JSX.Element {
         </Pressable>
       </Modal>
 
+      {/* Agent-first: pick a lead from the pool to hand to this agent */}
+      <Modal
+        visible={assignOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAssignOpen(false)}
+      >
+        <Pressable style={styles.modalBg} onPress={() => setAssignOpen(false)}>
+          <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>{t("admin.agentPickLead")}</Text>
+            {poolLeadsQ.isLoading ? (
+              <ActivityIndicator color={colors.brand.trendyPink} style={{ marginTop: 20 }} />
+            ) : (
+              <FlatList
+                data={poolLeadsQ.data ?? []}
+                keyExtractor={(l) => l.id}
+                ListEmptyComponent={
+                  <Text style={styles.emptyText}>{t("admin.agentNoPoolLeads")}</Text>
+                }
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={styles.agentRow}
+                    disabled={reassign.isPending}
+                    onPress={() => reassign.mutate({ leadId: item.id, ownerId: id! })}
+                  >
+                    <Ionicons name="person-circle" size={28} color={colors.brand.poolBlue} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.agentName}>
+                        {item.contactName ?? t("admin.agentLeadFallback")}
+                      </Text>
+                      <Text style={styles.agentSub}>
+                        {item.source ?? t("admin.dash")} · {t("admin.egp")}{" "}
+                        {Number(item.estimatedValue ?? 0).toLocaleString()}
+                      </Text>
+                    </View>
+                    {reassign.isPending ? (
+                      <ActivityIndicator color={colors.brand.trendyPink} />
+                    ) : null}
+                  </Pressable>
+                )}
+              />
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Set target */}
       <Modal
         visible={targetOpen}
@@ -310,7 +375,19 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: "row", gap: 28 },
   statValue: { fontSize: 20, fontWeight: "800" },
   statLabel: { color: colors.text.secondary, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
+  headerBtnRow: { flexDirection: "row", gap: 10 },
+  assignLeadBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: colors.brand.trendyPink,
+    borderRadius: 10,
+    paddingVertical: 11,
+  },
   targetBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

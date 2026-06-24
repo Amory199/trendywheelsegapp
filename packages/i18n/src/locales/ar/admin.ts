@@ -140,6 +140,9 @@ const admin: Stringify<typeof enNs> = {
   agentReassignFailed: "فشلت إعادة الإسناد",
   agentSetTargetFailed: "تعذّر تحديد الهدف",
   agentInvalidAmount: "أدخل مبلغاً صحيحاً",
+  agentAssignLeadCta: "إسناد عميل محتمل",
+  agentPickLead: "اختر عميلاً محتملاً للإسناد",
+  agentNoPoolLeads: "لا يوجد عملاء محتملون في قائمة الانتظار.",
 
   salesKicker: "السوق",
   salesTitle: "إعلانات البيع",
