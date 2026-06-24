@@ -75,11 +75,15 @@ export default function CheckoutScreen(): React.JSX.Element {
       });
     },
     onSuccess: () => {
+      // Navigate only AFTER the user dismisses the success alert. Firing
+      // router.replace alongside Alert.alert raced — the customer could be left
+      // stuck on the checkout screen. The OK button now owns the navigation.
+      const dest = kind === "buy" ? "/buy/my-orders" : "/sale/my-reservations";
       Alert.alert(
         t(kind === "buy" ? "buy.orderPlacedTitle" : "sale.reservedTitle"),
         t(kind === "buy" ? "buy.orderPlacedNoId" : "sale.reservedBody"),
+        [{ text: t("common.confirm"), onPress: () => router.replace(dest) }],
       );
-      router.replace(kind === "buy" ? "/buy/my-orders" : "/sale/my-reservations");
     },
     onError: (err) => {
       // Report money-path failures (even though they're handled with an alert)

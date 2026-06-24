@@ -70,11 +70,6 @@ export default function ProfileScreen(): React.JSX.Element {
     queryFn: () => api.getRentalListings(),
     enabled: !!user,
   });
-  const unreadQ = useQuery({
-    queryKey: ["profile-unread"],
-    queryFn: () => api.getUnreadMessageCount().catch(() => ({ count: 0 })),
-    enabled: !!user,
-  });
   const ordersQ = useQuery({
     queryKey: ["my-orders"],
     queryFn: () => api.getMyOrders().catch(() => ({ data: [] })),
@@ -126,7 +121,6 @@ export default function ProfileScreen(): React.JSX.Element {
     (rentalsQ.data as { total?: number; data?: unknown[] } | undefined)?.total ??
     (rentalsQ.data as { data?: unknown[] } | undefined)?.data?.length ??
     0;
-  const unreadCount = unreadQ.data?.count ?? 0;
   const ordersCount = (ordersQ.data as { data?: unknown[] } | undefined)?.data?.length ?? 0;
   const tradeInsCount = (tradeInsQ.data as { data?: unknown[] } | undefined)?.data?.length ?? 0;
 
@@ -282,21 +276,6 @@ export default function ProfileScreen(): React.JSX.Element {
           }
           tone="pool"
           onPress={() => router.push("/sell/trade-in/my")}
-        />
-      </Animated.View>
-
-      <Animated.View entering={FadeInDown.duration(480).delay(360)}>
-        <ActivityCard
-          icon="chatbubbles-outline"
-          title={t("profile.activity.messagesTitle")}
-          subtitle={
-            unreadCount > 0
-              ? `${unreadCount} ${t("profile.activity.unread")}`
-              : t("profile.activity.messagesEmpty")
-          }
-          badge={unreadCount > 0 ? String(unreadCount) : undefined}
-          tone="pool"
-          onPress={() => router.push("/messages")}
         />
       </Animated.View>
 

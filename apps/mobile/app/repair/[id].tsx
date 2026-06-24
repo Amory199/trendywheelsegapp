@@ -289,7 +289,10 @@ export default function RepairDetailScreen(): JSX.Element {
                   {t("service.detail.idPrefix")} {repair.assignedMechanicId.slice(0, 8)}…
                 </Text>
               </View>
-              <Pressable style={styles.contactMechanic} onPress={() => router.push("/messages")}>
+              <Pressable
+                style={styles.contactMechanic}
+                onPress={() => router.push("/support/tickets/new")}
+              >
                 <Ionicons name="chatbubble-outline" size={18} color="#000" />
               </Pressable>
             </View>
@@ -300,13 +303,6 @@ export default function RepairDetailScreen(): JSX.Element {
             </View>
           )}
         </Animated.View>
-
-        {/* Messages CTA */}
-        <Pressable style={styles.messagesBtn} onPress={() => router.push("/messages")}>
-          <Ionicons name="chatbubbles-outline" size={20} color={colors.text.light} />
-          <Text style={styles.messagesBtnText}>{t("service.detail.viewMessages")}</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
-        </Pressable>
 
         {/* Cancel — customer can cancel until in-progress */}
         {repair.status !== "completed" && repair.status !== "cancelled" ? (

@@ -237,7 +237,7 @@ export default function SellDetailScreen(): JSX.Element {
           style={styles.msgBtn}
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            router.push("/messages");
+            router.push("/support/tickets/new");
           }}
         >
           <Ionicons name="chatbubble-ellipses-outline" size={18} color="#000" />
