@@ -446,11 +446,17 @@ pass "push-tokens register/delete round-trip"
 
 # ─── 12h. Lead reassign enqueues a notification row ──────────
 note "12h. Reassign produces a Notification row for the new owner"
-# Reassign $LEAD_ID back to sales (it was rotated/owned by admin after 12d).
-# The notificationsWorker writes a Notification row inside ~1s; poll for up to
-# 5s. Critical types bypass dedupe; lead_reassigned is non-critical but a
-# single reassign survives the 60s dedupe window.
-curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/crm/leads/$LEAD_ID/reassign" \
+# Use a FRESH lead so the assertion is deterministic. Reusing $LEAD_ID made this
+# flaky: §12d's rotate is round-robin (may land on any active sales agent — the
+# pool is whatever staff exist) and a prior lead_assigned for the same
+# lead+user dedupes within 60s, so the new reassign could produce no row. A
+# brand-new lead reassigned straight to our sales user has no dedupe history and
+# a guaranteed ownership change → the worker always writes one row (~1s; poll 5s).
+H_LEAD_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/crm/leads" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"contactName":"REASSIGN SMOKE","contactPhone":"+201222333444","source":"manual"}')
+H_LEAD_ID=$(echo "$H_LEAD_RESP" | jq -r '.data.id')
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/crm/leads/$H_LEAD_ID/reassign" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
   -d "{\"ownerId\":\"$SALES_USER_ID\"}" >/dev/null
 NOTIF_COUNT=0
@@ -930,6 +936,9 @@ DELETE FROM products WHERE name = 'Smoke Sale Cart' OR vehicle_id IN (
   SELECT id FROM vehicles WHERE name = 'Smoke Sale Cart');
 DELETE FROM vehicles WHERE name = 'Smoke Sale Cart';
 DELETE FROM trade_in_quotes WHERE brand = 'SmokeTradeIn';
+DELETE FROM ticket_messages WHERE ticket_id IN (SELECT id FROM support_tickets WHERE subject ILIKE '%smoke%');
+DELETE FROM support_tickets WHERE subject ILIKE '%smoke%';
+DELETE FROM repair_requests WHERE description ILIKE '%smoke%';
 SQL
   then pass "smoke artifacts hard-purged (no staff/vehicle tombstones left)"
   else note "smoke purge skipped (db error) — soft-deleted rows harmless, hidden from lists/metrics"

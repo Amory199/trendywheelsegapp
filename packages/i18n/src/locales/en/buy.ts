@@ -58,6 +58,8 @@ export default {
   placed: "Placed",
   items: "Items",
   fallbackItem: "Item",
+  customerSection: "Customer",
+  noIdUploaded: "No ID uploaded by this customer.",
 
   // Inventory toggle (sales) — app/inventory/[id].tsx
   inventoryTitle: "Inventory",

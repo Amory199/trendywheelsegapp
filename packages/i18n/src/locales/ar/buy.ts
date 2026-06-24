@@ -61,6 +61,8 @@ const buy: Stringify<typeof enNs> = {
   placed: "تاريخ الطلب",
   items: "العناصر",
   fallbackItem: "عنصر",
+  customerSection: "العميل",
+  noIdUploaded: "لم يرفع هذا العميل بطاقة هوية.",
 
   // Inventory toggle (sales) — app/inventory/[id].tsx
   inventoryTitle: "المخزون",

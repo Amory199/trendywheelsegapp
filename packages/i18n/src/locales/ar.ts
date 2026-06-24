@@ -132,6 +132,8 @@ const ar: TranslationKeys = {
     locationHeading: "موقعك",
     confirm: "تأكيد",
     submitting: "جارٍ الإرسال…",
+    locationLabel: "موقع التسليم",
+    openInMaps: "افتح في الخرائط",
   },
   tabs: {
     home: "الرئيسية",

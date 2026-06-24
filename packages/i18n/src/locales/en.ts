@@ -139,6 +139,8 @@ const en = {
     locationHeading: "Your location",
     confirm: "Confirm",
     submitting: "Submitting…",
+    locationLabel: "Drop-off location",
+    openInMaps: "Open in Maps",
   },
   tabs: {
     home: "Home",
