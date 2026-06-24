@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
+import { discountPercent, isVehicleOnSale } from "@trendywheels/types";
+import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import * as React from "react";
 import { useState } from "react";
@@ -25,6 +26,10 @@ interface Product {
   images: string[];
   inStock: boolean;
   brand?: string | null;
+  vehicleId?: string | null;
+  // Surfaced by the API from a linked on-sale vehicle so Buy matches On-Sale.
+  salePrice?: string | number | null;
+  originalPriceEgp?: string | number | null;
 }
 
 const TABS: { id: Category | "all"; labelKey: string }[] = [
@@ -120,22 +125,38 @@ export default function BuyScreen(): React.JSX.Element {
         ) : items.length === 0 ? (
           <Text style={{ padding: 40, color: palette.muted }}>{t("buy.emptyCatalog")}</Text>
         ) : (
-          items.map((p, i) => (
-            <Animated.View
-              key={p.id}
-              entering={FadeInDown.duration(280).delay(Math.min(i, 8) * 30)}
-            >
-              <ListingCard
-                width={W}
-                imageRatio={1}
-                title={p.name}
-                priceLabel={`${t("buy.egp")} ${Number(p.priceEgp).toLocaleString()}`}
-                image={p.images[0]}
-                overlayLabel={!p.inStock ? t("buy.outOfStock") : null}
-                onPress={() => router.push(`/buy/${p.id}` as never)}
-              />
-            </Animated.View>
-          ))
+          items.map((p, i) => {
+            // If the cart is linked to a discounted vehicle, show the sale
+            // price with the original struck through — same as the On-Sale rail.
+            const onSale = isVehicleOnSale(p);
+            const shown = onSale ? Number(p.salePrice) : Number(p.priceEgp);
+            // A discounted cart's sale lives on its linked vehicle, and the
+            // vehicle reserve flow is what actually honors salePrice — so route
+            // there (matches the home On-Sale rail) instead of the product
+            // order, which would charge full price. Non-sale items → /buy/[id].
+            const target = onSale && p.vehicleId ? `/sale/${p.vehicleId}` : `/buy/${p.id}`;
+            return (
+              <Animated.View
+                key={p.id}
+                entering={FadeInDown.duration(280).delay(Math.min(i, 8) * 30)}
+              >
+                <ListingCard
+                  width={W}
+                  imageRatio={1}
+                  title={p.name}
+                  priceLabel={`${t("buy.egp")} ${shown.toLocaleString()}`}
+                  strikePriceLabel={
+                    onSale ? `${t("buy.egp")} ${Number(p.originalPriceEgp).toLocaleString()}` : null
+                  }
+                  badge={onSale ? `-${discountPercent(p)}%` : null}
+                  badgeColor={colors.brand.ecoLimelight}
+                  image={p.images[0]}
+                  overlayLabel={!p.inStock ? t("buy.outOfStock") : null}
+                  onPress={() => router.push(target as never)}
+                />
+              </Animated.View>
+            );
+          })
         )}
       </Animated.ScrollView>
     </View>

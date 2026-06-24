@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import type { RepairRequest } from "@trendywheels/types";
 import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as React from "react";
@@ -145,25 +146,25 @@ export default function RepairScreen(): React.JSX.Element {
             {
               key: "repair",
               labelKey: "service.tab.tileRepair",
-              icon: "construct",
+              img: require("../../assets/icons/maintenance.png"),
               route: "/repair/request",
             },
             {
               key: "maintenance",
               labelKey: "service.tab.tileMaintenance",
-              icon: "build",
+              img: require("../../assets/icons/fast-reliable.png"),
               route: "/service/maintenance",
             },
             {
               key: "pickup",
               labelKey: "service.tab.tilePickup",
-              icon: "cube",
+              img: require("../../assets/icons/delivery.png"),
               route: "/service/pickup-delivery",
             },
             {
               key: "customize",
               labelKey: "service.tab.tileCustomize",
-              icon: "color-palette",
+              img: require("../../assets/icons/customize.png"),
               route: "/service/customization",
             },
           ].map((s) => (
@@ -181,11 +182,19 @@ export default function RepairScreen(): React.JSX.Element {
                 justifyContent: "space-between",
               }}
             >
-              <Ionicons
-                name={s.icon as keyof typeof Ionicons.glyphMap}
-                size={24}
-                color={colors.brand.poolBlue}
-              />
+              {/* Branded icon chip — matches the home ServicesRail treatment. */}
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#0c0b3a",
+                }}
+              >
+                <Image source={s.img} style={{ width: 32, height: 32 }} contentFit="contain" />
+              </View>
               <Text
                 style={{ color: palette.text, fontSize: 14, fontWeight: "700" }}
                 numberOfLines={1}

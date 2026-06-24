@@ -5,8 +5,17 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
+import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { GuestGate } from "../../../components/GuestGate";
 import { api } from "../../../lib/api";
@@ -25,6 +34,15 @@ interface Order {
   totalEgp: number | string;
   createdAt: string;
   items?: OrderItem[];
+  fulfillmentType?: string | null;
+  dropoffLocationUrl?: string | null;
+  user?: {
+    name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    idFrontUrl?: string | null;
+    idBackUrl?: string | null;
+  } | null;
 }
 
 const STATUS_LABEL_KEY: Record<string, string> = {
@@ -48,6 +66,9 @@ export default function OrderDetail(): React.JSX.Element {
   });
 
   if (!user) return <GuestGate />;
+  const isStaff = user.accountType === "admin" || user.accountType === "staff";
+  const buyer = q.data?.user;
+  const idImages = [buyer?.idFrontUrl, buyer?.idBackUrl].filter(Boolean) as string[];
 
   return (
     <>
@@ -97,6 +118,50 @@ export default function OrderDetail(): React.JSX.Element {
               </Text>
             </View>
           ))}
+
+          {/* Fulfillment + drop-off — useful to buyer and staff alike. */}
+          {q.data.fulfillmentType || q.data.dropoffLocationUrl ? (
+            <>
+              <Text style={styles.section}>{t("fulfillment.heading")}</Text>
+              {q.data.dropoffLocationUrl ? (
+                <Pressable
+                  style={styles.card}
+                  onPress={() => void Linking.openURL(q.data!.dropoffLocationUrl as string)}
+                >
+                  <Text style={styles.label}>{t("fulfillment.locationLabel")}</Text>
+                  <Text style={[styles.value, { color: colors.brand.poolBlue }]}>
+                    {t("fulfillment.openInMaps")}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </>
+          ) : null}
+
+          {/* Staff-only: who placed it + their uploaded ID (for fulfillment). */}
+          {isStaff && buyer ? (
+            <>
+              <Text style={styles.section}>{t("buy.customerSection")}</Text>
+              <View style={styles.card}>
+                <Text style={styles.label}>{buyer.name ?? t("admin.orderBuyerUnknown")}</Text>
+                <Text style={styles.value}>{buyer.phone ?? buyer.email ?? ""}</Text>
+              </View>
+              {idImages.length > 0 ? (
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  {idImages.map((u) => (
+                    <Pressable key={u} onPress={() => void Linking.openURL(u)} style={{ flex: 1 }}>
+                      <Image
+                        source={{ uri: u }}
+                        style={{ width: "100%", height: 90, borderRadius: 10 }}
+                        contentFit="cover"
+                      />
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.itemMeta}>{t("buy.noIdUploaded")}</Text>
+              )}
+            </>
+          ) : null}
         </ScrollView>
       )}
     </>
