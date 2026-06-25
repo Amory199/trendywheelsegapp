@@ -1,4 +1,5 @@
 import type { AccountType, User } from "@trendywheels/types";
+import { router } from "expo-router";
 import { create } from "zustand";
 
 import { logEvent, setAnalyticsUser } from "./analytics";
@@ -189,4 +190,16 @@ registerLogoutHandler((info) => {
   });
   savedAdminToken = null;
   useAuth.setState({ user: null, actingAs: null });
+  // Land the user on the public catalog immediately. Without this they'd stay
+  // on whatever authed screen detected the dead session, which would render its
+  // error state ("session expired" / "something went wrong"). The catalog is
+  // guest-browsable; account actions re-prompt sign-in at the point of use. So
+  // a dead session is silent and clean — never a scary error the user is stuck
+  // on, and a reopen (tokens now cleared) boots straight to the catalog too.
+  try {
+    router.replace("/(tabs)");
+  } catch {
+    /* navigation not ready (e.g. failure during cold boot) — index.tsx will
+       route the now-null user to the catalog once it mounts. */
+  }
 });

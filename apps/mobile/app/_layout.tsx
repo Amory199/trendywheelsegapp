@@ -1,4 +1,5 @@
 import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiClientError } from "@trendywheels/api-client";
 import * as Notifications from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -35,6 +36,14 @@ const queryClient = new QueryClient({
   // error log, so campaign-time failures are never silently swallowed.
   queryCache: new QueryCache({
     onError: (error, query) => {
+      // Auth deaths are already captured by the session_forced_logout telemetry
+      // and aren't actionable bugs — don't double-log them as query errors.
+      if (
+        error instanceof ApiClientError &&
+        (error.code === "SESSION_EXPIRED" || error.code === "REFRESH_FAILED")
+      ) {
+        return;
+      }
       reportClientError({
         level: "error",
         message: `query failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -46,7 +55,17 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 2,
+      // Retry transient failures only. A dead session (SESSION_EXPIRED / 401) or
+      // any 4xx is NOT transient — retrying it just re-fires the logout path and
+      // prolongs the error on screen. The auth layer already bounces the user to
+      // the catalog; let that happen on the first failure.
+      retry: (failureCount, error) => {
+        if (error instanceof ApiClientError) {
+          if (error.code === "SESSION_EXPIRED" || error.code === "REFRESH_FAILED") return false;
+          if (error.statusCode >= 400 && error.statusCode < 500) return false;
+        }
+        return failureCount < 2;
+      },
       // When the connection comes back (OfflineBanner clears), pull fresh data
       // automatically so the user never lingers on stale content.
       refetchOnReconnect: true,
