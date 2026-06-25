@@ -7,14 +7,14 @@
 // (bookings/listings/repairs/referrals) hit endpoints that already exist; no
 // backend change needed for this redesign.
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { LoyaltyTier } from "@trendywheels/types";
 import { TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import * as React from "react";
 import { useEffect } from "react";
-import { Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -47,6 +47,26 @@ export default function ProfileScreen(): React.JSX.Element {
     await logout();
     router.replace("/(auth)/phone");
   };
+
+  // Self-service account deletion (Apple/Google require it in-app). The button
+  // in SettingsList already gates this behind a confirm dialog; here we run the
+  // real call — anonymize on the server, then sign out locally. (The dead
+  // `/account/delete` route this used to push never existed.)
+  const deleteAccount = useMutation({
+    mutationFn: () => {
+      if (!user) throw new Error("Not signed in");
+      return api.deleteAccount(user.id);
+    },
+    onSuccess: async () => {
+      await logout();
+      router.replace("/(auth)/phone");
+    },
+    onError: (err) =>
+      Alert.alert(
+        t("profile.settings.deleteFailedTitle"),
+        err instanceof Error ? err.message : t("common.error"),
+      ),
+  });
 
   // Background queries for the activity cards. Stale-while-revalidate keeps
   // the latest counts/preview rows fresh whenever the user pulls the tab.
@@ -287,7 +307,7 @@ export default function ProfileScreen(): React.JSX.Element {
         <SettingsList
           appVersion={appVersion}
           onSignOut={onLogout}
-          onDeleteAccount={() => router.push("/account/delete")}
+          onDeleteAccount={() => deleteAccount.mutate()}
         />
       </Animated.View>
     </Animated.ScrollView>

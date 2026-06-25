@@ -56,7 +56,7 @@ export function SettingsList({ appVersion, onSignOut, onDeleteAccount }: Props):
     {
       icon: "help-circle-outline",
       label: t("profile.settingsList.helpSupport"),
-      external: () => router.push("/messages"),
+      route: "/support/tickets",
     },
   ];
 

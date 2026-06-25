@@ -84,6 +84,7 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 | 044 | 2026-06-20 | Dark mode home: 7 components hardcoded `INK=#02011F` text on the themed dark `#02011F` bg → invisible dark-on-dark text                                                                                                              | Fixed               | P2  |
 | 045 | 2026-06-20 | App trapped on the boot loading screen (animated loading.webp — read as a "broken pixelated mp4") when online; only bootable offline. `hydrate()` awaited `/me` with no timeout, so a stalled socket never flipped `initialized`     | Fixed               | P0  |
 | 046 | 2026-06-21 | "Session expired" right after login: `isSessionRevoked` compared whole-second `iat` against a millisecond `Date.now()` marker, so a token minted in the SAME second as a revocation (e.g. admin password reset) was falsely rejected | Fixed               | P1  |
+| 051 | 2026-06-25 | "Page not found" on Profile → Help & Support (pushed deleted `/messages` index) and on the profile-card Delete account button (pushed never-created `/account/delete`)                                                               | Fixed               | P2  |
 
 ---
 
@@ -1403,6 +1404,31 @@ The `next start` (pm2 `trendywheels-admin`) process had been running since ~21h 
 
 **Pattern to follow next time**
 After every admin rebuild, the restart MUST cycle `next start` — confirm via `pm2 jlist` that the process start time moved, don't trust the "online" status. A rebuild without a real restart guarantees a stale-chunk outage. (Consider `next build` + reload only when paired; or run admin behind a process that reloads on build.) No nginx cache layer is involved.
+
+---
+
+### INC-051 — "Page not found" on Help & Support and the profile-card Delete button (2026-06-25)
+
+**Status:** Fixed
+**Severity:** P2 (two dead nav targets on the main profile screen; one is an App Store / Play compliance path)
+**Touched:** `apps/mobile/components/profile/SettingsList.tsx`, `apps/mobile/app/(tabs)/profile.tsx`
+
+**Symptom**
+Customer reported "page not found" tapping Profile → Help & Support, and the same on the profile-card Delete account button.
+
+**Root cause**
+Two stale route literals on the profile screen:
+
+1. `SettingsList` Help & Support row pushed `/messages` — but `app/messages/index.tsx` was **deleted in the part-9 Messages-tab removal** (only `/messages/[id].tsx` survived for support chat). The push to the index 404'd. A regression from that removal — the Help link wasn't repointed.
+2. `profile.tsx` passed `onDeleteAccount={() => router.push("/account/delete")}` — that route **never existed**. INC-049 added the real self-service deletion in `app/profile/settings.tsx`, but the SECOND delete entry point (the profile-card SettingsList button) was wired to a phantom screen.
+
+**Fix**
+
+1. Help & Support row → `route: "/support/tickets"` (the live support list; QuickAccessGrid already uses it).
+2. `onDeleteAccount` now runs the real deletion in-place: a `useMutation` calling `api.deleteAccount(user.id)` → `logout()` → `router.replace("/(auth)/phone")` (mirrors INC-049's settings.tsx flow). SettingsList already gates it behind a confirm Alert. JS-only → shipped via OTA.
+
+**Pattern to follow next time**
+Deleting a screen/route is a cross-cutting change: grep the whole app for string pushes to it (`grep -rn '"/messages"'`) before shipping — route literals aren't type-checked, so a dead `router.push("/x")` compiles clean and only fails at tap time. When a feature has two entry points (here: two Delete buttons), fixing one doesn't fix the other.
 
 ---
 
