@@ -12,7 +12,7 @@ export const env = cleanEnv(process.env, {
   JWT_PRIVATE_KEY: str(),
   JWT_PUBLIC_KEY: str(),
   JWT_ACCESS_EXPIRY: str({ default: "24h" }),
-  JWT_REFRESH_EXPIRY: str({ default: "30d" }),
+  JWT_REFRESH_EXPIRY: str({ default: "90d" }),
 
   // Twilio (optional in dev)
   TWILIO_ACCOUNT_SID: str({ default: "" }),

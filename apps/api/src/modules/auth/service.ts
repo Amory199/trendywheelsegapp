@@ -74,6 +74,18 @@ function generateRefreshToken(): string {
   return crypto.randomBytes(64).toString("hex");
 }
 
+// Refresh-token lifetime. Deliberately long: a returning user should NOT have to
+// sign in again unless they've been away a genuinely long time. With continuous
+// use the window rolls forward (see refreshAccessToken), so an active user is
+// effectively never logged out.
+const REFRESH_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+// Only rotate (revoke + reissue) the refresh token when it's this close to
+// expiring. Rotating on EVERY refresh created a race — an app killed mid-refresh
+// or two concurrent refreshes left the client holding a just-revoked token,
+// which logged the user out for no reason. Keeping the same token valid until it
+// nears expiry removes that race entirely.
+const REFRESH_ROTATE_WITHIN_MS = 14 * 24 * 60 * 60 * 1000; // last 14 days
+
 export async function sendOtp(phone: string): Promise<{ success: boolean; message: string }> {
   // Trial bypass — these phones accept a fixed hardcoded code, no DB row.
   if (env.ENABLE_TRIAL_OTP_BYPASS && TRIAL_OTP_BYPASS[phone]) {
@@ -208,7 +220,7 @@ export async function verifyOtp(
     data: {
       userId: user.id,
       tokenHash,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      expiresAt: new Date(Date.now() + REFRESH_TTL_MS), // 30 days
     },
   });
 
@@ -308,7 +320,7 @@ export async function issueTokensForPhone(
     data: {
       userId: user.id,
       tokenHash,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
     },
   });
 
@@ -375,11 +387,26 @@ export async function refreshAccessToken(
     throw AppError.forbidden("Account is not active");
   }
 
-  // Rotate the WHOLE pair: revoke the presented refresh token AND mint a fresh
-  // one. Previously we revoked the old token but returned only a new access
-  // token — so the next refresh (after the access token's 24h life) found the
-  // refresh token already revoked and logged the user out. Returning a new
-  // refresh token here lets a session survive its full 30-day window.
+  const payload: AuthPayload = {
+    userId: matchedToken.user.id,
+    accountType: matchedToken.user.accountType,
+  };
+
+  // Only rotate the refresh token when it's getting close to expiring. Rotating
+  // on EVERY refresh used to log active users out: an app killed mid-refresh, or
+  // two concurrent refreshes, would leave the client holding a token we'd just
+  // revoked → "session expired" out of nowhere. By keeping the SAME refresh
+  // token valid until it nears expiry, a normal refresh never invalidates what
+  // the client holds, so a returning user stays signed in. Security revokes
+  // (logout / password reset / role change) still kill every token immediately.
+  const msToExpiry = matchedToken.expiresAt.getTime() - Date.now();
+  if (msToExpiry > REFRESH_ROTATE_WITHIN_MS) {
+    // Plenty of life left — issue only a fresh access token, keep the refresh.
+    return { token: signAccessToken(payload), refreshToken };
+  }
+
+  // Near expiry: roll the pair forward so a continuously-active session never
+  // hits the wall. Revoke the old, mint a new long-lived one.
   await prisma.refreshToken.update({
     where: { id: matchedToken.id },
     data: { revokedAt: new Date() },
@@ -391,14 +418,9 @@ export async function refreshAccessToken(
     data: {
       userId: matchedToken.user.id,
       tokenHash,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
     },
   });
-
-  const payload: AuthPayload = {
-    userId: matchedToken.user.id,
-    accountType: matchedToken.user.accountType,
-  };
 
   return { token: signAccessToken(payload), refreshToken: newRefreshToken };
 }
@@ -485,7 +507,7 @@ export async function loginWithPassword(
     data: {
       userId: user.id,
       tokenHash,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
     },
   });
 

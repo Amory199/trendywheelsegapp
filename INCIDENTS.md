@@ -85,6 +85,7 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 | 045 | 2026-06-20 | App trapped on the boot loading screen (animated loading.webp — read as a "broken pixelated mp4") when online; only bootable offline. `hydrate()` awaited `/me` with no timeout, so a stalled socket never flipped `initialized`     | Fixed               | P0  |
 | 046 | 2026-06-21 | "Session expired" right after login: `isSessionRevoked` compared whole-second `iat` against a millisecond `Date.now()` marker, so a token minted in the SAME second as a revocation (e.g. admin password reset) was falsely rejected | Fixed               | P1  |
 | 051 | 2026-06-25 | "Page not found" on Profile → Help & Support (pushed deleted `/messages` index) and on the profile-card Delete account button (pushed never-created `/account/delete`)                                                               | Fixed               | P2  |
+| 052 | 2026-06-25 | Users logged out "for no reason": refresh token rotated (revoked + reissued) on EVERY refresh, so an app killed mid-refresh / two concurrent refreshes left the client holding a just-revoked token → forced logout                  | Fixed               | P1  |
 
 ---
 
@@ -1429,6 +1430,29 @@ Two stale route literals on the profile screen:
 
 **Pattern to follow next time**
 Deleting a screen/route is a cross-cutting change: grep the whole app for string pushes to it (`grep -rn '"/messages"'`) before shipping — route literals aren't type-checked, so a dead `router.push("/x")` compiles clean and only fails at tap time. When a feature has two entry points (here: two Delete buttons), fixing one doesn't fix the other.
+
+---
+
+### INC-052 — Users logged out "for no reason" (refresh-token rotation race) (2026-06-25)
+
+**Status:** Fixed
+**Severity:** P1 (customers + staff kicked to login during normal use — "session expired" with no cause; a major retention/hassle complaint pre-launch)
+**Touched:** `apps/api/src/modules/auth/service.ts`, `apps/api/src/config/env.ts`, `apps/api/scripts/smoke-test.sh` (also paired with the client-side UX guarantee in commit `225f240`)
+
+**Symptom**
+Owner relayed a client who "logged out on its own" and, on closing/reopening, was _still_ told the session expired — and more broadly didn't want users re-logging-in on every visit.
+
+**Root cause**
+`refreshAccessToken` rotated the WHOLE pair on EVERY refresh — it revoked the presented refresh token and issued a new one (added in INC-046-era to stop sessions dying at the 24h access-token mark). But rotation-on-every-use is racy: if the app is killed mid-refresh, or two requests refresh concurrently, or the client fails to persist the new token, the device is left holding a token the server just revoked → the next refresh 401s → forced logout. The client's in-memory single-flight guard can't cover an app restart or a second process.
+
+**Fix**
+Stop rotating on every refresh. A refresh now issues only a fresh **access** token and returns the SAME refresh token, which stays valid — so a refresh never invalidates what the client holds. The refresh token is rotated only when within `REFRESH_ROTATE_WITHIN_MS` (14d) of expiry, and lifetime was extended to `REFRESH_TTL_MS` (90d, was 30d) so returning users aren't logged out after a short gap. Security revokes (logout / password reset / role-status change via `revokeUserSessions`) still kill every token immediately — those are unaffected. No DB migration (no schema change). Smoke §1b rewritten: asserts a fresh token is NOT rotated early, the presented token STILL works on a second refresh (the anti-race property), and the new access token authenticates.
+
+**Tradeoff**
+A refresh token now lives up to 90d and isn't single-use, so a stolen refresh token has a longer replay window. Accepted: tokens are hashed at rest, the access token stays short (24h) and is gated by the Redis revocation marker, and any security event revokes immediately. For a consumer marketplace the logout hassle outweighed aggressive rotation. If stronger hygiene is wanted later, add refresh-token _families_ with reuse detection (needs a migration: `rotated_at` / `replaced_by_id`).
+
+**Pattern to follow next time**
+Refresh-token rotation-on-every-use is a correctness footgun on mobile (app kills, concurrent tabs/requests, storage write races). Either don't rotate until near expiry (this fix) or implement proper reuse-detecting families — never naive single-use rotation without a grace/successor path.
 
 ---
 
