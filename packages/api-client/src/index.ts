@@ -30,8 +30,15 @@ interface ClientConfig {
   onTokenRefresh: (tokens: AuthTokens) => Promise<void>;
   // Called when a 401 can't be recovered (no refresh token, or refresh itself
   // rejected — e.g. the server revoked the session after a role/status change).
-  // The app should clear tokens and return the user to the login screen.
-  onAuthError?: () => Promise<void> | void;
+  // The app should clear tokens and return the user to the login screen. The
+  // `info` payload identifies WHY (so a genuine forced logout can be told apart
+  // from the benign pre-refresh 401s the client silently recovers from).
+  onAuthError?: (info?: {
+    reason: string;
+    statusCode?: number;
+    code?: string;
+    path?: string;
+  }) => Promise<void> | void;
   // Connectivity signal: false when a request dies at the network layer
   // (timeout / DNS / no route), true again on the next response — any HTTP
   // status counts, a 500 still proves the network works. Drives the offline
@@ -169,7 +176,15 @@ class ApiClient {
         // surfaces as a TIMEOUT error — never log the user out for that (INC-032).
         const isNetwork =
           err instanceof ApiClientError && (err.code === "TIMEOUT" || err.statusCode === 0);
-        if (!isNetwork) await this.config.onAuthError?.();
+        if (!isNetwork) {
+          const ace = err instanceof ApiClientError ? err : null;
+          await this.config.onAuthError?.({
+            reason: ace?.code ?? "refresh_rejected",
+            statusCode: ace?.statusCode,
+            code: ace?.code,
+            path,
+          });
+        }
         throw err instanceof ApiClientError
           ? err
           : new ApiClientError("Session expired", 401, "SESSION_EXPIRED");

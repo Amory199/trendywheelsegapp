@@ -31,12 +31,21 @@ export async function getRefreshToken(): Promise<string | null> {
   return SecureStore.getItemAsync(REFRESH_KEY);
 }
 
+// Identifies WHY a session was force-ended, so genuine forced logouts can be
+// told apart from the benign pre-refresh 401s the client recovers from.
+export interface SessionDeadInfo {
+  reason: string;
+  statusCode?: number;
+  code?: string;
+  path?: string;
+}
+
 // The auth store registers a handler here so a dead session detected deep in a
 // request (e.g. the server revoked it after a role change) can reset in-memory
 // auth state and bounce the user to login. Kept as a registration to avoid an
-// api ⇄ auth-store import cycle.
-let onSessionDead: () => void = () => {};
-export function registerLogoutHandler(fn: () => void): void {
+// api ⇄ auth-store import cycle. The handler owns telemetry (it has the user).
+let onSessionDead: (info?: SessionDeadInfo) => void = () => {};
+export function registerLogoutHandler(fn: (info?: SessionDeadInfo) => void): void {
   onSessionDead = fn;
 }
 
@@ -45,9 +54,9 @@ export const api = new ApiClient({
   getAccessToken,
   getRefreshToken: () => SecureStore.getItemAsync(REFRESH_KEY),
   onTokenRefresh: async (tokens) => setTokens(tokens.token, tokens.refreshToken),
-  onAuthError: async () => {
+  onAuthError: async (info) => {
     await clearTokens();
-    onSessionDead();
+    onSessionDead(info);
   },
   // Every request outcome doubles as a connectivity probe — drives the
   // offline banner without a native NetInfo module.

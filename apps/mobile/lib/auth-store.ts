@@ -167,7 +167,26 @@ export const useAuth = create<AuthState>((set, get) => ({
 // When a request hits an unrecoverable 401 (the server revoked this session
 // after a role/status change), the api layer clears tokens and calls this to
 // drop the in-memory user — bouncing the app straight back to the login screen.
-registerLogoutHandler(() => {
+registerLogoutHandler((info) => {
+  // This fires at the EXACT moment a user is actually forced out — the refresh
+  // token was rejected, or there was none to refresh with. Distinct from the
+  // benign pre-refresh 401s the client silently recovers from, which never get
+  // here. Emit a greppable telemetry event (queryable in error_logs / Sentry)
+  // so we can watch the real forced-logout rate and which accounts hit it.
+  const prev = useAuth.getState();
+  void api.reportClientError({
+    source: "mobile",
+    level: "warn",
+    message: "session_forced_logout",
+    route: info?.path,
+    metadata: {
+      reason: info?.reason ?? "unknown",
+      statusCode: info?.statusCode,
+      code: info?.code,
+      userId: prev.user?.id ?? null,
+      wasActingAs: !!prev.actingAs,
+    },
+  });
   savedAdminToken = null;
   useAuth.setState({ user: null, actingAs: null });
 });
