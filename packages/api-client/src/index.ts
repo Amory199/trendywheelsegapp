@@ -724,6 +724,8 @@ class ApiClient {
     source?: string;
     estimatedValue?: number;
     notes?: string;
+    // Admin-only: assign the new lead directly to this agent (else round-robin).
+    ownerId?: string;
   }): Promise<{ data: Record<string, unknown> }> {
     return this.request("POST", "/api/crm/leads", { body: payload });
   }

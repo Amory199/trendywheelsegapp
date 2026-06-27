@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -17,8 +17,15 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../../../lib/api";
+import { useAuth } from "../../../lib/auth-store";
 import { useT } from "../../../lib/locale";
 import { playSound } from "../../../lib/sounds";
+
+interface Agent {
+  id: string;
+  name?: string;
+  staffRole?: string | null;
+}
 
 const SOURCES: { value: string; labelKey: string }[] = [
   { value: "walk-in", labelKey: "crm.newLead.sourceWalkIn" },
@@ -35,6 +42,7 @@ export default function NewLead(): React.JSX.Element {
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
   const t = useT();
+  const isAdmin = useAuth((s) => s.user?.accountType === "admin");
   const [form, setForm] = useState({
     contactName: "",
     contactPhone: "",
@@ -42,7 +50,21 @@ export default function NewLead(): React.JSX.Element {
     source: "phone",
     estimatedValue: "",
     notes: "",
+    ownerId: "", // "" = auto (round-robin); admin can pick an agent
   });
+
+  // Admins may hand the lead straight to an agent; fetch the team for the picker.
+  const teamQ = useQuery({
+    queryKey: ["admin", "sales-team"],
+    queryFn: async (): Promise<Agent[]> => {
+      const r = await api.crmTeam();
+      return (r.data ?? []) as Agent[];
+    },
+    enabled: isAdmin,
+  });
+  const agents = (teamQ.data ?? []).filter(
+    (a) => a.staffRole === "sales" || a.staffRole === "support" || !a.staffRole,
+  );
 
   const create = useMutation({
     mutationFn: async () =>
@@ -53,6 +75,7 @@ export default function NewLead(): React.JSX.Element {
         source: form.source,
         estimatedValue: form.estimatedValue ? Number(form.estimatedValue) : 0,
         notes: form.notes.trim() || undefined,
+        ownerId: isAdmin && form.ownerId ? form.ownerId : undefined,
       }),
     onSuccess: async (res) => {
       playSound("success");
@@ -127,6 +150,33 @@ export default function NewLead(): React.JSX.Element {
               ))}
             </View>
           </View>
+          {isAdmin ? (
+            <View style={styles.card}>
+              <Text style={styles.label}>{t("crm.newLead.assignTo")}</Text>
+              <View style={styles.chipRow}>
+                <Pressable
+                  onPress={() => setForm((f) => ({ ...f, ownerId: "" }))}
+                  style={[styles.chip, form.ownerId === "" && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, form.ownerId === "" && styles.chipTextActive]}>
+                    {t("crm.newLead.assignAuto")}
+                  </Text>
+                </Pressable>
+                {agents.map((a) => (
+                  <Pressable
+                    key={a.id}
+                    onPress={() => setForm((f) => ({ ...f, ownerId: a.id }))}
+                    style={[styles.chip, form.ownerId === a.id && styles.chipActive]}
+                  >
+                    <Text style={[styles.chipText, form.ownerId === a.id && styles.chipTextActive]}>
+                      {a.name ?? t("crm.newLead.agentFallback")}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
           <Field
             label={t("crm.newLead.estimatedValue")}
             value={form.estimatedValue}

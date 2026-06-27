@@ -107,6 +107,7 @@ const admin: Stringify<typeof enNs> = {
   salesTeamSummaryAgents: " وكيل · ",
   salesTeamSummaryOpenLeads: " عميل مفتوح · ج.م ",
   salesTeamSummaryWon: " تم تحقيقها هذا الشهر",
+  salesTeamNewLead: "عميل محتمل جديد",
   salesTeamPoolTitle: "مجمع غير المُسند",
   salesTeamPoolAllAssigned: "تم إسناد جميع العملاء",
   salesTeamPoolWaitingSuffix: " في انتظار الإسناد",

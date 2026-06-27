@@ -159,6 +159,9 @@ export default {
     create: "Create lead",
     createFailedTitle: "Create failed",
     tryAgain: "Try again",
+    assignTo: "Assign to",
+    assignAuto: "Auto (round-robin)",
+    agentFallback: "Agent",
   },
   actions: {
     call: "Call",

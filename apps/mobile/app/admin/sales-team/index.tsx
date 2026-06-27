@@ -79,6 +79,10 @@ export default function AdminSalesTeam(): React.JSX.Element {
           {Math.round(totalWon).toLocaleString()}
           {t("admin.salesTeamSummaryWon")}
         </Text>
+        <Pressable style={styles.newLeadBtn} onPress={() => router.push("/crm/leads/new")}>
+          <Ionicons name="add-circle" size={18} color="#fff" />
+          <Text style={styles.newLeadBtnText}>{t("admin.salesTeamNewLead")}</Text>
+        </Pressable>
       </View>
 
       {teamQ.isLoading ? (
@@ -240,6 +244,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   subtitle: { color: colors.text.secondary, fontSize: 12, marginTop: 4 },
+  newLeadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: colors.brand.trendyPink,
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+  },
+  newLeadBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   empty: { alignItems: "center", paddingVertical: 60, gap: 10 },
   emptyText: { color: colors.text.secondary, fontSize: 13 },
   poolCard: {

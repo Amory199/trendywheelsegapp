@@ -147,6 +147,19 @@ LEAD_ID=$(echo "$LEAD_RESP" | jq -r '.data.id')
 [ "$LEAD_ID" != "null" ] && [ -n "$LEAD_ID" ] || fail "no lead id returned: $LEAD_RESP"
 pass "lead created id=$LEAD_ID"
 
+# Admin can create a lead and assign it STRAIGHT to a chosen agent (ownerId),
+# bypassing round-robin — it must land on that agent as status=new.
+SALES_UID=$(echo "$SALES_RESP" | jq -r '.user.id')
+ASSIGN_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/crm/leads" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"contactName\":\"SMOKE ASSIGN\",\"source\":\"phone\",\"ownerId\":\"$SALES_UID\"}") \
+  || fail "POST /crm/leads with ownerId failed"
+A_OWNER=$(echo "$ASSIGN_RESP" | jq -r '.data.ownerId // .data.owner.id')
+A_STATUS=$(echo "$ASSIGN_RESP" | jq -r '.data.status')
+[ "$A_OWNER" = "$SALES_UID" ] || fail "admin-assigned lead not owned by chosen agent (got $A_OWNER)"
+[ "$A_STATUS" = "new" ] || fail "admin-assigned lead not status=new (got $A_STATUS)"
+pass "admin create+assign lead → owned by agent, status=new"
+
 curl -fsS -A "$SMOKE_UA" "$BASE/crm/leads/$LEAD_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
   || fail "GET /crm/leads/:id failed"
 pass "lead readable"

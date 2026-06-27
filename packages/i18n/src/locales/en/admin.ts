@@ -116,6 +116,7 @@ export default {
   salesTeamSummaryAgents: " agents · ",
   salesTeamSummaryOpenLeads: " open leads · EGP ",
   salesTeamSummaryWon: " won this month",
+  salesTeamNewLead: "New lead",
   salesTeamPoolTitle: "Unassigned pool",
   salesTeamPoolAllAssigned: "All leads are assigned",
   salesTeamPoolWaitingSuffix: " waiting to be handed out",

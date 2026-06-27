@@ -317,12 +317,32 @@ const createLeadSchema = z.object({
   estimatedValue: z.number().min(0).optional(),
   notes: z.string().max(2000).optional(),
   source: z.enum(Object.keys(sourceMap) as [string, ...string[]]).optional(),
+  // Admin-only: hand the new lead straight to a chosen agent instead of letting
+  // the round-robin pick. Ignored (round-robin used) for non-admin callers.
+  ownerId: z.string().uuid().optional(),
 });
 
 router.post("/leads", async (req, res) => {
   const body = createLeadSchema.parse(req.body);
   const userId = req.user!.userId;
+  const me = await prisma.user.findUnique({ where: { id: userId } });
+  const admin = isAdmin(me) && !req.user!.actingAs;
   const friendlySource = body.source ?? "manual";
+
+  // Direct assignment is admin-only and must target a real staff/admin account —
+  // never a customer. Otherwise we fall through to round-robin.
+  let directOwnerId: string | null = null;
+  if (admin && body.ownerId) {
+    const target = await prisma.user.findUnique({
+      where: { id: body.ownerId },
+      select: { accountType: true },
+    });
+    if (!target || (target.accountType !== "staff" && target.accountType !== "admin")) {
+      throw AppError.badRequest("Can only assign a lead to a staff member");
+    }
+    directOwnerId = body.ownerId;
+  }
+
   const lead = await prisma.lead.create({
     data: {
       contactName: body.contactName,
@@ -331,6 +351,14 @@ router.post("/leads", async (req, res) => {
       estimatedValue: body.estimatedValue ?? 0,
       notes: body.notes,
       source: sourceMap[friendlySource],
+      ...(directOwnerId
+        ? {
+            ownerId: directOwnerId,
+            status: "new",
+            assignedAt: new Date(),
+            claimDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          }
+        : {}),
     },
   });
   const activityBody =
@@ -338,8 +366,19 @@ router.post("/leads", async (req, res) => {
       ? "Lead created manually"
       : `Lead created manually via ${friendlySource}`;
   await recordActivity(lead.id, userId, "created", activityBody);
-  // Try immediate assignment
-  await assignLeadRoundRobin(lead.id);
+
+  if (directOwnerId) {
+    // Admin handed it to a specific agent — tell that agent, skip round-robin.
+    await notifyUser(directOwnerId, `lead-assigned-${lead.id}`, {
+      type: "lead_assigned",
+      title: "Lead assigned to you",
+      body: `${lead.contactName} (${friendlySource}) was assigned to you`,
+      data: { leadId: lead.id, contactName: lead.contactName, source: friendlySource },
+    });
+  } else {
+    // Try immediate round-robin assignment.
+    await assignLeadRoundRobin(lead.id);
+  }
   const fresh = await prisma.lead.findUnique({
     where: { id: lead.id },
     include: { owner: { select: { id: true, name: true } } },

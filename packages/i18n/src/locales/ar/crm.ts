@@ -162,6 +162,9 @@ const crm: Stringify<typeof enNs> = {
     create: "إنشاء عميل محتمل",
     createFailedTitle: "فشل الإنشاء",
     tryAgain: "حاول مرة أخرى",
+    assignTo: "إسناد إلى",
+    assignAuto: "تلقائي (بالتناوب)",
+    agentFallback: "موظف",
   },
   actions: {
     call: "اتصال",
