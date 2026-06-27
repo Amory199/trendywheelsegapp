@@ -42,6 +42,10 @@ export default function LoginEmailScreen(): JSX.Element {
     setError(null);
     try {
       await loginWithPassword(identifier.trim(), password);
+      // Clear the pre-auth stack (guest catalog + auth screens) before landing
+      // on the role home, so Back can't drop a staff/admin into the customer
+      // interface they can't escape. (INC-053)
+      if (router.canDismiss()) router.dismissAll();
       router.replace("/");
     } catch (err) {
       // The API now returns a specific reason + a machine code. Prefer a

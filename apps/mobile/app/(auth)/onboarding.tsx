@@ -77,7 +77,9 @@ export default function OnboardingScreen(): JSX.Element {
       await hydrate();
       // Back to the index router, which lands them at the right home for their
       // role now that they have a password (staff → hub, admin → console,
-      // customer → tabs).
+      // customer → tabs). Clear the pre-auth stack first so Back can't reveal
+      // the guest catalog / auth screens underneath. (INC-053)
+      if (router.canDismiss()) router.dismissAll();
       router.replace("/");
     },
   });

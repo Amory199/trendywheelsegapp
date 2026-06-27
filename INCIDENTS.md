@@ -86,6 +86,7 @@ The reusable rule. If a similar bug appears, do it this way — don't invent a p
 | 046 | 2026-06-21 | "Session expired" right after login: `isSessionRevoked` compared whole-second `iat` against a millisecond `Date.now()` marker, so a token minted in the SAME second as a revocation (e.g. admin password reset) was falsely rejected | Fixed               | P1  |
 | 051 | 2026-06-25 | "Page not found" on Profile → Help & Support (pushed deleted `/messages` index) and on the profile-card Delete account button (pushed never-created `/account/delete`)                                                               | Fixed               | P2  |
 | 052 | 2026-06-25 | Users logged out "for no reason": refresh token rotated (revoked + reissued) on EVERY refresh, so an app killed mid-refresh / two concurrent refreshes left the client holding a just-revoked token → forced logout                  | Fixed               | P1  |
+| 053 | 2026-06-27 | Admin presses Back in the console and lands in the customer interface with no escape (must kill the app): login used `router.replace()`, leaving the guest catalog + auth screens underneath in the stack                            | Fixed               | P2  |
 
 ---
 
@@ -1453,6 +1454,26 @@ A refresh token now lives up to 90d and isn't single-use, so a stolen refresh to
 
 **Pattern to follow next time**
 Refresh-token rotation-on-every-use is a correctness footgun on mobile (app kills, concurrent tabs/requests, storage write races). Either don't rotate until near expiry (this fix) or implement proper reuse-detecting families — never naive single-use rotation without a grace/successor path.
+
+---
+
+### INC-053 — Admin Back button drops into the customer interface, no escape (2026-06-27)
+
+**Status:** Fixed
+**Severity:** P2 (admin/staff trapped in the customer UI after pressing Back — had to force-quit and reopen)
+**Touched:** `apps/mobile/app/(auth)/otp.tsx`, `apps/mobile/app/(auth)/login-email.tsx`, `apps/mobile/app/(auth)/onboarding.tsx`
+
+**Symptom**
+Owner: as an admin, navigating Back from a console page throws you into the customer interface with no way out except killing and reopening the app.
+
+**Root cause**
+A guest browses the customer catalog `/(tabs)`, taps an account action → `router.push("/(auth)/phone")` (auth screens pushed ON TOP of the catalog), then signs in. Every login path then navigated with `router.replace(...)`, which swaps only the TOP screen — so `/(tabs)` (customer) + the `/(auth)/*` screens stayed in the root stack underneath the role home. Pressing Back popped down through them, landing an admin/staff member in the customer catalog, which has no affordance back to the console.
+
+**Fix**
+Before the post-login role redirect, clear the pre-auth history: `if (router.canDismiss()) router.dismissAll();` then `router.replace(roleHome)`. Applied at all three terminal auth navigations (OTP verify, email/password login, onboarding set-password). Now Back from the role home exits the app instead of revealing the customer UI. JS-only → OTA. (Same class of stack-leak fix as the post-checkout `dismissAll` in commit `9030b9c`.)
+
+**Pattern to follow next time**
+`router.replace()` only swaps the current screen — it does NOT clear what's beneath. After auth, reset the stack (`dismissAll`) so the role home is the sole screen; otherwise a Back gesture walks the user back into pre-auth/guest screens.
 
 ---
 

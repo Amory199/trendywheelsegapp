@@ -40,23 +40,33 @@ export default function OtpScreen(): JSX.Element {
       }
       const u = useAuth.getState().user;
 
+      // Land on the role home with a CLEAN stack. A guest browses /(tabs), taps
+      // sign-in (pushing the auth screens on top), then logs in — so a plain
+      // replace() leaves the customer catalog + auth screens underneath. Back
+      // would then pop an admin/staff member into the customer interface with no
+      // way out. dismissAll() clears that pre-auth history first. (INC-053)
+      const land = (href: string): void => {
+        if (router.canDismiss()) router.dismissAll();
+        router.replace(href as never);
+      };
+
       if (u?.accountType === "admin") {
-        router.replace("/admin/dashboard");
+        land("/admin/dashboard");
         return;
       }
       if (u?.staffRole === "sales") {
-        router.replace("/crm/pipeline");
+        land("/crm/pipeline");
         return;
       }
       if (u?.staffRole === "support") {
-        router.replace("/support/tickets");
+        land("/support/tickets");
         return;
       }
       if (u?.accountType === "customer" && !u.name) {
-        router.replace("/(auth)/onboarding");
+        land("/(auth)/onboarding");
         return;
       }
-      router.replace("/(tabs)");
+      land("/(tabs)");
     } catch (err) {
       Alert.alert(
         t("auth.verificationFailed"),
