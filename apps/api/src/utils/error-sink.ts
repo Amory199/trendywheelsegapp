@@ -1,7 +1,5 @@
 import type { Request } from "express";
 
-import { prisma } from "../config/database.js";
-
 import { logger } from "./logger.js";
 import { Sentry } from "./sentry.js";
 
@@ -88,6 +86,11 @@ export async function writeError(ctx: ErrorContext): Promise<void> {
   }
 
   try {
+    // Lazy import breaks the database.ts ⇄ error-sink.ts module cycle: database
+    // already loads us dynamically (slow-query hook), so importing prisma at
+    // top-level here closed the loop and blocked tree-shaking. By the time any
+    // error is written, database.ts is fully initialised.
+    const { prisma } = await import("../config/database.js");
     await prisma.errorLog.create({
       data: {
         level,
