@@ -2,6 +2,7 @@ import { IntroOverlay } from "@trendywheels/ui-brand/intro-overlay-web";
 import type { Metadata, Viewport } from "next";
 import type { JSX } from "react";
 
+import { ChunkReloader } from "../lib/chunk-reloader";
 import { ErrorReporter } from "../lib/error-reporter";
 import { GlobalTourMounter } from "../lib/global-tour-mounter";
 import { Providers } from "../lib/providers";
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
       </head>
       <body className="antialiased">
         <IntroOverlay mode="session" />
+        <ChunkReloader />
         <ServiceWorkerRegistrar />
         <Providers>
           <ErrorReporter />
