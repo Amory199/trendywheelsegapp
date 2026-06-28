@@ -19,6 +19,7 @@ export default {
     passwordMismatch: "Passwords don't match",
     saveError: "Failed to save profile",
     getStarted: "Get started",
+    useDifferentNumber: "Use a different number",
   },
   notFound: {
     title: "Page Not Found",

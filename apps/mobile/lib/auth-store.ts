@@ -8,6 +8,7 @@ import {
   clearTokens,
   getAccessToken,
   getRefreshToken,
+  purgeTokensIfFreshInstall,
   registerLogoutHandler,
   setTokens,
 } from "./api";
@@ -44,6 +45,10 @@ export const useAuth = create<AuthState>((set, get) => ({
   actingAs: null,
 
   async hydrate() {
+    // Before trusting any stored token, clear it if this is the first boot after
+    // a fresh install — the iOS Keychain outlives an uninstall, so without this a
+    // reinstall would resurrect a stale/dead session. (INC-055)
+    await purgeTokensIfFreshInstall();
     const token = await getAccessToken();
     if (!token) {
       set({ initialized: true });

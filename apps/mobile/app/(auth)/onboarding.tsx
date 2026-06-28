@@ -33,7 +33,24 @@ interface FormData {
 export default function OnboardingScreen(): JSX.Element {
   const router = useRouter();
   const t = useT();
-  const { user, hydrate } = useAuth();
+  const { user, hydrate, logout } = useAuth();
+  const [switching, setSwitching] = useState(false);
+
+  // Escape hatch out of the credential gate. A user who landed here after OTP is
+  // authenticated-but-passwordless, so index.tsx re-routes them straight back to
+  // this screen on every launch — without a way out they were trapped (had to
+  // reinstall to clear the stored tokens). Signing out clears those tokens and
+  // drops them on the phone screen so they can enter a different number. (INC-055)
+  const useDifferentNumber = async (): Promise<void> => {
+    if (switching || mutation.isPending) return;
+    setSwitching(true);
+    try {
+      await logout();
+    } finally {
+      if (router.canDismiss()) router.dismissAll();
+      router.replace("/(auth)/phone");
+    }
+  };
   const [form, setForm] = useState<FormData>({
     name: user?.name ?? "",
     age: user?.age ? String(user.age) : "",
@@ -90,6 +107,23 @@ export default function OnboardingScreen(): JSX.Element {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.header}>
+        <Pressable
+          style={styles.switchNumber}
+          onPress={useDifferentNumber}
+          disabled={switching || mutation.isPending}
+          hitSlop={8}
+        >
+          {switching ? (
+            <ActivityIndicator size="small" color={colors.text.secondary} />
+          ) : (
+            <>
+              <Ionicons name="arrow-back" size={16} color={colors.text.secondary} />
+              <Text style={styles.switchNumberText}>
+                {t("components.onboarding.useDifferentNumber")}
+              </Text>
+            </>
+          )}
+        </Pressable>
         <Text style={styles.headerTitle}>{t("components.onboarding.title")}</Text>
       </View>
 
@@ -213,6 +247,16 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   headerTitle: { color: colors.text.light, fontSize: 22, fontWeight: "700" },
+  switchNumber: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+    marginBottom: spacing.xs,
+    minHeight: 24,
+  },
+  switchNumberText: { color: colors.text.secondary, fontSize: 13, fontWeight: "600" },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: spacing["2xl"] },
   body: { padding: spacing.lg, gap: spacing.md },

@@ -2,6 +2,37 @@
 
 Institutional memory for production bugs and the canonical fixes.
 
+### INC-055 — Stuck on "Complete your profile" + reinstall doesn't reset login (2026-06-28)
+
+**Status:** Fixed
+**Severity:** P1 (a customer who started onboarding could never reach another number — only a reinstall escaped, and on iOS even that silently restored the old session)
+**Touched:** `apps/mobile/app/(auth)/onboarding.tsx`, `apps/mobile/lib/api.ts`, `apps/mobile/lib/auth-store.ts`, `packages/i18n/src/locales/{en,ar}/components.ts`
+
+**Symptom**
+
+1. After OTP, the user lands on "Complete your profile". There is no back/escape — they cannot return to the phone screen to use a different number, and closing/reopening drops them right back (had to delete + reinstall the app to get out).
+2. (iOS) Deleting and reinstalling "signs in automatically with the old user; nothing got deleted." A stale token for a deleted/anonymized account would then 401 into a confusing forced logout.
+
+**Root cause**
+
+1. `app/index.tsx` routes any authenticated user without a password/name to `/(auth)/onboarding` on EVERY launch (the re-credential gate). The onboarding screen had no sign-out/escape, so an OTP'd-but-passwordless user was pinned there; the stored tokens (in the iOS Keychain) survived an app kill, so a reopen re-pinned them.
+2. `expo-secure-store` is backed by the iOS Keychain, which **survives app uninstall**. So a reinstall restored the previous tokens — "reinstall to reset" never reset anything, and a token for a server-side-wiped account could resurrect a dead session.
+
+**Fix** (OTA `4bea6768`)
+
+1. **Escape hatch** — onboarding header gets a "Use a different number" control that calls `logout()` (clears tokens + server logout) then `router.dismissAll()` + `replace("/(auth)/phone")`.
+2. **Fresh-install token purge** — `purgeTokensIfFreshInstall()` (lib/api.ts) writes a marker file to the document directory (which IS wiped on uninstall, unlike the Keychain). On the first boot where the marker is absent it clears any leftover Keychain tokens, guaranteeing a reinstall starts logged out. Called at the top of `auth-store.hydrate()` before any token is trusted.
+
+**Notes / not-a-bug**
+
+- The "enter your password" prompt on phone-login after onboarding is BY DESIGN: once an account has a password, phone-login asks for it instead of an OTP (owner previously declined an OTP fallback). A normal reopen is seamless — access token is 24h, refresh 90d; if you ARE asked to log in again it's because the session was genuinely lost (e.g. a stale token from a wiped account, now fixed by the purge above).
+- `JWT_REFRESH_EXPIRY` in prod `.env` (`30d`) is DEAD config — never referenced; the real refresh TTL is the hardcoded `REFRESH_TTL_MS = 90d` in `auth/service.ts`. Harmless but worth cleaning to `90d` to avoid confusion.
+
+**Pattern to follow next time**
+Any screen the router can force a user onto (a gate) MUST have an escape that signs out / goes back — a gate with no exit is a trap. And remember the iOS Keychain outlives uninstall: if "reinstall to reset" should work, clear SecureStore on first boot keyed off storage that uninstall actually wipes.
+
+---
+
 **Before fixing a non-trivial bug:** grep this file for the symptom or the touched file path. If something matches, reuse the established pattern. **Don't fork it.**
 
 **After fixing a non-trivial bug:** append a new `INC-NNN` entry below. Triggers: anything that took >10 min to diagnose, touched >2 files, or surfaced as a user-facing / Sentry / Play / Firebase error.

@@ -21,6 +21,7 @@ const components: Stringify<typeof enNs> = {
     passwordMismatch: "كلمتا المرور غير متطابقتين",
     saveError: "تعذر حفظ الملف الشخصي",
     getStarted: "ابدأ الآن",
+    useDifferentNumber: "استخدم رقمًا آخر",
   },
   notFound: {
     title: "الصفحة غير موجودة",
