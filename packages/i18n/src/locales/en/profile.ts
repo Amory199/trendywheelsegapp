@@ -63,9 +63,9 @@ export default {
     helpSupport: "Help & support",
     deleteAccount: "Delete account",
     signOut: "Sign out",
-    deleteTitle: "Delete account?",
+    deleteTitle: "Permanently delete your account?",
     deleteMessage:
-      "This permanently removes your data. You will receive a confirmation message before deletion.",
+      "This deletes your account right now and frees your phone number. Your data is anonymized and you'll have to register again from scratch. This cannot be undone. To just switch accounts, use Sign out instead.",
   },
 
   // Edit profile screen (app/profile/edit.tsx)
