@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 
+import { BackButton } from "../../components/BackButton";
 import { api } from "../../lib/api";
 import { translate, useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
@@ -98,6 +99,7 @@ export default function CrmInventory(): JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
+        <BackButton style={{ marginLeft: -8, marginBottom: 6 }} fallback="/crm/pipeline" />
         <Text style={styles.title}>{t("crm.inventory.title")}</Text>
         <Text style={styles.subtitle}>
           {filtered.length} {t("crm.inventory.countConnector")} {listQ.data?.length ?? 0}{" "}

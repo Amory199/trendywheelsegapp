@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { BackButton } from "../../components/BackButton";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
@@ -77,6 +78,11 @@ export default function LoginEmailScreen(): JSX.Element {
         keyboardShouldPersistTaps="handled"
       >
         <Animated.View entering={FadeInDown.duration(500).springify().damping(14)}>
+          <BackButton
+            color={p.text}
+            style={{ marginLeft: -8, marginBottom: 6 }}
+            fallback="/(auth)/phone"
+          />
           <Text style={styles.title}>{t("auth.loginTitle")}</Text>
           <Text style={styles.subtitle}>{t("auth.loginSubtitle")}</Text>
 

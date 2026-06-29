@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BackButton } from "../../components/BackButton";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 
@@ -109,13 +110,31 @@ export default function AdminRecentActivity(): React.JSX.Element {
         }}
       />
       <View style={styles.root}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            paddingTop: insets.top + 8,
+            paddingHorizontal: 12,
+            paddingBottom: 8,
+          }}
+        >
+          <BackButton fallback="/admin/dashboard" />
+          <Text
+            style={{ color: colors.text.light, fontSize: 18, fontWeight: "800", flex: 1 }}
+            numberOfLines={1}
+          >
+            {t("admin.recentTitle")}
+          </Text>
+        </View>
         {q.isLoading ? (
           <ActivityIndicator color={colors.brand.poolBlue} style={{ marginTop: 40 }} size="large" />
         ) : (
           <ScrollView
             contentContainerStyle={{
               padding: 14,
-              paddingTop: insets.top + 14,
+              paddingTop: 14,
               paddingBottom: 120,
               gap: 10,
             }}

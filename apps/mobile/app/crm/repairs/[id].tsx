@@ -17,8 +17,8 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BackButton } from "../../../components/BackButton";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
 
@@ -50,7 +50,6 @@ const STATUS_LABEL_KEY: Record<string, string> = {
 
 export default function StaffRepairDetail(): React.JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const t = useT();
 
@@ -97,6 +96,25 @@ export default function StaffRepairDetail(): React.JSX.Element {
           headerTintColor: "#fff",
         }}
       />
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          paddingTop: 64,
+          paddingHorizontal: 12,
+          paddingBottom: 8,
+          backgroundColor: colors.dark.bg,
+        }}
+      >
+        <BackButton fallback="/crm/pipeline" />
+        <Text
+          style={{ color: colors.text.light, fontSize: 18, fontWeight: "800", flex: 1 }}
+          numberOfLines={1}
+        >
+          {t("crm.repairDetail.title")}
+        </Text>
+      </View>
       {q.isLoading || !r ? (
         <View style={[styles.root, styles.center]}>
           <ActivityIndicator color="#F5B800" />
@@ -104,7 +122,7 @@ export default function StaffRepairDetail(): React.JSX.Element {
       ) : (
         <ScrollView
           style={styles.root}
-          contentContainerStyle={{ padding: 16, paddingTop: insets.top + 16, gap: 14 }}
+          contentContainerStyle={{ padding: 16, paddingTop: 16, gap: 14 }}
         >
           <View style={styles.statusPill}>
             <View style={[styles.dot, { backgroundColor: STATUS_TONE[r.status] }]} />

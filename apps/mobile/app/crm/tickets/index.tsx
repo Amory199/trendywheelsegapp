@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 
+import { BackButton } from "../../../components/BackButton";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
 import { useDisplay, useTracking } from "../../../lib/typography";
@@ -68,6 +69,7 @@ export default function StaffTickets(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
+        <BackButton style={{ marginLeft: -8, marginBottom: 6 }} fallback="/crm/pipeline" />
         <Text style={[styles.kicker, { letterSpacing: track(1.5) }]}>
           {t("crm.tickets.kicker")}
         </Text>

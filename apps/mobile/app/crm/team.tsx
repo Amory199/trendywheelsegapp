@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 
+import { BackButton } from "../../components/BackButton";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useDisplay, useTracking } from "../../lib/typography";
@@ -32,6 +33,7 @@ export default function CrmTeam(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
+        <BackButton style={{ marginLeft: -8, marginBottom: 6 }} fallback="/crm/pipeline" />
         <Text style={[styles.kicker, { letterSpacing: track(1.5) }]}>{t("crm.team.kicker")}</Text>
         <Text style={[styles.title, display(0.3)]}>{t("crm.team.title")}</Text>
       </View>

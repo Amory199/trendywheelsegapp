@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { BackButton } from "../../components/BackButton";
 import { ErrorState } from "../../components/ErrorState";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
@@ -102,6 +103,7 @@ export default function AdminUsers(): JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
+        <BackButton style={{ marginLeft: -8, marginBottom: 6 }} fallback="/admin/dashboard" />
         <Text style={styles.title}>{t("admin.usersTitle")}</Text>
       </View>
 

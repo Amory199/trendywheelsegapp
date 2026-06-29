@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 
+import { BackButton } from "../../../components/BackButton";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
 import { useTheme } from "../../../lib/use-theme";
@@ -50,6 +51,7 @@ export default function AdminInactiveLeads(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
+        <BackButton style={{ marginLeft: -8, marginBottom: 6 }} fallback="/admin/dashboard" />
         <Text style={styles.kicker}>{t("admin.inactiveKicker")}</Text>
         <Text style={styles.title}>{t("admin.inactiveTitle")}</Text>
         <Text style={styles.sub}>{t("admin.inactiveSubtitle")}</Text>

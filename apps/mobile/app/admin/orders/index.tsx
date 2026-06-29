@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BackButton } from "../../../components/BackButton";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
 
@@ -59,6 +60,16 @@ export default function AdminOrders(): React.JSX.Element {
           headerTintColor: "#fff",
         }}
       />
+      <View
+        style={{
+          paddingTop: insets.top + 8,
+          paddingHorizontal: 12,
+          paddingBottom: 4,
+          backgroundColor: colors.dark.bg,
+        }}
+      >
+        <BackButton fallback="/admin/dashboard" />
+      </View>
       {q.isLoading ? (
         <View style={[styles.root, { justifyContent: "center", alignItems: "center" }]}>
           <ActivityIndicator color={colors.brand.trendyPink} />
@@ -68,7 +79,7 @@ export default function AdminOrders(): React.JSX.Element {
           style={styles.root}
           data={q.data ?? []}
           keyExtractor={(o) => o.id}
-          contentContainerStyle={{ padding: 14, paddingTop: insets.top + 14, gap: 10 }}
+          contentContainerStyle={{ padding: 14, paddingTop: 14, gap: 10 }}
           refreshControl={
             <RefreshControl
               refreshing={q.isFetching}
