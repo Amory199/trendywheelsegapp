@@ -18,7 +18,13 @@ git pull origin main
 echo "→ Installing dependencies..."
 pnpm install --frozen-lockfile
 
-# Build everything that runs on the VPS
+# Build everything that runs on the VPS.
+# TW_DEPLOY=1 tells apps/admin's postbuild hook to SKIP its own pm2 restart —
+# this script does an authoritative hard restart + chunk verification for admin
+# below, so we don't want the build step also cycling the process (the old
+# double-restart race). The postbuild hook still protects ad-hoc manual builds
+# that don't go through this script. (INC-057)
+export TW_DEPLOY=1
 echo "→ Building API, admin, support, inventory, customer..."
 pnpm turbo run build \
   --filter=@trendywheels/api \
@@ -53,10 +59,44 @@ pnpm --filter @trendywheels/db exec prisma migrate deploy
 #     restart` is the safer call here — the API health-poll loop below
 #     absorbs the brief 502 window.
 echo "→ Reloading Next.js apps (zero-downtime)..."
-pm2 reload "$APP_DIR/infra/ecosystem.config.js" --only trendywheels-admin,trendywheels-support,trendywheels-inventory,trendywheels-customer --env production
+pm2 reload "$APP_DIR/infra/ecosystem.config.js" --only trendywheels-support,trendywheels-inventory,trendywheels-customer --env production
+
+# Admin gets a HARD restart, NOT a graceful reload. A graceful reload keeps the
+# OLD worker draining in-flight requests — and that old worker serves the old
+# build's HTML (old chunk hashes) while disk now holds the new content-hashed
+# chunks → ChunkLoadError / blank screen for anyone loading during the handoff.
+# A hard restart cycles straight onto the new build with only a sub-second blip
+# (acceptable for the internal console). This is the recurring INC-050/054/057.
+echo "→ Restarting admin (hard, to avoid stale-chunk handoff window)..."
+pm2 restart "$APP_DIR/infra/ecosystem.config.js" --only trendywheels-admin --env production
 
 echo "→ Restarting API + workers (stateful: sockets + BullMQ)..."
 pm2 restart "$APP_DIR/infra/ecosystem.config.js" --only trendywheels-api,trendywheels-workers --env production
+
+# Verify admin is serving only chunks that exist on disk — fail the deploy LOUDLY
+# if a stale manifest slipped through, instead of letting users hit a blank
+# ChunkLoadError screen. (INC-057)
+echo "→ Verifying admin chunk consistency..."
+sleep 4
+ADMIN_HTML=$(curl -fsS -m 15 http://127.0.0.1:3001/ 2>/dev/null || true)
+if [ -n "$ADMIN_HTML" ]; then
+  CHUNK_MISSING=0
+  while read -r ch; do
+    [ -z "$ch" ] && continue
+    disk="$APP_DIR/apps/admin/.next${ch#/_next}"
+    if [ ! -f "$disk" ]; then
+      echo "✗ admin serving a chunk missing on disk: $ch"
+      CHUNK_MISSING=1
+    fi
+  done < <(printf '%s' "$ADMIN_HTML" | grep -oE "/_next/static/chunks/[^\"']+\.js" | sort -u)
+  if [ "$CHUNK_MISSING" != "0" ]; then
+    echo "✗ STALE admin chunks detected after restart — aborting deploy."
+    exit 1
+  fi
+  echo "✓ admin chunks consistent"
+else
+  echo "⚠ admin did not respond on :3001 for chunk verification (continuing)"
+fi
 
 mkdir -p "$LOG_DIR"
 echo "✓ Deploy complete at $(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_DIR/deploys.log"

@@ -1,4 +1,3 @@
-import { IntroOverlay } from "@trendywheels/ui-brand/intro-overlay-web";
 import type { Metadata, Viewport } from "next";
 import type { JSX } from "react";
 
@@ -46,7 +45,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
         />
       </head>
       <body className="antialiased">
-        <IntroOverlay mode="session" />
+        {/* Intro overlay intentionally NOT mounted on the internal admin/staff
+            console: the session-scoped brand animation replayed on every new
+            tab/login and on chunk-recovery reloads (read as a "looping logo").
+            The customer-facing app keeps its branded intro. (INC-057) */}
         <ChunkReloader />
         <ServiceWorkerRegistrar />
         <Providers>

@@ -3,15 +3,15 @@
 import type { JSX } from "react";
 import { useEffect } from "react";
 
+import { isChunkError, tryChunkReload } from "../lib/chunk-reload-guard";
+
 // Root error backstop. A chunk that fails DURING render (a stale deploy hitting
 // a lazy/dynamic import) surfaces here rather than as a window error, so the
-// ChunkReloader's listeners can miss it. Catch it here too: if it looks like a
-// stale-deploy chunk failure, reload once (sharing the same cool-down guard as
-// chunk-reloader.tsx so the two can't double-reload). Anything else shows a
-// friendly retry instead of a blank screen. (INC-050 / INC-054)
-
-const GUARD_KEY = "tw-chunk-reload-at";
-const COOLDOWN_MS = 20_000;
+// ChunkReloader's listeners can miss it. Catch it here too: a stale-deploy chunk
+// failure auto-reloads via the SHARED bounded guard (chunk-reload-guard.ts) so
+// it can't loop forever; once the cap is hit, the manual "Reload" button below
+// is the fallback. Anything else shows a friendly retry instead of a blank
+// screen. (INC-050 / INC-054 / INC-057)
 
 export default function GlobalError({
   error,
@@ -20,17 +20,11 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }): JSX.Element {
-  const isChunk = /ChunkLoadError|Loading chunk|loading dynamically imported module/i.test(
-    error?.message ?? "",
-  );
+  const isChunk = isChunkError(error?.message ?? "");
 
   useEffect(() => {
-    if (!isChunk) return;
-    const last = Number(sessionStorage.getItem(GUARD_KEY) ?? "0");
-    if (Date.now() - last < COOLDOWN_MS) return;
-    sessionStorage.setItem(GUARD_KEY, String(Date.now()));
-    window.location.reload();
-  }, [isChunk]);
+    if (isChunk) tryChunkReload(error?.message ?? "");
+  }, [isChunk, error?.message]);
 
   return (
     <html lang="en">
