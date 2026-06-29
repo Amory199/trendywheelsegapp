@@ -268,13 +268,14 @@ export default function HomeScreen(): React.JSX.Element {
 
         {/* SHOP BY TYPE — secondary discovery row. */}
         <View style={styles.section}>
-          <SectionHeader title={t("home.browse")} />
+          <SectionHeader title={t("home.browse")} subtitle={t("home.browseRentSubtitle")} />
           <CategoryCircles onPress={(key) => router.push(`/rent/category/${key}` as never)} />
         </View>
 
         {/* CARTS FOR SALE */}
         <Rail<Product>
           title={t("home.railForSale")}
+          subtitle={t("home.forSaleSubtitle")}
           data={cartsForSale}
           loading={productsQ.isLoading}
           keyExtractor={(p) => p.id}
@@ -286,6 +287,7 @@ export default function HomeScreen(): React.JSX.Element {
         {/* ON SALE — honest salePrice only; hidden when none qualify. */}
         <Rail<Vehicle>
           title={t("home.railDeals")}
+          subtitle={t("home.dealsSubtitle")}
           data={onSale}
           loading={vehiclesQ.isLoading}
           keyExtractor={(v) => v.id}

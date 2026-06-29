@@ -8,6 +8,8 @@ import { useDisplay } from "../lib/typography";
 
 interface RailProps<T> {
   title: string;
+  /** Optional already-translated tagline shown under the title. */
+  subtitle?: string;
   data: T[];
   keyExtractor: (item: T) => string;
   renderCard: (item: T) => JSX.Element;
@@ -25,6 +27,7 @@ interface RailProps<T> {
  */
 export function Rail<T>({
   title,
+  subtitle,
   data,
   keyExtractor,
   renderCard,
@@ -55,6 +58,9 @@ export function Rail<T>({
           </Pressable>
         ) : null}
       </View>
+      {subtitle ? (
+        <Text style={[styles.subtitle, { color: palette.muted }]}>{subtitle}</Text>
+      ) : null}
 
       {loading ? (
         <ActivityIndicator color={palette.muted} style={styles.loader} />
@@ -90,6 +96,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: { fontSize: 22 },
+  subtitle: { fontSize: 13, paddingHorizontal: 16, marginTop: -6, marginBottom: 10 },
   seeAll: { flexDirection: "row", alignItems: "center", gap: 2 },
   seeAllText: { fontSize: 13, fontWeight: "700" },
   loader: { alignSelf: "flex-start", marginLeft: 24 },

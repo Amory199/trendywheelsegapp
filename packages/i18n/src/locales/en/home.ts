@@ -40,9 +40,11 @@ export default {
   searchHint: "Search across carts, parts, rentals and more",
   searchNoResults: "No results for",
   browse: "Browse",
+  browseRentSubtitle: "Rent your cart today",
   seeAll: "See all",
   railForRent: "For rent",
   railForSale: "Carts for sale",
+  forSaleSubtitle: "Own your cart — carts for sale",
   railShop: "Parts & accessories",
   badgeForRent: "Rent",
   badgeForSale: "Sale",
@@ -97,6 +99,7 @@ export default {
 
   // On sale rail (honest salePrice only)
   railDeals: "On sale",
+  dealsSubtitle: "Limited-time deals — on sale now",
   dealsBadge: "On sale",
 
   // Services rail

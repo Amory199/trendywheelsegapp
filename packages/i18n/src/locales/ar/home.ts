@@ -43,9 +43,11 @@ const home: Stringify<typeof enNs> = {
   searchHint: "ابحث في العربات وقطع الغيار والإيجارات والمزيد",
   searchNoResults: "لا نتائج لـ",
   browse: "تصفّح",
+  browseRentSubtitle: "استأجر عربتك اليوم",
   seeAll: "عرض الكل",
   railForRent: "للإيجار",
   railForSale: "عربات للبيع",
+  forSaleSubtitle: "امتلك عربتك — عربات للبيع",
   railShop: "قطع غيار وإكسسوارات",
   badgeForRent: "إيجار",
   badgeForSale: "بيع",
@@ -100,6 +102,7 @@ const home: Stringify<typeof enNs> = {
 
   // On sale rail (honest salePrice only)
   railDeals: "للبيع",
+  dealsSubtitle: "عروض لفترة محدودة — تخفيضات الآن",
   dealsBadge: "للبيع",
 
   // Services rail
