@@ -20,7 +20,9 @@ uptime_of() { pm2 jlist | jq -r --arg n "$PROC" '.[] | select(.name==$n) | .pm2_
 
 echo "▶ [1/3] clean rebuild"
 rm -rf .next
-pnpm --filter @trendywheels/admin build
+# TW_DEPLOY=1 tells the postbuild hook to skip its own restart — this script
+# does a verified restart in step [2/3], so a redundant cycle isn't needed.
+TW_DEPLOY=1 pnpm --filter @trendywheels/admin build
 
 echo "▶ [2/3] restart $PROC and confirm it cycled"
 BEFORE=$(uptime_of)
