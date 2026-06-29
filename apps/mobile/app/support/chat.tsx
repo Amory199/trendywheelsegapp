@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 
+import { BackButton } from "../../components/BackButton";
 import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
@@ -44,6 +45,7 @@ export default function SupportChat(): JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
+        <BackButton style={{ marginLeft: -8, marginBottom: 2 }} />
         <Text style={styles.title}>{t("support.chatTitle")}</Text>
       </View>
 

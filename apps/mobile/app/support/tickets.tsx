@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 
+import { BackButton } from "../../components/BackButton";
 import { ErrorState } from "../../components/ErrorState";
 import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
@@ -81,15 +82,18 @@ export default function SupportTickets(): JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.hello}>
-            {isStaff
-              ? `${t("support.ticketsGreeting")} ${user?.name?.split(" ")[0] ?? t("support.ticketsAgent")}`
-              : t("support.yourRequests")}
-          </Text>
-          <Text style={[styles.role, { letterSpacing: track(1.5) }]}>
-            {isStaff ? t("support.ticketsRole") : t("support.yourRequestsRole")}
-          </Text>
+        <View style={styles.headerLeft}>
+          <BackButton style={{ marginLeft: -10 }} />
+          <View>
+            <Text style={styles.hello}>
+              {isStaff
+                ? `${t("support.ticketsGreeting")} ${user?.name?.split(" ")[0] ?? t("support.ticketsAgent")}`
+                : t("support.yourRequests")}
+            </Text>
+            <Text style={[styles.role, { letterSpacing: track(1.5) }]}>
+              {isStaff ? t("support.ticketsRole") : t("support.yourRequestsRole")}
+            </Text>
+          </View>
         </View>
         <View style={styles.headerActions}>
           <Pressable hitSlop={12} onPress={() => router.push("/support/tickets/new")}>
@@ -192,6 +196,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingBottom: 10,
   },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 6, flex: 1 },
   hello: { color: colors.text.light, fontSize: 20, fontWeight: "700" },
   role: { color: colors.brand.poolBlue, fontSize: 11, fontWeight: "800" },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },

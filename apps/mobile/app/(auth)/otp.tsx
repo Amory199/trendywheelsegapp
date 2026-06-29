@@ -13,6 +13,7 @@ import {
   Platform,
 } from "react-native";
 
+import { BackButton } from "../../components/BackButton";
 import { useAuth } from "../../lib/auth-store";
 import { confirmFirebaseOtp } from "../../lib/firebase-phone-auth";
 import { useT } from "../../lib/locale";
@@ -88,6 +89,7 @@ export default function OtpScreen(): JSX.Element {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>
+          <BackButton style={{ marginLeft: -10, marginBottom: spacing.sm }} color={p.text} />
           <Text style={styles.title}>{t("auth.verifyTitle")}</Text>
           <Text style={styles.subtitle}>
             {t("auth.otpSentTo")} {phone}
