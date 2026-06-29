@@ -1,14 +1,10 @@
 import { ApiClient } from "@trendywheels/api-client";
-import { documentDirectory, getInfoAsync, writeAsStringAsync } from "expo-file-system/legacy";
 import * as SecureStore from "expo-secure-store";
 
 import { useNetwork } from "./network-store";
 
 const ACCESS_KEY = "tw_access";
 const REFRESH_KEY = "tw_refresh";
-// Lives in the app document directory, which IS wiped on uninstall (unlike the
-// iOS Keychain that backs SecureStore). Its absence on boot ⇒ fresh install.
-const INSTALL_MARKER = `${documentDirectory ?? ""}tw-install.marker`;
 
 const baseUrl = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -25,28 +21,6 @@ export async function setTokens(token: string, refreshToken?: string): Promise<v
 export async function clearTokens(): Promise<void> {
   await SecureStore.deleteItemAsync(ACCESS_KEY);
   await SecureStore.deleteItemAsync(REFRESH_KEY);
-}
-
-// The iOS Keychain (where expo-secure-store stores tokens) SURVIVES an app
-// uninstall, so a reinstall silently restores the previous session — including
-// a stale token for an account that was deleted/anonymized server-side, which
-// then 401s into a confusing forced logout. Reinstalling was also the user's
-// mental "reset" and it quietly didn't reset anything. The document directory,
-// by contrast, IS wiped on uninstall, so on the first boot after an install the
-// marker file is missing: treat that as a fresh install, clear any leftover
-// Keychain tokens, and drop the marker so we only do this once. Guarantees a
-// reinstall starts from a clean, logged-out slate. (INC-055)
-export async function purgeTokensIfFreshInstall(): Promise<void> {
-  try {
-    if (!documentDirectory) return; // e.g. web — no document dir to key off of
-    const info = await getInfoAsync(INSTALL_MARKER);
-    if (!info.exists) {
-      await clearTokens();
-      await writeAsStringAsync(INSTALL_MARKER, "1");
-    }
-  } catch {
-    /* never let the install-marker check block app boot */
-  }
 }
 
 export async function getAccessToken(): Promise<string | null> {

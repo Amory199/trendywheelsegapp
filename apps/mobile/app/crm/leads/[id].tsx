@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ErrorState } from "../../../components/ErrorState";
 import { CadenceStrip, type CrmRules } from "../../../components/crm-leads/CadenceStrip";
 import { DetailField } from "../../../components/crm-leads/DetailField";
 import { LeadActionsBar } from "../../../components/crm-leads/LeadActionsBar";
@@ -67,6 +68,8 @@ interface Lead {
   ownerId?: string | null;
   assignedAgentId?: string | null;
   assignedAgent?: { name?: string } | null;
+  // The GET /crm/leads/:id endpoint returns the assigned agent as `owner`.
+  owner?: { name?: string } | null;
   activities?: Activity[];
   vehicles?: Array<{ id: string; vehicleId: string; vehicle?: { name?: string } }>;
   callCount?: number;
@@ -525,7 +528,9 @@ export default function LeadDetail(): React.JSX.Element {
         </Text>
         <View style={{ width: 24 }} />
       </View>
-      {leadQ.isLoading || !lead ? (
+      {leadQ.isError ? (
+        <ErrorState onRetry={() => void leadQ.refetch()} />
+      ) : leadQ.isLoading || !lead ? (
         <ActivityIndicator color={colors.brand.trendyPink} style={{ marginTop: 24 }} />
       ) : (
         <>
@@ -534,9 +539,9 @@ export default function LeadDetail(): React.JSX.Element {
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{lead.contactName}</Text>
                 <Text style={styles.subline}>{lead.contactPhone ?? t("crm.lead.noPhone")}</Text>
-                {lead.assignedAgent?.name ? (
+                {(lead.owner?.name ?? lead.assignedAgent?.name) ? (
                   <Text style={styles.assigned}>
-                    {t("crm.lead.ownedByPrefix")} {lead.assignedAgent.name}
+                    {t("crm.lead.ownedByPrefix")} {lead.owner?.name ?? lead.assignedAgent?.name}
                   </Text>
                 ) : (
                   <Text style={styles.unassigned}>{t("crm.lead.unassigned")}</Text>

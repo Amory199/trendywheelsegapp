@@ -38,6 +38,10 @@ export function RoleSwitcher(): JSX.Element | null {
     try {
       await assumeRole(o.role, o.staffRole);
       setOpen(false);
+      // Tear down the admin navigator before entering the previewed role, so a
+      // Back gesture can't walk down into admin screens left mounted underneath
+      // (the "stuck in the wrong interface, must kill the app" trap). (INC-053)
+      if (router.canDismiss()) router.dismissAll();
       router.replace(o.home as never);
     } catch {
       Alert.alert(t("roleSwitch.failed"));

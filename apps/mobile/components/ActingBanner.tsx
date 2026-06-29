@@ -26,6 +26,9 @@ export function ActingBanner(): JSX.Element | null {
     setBusy(true);
     try {
       await exitActing();
+      // Clear the previewed role's navigator before returning to admin, so Back
+      // can't drop back into the customer/staff screens. (INC-053)
+      if (router.canDismiss()) router.dismissAll();
       router.replace("/admin/dashboard");
     } finally {
       setBusy(false);

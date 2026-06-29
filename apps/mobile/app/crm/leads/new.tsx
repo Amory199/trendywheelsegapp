@@ -81,7 +81,11 @@ export default function NewLead(): React.JSX.Element {
       playSound("success");
       await qc.invalidateQueries({ queryKey: ["crm"] });
       const id = (res.data as { id?: string })?.id;
-      if (id) router.replace(`/crm/leads/${id}`);
+      // Route an admin to the admin-scoped lead detail so they stay in the admin
+      // navigator. Sending them to /crm/leads/:id dropped them into the staff
+      // Tabs group with no clean way back (and the cross-group mount showed a
+      // blank screen). Staff stay in /crm, which IS their home group. (INC-058)
+      if (id) router.replace((isAdmin ? `/admin/leads/${id}` : `/crm/leads/${id}`) as never);
       else router.back();
     },
     onError: (e) => {
