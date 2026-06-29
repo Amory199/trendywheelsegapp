@@ -57,12 +57,14 @@ export default function AdminDashboard(): JSX.Element {
         </View>
         <Pressable
           hitSlop={12}
+          style={styles.logoutBtn}
           onPress={async () => {
             await logout();
             router.replace("/(auth)/phone");
           }}
         >
-          <Ionicons name="log-out-outline" size={22} color={colors.text.light} />
+          <Ionicons name="log-out-outline" size={18} color={colors.text.light} />
+          <Text style={styles.logoutText}>{t("auth.logout")}</Text>
         </Pressable>
       </View>
 
@@ -149,6 +151,18 @@ const styles = StyleSheet.create({
   },
   hello: { color: colors.text.light, fontSize: 20, fontWeight: "700" },
   role: { color: colors.brand.friendlyBlue, fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
+  logoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  logoutText: { color: colors.text.light, fontSize: 13, fontWeight: "700" },
   scroll: { padding: 14, paddingBottom: 120, gap: 12 },
   switcherRow: { marginBottom: 2 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },

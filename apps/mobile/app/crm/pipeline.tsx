@@ -189,13 +189,14 @@ export default function CrmPipeline(): React.JSX.Element {
         </Pressable>
         <Pressable
           hitSlop={12}
-          style={{ marginLeft: 10 }}
+          style={styles.logoutBtn}
           onPress={async () => {
             await logout();
             router.replace("/(auth)/phone");
           }}
         >
-          <Ionicons name="log-out-outline" size={22} color={palette.text} />
+          <Ionicons name="log-out-outline" size={16} color={palette.text} />
+          <Text style={styles.logoutText}>{t("auth.logout")}</Text>
         </Pressable>
       </View>
 
@@ -421,6 +422,17 @@ function makeStyles(palette: Palette) {
       borderRadius: 999,
     },
     fabText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+    logoutBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      borderWidth: 1,
+      borderColor: palette.border ?? "rgba(0,0,0,0.18)",
+      paddingHorizontal: 11,
+      paddingVertical: 8,
+      borderRadius: 999,
+    },
+    logoutText: { color: palette.text, fontWeight: "700", fontSize: 12 },
     heroCard: {
       flexDirection: "row",
       justifyContent: "space-between",

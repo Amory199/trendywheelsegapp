@@ -3,7 +3,7 @@ import type { Stringify } from "../_stringify";
 
 const rent: Stringify<typeof enNs> = {
   // Rent tab — app/(tabs)/rent.tsx
-  findYourRide: "اعثر على سيارتك",
+  findYourRide: "استأجر سيارتك اليوم",
   pickCategory: "اختر فئة لعرض السيارات",
 
   // Vehicle detail — app/rent/[id].tsx
@@ -74,7 +74,7 @@ const rent: Stringify<typeof enNs> = {
   perDaySlash: "/يوم",
   searchPlaceholder: "ابحث بالاسم أو الموقع أو النوع…",
   noMatches: "لا توجد نتائج",
-  noVehiclesInCategory: "لا توجد سيارات في هذه الفئة",
+  noVehiclesInCategory: "لا توجد سيارات متاحة للإيجار",
 
   // My bookings — app/rent/my-bookings.tsx
   myBookings: "حجوزاتي",

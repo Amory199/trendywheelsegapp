@@ -1,6 +1,6 @@
 export default {
   // Rent tab — app/(tabs)/rent.tsx
-  findYourRide: "Find your ride",
+  findYourRide: "Rent your ride today",
   pickCategory: "Pick a category to see vehicles",
 
   // Vehicle detail — app/rent/[id].tsx
@@ -71,7 +71,7 @@ export default {
   perDaySlash: "/day",
   searchPlaceholder: "Search by name, location, or type…",
   noMatches: "No matches",
-  noVehiclesInCategory: "No vehicles in this category",
+  noVehiclesInCategory: "No vehicles available for rent",
 
   // My bookings — app/rent/my-bookings.tsx
   myBookings: "My Bookings",
