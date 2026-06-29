@@ -467,7 +467,7 @@ export async function loginWithPassword(
   // lowercased; email match is case-insensitive (addresses were historically
   // stored as typed, e.g. "SHADY@GMAIL.COM").
   const id = identifier.trim();
-  const user = await prisma.user.findFirst({
+  const matches = await prisma.user.findMany({
     where: {
       OR: [
         { username: id.toLowerCase() },
@@ -476,6 +476,19 @@ export async function loginWithPassword(
       ],
     },
   });
+  // Fail closed on an ambiguous identifier: if the value resolves to more than
+  // one DISTINCT account (e.g. one user's username equals another's phone, or a
+  // phone was edited to collide), refuse rather than risk signing the caller
+  // into the wrong account. A single account matching on multiple fields is
+  // fine. (INC-059 — security hardening of the password-login resolver.)
+  const distinctIds = new Set(matches.map((u) => u.id));
+  if (distinctIds.size > 1) {
+    throw AppError.unauthorized(
+      "That login matches more than one account. Please sign in with your email address.",
+      "AMBIGUOUS_IDENTIFIER",
+    );
+  }
+  const user = matches[0] ?? null;
   // Distinct, honest failures so a user knows what to do next. The owner wants
   // clarity over email-enumeration hardening for this app; the auth rate
   // limiter on /api/auth/login already bounds guessing/scraping abuse.

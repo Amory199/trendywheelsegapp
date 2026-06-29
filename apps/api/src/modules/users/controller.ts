@@ -365,7 +365,14 @@ export async function setPassword(req: Request, res: Response): Promise<void> {
 
   const passwordHash = await bcrypt.hash(password, 12);
   await prisma.user.update({ where: { id: req.params.id }, data: { passwordHash } });
-  await revokeUserSessions(req.params.id);
+  // Revoke everywhere so the OLD password/sessions stop working — but NOT when an
+  // admin is changing their OWN password: they just authenticated to do it, and
+  // nuking their own session immediately bounces them out of the console mid-task
+  // (a top operator complaint). Their current token keeps working; only other
+  // sessions for that user are killed. (INC-059)
+  if (req.params.id !== req.user?.userId) {
+    await revokeUserSessions(req.params.id);
+  }
 
   res.json({ success: true });
 }
