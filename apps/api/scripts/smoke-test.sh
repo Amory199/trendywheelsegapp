@@ -93,9 +93,12 @@ pass "refresh issues a fresh access token; refresh token stays valid (no logout 
 
 # ─── 1c. Customer phone OTP bypass (+201234567000 / 730284) ──
 # Prod-active customer demo (Apple review account). MUST resolve to a customer —
-# verifyOtp blocks staff/admin on the bypass path, so a guessable code can never
-# mint a privileged token. (The old +201111139358 demo was retired — the owner
-# promoted that phone to an admin account, which now uses email+password.)
+# verifyOtp now UNCONDITIONALLY refuses a bypass code that resolves to any
+# staff/admin account (even passwordless/promoted), so a guessable fixed code can
+# never mint a privileged token. (The old +201111139358 demo was retired — the
+# owner promoted that phone to an admin account, which now uses email+password;
+# this assertion + the startup invariant assertBypassPhonesAreCustomers guard
+# against that class of drift recurring.)
 note "1c. Customer phone OTP bypass"
 DEMO_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/verify-otp" -H "$JSON" \
   -d '{"phone":"+201234567000","otp":"730284"}') \

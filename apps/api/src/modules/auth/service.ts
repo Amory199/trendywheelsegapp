@@ -8,6 +8,7 @@ import { env } from "../../config/env.js";
 import type { AuthPayload } from "../../middleware/auth.js";
 import { AppError } from "../../utils/errors.js";
 import { logger } from "../../utils/logger.js";
+import { Sentry } from "../../utils/sentry.js";
 import { emitDomainEvent, notifyAdmins } from "../../utils/notify.js";
 import { assignLeadRoundRobin, recordActivity } from "../crm/service.js";
 
@@ -60,6 +61,44 @@ const TRIAL_OTP_BYPASS: Record<string, string> = {
   ...DEMO_CUSTOMER_BYPASS,
   ...(env.NODE_ENV !== "production" ? DEV_ONLY_TRIAL_BYPASS : {}),
 };
+
+/**
+ * Boot-time invariant: no live OTP-bypass phone may map to a staff/admin account.
+ * The bypass accepts a fixed, guessable code; if such a phone were ever promoted
+ * to a privileged account (the +201111139358 incident), that code would unlock an
+ * admin session. verifyOtp() hard-blocks this at request time regardless — this
+ * check surfaces the misconfiguration LOUDLY at startup (log + Sentry) so it's
+ * caught before a release rather than silently relied upon. Non-fatal by design:
+ * a DB hiccup at boot must not down the API; the runtime guard is the real
+ * enforcement. (Phase-3 hardening.)
+ */
+export async function assertBypassPhonesAreCustomers(): Promise<void> {
+  if (!env.ENABLE_TRIAL_OTP_BYPASS) return;
+  const phones = Object.keys(TRIAL_OTP_BYPASS);
+  if (phones.length === 0) return;
+  try {
+    const rows = await prisma.user.findMany({
+      where: { phone: { in: phones }, accountType: { not: "customer" } },
+      select: { id: true, phone: true, accountType: true, staffRole: true },
+    });
+    if (rows.length > 0) {
+      for (const r of rows) {
+        logger.error(
+          { phone: r.phone, userId: r.id, accountType: r.accountType, staffRole: r.staffRole },
+          "SECURITY: OTP-bypass phone maps to a PRIVILEGED account — bypass is refused for it at runtime; remove the bypass entry or demote the account",
+        );
+      }
+      Sentry.captureMessage(
+        `OTP-bypass phone(s) map to privileged accounts: ${rows.map((r) => r.phone).join(", ")}`,
+        "error",
+      );
+    } else {
+      logger.info({ count: phones.length }, "OTP-bypass phones verified customer-only");
+    }
+  } catch (err) {
+    logger.warn({ err }, "Could not verify OTP-bypass phones at startup (non-fatal)");
+  }
+}
 
 export function signAccessToken(payload: AuthPayload, expiresIn?: string): string {
   // Stamp a millisecond issue time so session-revocation can order a token
@@ -148,6 +187,22 @@ export async function verifyOtp(
   // Find or create user
   let user = await prisma.user.findUnique({ where: { phone } });
   let isNewSignup = false;
+  // ⚠️ Hard wall on the bypass path. A trial-bypass code is a STATIC, guessable
+  // factor (a fixed 6 digits hardcoded above) — it must NEVER mint a privileged
+  // session, even if the bypass phone was later promoted to staff/admin or has no
+  // password yet. This is the +201111139358 landmine: a fixed code once pointed at
+  // an admin account. The password guard below only catches privileged accounts
+  // that ALREADY have a password, so a passwordless/promoted one would slip
+  // through — this catches it unconditionally. Real Firebase SMS to a passwordless
+  // privileged account may still bootstrap a password below; only the static-code
+  // path is walled here. (Phase-3 hardening; see assertBypassPhonesAreCustomers.)
+  if (isTrialBypass && user && user.accountType !== "customer") {
+    logger.error(
+      { phone, userId: user.id, accountType: user.accountType },
+      "SECURITY: trial-bypass code resolved to a privileged account — refused",
+    );
+    throw AppError.forbidden("This account cannot sign in with a demo code.", "BYPASS_PRIVILEGED");
+  }
   if (user && user.accountType !== "customer" && user.passwordHash) {
     // A privileged account that ALREADY has a password must sign in with it — a
     // single SMS factor must not bypass a set password on staff/admin. A

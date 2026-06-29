@@ -6,6 +6,7 @@ import { Server as SocketServer } from "socket.io";
 
 import { app } from "./app.js";
 import { env } from "./config/env.js";
+import { assertBypassPhonesAreCustomers } from "./modules/auth/service.js";
 import { registerSocketNamespaces } from "./sockets/index.js";
 import { writeError } from "./utils/error-sink.js";
 import { initFirebase } from "./utils/firebase.js";
@@ -102,6 +103,10 @@ httpServer.listen(env.PORT, async () => {
   } catch (err) {
     logger.warn({ err }, "MinIO bucket check failed (non-fatal)");
   }
+  // Security invariant: a static OTP-bypass code must never point at a privileged
+  // account. Logs + Sentry-alerts if one does; the runtime guard in verifyOtp
+  // enforces it regardless. Fire-and-forget — never blocks server boot.
+  void assertBypassPhonesAreCustomers();
 });
 
 // ─── Graceful shutdown ──────────────────────────────────────────
