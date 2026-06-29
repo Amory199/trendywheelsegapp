@@ -51,6 +51,20 @@ interface PaginationParams {
   limit?: number;
 }
 
+// Pre-auth endpoints where a 401 means "bad credentials / no such account",
+// NOT "your session expired". A 401 here must surface the server's own error
+// (WRONG_PASSWORD, NO_ACCOUNT, …) so the login screen can tell the user what's
+// wrong — it must never be funneled through the refresh-and-logout path, which
+// would silently bounce them to the guest catalog with no explanation.
+const PREAUTH_PATHS = [
+  "/api/auth/login",
+  "/api/auth/login-method",
+  "/api/auth/verify-otp",
+  "/api/auth/send-otp",
+  "/api/auth/firebase-token",
+  "/api/auth/refresh-token",
+];
+
 class ApiClient {
   public readonly baseUrl: string;
   private config: ClientConfig;
@@ -164,7 +178,13 @@ class ApiClient {
 
     let response = await fetchWithTimeout(headers["Authorization"]);
 
-    if (response.status === 401) {
+    // Only treat a 401 as a recoverable expired-session if we actually sent a
+    // token AND this isn't a pre-auth credential endpoint. A wrong-password
+    // login (or any PREAUTH_PATHS call) falls straight through to the error
+    // handler below, so the caller gets the server's real code/message instead
+    // of being silently logged out and dropped on the guest catalog.
+    const isPreAuth = PREAUTH_PATHS.some((p) => path.startsWith(p));
+    if (response.status === 401 && token && !isPreAuth) {
       try {
         // Single-flight: concurrent 401s share one refresh so the rotating
         // refresh token is consumed exactly once (no revoked-token logout race).

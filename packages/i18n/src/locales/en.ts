@@ -78,7 +78,7 @@ const en = {
     loggingIn: "Logging in…",
     loginFailed: "Login failed",
     invalidCredentials: "Wrong email or password.",
-    noAccount: "No account found with that email.",
+    noAccount: "No account found with that phone number or email.",
     noPasswordSet:
       "This account has no password yet. Sign in with your phone, or ask an admin to set one.",
     wrongPassword: "Incorrect password. Please try again.",

@@ -2,6 +2,26 @@
 
 Institutional memory for production bugs and the canonical fixes.
 
+### INC-056 — Wrong login credentials silently bounce to guest catalog (2026-06-28)
+
+**Status:** Fixed
+**Severity:** P1 (a customer entering a wrong password / unknown account gets no error — just dumped on the guest catalog, looks broken)
+**Touched:** `packages/api-client/src/index.ts`, `packages/i18n/src/locales/{en,ar}.ts`
+
+**Symptom**
+On the email/password login screen, wrong credentials (or an unknown account) navigated the user to the guest catalog with NO message — no "wrong password", no "no such account". The login screen ([login-email.tsx](<apps/mobile/app/(auth)/login-email.tsx>)) was already wired to display the server's `WRONG_PASSWORD` / `NO_ACCOUNT` / `NO_PASSWORD_SET` / `ACCOUNT_INACTIVE` codes, but never got the chance.
+
+**Root cause**
+`ApiClient.request()` treated EVERY 401 as an expired access token: it ran the refresh-and-retry path, which (with no valid session) threw `SESSION_EXPIRED` and fired `onAuthError`. `onAuthError` clears tokens and `router.replace("/(tabs)")` → guest catalog. So a `/api/auth/login` 401 (bad credentials) was hijacked by the session-death handler before the screen's `catch` could surface the real reason.
+
+**Fix** (OTA `30450037`)
+Gate the 401 refresh path: `if (response.status === 401 && token && !isPreAuth)`. A 401 is only a recoverable session-expiry when (a) we actually sent an access token AND (b) the path isn't a pre-auth credential endpoint (`PREAUTH_PATHS`: login, login-method, verify-otp, send-otp, firebase-token, refresh-token). Otherwise the 401 falls through to the normal error handler, which throws an `ApiClientError` carrying the server's `code` + `message` — so the login screen shows the specific reason. Bonus: also removes a latent recursion (a 401 on `/api/auth/refresh-token` via `request()` used to re-enter refresh). Copy fix: `auth.noAccount` now says "phone number or email" (the field accepts both).
+
+**Pattern to follow next time**
+A global "session died → go to login/guest" handler must fire ONLY for an authenticated request whose token the server rejected after refresh — never for the login/credential endpoints themselves (no session exists yet there). Key it off "did we send a token AND is this a post-auth path", not "is the status 401".
+
+---
+
 ### INC-055 — Stuck on "Complete your profile" + reinstall doesn't reset login (2026-06-28)
 
 **Status:** Fixed
