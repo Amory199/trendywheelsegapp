@@ -119,9 +119,18 @@ export default function TradeInScreen(): JSX.Element {
     setLocalPhotos((p) => p.filter((_, i) => i !== idx));
   };
 
-  const canProceed0 = brand.trim() && model.trim() && /^\d{4}$/.test(year);
-  const canProceed1 = localPhotos.length >= 1;
-  const blocked = submit.isPending || (step === 0 && !canProceed0) || (step === 1 && !canProceed1);
+  // Required fields across every step (all are required for trade-in). Gates
+  // only the final submit and drives the "what's missing" message; navigation
+  // between steps stays free.
+  const missingFields = (): string[] => {
+    const missing: string[] = [];
+    if (!brand.trim()) missing.push(t("sell.tradeIn.brand"));
+    if (!model.trim()) missing.push(t("sell.tradeIn.model"));
+    if (!/^\d{4}$/.test(year)) missing.push(t("sell.tradeIn.year"));
+    if (localPhotos.length < 1) missing.push(t("sell.tradeIn.photosRequired"));
+    return missing;
+  };
+  const allRequiredComplete = missingFields().length === 0;
 
   if (!user) return <GuestGate />;
 
@@ -151,7 +160,7 @@ export default function TradeInScreen(): JSX.Element {
         </View>
       </View>
 
-      <StepBar step={step} total={3} palette={palette} />
+      <StepBar step={step} total={3} palette={palette} onStepPress={setStep} />
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {step === 0 ? (
@@ -266,19 +275,27 @@ export default function TradeInScreen(): JSX.Element {
       <View style={styles.footer}>
         <Pressable
           onPress={() => {
-            if (step === 0) {
-              if (!canProceed0) return;
-              setStep(1);
-            } else if (step === 1) {
-              if (!canProceed1) return;
-              setStep(2);
-            } else {
-              if (!ensureId(user, router, "/sell/trade-in")) return;
-              submit.mutate();
+            if (step < 2) {
+              setStep(step + 1);
+              return;
             }
+            const missing = missingFields();
+            if (missing.length > 0) {
+              Alert.alert(
+                t("sell.tradeIn.missingTitle"),
+                `${t("sell.tradeIn.missingFields")}\n\n• ${missing.join("\n• ")}`,
+                [{ text: t("sell.tradeIn.ok") }],
+              );
+              return;
+            }
+            if (!ensureId(user, router, "/sell/trade-in")) return;
+            submit.mutate();
           }}
-          disabled={blocked}
-          style={[styles.submitBtn, blocked && styles.submitBtnDisabled]}
+          disabled={submit.isPending}
+          style={[
+            styles.submitBtn,
+            (submit.isPending || (step === 2 && !allRequiredComplete)) && styles.submitBtnDisabled,
+          ]}
         >
           {submit.isPending ? (
             <ActivityIndicator color="#000" />

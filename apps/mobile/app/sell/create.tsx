@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -163,24 +164,42 @@ export default function SellCreateScreen(): JSX.Element {
   const TITLE_MIN = 5;
   const DESC_MIN = 10;
 
-  const canProceed = (): boolean => {
-    if (step === 0)
+  // Per-step validity. Steps 0 and 1 carry required fields; step 2 (Photos) is
+  // optional. Drives the final submit gate via `allRequiredComplete` below.
+  const canProceed = (s: number = step): boolean => {
+    if (s === 0)
       return !!(
         form.title.trim().length >= TITLE_MIN &&
         form.make.trim() &&
         form.model.trim() &&
         form.year
       );
-    if (step === 1)
+    if (s === 1)
       return !!(
         form.price &&
         form.mileage &&
         form.color.trim() &&
         form.description.trim().length >= DESC_MIN
       );
-    if (step === 2) return true; // images optional
+    if (s === 2) return true; // images optional
     return true;
   };
+
+  // The specific required fields still missing across all non-optional steps —
+  // used to gate the final Publish button and tell the user exactly what's left.
+  const missingFields = (): string[] => {
+    const missing: string[] = [];
+    if (form.title.trim().length < TITLE_MIN) missing.push(t("sell.create.listingTitle"));
+    if (!form.make.trim()) missing.push(t("sell.create.make"));
+    if (!form.model.trim()) missing.push(t("sell.create.model"));
+    if (!form.year) missing.push(t("sell.create.yearLabel"));
+    if (!form.price) missing.push(t("sell.create.price"));
+    if (!form.mileage) missing.push(t("sell.create.mileage"));
+    if (!form.color.trim()) missing.push(t("sell.create.colorLabel"));
+    if (form.description.trim().length < DESC_MIN) missing.push(t("sell.create.descriptionLabel"));
+    return missing;
+  };
+  const allRequiredComplete = canProceed(0) && canProceed(1);
 
   const pickImage = async (): Promise<void> => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -222,7 +241,9 @@ export default function SellCreateScreen(): JSX.Element {
       <View style={styles.stepBar}>
         {STEP_KEYS.map((labelKey, i) => (
           <View key={labelKey} style={styles.stepItem}>
-            <View
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setStep(i)}
               style={[
                 styles.stepCircle,
                 i < step && styles.stepDone,
@@ -234,7 +255,7 @@ export default function SellCreateScreen(): JSX.Element {
               ) : (
                 <Text style={[styles.stepNum, i === step && styles.stepNumActive]}>{i + 1}</Text>
               )}
-            </View>
+            </Pressable>
             {i < STEP_KEYS.length - 1 && (
               <View style={[styles.stepLine, i < step && styles.stepLineDone]} />
             )}
@@ -501,8 +522,7 @@ export default function SellCreateScreen(): JSX.Element {
       <View style={styles.bottomBar}>
         {step < STEP_KEYS.length - 1 ? (
           <Pressable
-            style={[styles.nextBtn, !canProceed() && styles.btnDisabled]}
-            disabled={!canProceed()}
+            style={styles.nextBtn}
             onPress={() => {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setStep(step + 1);
@@ -513,9 +533,22 @@ export default function SellCreateScreen(): JSX.Element {
           </Pressable>
         ) : (
           <Pressable
-            style={[styles.nextBtn, mutation.isPending && styles.btnDisabled]}
+            style={[
+              styles.nextBtn,
+              (mutation.isPending || !allRequiredComplete) && styles.btnDisabled,
+            ]}
             disabled={mutation.isPending}
             onPress={() => {
+              const missing = missingFields();
+              if (missing.length > 0) {
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                Alert.alert(
+                  t("sell.create.missingTitle"),
+                  `${t("sell.create.missingFields")}\n\n• ${missing.join("\n• ")}`,
+                  [{ text: t("sell.create.ok") }],
+                );
+                return;
+              }
               if (!ensureId(user, router, "/sell/create")) return;
               mutation.mutate();
             }}

@@ -5,29 +5,39 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { colors, type Palette, spacing } from "@trendywheels/ui-tokens";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export function StepBar({
   step,
   total,
   palette,
+  // When provided, each step circle becomes tappable so the user can jump
+  // freely between steps to review or edit. Omitting it keeps the indicator
+  // purely presentational (backward-compatible).
+  onStepPress,
 }: {
   step: number;
   total: number;
   palette: Palette;
+  onStepPress?: (index: number) => void;
 }): React.JSX.Element {
   const styles = makeStyles(palette);
   return (
     <View style={styles.bar}>
       {Array.from({ length: total }).map((_, i) => (
         <View key={i} style={styles.item}>
-          <View style={[styles.circle, i < step && styles.done, i === step && styles.active]}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={!onStepPress}
+            onPress={() => onStepPress?.(i)}
+            style={[styles.circle, i < step && styles.done, i === step && styles.active]}
+          >
             {i < step ? (
               <Ionicons name="checkmark" size={14} color="#000" />
             ) : (
               <Text style={[styles.num, i === step && styles.numActive]}>{i + 1}</Text>
             )}
-          </View>
+          </Pressable>
           {i < total - 1 ? <View style={[styles.line, i < step && styles.lineDone]} /> : null}
         </View>
       ))}

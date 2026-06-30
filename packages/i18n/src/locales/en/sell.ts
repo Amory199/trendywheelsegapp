@@ -87,6 +87,9 @@ export default {
     createFailed: "Failed to create listing",
     continue: "Continue",
     publish: "Publish Listing",
+    missingTitle: "Incomplete listing",
+    missingFields: "Please complete these required fields before publishing:",
+    ok: "OK",
   },
 
   transmission: {
@@ -147,6 +150,9 @@ export default {
     reviewNote: "We'll review your listing within 48 hours and reach out to confirm terms.",
     submit: "Submit listing",
     continue: "Continue",
+    missingTitle: "Incomplete listing",
+    missingFields: "Please complete these required fields before submitting:",
+    photosRequired: "At least one photo",
     submittedTitle: "Listing submitted",
     submittedMessage: "We'll review your listing within 48 hours and reach out to confirm terms.",
     ok: "OK",
@@ -179,6 +185,9 @@ export default {
     reviewNote: "We'll get back to you with a quote within 24 hours. Quotes are valid for 7 days.",
     submit: "Submit trade-in",
     continue: "Continue",
+    missingTitle: "Incomplete request",
+    missingFields: "Please complete these required fields before submitting:",
+    photosRequired: "At least one photo",
     submittedTitle: "Trade-in submitted",
     submittedMessage:
       "We'll get back to you with a quote within 24 hours. Quotes are valid for 7 days.",
