@@ -179,7 +179,10 @@ export interface Vehicle {
   seating: number;
   fuelType: FuelType;
   transmission: Transmission;
-  dailyRate: number;
+  // null for sale-only carts (they have no rent price). Always present for
+  // rent/both listings. Render as a rent price ONLY when listingType is
+  // rent/both — never show it for a sale-only cart.
+  dailyRate: number | null;
   location: string;
   status: VehicleStatus;
   listingType: ListingType;

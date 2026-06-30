@@ -268,7 +268,7 @@ model Vehicle {
   seating          Int
   fuelType         FuelType        @map("fuel_type")
   transmission     Transmission
-  dailyRate        Decimal         @map("daily_rate") @db.Decimal(10, 2)
+  dailyRate        Decimal?        @map("daily_rate") @db.Decimal(10, 2)
   location         String
   status           VehicleStatus   @default(available)
   listingType      ListingType     @default(rent) @map("listing_type")

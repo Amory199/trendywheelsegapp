@@ -138,7 +138,9 @@ export default function VehicleCreatePage(): JSX.Element {
         seating: form.seating,
         fuelType: form.fuelType,
         transmission: form.transmission,
-        dailyRate: needsRent ? form.dailyRate : 1,
+        // Sale-only carts have no rent price — send null, not a placeholder.
+        // (A placeholder 1 here used to surface as "EGP 1" in the fleet/app.)
+        dailyRate: needsRent ? form.dailyRate : null,
         location: form.location,
         status: form.status,
         listingType: form.listingType,

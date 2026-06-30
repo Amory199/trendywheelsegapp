@@ -92,7 +92,10 @@ export const createVehicleSchema = z
     seating: z.coerce.number().int().min(1).max(20),
     fuelType: fuelTypeEnum,
     transmission: transmissionEnum,
-    dailyRate: z.coerce.number().positive(),
+    // Rent price. Only meaningful for rentable listings — a sale-only cart has
+    // no daily rate (sending a placeholder like 1 used to leak "EGP 1" into the
+    // UI). Optional/nullable here; the refine below requires it for rent/both.
+    dailyRate: z.coerce.number().positive().nullable().optional(),
     location: z.string().min(1).max(200),
     features: z.array(z.string()).default([]),
     images: z.array(z.string().url()).max(10).default([]),
@@ -107,6 +110,15 @@ export const createVehicleSchema = z
   })
   .refine(
     (v) =>
+      v.listingType === "sale" ||
+      (v.dailyRate !== undefined && v.dailyRate !== null && v.dailyRate > 0),
+    {
+      message: "dailyRate is required when listingType is 'rent' or 'both'",
+      path: ["dailyRate"],
+    },
+  )
+  .refine(
+    (v) =>
       v.originalPriceEgp === undefined ||
       v.salePrice === undefined ||
       v.originalPriceEgp > v.salePrice,
@@ -116,23 +128,34 @@ export const createVehicleSchema = z
     },
   );
 
-export const updateVehicleSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  category: vehicleCategoryEnum.optional(),
-  type: vehicleTypeEnum.optional(),
-  seating: z.coerce.number().int().min(1).max(20).optional(),
-  fuelType: fuelTypeEnum.optional(),
-  transmission: transmissionEnum.optional(),
-  dailyRate: z.coerce.number().positive().optional(),
-  location: z.string().min(1).max(200).optional(),
-  features: z.array(z.string()).optional(),
-  images: z.array(z.string().url()).max(10).optional(),
-  status: vehicleStatusEnum.optional(),
-  listingType: listingTypeEnum.optional(),
-  salePrice: z.coerce.number().positive().nullable().optional(),
-  originalPriceEgp: z.coerce.number().positive().nullable().optional(),
-  saleDescription: z.string().max(2000).nullable().optional(),
-});
+export const updateVehicleSchema = z
+  .object({
+    name: z.string().min(1).max(100).optional(),
+    category: vehicleCategoryEnum.optional(),
+    type: vehicleTypeEnum.optional(),
+    seating: z.coerce.number().int().min(1).max(20).optional(),
+    fuelType: fuelTypeEnum.optional(),
+    transmission: transmissionEnum.optional(),
+    dailyRate: z.coerce.number().positive().nullable().optional(),
+    location: z.string().min(1).max(200).optional(),
+    features: z.array(z.string()).optional(),
+    images: z.array(z.string().url()).max(10).optional(),
+    status: vehicleStatusEnum.optional(),
+    listingType: listingTypeEnum.optional(),
+    salePrice: z.coerce.number().positive().nullable().optional(),
+    originalPriceEgp: z.coerce.number().positive().nullable().optional(),
+    saleDescription: z.string().max(2000).nullable().optional(),
+  })
+  .refine(
+    // If this update sets the listing to rent/both AND touches dailyRate, the rate
+    // must be a real positive value — never null/0 (that's the "EGP 1"-class leak).
+    // A partial update that doesn't include dailyRate is left untouched.
+    (v) =>
+      !(v.listingType === "rent" || v.listingType === "both") ||
+      v.dailyRate === undefined ||
+      (v.dailyRate !== null && v.dailyRate > 0),
+    { message: "dailyRate is required when listingType is 'rent' or 'both'", path: ["dailyRate"] },
+  );
 
 // Optional Google Maps drop-off link for delivery. Blank / omitted = store
 // pickup. Kept permissive across the common Google Maps URL shapes (full

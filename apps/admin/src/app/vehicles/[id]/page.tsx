@@ -69,7 +69,7 @@ export default function VehicleEditPage(): JSX.Element {
       setSeating(vehicle.seating);
       setFuelType(vehicle.fuelType);
       setTransmission(vehicle.transmission);
-      setDailyRate(vehicle.dailyRate);
+      setDailyRate(vehicle.dailyRate ?? 0);
       setLocation(vehicle.location);
       setStatus(vehicle.status);
       setFeatures(vehicle.features.join(", "));
@@ -143,7 +143,8 @@ export default function VehicleEditPage(): JSX.Element {
         transmission,
         // Sale-only vehicles don't show a daily rate; keep a harmless non-zero
         // placeholder so the non-null column stays valid.
-        dailyRate: needsRent ? dailyRate : dailyRate || 1,
+        // Sale-only carts carry no rent price — send null, never a placeholder.
+        dailyRate: needsRent ? dailyRate : null,
         location,
         status,
         listingType,

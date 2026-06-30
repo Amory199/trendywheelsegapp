@@ -23,7 +23,9 @@ interface Vehicle {
   name: string;
   category: string;
   type?: string;
-  dailyRate?: number | string;
+  dailyRate?: number | string | null;
+  listingType?: string;
+  salePrice?: number | string | null;
   status?: string;
   available?: boolean;
   images?: string[];
@@ -157,9 +159,18 @@ export default function AdminVehicles(): React.JSX.Element {
                   {item.name}
                 </Text>
                 <Text style={styles.meta} numberOfLines={1}>
-                  {categoryLabel(item.category)} · {item.type ?? t("admin.dash")} · {t("admin.egp")}{" "}
-                  {Number(item.dailyRate ?? 0)}
-                  {t("admin.perDay")}
+                  {categoryLabel(item.category)} · {item.type ?? t("admin.dash")} ·{" "}
+                  {item.listingType === "sale" ? (
+                    // Sale-only cart: show the sale price, never the (null/placeholder) rent rate.
+                    <>
+                      {t("admin.egp")} {Number(item.salePrice ?? 0).toLocaleString()}
+                    </>
+                  ) : (
+                    <>
+                      {t("admin.egp")} {Number(item.dailyRate ?? 0).toLocaleString()}
+                      {t("admin.perDay")}
+                    </>
+                  )}
                 </Text>
                 <View style={styles.statusRow}>
                   <View
