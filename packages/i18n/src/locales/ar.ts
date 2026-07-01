@@ -62,6 +62,7 @@ const ar: TranslationKeys = {
     browseAsGuest: "تابع التصفّح بدون حساب",
     keepBrowsing: "ليس الآن — تابع التصفّح",
     haveAccountLogin: "لديك حساب بالفعل؟ سجّل الدخول",
+    haveSupportCode: "لم يصلك رمز؟ أدخل رمز الدعم",
     loginTitle: "مرحبًا بعودتك",
     loginSubtitle: "سجّل الدخول برقم هاتفك وكلمة المرور.",
     emailLabel: "البريد الإلكتروني",

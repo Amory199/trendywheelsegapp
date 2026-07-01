@@ -253,6 +253,12 @@ export default {
   userDisable: "Disable",
   userDisableUser: "Disable user",
   userReenableUser: "Re-enable user",
+  issueCodeBtn: "Issue login code",
+  issueCodeTitle: "Login code",
+  issueCodeBody:
+    "Give this code to the user so they can sign in (via “Didn't get a code?” on the login screen):",
+  issueCodeExpiry: "Valid for 15 minutes.",
+  issueCodeFailed: "Couldn't issue a code",
   accountTypeCustomer: "customer",
   accountTypeStaff: "staff",
   accountTypeAdmin: "admin",

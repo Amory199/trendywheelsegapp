@@ -19,6 +19,21 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
   res.json(result);
 }
 
+// Admin-only: generate a manual login code for a user who can't get a Firebase
+// SMS. Returns the code to the admin, who relays it to the user out-of-band.
+// Recorded so there's an audit trail of who issued a code for which phone.
+export async function adminIssueOtp(req: Request, res: Response): Promise<void> {
+  const { phone } = req.body as { phone: string };
+  const result = await authService.adminIssueOtp(phone);
+  await writeError({
+    level: "warn",
+    source: "admin",
+    message: "admin_issued_otp",
+    metadata: { phone, byAdminId: req.user?.userId, userExists: result.userExists },
+  });
+  res.json({ code: result.code, expiresAt: result.expiresAt, userExists: result.userExists });
+}
+
 // Pre-login routing: should this phone use password or OTP? (See service.)
 export async function loginMethod(req: Request, res: Response): Promise<void> {
   const { phone } = req.body;

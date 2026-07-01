@@ -191,6 +191,26 @@ export default function PhoneScreen(): JSX.Element {
           >
             <Text style={styles.skipText}>{t("auth.haveAccountLogin")}</Text>
           </TouchableOpacity>
+
+          {/* Fallback when the SMS never arrives: support can issue a code
+              out-of-band (call / WhatsApp) which is verified via the server OTP
+              path, not Firebase. Requires a valid number first. */}
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={() => {
+              if (!localValid) {
+                Alert.alert(t("auth.invalidNumberTitle"), t("auth.invalidNumberMessage"));
+                return;
+              }
+              router.push({
+                pathname: "/(auth)/otp",
+                params: { phone: fullPhone, mode: "support" },
+              });
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.skipText}>{t("auth.haveSupportCode")}</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

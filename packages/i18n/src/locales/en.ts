@@ -66,6 +66,7 @@ const en = {
     browseAsGuest: "Continue browsing without an account",
     keepBrowsing: "Not now — keep browsing",
     haveAccountLogin: "Already have an account? Log in",
+    haveSupportCode: "Didn't get a code? Enter a support code",
     loginTitle: "Welcome back",
     loginSubtitle: "Log in with your phone number and password.",
     emailLabel: "Email",

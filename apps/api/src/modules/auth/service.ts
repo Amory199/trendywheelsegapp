@@ -155,6 +155,24 @@ export async function sendOtp(phone: string): Promise<{ success: boolean; messag
   return { success: true, message: "OTP sent successfully" };
 }
 
+// Admin-issued manual OTP. When a user can't receive a Firebase SMS (App Check
+// attestation blocked, carrier delay, wrong number on file, roaming…), an admin
+// generates a real one-time code here and reads it to the user out-of-band
+// (phone call / WhatsApp). The user enters it on the "support code" login path,
+// which verifies it against the SAME otp_codes table as a normal OTP — so the
+// existing verifyOtp() flow (and all its account guards) applies unchanged.
+// Admin-only at the route layer.
+export async function adminIssueOtp(
+  phone: string,
+): Promise<{ code: string; expiresAt: Date; userExists: boolean }> {
+  const code = generateOtp();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+  const user = await prisma.user.findUnique({ where: { phone } });
+  await prisma.otpCode.create({ data: { phone, code, expiresAt, userId: user?.id } });
+  logger.warn({ phone, userId: user?.id, msg: "admin-issued manual OTP code" });
+  return { code, expiresAt, userExists: !!user };
+}
+
 export async function verifyOtp(
   phone: string,
   otp: string,

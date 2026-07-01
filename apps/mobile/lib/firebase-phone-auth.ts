@@ -1,5 +1,14 @@
 import auth, { type FirebaseAuthTypes } from "@react-native-firebase/auth";
 
+import { reportClientError } from "./error-reporter";
+
+// Mask the middle of a phone for telemetry — keep the last 4 so a report can
+// still be correlated with a user, without logging the full number.
+function maskPhone(phone: string): string {
+  if (phone.length <= 4) return phone;
+  return phone.slice(0, -4).replace(/[0-9]/g, "•") + phone.slice(-4);
+}
+
 /**
  * Single-flight confirmation object passed between the phone and otp screens.
  * Lives in module scope because router params can only carry strings — the
@@ -35,7 +44,33 @@ export function isTrialPhone(phone: string): boolean {
 }
 
 export async function sendFirebaseOtp(phone: string): Promise<void> {
-  pendingConfirmation = await auth().signInWithPhoneNumber(phone);
+  // Log EVERY send so we can see server-side whether Firebase actually accepts
+  // the request (SMS dispatched) or rejects it — the SMS is sent by Firebase on
+  // the device, so a rejection here (App Check attestation blocked, reCAPTCHA
+  // fallback failing, quota, bad number) is otherwise invisible to us. Query:
+  //   error_logs WHERE message LIKE 'firebase_otp_send%'
+  const startedAt = Date.now();
+  try {
+    pendingConfirmation = await auth().signInWithPhoneNumber(phone);
+    reportClientError({
+      level: "warn", // telemetry only (levels are error|warn|fatal); the message name marks success
+      message: "firebase_otp_send_ok",
+      metadata: { phone: maskPhone(phone), ms: Date.now() - startedAt },
+    });
+  } catch (err) {
+    const e = err as { code?: string; message?: string };
+    reportClientError({
+      level: "warn",
+      message: "firebase_otp_send_failed",
+      metadata: {
+        phone: maskPhone(phone),
+        code: e?.code ?? "unknown",
+        error: e?.message ?? String(err),
+        ms: Date.now() - startedAt,
+      },
+    });
+    throw err; // let the UI surface the failure to the user
+  }
 }
 
 export async function confirmFirebaseOtp(code: string): Promise<string> {

@@ -110,6 +110,26 @@ DEMO_TYPE=$(echo "$DEMO_RESP" | jq -r '.user.accountType // empty')
   || fail "demo bypass account type=$DEMO_TYPE (expected customer — a fixed code must NEVER reach staff/admin)"
 pass "demo customer bypass logs in as customer"
 
+# ─── 1c-2. Admin-issued manual OTP (support-code fallback) ──
+# When a user can't get a Firebase SMS, an admin issues a real one-time code and
+# the user signs in via the server OTP path. Admin-only; the issued code must
+# actually authenticate. Uses the demo customer phone so no new user is created.
+note "1c-2. Admin-issued manual OTP"
+UNAUTH=$(curl -s -o /dev/null -w "%{http_code}" -A "$SMOKE_UA" -XPOST "$BASE/auth/issue-otp" \
+  -H "$JSON" -d '{"phone":"+201234567000"}')
+[ "$UNAUTH" = "401" ] || fail "issue-otp without admin auth returned $UNAUTH (expected 401)"
+ISSUE_RESP=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/issue-otp" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" -d '{"phone":"+201234567000"}') \
+  || fail "admin issue-otp rejected"
+ISSUED_CODE=$(echo "$ISSUE_RESP" | jq -r '.code // empty')
+echo "$ISSUED_CODE" | grep -qE '^[0-9]{6}$' || fail "issue-otp did not return a 6-digit code: $ISSUE_RESP"
+MANUAL_LOGIN=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/verify-otp" -H "$JSON" \
+  -d "{\"phone\":\"+201234567000\",\"otp\":\"$ISSUED_CODE\"}") \
+  || fail "verify-otp with admin-issued code failed"
+[ -n "$(echo "$MANUAL_LOGIN" | jq -r '.token // empty')" ] \
+  || fail "admin-issued code did not mint a token: $MANUAL_LOGIN"
+pass "admin issues a manual code + user logs in with it"
+
 # ─── 1d. Support message reaches the whole staff team ────────
 # A customer support message must fan out to ALL staff: a staff member who is
 # NOT the original recipient must still see the thread in their inbox.

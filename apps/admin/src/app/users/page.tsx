@@ -325,6 +325,19 @@ function UserDrawer({
     onSuccess: () => onChange(),
   });
 
+  // Manual login code for a user who can't get a Firebase SMS. Shows the code so
+  // it can be relayed to the user; they enter it via "Didn't get a code?" on the
+  // login screen (verified through the server OTP path). Valid 15 minutes.
+  const [issuedCode, setIssuedCode] = useState<string | null>(null);
+  const issueCodeMutation = useMutation({
+    mutationFn: () =>
+      authedFetch(`/api/auth/issue-otp`, {
+        method: "POST",
+        body: JSON.stringify({ phone: user.phone }),
+      }),
+    onSuccess: (res: unknown) => setIssuedCode((res as { code?: string })?.code ?? null),
+  });
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
       <div
@@ -423,6 +436,29 @@ function UserDrawer({
               </button>
             )}
           </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <div className="text-xs uppercase tracking-wider text-gray-500 mb-2">Login help</div>
+          <p className="text-xs text-gray-500 mb-2">
+            If this user can&apos;t receive an SMS code, issue one here and read it to them. They
+            enter it via &ldquo;Didn&apos;t get a code?&rdquo; on the login screen.
+          </p>
+          <button
+            onClick={() => issueCodeMutation.mutate()}
+            disabled={issueCodeMutation.isPending}
+            className="px-3 py-1.5 border border-blue-500 text-blue-600 hover:bg-blue-50 text-xs font-medium rounded-md disabled:opacity-40"
+          >
+            {issueCodeMutation.isPending ? "Issuing…" : "Issue login code"}
+          </button>
+          {issuedCode && (
+            <div className="mt-3 flex items-center gap-3">
+              <span className="font-mono text-2xl tracking-widest font-bold text-gray-900">
+                {issuedCode}
+              </span>
+              <span className="text-xs text-gray-500">valid 15 min</span>
+            </div>
+          )}
         </div>
 
         <SetPasswordSection user={user} />

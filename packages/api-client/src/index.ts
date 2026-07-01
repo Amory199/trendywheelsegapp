@@ -246,6 +246,14 @@ class ApiClient {
     return this.request("POST", "/api/auth/send-otp", { body: { phone } });
   }
 
+  // Admin-only: generate a manual login code for a user who can't get a Firebase
+  // SMS. Returns the code for the admin to relay to the user out-of-band.
+  async adminIssueOtp(
+    phone: string,
+  ): Promise<{ code: string; expiresAt: string; userExists: boolean }> {
+    return this.request("POST", "/api/auth/issue-otp", { body: { phone } });
+  }
+
   // Pre-login routing: "password" → registered (staff/admin or a customer who
   // set credentials) → send to email/password screen; "otp" → new / OTP-only.
   async loginMethod(phone: string): Promise<{ method: "password" | "otp" }> {

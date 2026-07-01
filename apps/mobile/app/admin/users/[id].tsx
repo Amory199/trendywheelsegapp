@@ -93,6 +93,20 @@ export default function AdminUserEdit(): React.JSX.Element {
     onSuccess: async () => qc.invalidateQueries({ queryKey: ["admin"] }),
   });
 
+  // Manual login code for a user who can't get a Firebase SMS. Shows the code so
+  // the admin can read it to the user (call / WhatsApp); it's verified via the
+  // "support code" login path. Valid 15 minutes.
+  const issueCode = useMutation({
+    mutationFn: async () => api.adminIssueOtp(user!.phone),
+    onSuccess: (r: { code: string }) =>
+      Alert.alert(
+        t("admin.issueCodeTitle"),
+        `${t("admin.issueCodeBody")}\n\n${r.code}\n\n${t("admin.issueCodeExpiry")}`,
+      ),
+    onError: (e) =>
+      Alert.alert(t("admin.issueCodeFailed"), e instanceof Error ? e.message : t("admin.tryAgain")),
+  });
+
   const user = q.data;
   const isAdmin = me?.accountType === "admin";
 
@@ -225,6 +239,19 @@ export default function AdminUserEdit(): React.JSX.Element {
                   {save.isPending ? t("admin.userSaving") : t("admin.userSave")}
                 </Text>
               </Pressable>
+
+              {isAdmin && (
+                <Pressable
+                  style={[styles.enableBtn, issueCode.isPending && { opacity: 0.5 }]}
+                  disabled={issueCode.isPending}
+                  onPress={() => issueCode.mutate()}
+                >
+                  <Ionicons name="key" size={16} color={colors.brand.friendlyBlue} />
+                  <Text style={[styles.enableBtnText, { color: colors.brand.friendlyBlue }]}>
+                    {t("admin.issueCodeBtn")}
+                  </Text>
+                </Pressable>
+              )}
 
               {user.status === "active" ? (
                 <Pressable
