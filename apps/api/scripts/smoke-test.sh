@@ -552,7 +552,7 @@ pass "admin cleanup"
 note "12i-2. Sale pricing + reservation + invoice"
 SV_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/vehicles" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
-  -d '{"name":"Smoke Sale Cart","category":"golf-cart","type":"4-seater","seating":4,"fuelType":"electric","transmission":"automatic","dailyRate":1,"location":"6th October","listingType":"sale","salePrice":50000,"originalPriceEgp":65000}') \
+  -d '{"name":"Smoke Sale Cart","category":"golf-cart","type":"off-road","seating":4,"fuelType":"electric","transmission":"automatic","location":"6th October","listingType":"sale","salePrice":50000,"originalPriceEgp":65000}') \
   || fail "admin create sale vehicle rejected"
 SV_ID=$(echo "$SV_CREATE" | jq -r '.id // .data.id')
 [ -n "$SV_ID" ] && [ "$SV_ID" != "null" ] || fail "no sale-vehicle id: $SV_CREATE"
