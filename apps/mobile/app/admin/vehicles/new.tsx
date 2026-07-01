@@ -10,7 +10,7 @@ import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
 
 const CATEGORIES = ["golf-cart", "scooter", "jet-ski", "buggy", "utv", "hover-board"];
-const TYPES = ["electric", "petrol", "manual", "automatic"];
+const TYPES = ["off-road", "on-road", "utility", "luxury"];
 
 const CATEGORY_KEY: Record<
   string,
@@ -30,12 +30,12 @@ const CATEGORY_KEY: Record<
 };
 const TYPE_KEY: Record<
   string,
-  "admin.typeElectric" | "admin.typePetrol" | "admin.typeManual" | "admin.typeAutomatic"
+  "admin.typeOffRoad" | "admin.typeOnRoad" | "admin.typeUtility" | "admin.typeLuxury"
 > = {
-  electric: "admin.typeElectric",
-  petrol: "admin.typePetrol",
-  manual: "admin.typeManual",
-  automatic: "admin.typeAutomatic",
+  "off-road": "admin.typeOffRoad",
+  "on-road": "admin.typeOnRoad",
+  utility: "admin.typeUtility",
+  luxury: "admin.typeLuxury",
 };
 
 export default function AdminVehicleNew(): React.JSX.Element {
@@ -53,7 +53,7 @@ export default function AdminVehicleNew(): React.JSX.Element {
   }>({
     name: "",
     category: "golf-cart",
-    type: "electric",
+    type: "",
     seating: "2",
     dailyRate: "",
     location: "Cairo",
@@ -64,7 +64,7 @@ export default function AdminVehicleNew(): React.JSX.Element {
       api.createVehicle({
         name: form.name,
         category: form.category,
-        type: form.type,
+        type: form.type || undefined,
         seating: Number(form.seating),
         dailyRate: Number(form.dailyRate),
         location: form.location,

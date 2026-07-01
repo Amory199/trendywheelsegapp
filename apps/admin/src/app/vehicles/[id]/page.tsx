@@ -17,6 +17,13 @@ import type { JSX } from "react";
 
 import { api } from "../../../lib/api";
 
+const TYPE_LABELS: Record<VehicleType, string> = {
+  "off-road": "Off-road",
+  "on-road": "On-road",
+  utility: "Utility",
+  luxury: "Luxury",
+};
+
 const FEATURES_SUGGESTIONS = [
   "AC",
   "GPS",
@@ -44,7 +51,7 @@ export default function VehicleEditPage(): JSX.Element {
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState<VehicleCategory>("golf-cart");
-  const [type, setType] = useState<VehicleType>("4-seater");
+  const [type, setType] = useState<VehicleType | "">("");
   const [seating, setSeating] = useState(4);
   const [fuelType, setFuelType] = useState<FuelType>("gasoline");
   const [transmission, setTransmission] = useState<Transmission>("automatic");
@@ -65,7 +72,7 @@ export default function VehicleEditPage(): JSX.Element {
     if (vehicle) {
       setName(vehicle.name);
       setCategory(vehicle.category);
-      setType(vehicle.type);
+      setType(vehicle.type ?? "");
       setSeating(vehicle.seating);
       setFuelType(vehicle.fuelType);
       setTransmission(vehicle.transmission);
@@ -137,12 +144,10 @@ export default function VehicleEditPage(): JSX.Element {
       await api.updateVehicle(id, {
         name,
         category,
-        type,
+        type: type || null,
         seating,
         fuelType,
         transmission,
-        // Sale-only vehicles don't show a daily rate; keep a harmless non-zero
-        // placeholder so the non-null column stays valid.
         // Sale-only carts carry no rent price — send null, never a placeholder.
         dailyRate: needsRent ? dailyRate : null,
         location,
@@ -242,22 +247,21 @@ export default function VehicleEditPage(): JSX.Element {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
-            {category === "golf-cart" && (
-              <div>
-                <label className="text-xs font-medium text-gray-500 block mb-1">Type</label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value as VehicleType)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  {(["4-seater", "6-seater", "LED"] as VehicleType[]).map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">Type</label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value as VehicleType | "")}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">— none —</option>
+                {(["off-road", "on-road", "utility", "luxury"] as VehicleType[]).map((t) => (
+                  <option key={t} value={t}>
+                    {TYPE_LABELS[t]}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">Seating</label>
               <input

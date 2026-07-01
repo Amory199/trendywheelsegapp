@@ -295,6 +295,10 @@ const admin: Stringify<typeof enNs> = {
   typePetrol: "بنزين",
   typeManual: "يدوي",
   typeAutomatic: "أوتوماتيك",
+  typeOffRoad: "طرق وعرة",
+  typeOnRoad: "طرق ممهدة",
+  typeUtility: "خدمية",
+  typeLuxury: "فاخرة",
 
   tryAgain: "حاول مرة أخرى",
 };

@@ -46,7 +46,7 @@ const STATUS_CONFIG: Record<
 };
 
 const STATUSES: VehicleStatus[] = ["available", "rented", "maintenance", "inactive"];
-const TYPES = ["All", "4-seater", "7-seater", "pickup", "bus", "motorcycle"];
+const TYPES = ["All", "off-road", "on-road", "utility", "luxury"];
 
 export default function AvailabilityPage(): JSX.Element {
   const qc = useQueryClient();

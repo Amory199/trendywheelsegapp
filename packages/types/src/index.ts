@@ -75,7 +75,7 @@ export type AccountType = "customer" | "staff" | "admin";
 export type UserStatus = "active" | "inactive" | "suspended";
 export type LoyaltyTier = "bronze" | "silver" | "gold" | "platinum";
 
-export type VehicleType = "4-seater" | "6-seater" | "LED";
+export type VehicleType = "off-road" | "on-road" | "utility" | "luxury";
 export type VehicleCategory =
   | "golf-cart"
   | "hover-board"
@@ -175,7 +175,7 @@ export interface Vehicle {
   id: string;
   name: string;
   category: VehicleCategory;
-  type: VehicleType;
+  type: VehicleType | null;
   seating: number;
   fuelType: FuelType;
   transmission: Transmission;

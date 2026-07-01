@@ -12,13 +12,14 @@ type Tx = Prisma.TransactionClient;
 const VEHICLES_CACHE_TTL = 5 * 60; // 5 minutes
 const VEHICLES_CACHE_PREFIX = "vehicles:list:";
 
-// Prisma's VehicleType enum uses symbolic names (FOUR_SEATER) with @map() to
-// the wire values ("4-seater") sent by the validator and the form. The Prisma
+// Prisma's VehicleType enum uses symbolic names (OFF_ROAD) with @map() to the
+// wire values ("off-road") sent by the validator and the form. The Prisma
 // client always wants the symbolic name, so translate before each write.
-const VEHICLE_TYPE_MAP: Record<string, "FOUR_SEATER" | "SIX_SEATER" | "LED"> = {
-  "4-seater": "FOUR_SEATER",
-  "6-seater": "SIX_SEATER",
-  LED: "LED",
+const VEHICLE_TYPE_MAP: Record<string, "OFF_ROAD" | "ON_ROAD" | "UTILITY" | "LUXURY"> = {
+  "off-road": "OFF_ROAD",
+  "on-road": "ON_ROAD",
+  utility: "UTILITY",
+  luxury: "LUXURY",
 };
 
 const VEHICLE_CATEGORY_MAP: Record<string, string> = {

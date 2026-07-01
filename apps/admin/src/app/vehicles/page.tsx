@@ -38,6 +38,13 @@ const CATEGORY_LABEL = Object.fromEntries(
   VEHICLE_CATEGORIES.map((c) => [c.key, c.label]),
 ) as Record<VehicleCategory, string>;
 
+const TYPE_LABELS: Record<string, string> = {
+  "off-road": "Off-road",
+  "on-road": "On-road",
+  utility: "Utility",
+  luxury: "Luxury",
+};
+
 export default function VehiclesPage(): JSX.Element {
   const router = useRouter();
   const qc = useQueryClient();
@@ -296,7 +303,9 @@ export default function VehiclesPage(): JSX.Element {
                             {LISTING_LABEL[listing]}
                           </span>
                         </td>
-                        <td className="px-4 py-3">{v.category === "golf-cart" ? v.type : "—"}</td>
+                        <td className="px-4 py-3">
+                          {v.type ? (TYPE_LABELS[v.type] ?? v.type) : "—"}
+                        </td>
                         <td className="px-4 py-3">{v.seating}</td>
                         <td className="px-4 py-3 text-xs">
                           {listing !== "sale" && (

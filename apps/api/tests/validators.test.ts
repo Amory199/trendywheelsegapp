@@ -16,9 +16,7 @@ describe("validators", () => {
   });
 
   it("validates a 6-digit OTP", () => {
-    expect(() =>
-      verifyOtpSchema.parse({ phone: "+201112223344", otp: "123456" }),
-    ).not.toThrow();
+    expect(() => verifyOtpSchema.parse({ phone: "+201112223344", otp: "123456" })).not.toThrow();
   });
 
   it("rejects a 5-digit OTP", () => {
@@ -29,7 +27,7 @@ describe("validators", () => {
     expect(() =>
       createVehicleSchema.parse({
         name: "Tesla Model 3",
-        type: "4-seater",
+        type: "off-road",
         seating: 4,
         fuelType: "electric",
         transmission: "automatic",

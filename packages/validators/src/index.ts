@@ -69,7 +69,7 @@ export const assumeRoleSchema = z
 
 // ─── Vehicles ────────────────────────────────────────────────
 
-const vehicleTypeEnum = z.enum(["4-seater", "6-seater", "LED"]);
+const vehicleTypeEnum = z.enum(["off-road", "on-road", "utility", "luxury"]);
 const vehicleCategoryEnum = z.enum([
   "golf-cart",
   "hover-board",
@@ -88,7 +88,8 @@ export const createVehicleSchema = z
   .object({
     name: z.string().min(1).max(100),
     category: vehicleCategoryEnum.default("golf-cart"),
-    type: vehicleTypeEnum,
+    // Vehicle kind — optional, distinct from the seating count.
+    type: vehicleTypeEnum.nullable().optional(),
     seating: z.coerce.number().int().min(1).max(20),
     fuelType: fuelTypeEnum,
     transmission: transmissionEnum,
@@ -132,8 +133,8 @@ export const updateVehicleSchema = z
   .object({
     name: z.string().min(1).max(100).optional(),
     category: vehicleCategoryEnum.optional(),
-    type: vehicleTypeEnum.optional(),
     seating: z.coerce.number().int().min(1).max(20).optional(),
+    type: vehicleTypeEnum.nullable().optional(),
     fuelType: fuelTypeEnum.optional(),
     transmission: transmissionEnum.optional(),
     dailyRate: z.coerce.number().positive().nullable().optional(),

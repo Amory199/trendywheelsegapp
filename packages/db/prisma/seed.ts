@@ -134,7 +134,7 @@ async function main() {
   const vehiclesData = [
     {
       name: "Club Car Onward 4P",
-      type: "FOUR_SEATER" as const,
+      type: "ON_ROAD" as const,
       seating: 4,
       fuelType: "electric" as const,
       transmission: "automatic" as const,
@@ -144,7 +144,7 @@ async function main() {
     },
     {
       name: "E-Z-GO RXV Lithium",
-      type: "FOUR_SEATER" as const,
+      type: "ON_ROAD" as const,
       seating: 4,
       fuelType: "electric" as const,
       transmission: "automatic" as const,
@@ -154,7 +154,7 @@ async function main() {
     },
     {
       name: "Yamaha Drive2 PTV",
-      type: "FOUR_SEATER" as const,
+      type: "ON_ROAD" as const,
       seating: 4,
       fuelType: "gasoline" as const,
       transmission: "automatic" as const,
@@ -164,7 +164,7 @@ async function main() {
     },
     {
       name: "Garia Via 6 Resort",
-      type: "SIX_SEATER" as const,
+      type: "OFF_ROAD" as const,
       seating: 6,
       fuelType: "electric" as const,
       transmission: "automatic" as const,
@@ -174,7 +174,7 @@ async function main() {
     },
     {
       name: "Club Car Villager 6",
-      type: "SIX_SEATER" as const,
+      type: "OFF_ROAD" as const,
       seating: 6,
       fuelType: "electric" as const,
       transmission: "automatic" as const,
@@ -184,7 +184,7 @@ async function main() {
     },
     {
       name: "Hisun Sector E1 6P",
-      type: "SIX_SEATER" as const,
+      type: "OFF_ROAD" as const,
       seating: 6,
       fuelType: "electric" as const,
       transmission: "automatic" as const,
@@ -194,7 +194,7 @@ async function main() {
     },
     {
       name: "Garia Via LED Edition",
-      type: "LED" as const,
+      type: "LUXURY" as const,
       seating: 4,
       fuelType: "electric" as const,
       transmission: "automatic" as const,
@@ -204,7 +204,7 @@ async function main() {
     },
     {
       name: "Star EV Capella LED Lounge",
-      type: "LED" as const,
+      type: "LUXURY" as const,
       seating: 6,
       fuelType: "electric" as const,
       transmission: "automatic" as const,

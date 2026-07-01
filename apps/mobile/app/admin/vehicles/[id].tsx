@@ -31,6 +31,17 @@ interface Vehicle {
   status?: string;
 }
 
+const TYPES = ["off-road", "on-road", "utility", "luxury"];
+const TYPE_KEY: Record<
+  string,
+  "admin.typeOffRoad" | "admin.typeOnRoad" | "admin.typeUtility" | "admin.typeLuxury"
+> = {
+  "off-road": "admin.typeOffRoad",
+  "on-road": "admin.typeOnRoad",
+  utility: "admin.typeUtility",
+  luxury: "admin.typeLuxury",
+};
+
 const VEHICLE_STATUSES = ["available", "rented", "maintenance", "inactive"];
 const VEHICLE_STATUS_KEY: Record<
   string,
@@ -116,11 +127,29 @@ export default function AdminVehicleEdit(): React.JSX.Element {
               value={form.name}
               onChange={(v) => update("name", v)}
             />
-            <Field
-              label={t("admin.vehicleFieldType")}
-              value={form.type}
-              onChange={(v) => update("type", v)}
-            />
+            <View style={styles.card}>
+              <Text style={styles.label}>{t("admin.vehicleFieldType")}</Text>
+              <View style={styles.statusRow}>
+                {TYPES.map((ty) => (
+                  <Pressable
+                    key={ty}
+                    // Tap the active chip to clear — type is optional, so an
+                    // unset value is sent as undefined (never a placeholder).
+                    onPress={() => update("type", (form.type === ty ? undefined : ty) as never)}
+                    style={[styles.statusChip, form.type === ty && styles.statusChipActive]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusChipText,
+                        form.type === ty && styles.statusChipTextActive,
+                      ]}
+                    >
+                      {TYPE_KEY[ty] ? t(TYPE_KEY[ty]) : ty}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
             <Field
               label={t("admin.vehicleFieldLocation")}
               value={form.location}

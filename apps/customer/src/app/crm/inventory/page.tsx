@@ -10,7 +10,7 @@ import { authedFetch } from "../../../lib/fetcher";
 interface InventoryVehicle {
   id: string;
   name: string;
-  type: "4-seater" | "6-seater" | "LED";
+  type: "off-road" | "on-road" | "utility" | "luxury" | null;
   seating: number;
   fuelType: string;
   transmission: string;
@@ -29,9 +29,10 @@ interface MyLead {
 
 const TYPES: Array<{ value: string; label: string; color: string }> = [
   { value: "", label: "All carts", color: colors.brand.friendlyBlue },
-  { value: "4-seater", label: "4-seater", color: colors.brand.poolBlue },
-  { value: "6-seater", label: "6-seater", color: colors.brand.friendlyBlue },
-  { value: "LED", label: "LED", color: colors.brand.trendyPink },
+  { value: "off-road", label: "Off-road", color: colors.brand.poolBlue },
+  { value: "on-road", label: "On-road", color: colors.brand.friendlyBlue },
+  { value: "utility", label: "Utility", color: colors.brand.ecoLimelight },
+  { value: "luxury", label: "Luxury", color: colors.brand.trendyPink },
 ];
 
 const STATUS_STYLES: Record<string, { bg: string; fg: string }> = {
@@ -259,7 +260,7 @@ function VehicleCard({
         >
           {vehicle.status}
         </span>
-        {vehicle.type === "LED" ? (
+        {vehicle.type ? (
           <span
             style={{
               position: "absolute",
@@ -274,7 +275,7 @@ function VehicleCard({
               letterSpacing: "0.06em",
             }}
           >
-            LED
+            {TYPES.find((t) => t.value === vehicle.type)?.label ?? vehicle.type}
           </span>
         ) : null}
       </div>

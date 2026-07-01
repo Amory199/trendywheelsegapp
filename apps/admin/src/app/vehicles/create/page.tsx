@@ -16,10 +16,17 @@ import type { JSX } from "react";
 
 import { api } from "../../../lib/api";
 
+const TYPE_LABELS: Record<VehicleType, string> = {
+  "off-road": "Off-road",
+  "on-road": "On-road",
+  utility: "Utility",
+  luxury: "Luxury",
+};
+
 interface VehicleForm {
   name: string;
   category: VehicleCategory;
-  type: VehicleType;
+  type: VehicleType | "";
   seating: number;
   fuelType: FuelType;
   transmission: Transmission;
@@ -51,7 +58,7 @@ export default function VehicleCreatePage(): JSX.Element {
   const [form, setForm] = useState<VehicleForm>({
     name: "",
     category: "golf-cart",
-    type: "4-seater",
+    type: "",
     seating: 4,
     fuelType: "electric",
     transmission: "automatic",
@@ -64,12 +71,9 @@ export default function VehicleCreatePage(): JSX.Element {
     originalPriceEgp: 0,
     saleDescription: "",
   });
-  // The `type` field ("4-seater" / "6-seater" / "LED") is golf-cart-specific.
-  // Other categories don't have that taxonomy, so we hide the field and submit
-  // a fixed default ("4-seater") to satisfy the still-required API column.
-  // This is the pragmatic short-term: long-term the API should make `type`
-  // nullable for non-golf-cart categories.
-  const isGolfCart = form.category === "golf-cart";
+  // The `type` field is a general, optional vehicle kind ("off-road" /
+  // "on-road" / "utility" / "luxury") that applies across every category.
+  // It's nullable: an empty selection is submitted as null, never a placeholder.
   const [images, setImages] = useState<Array<{ file: File; preview: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,7 +138,7 @@ export default function VehicleCreatePage(): JSX.Element {
       await api.createVehicle({
         name: form.name,
         category: form.category,
-        type: form.type,
+        type: form.type || null,
         seating: form.seating,
         fuelType: form.fuelType,
         transmission: form.transmission,
@@ -275,22 +279,23 @@ export default function VehicleCreatePage(): JSX.Element {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
-            {isGolfCart && (
-              <div>
-                <label className="text-xs font-medium text-gray-500 block mb-1">Type</label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as VehicleType }))}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  {(["4-seater", "6-seater", "LED"] as VehicleType[]).map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">Type</label>
+              <select
+                value={form.type}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, type: e.target.value as VehicleType | "" }))
+                }
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">— none —</option>
+                {(["off-road", "on-road", "utility", "luxury"] as VehicleType[]).map((t) => (
+                  <option key={t} value={t}>
+                    {TYPE_LABELS[t]}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">Seating</label>
               <input

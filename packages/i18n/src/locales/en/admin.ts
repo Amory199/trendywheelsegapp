@@ -315,6 +315,10 @@ export default {
   typePetrol: "petrol",
   typeManual: "manual",
   typeAutomatic: "automatic",
+  typeOffRoad: "Off-road",
+  typeOnRoad: "On-road",
+  typeUtility: "Utility",
+  typeLuxury: "Luxury",
 
   // Shared
   tryAgain: "Try again",

@@ -53,7 +53,14 @@ const STATUS_CONFIG: Record<
 };
 
 const STATUSES: VehicleStatus[] = ["available", "rented", "maintenance", "inactive"];
-const TYPES = ["All", "4-seater", "6-seater", "LED"];
+const TYPES = ["All", "off-road", "on-road", "utility", "luxury"];
+const TYPE_LABELS: Record<string, string> = {
+  All: "All",
+  "off-road": "Off-road",
+  "on-road": "On-road",
+  utility: "Utility",
+  luxury: "Luxury",
+};
 
 export default function AdminFleetPage(): JSX.Element {
   const qc = useQueryClient();
@@ -169,7 +176,7 @@ export default function AdminFleetPage(): JSX.Element {
         >
           {TYPES.map((t) => (
             <option key={t} value={t}>
-              {t}
+              {TYPE_LABELS[t] ?? t}
             </option>
           ))}
         </select>

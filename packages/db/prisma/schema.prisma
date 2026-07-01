@@ -168,9 +168,10 @@ model OtpCode {
 // ─── Vehicles ────────────────────────────────────────────────
 
 enum VehicleType {
-  FOUR_SEATER @map("4-seater")
-  SIX_SEATER  @map("6-seater")
-  LED
+  OFF_ROAD @map("off-road")
+  ON_ROAD  @map("on-road")
+  UTILITY  @map("utility")
+  LUXURY   @map("luxury")
 }
 
 model MaintenanceRequest {
@@ -264,7 +265,10 @@ model Vehicle {
   id               String          @id @default(uuid()) @db.Uuid
   name             String
   category         VehicleCategory @default(golf_cart)
-  type             VehicleType
+  // Vehicle kind (off-road / on-road / utility / luxury). Nullable — optional,
+  // and distinct from the seating count. (Was seat-based 4-seater/6-seater/LED,
+  // which duplicated the seating field.)
+  type             VehicleType?
   seating          Int
   fuelType         FuelType        @map("fuel_type")
   transmission     Transmission

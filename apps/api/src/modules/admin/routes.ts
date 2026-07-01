@@ -185,7 +185,8 @@ router.get("/revenue-breakdown", async (_req, res) => {
     select: { id: true, type: true },
   });
   const typeById = new Map<string, string>(
-    vehicles.map((v: { id: string; type: string }) => [v.id, String(v.type)] as const),
+    // type is nullable now (sale-only / untyped vehicles) — bucket those as OTHER.
+    vehicles.map((v: { id: string; type: string | null }) => [v.id, v.type ?? "OTHER"] as const),
   );
 
   const byType = new Map<string, number>();
