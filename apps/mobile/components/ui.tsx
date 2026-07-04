@@ -61,17 +61,31 @@ export function TWCard({
         style,
       ]}
     >
-      {/* Electric Night glass sheen — a faint top-lit highlight so the card
-          reads as lifted glass rather than a flat block. Dark mode only. */}
+      {/* Electric Night glass sheen — a top-lit highlight + a luminous Pool-Blue
+          top edge so the card reads as lifted glass rather than a flat block.
+          Dark mode only. */}
       {isDark ? (
-        <LinearGradient
-          colors={["rgba(255,255,255,0.07)", "rgba(255,255,255,0.015)", "transparent"]}
-          locations={[0, 0.45, 1]}
-          start={{ x: 0.1, y: 0 }}
-          end={{ x: 0.9, y: 1 }}
-          pointerEvents="none"
-          style={StyleSheet.absoluteFill}
-        />
+        <>
+          <LinearGradient
+            colors={["rgba(255,255,255,0.11)", "rgba(255,255,255,0.02)", "transparent"]}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0.15, y: 0 }}
+            end={{ x: 0.85, y: 1 }}
+            pointerEvents="none"
+            style={StyleSheet.absoluteFill}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 1,
+              backgroundColor: "rgba(0,199,234,0.28)",
+            }}
+          />
+        </>
       ) : null}
       {children}
     </View>
@@ -378,7 +392,7 @@ export function TWAurora({
   height = 320,
   style,
 }: {
-  variant?: "hero" | "login";
+  variant?: "hero" | "login" | "ambient";
   height?: number;
   style?: StyleProp<ViewStyle>;
 }): React.JSX.Element | null {
@@ -387,22 +401,29 @@ export function TWAurora({
   const uid = React.useId().replace(/:/g, "");
   if (!isDark) return null;
 
-  // Login floats the blooms lower and centered so they sit behind the form,
-  // not the status bar; hero pins them to the top corners behind the header.
+  // hero: corners behind a header. login: lower + centered behind the form.
+  // ambient: fills a whole scroll screen so the glow bleeds through the page's
+  // negative space (gaps/margins between cards) — the dark canvas feels alive.
   const blue =
     variant === "login"
       ? { cx: "0.82", cy: "0.30", r: "0.6" }
-      : { cx: "0.86", cy: "0.02", r: "0.62" };
+      : variant === "ambient"
+        ? { cx: "0.88", cy: "0.16", r: "0.7" }
+        : { cx: "0.86", cy: "0.02", r: "0.62" };
   const cyan =
     variant === "login"
       ? { cx: "0.12", cy: "0.44", r: "0.52" }
-      : { cx: "0.06", cy: "0.08", r: "0.5" };
+      : variant === "ambient"
+        ? { cx: "0.05", cy: "0.42", r: "0.6" }
+        : { cx: "0.06", cy: "0.08", r: "0.5" };
+
+  const box: ViewStyle =
+    variant === "ambient"
+      ? { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }
+      : { position: "absolute", top: 0, left: 0, right: 0, height };
 
   return (
-    <View
-      pointerEvents="none"
-      style={[{ position: "absolute", top: 0, left: 0, right: 0, height }, style]}
-    >
+    <View pointerEvents="none" style={[box, style]}>
       <Svg width="100%" height="100%">
         <Defs>
           <SvgRadialGradient id={`auroraB${uid}`} cx={blue.cx} cy={blue.cy} r={blue.r}>

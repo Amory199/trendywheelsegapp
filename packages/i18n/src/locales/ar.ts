@@ -63,6 +63,7 @@ const ar: TranslationKeys = {
     keepBrowsing: "ليس الآن — تابع التصفّح",
     haveAccountLogin: "لديك حساب بالفعل؟ سجّل الدخول",
     haveSupportCode: "لم يصلك رمز؟ أدخل رمز الدعم",
+    supportCodeHint: "أدخل الرمز الذي أعطاه لك فريق الدعم",
     loginTitle: "مرحبًا بعودتك",
     loginSubtitle: "سجّل الدخول برقم هاتفك وكلمة المرور.",
     emailLabel: "البريد الإلكتروني",

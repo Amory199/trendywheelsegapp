@@ -29,11 +29,15 @@ export default function OtpScreen(): JSX.Element {
   const styles = useMemo(() => makeStyles(p), [p]);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  // When the Firebase SMS never arrives, support can issue a code out-of-band
+  // (call / WhatsApp). That code lives in the server OTP table, so verifying it
+  // takes the DB path, NOT Firebase — flipping this switches the screen over.
+  const [useSupport, setUseSupport] = useState(false);
 
   const handleVerify = async (): Promise<void> => {
     setLoading(true);
     try {
-      if (mode === "firebase") {
+      if (mode === "firebase" && !useSupport) {
         const idToken = await confirmFirebaseOtp(otp);
         await verifyFirebaseIdToken(idToken);
       } else {
@@ -92,7 +96,7 @@ export default function OtpScreen(): JSX.Element {
           <BackButton style={{ marginLeft: -10, marginBottom: spacing.sm }} color={p.text} />
           <Text style={styles.title}>{t("auth.verifyTitle")}</Text>
           <Text style={styles.subtitle}>
-            {t("auth.otpSentTo")} {phone}
+            {useSupport ? t("auth.supportCodeHint") : `${t("auth.otpSentTo")} ${phone}`}
           </Text>
 
           <TextInput
@@ -116,6 +120,18 @@ export default function OtpScreen(): JSX.Element {
               {loading ? t("auth.verifying") : t("auth.verifyOtp")}
             </Text>
           </TouchableOpacity>
+
+          {/* Fallback shown only on the real-SMS (Firebase) path: if the code
+              never arrives, let support issue one out-of-band and verify it. */}
+          {mode === "firebase" && !useSupport ? (
+            <TouchableOpacity
+              style={styles.supportLink}
+              onPress={() => setUseSupport(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.supportLinkText}>{t("auth.haveSupportCode")}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -169,6 +185,13 @@ function makeStyles(p: Palette) {
       fontSize: typography.fontSize.bodyLarge,
       fontWeight: typography.fontWeight.bold,
       color: "#fff",
+    },
+    supportLink: { marginTop: spacing.lg, padding: spacing.sm },
+    supportLinkText: {
+      fontSize: typography.fontSize.body,
+      color: p.pool,
+      fontWeight: typography.fontWeight.semibold,
+      textAlign: "center",
     },
   });
 }

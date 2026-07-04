@@ -10,11 +10,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ErrorState } from "../../components/ErrorState";
 import { ListingCard } from "../../components/ListingCard";
+import { TWAurora } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
-import { useTheme } from "../../lib/use-theme";
 import { useDisplay } from "../../lib/typography";
+import { useTheme } from "../../lib/use-theme";
 
 type Category = "cart_new" | "cart_used" | "parts" | "accessory";
 
@@ -65,6 +66,7 @@ export default function BuyScreen(): React.JSX.Element {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
+      <TWAurora variant="ambient" />
       <View style={{ paddingTop: insets.top + 12, paddingHorizontal: PADDING, paddingBottom: 12 }}>
         <Text style={[{ fontSize: 38, color: palette.text }, display(0.4)]}>
           {t("buy.catalogTitle")}

@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CategoryStrip } from "../../components/CategoryStrip";
+import { TWAurora } from "../../components/ui";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useTheme } from "../../lib/use-theme";
@@ -18,6 +19,7 @@ export default function RentScreen(): JSX.Element {
 
   return (
     <View style={[styles.container, { backgroundColor: palette.bg }]}>
+      <TWAurora variant="ambient" />
       <View
         style={[
           styles.header,

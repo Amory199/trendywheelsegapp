@@ -67,6 +67,7 @@ const en = {
     keepBrowsing: "Not now — keep browsing",
     haveAccountLogin: "Already have an account? Log in",
     haveSupportCode: "Didn't get a code? Enter a support code",
+    supportCodeHint: "Enter the code our support team gave you",
     loginTitle: "Welcome back",
     loginSubtitle: "Log in with your phone number and password.",
     emailLabel: "Email",

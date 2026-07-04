@@ -20,12 +20,13 @@ import { Rail } from "../../components/Rail";
 import { RedeemSaveRow } from "../../components/RedeemSaveRow";
 import { SectionHeader } from "../../components/SectionHeader";
 import { ServicesRail } from "../../components/ServicesRail";
+import { TWAurora } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useLocale, useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
-import { useTheme } from "../../lib/use-theme";
 import { useDisplay, useTracking } from "../../lib/typography";
+import { useTheme } from "../../lib/use-theme";
 import { vehicleImageUrl } from "../../lib/vehicle";
 
 type ProductCategory = "cart_new" | "cart_used" | "parts" | "accessory";
@@ -163,6 +164,8 @@ export default function HomeScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.container, { backgroundColor: palette.bg }]}>
+      {/* Electric Night — ambient aurora glowing through the feed (dark only). */}
+      <TWAurora variant="ambient" />
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={scrollHandler}
