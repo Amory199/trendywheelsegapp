@@ -23,6 +23,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { TWAurora } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { isTrialPhone, sendFirebaseOtp } from "../../lib/firebase-phone-auth";
@@ -106,8 +107,10 @@ export default function PhoneScreen(): JSX.Element {
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      {/* Electric Night — aurora bloom behind the sign-in form (dark mode only). */}
+      <TWAurora variant="login" height={480} />
       <ScrollView
-        style={styles.flex}
+        style={styles.scroll}
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
@@ -220,9 +223,11 @@ export default function PhoneScreen(): JSX.Element {
 function makeStyles(p: Palette) {
   return StyleSheet.create({
     flex: { flex: 1, backgroundColor: p.bg },
+    // Transparent so the aurora behind the KeyboardAvoidingView base shows through.
+    scroll: { flex: 1, backgroundColor: "transparent" },
     container: {
       flexGrow: 1,
-      backgroundColor: p.bg,
+      backgroundColor: "transparent",
       justifyContent: "center",
       padding: spacing.lg,
     },

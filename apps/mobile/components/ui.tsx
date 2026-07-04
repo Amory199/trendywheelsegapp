@@ -15,6 +15,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Svg, { Defs, RadialGradient as SvgRadialGradient, Rect, Stop } from "react-native-svg";
 
 import { useTheme } from "../lib/use-theme";
 
@@ -45,7 +46,7 @@ export function TWCard({
   style?: StyleProp<ViewStyle>;
   padded?: boolean;
 }): React.JSX.Element {
-  const { palette: p } = useTheme();
+  const { palette: p, isDark } = useTheme();
   return (
     <View
       style={[
@@ -60,6 +61,18 @@ export function TWCard({
         style,
       ]}
     >
+      {/* Electric Night glass sheen — a faint top-lit highlight so the card
+          reads as lifted glass rather than a flat block. Dark mode only. */}
+      {isDark ? (
+        <LinearGradient
+          colors={["rgba(255,255,255,0.07)", "rgba(255,255,255,0.015)", "transparent"]}
+          locations={[0, 0.45, 1]}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       {children}
     </View>
   );
@@ -185,8 +198,26 @@ export function TWButton({
     ghost: { bg: "transparent", fg: p.text, border: "transparent" },
   }[kind];
 
+  // Electric Night — solid brand fills become a top-lit gradient with a colored
+  // glow, so primary CTAs feel like a live light source rather than a flat slab.
+  const filled = kind === "pink" || kind === "blue";
+  const gradient =
+    kind === "pink"
+      ? (["#FF2A7D", colors.brand.trendyPink] as const)
+      : (["#4A32FF", colors.brand.friendlyBlue] as const);
+  const glow =
+    filled && !disabled
+      ? {
+          shadowColor: kind === "pink" ? colors.brand.trendyPink : colors.brand.friendlyBlue,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.55,
+          shadowRadius: 14,
+          elevation: 8, // Android depth (colored shadow is iOS-only)
+        }
+      : null;
+
   return (
-    <Animated.View style={[animatedStyle, full ? { alignSelf: "stretch" } : null]}>
+    <Animated.View style={[animatedStyle, glow, full ? { alignSelf: "stretch" } : null]}>
       <Pressable
         disabled={disabled}
         onPress={onPress}
@@ -198,7 +229,8 @@ export function TWButton({
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
-            backgroundColor: tone.bg,
+            overflow: "hidden",
+            backgroundColor: filled ? "transparent" : tone.bg,
             borderWidth: kind === "outline" ? 1 : 0,
             borderColor: tone.border,
             borderRadius: 12,
@@ -209,6 +241,15 @@ export function TWButton({
           style,
         ]}
       >
+        {filled ? (
+          <LinearGradient
+            colors={gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            pointerEvents="none"
+            style={StyleSheet.absoluteFill}
+          />
+        ) : null}
         {icon ? <Ionicons name={icon} size={base.fontSize + 3} color={tone.fg} /> : null}
         {children != null ? (
           <Text style={{ color: tone.fg, fontSize: base.fontSize, fontWeight: "700" }}>
@@ -322,6 +363,62 @@ export function TWScreen({
 }): React.JSX.Element {
   const { palette: p } = useTheme();
   return <View style={[{ flex: 1, backgroundColor: p.bg }, style]}>{children}</View>;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// TWAurora — Electric Night hero backdrop.
+// ──────────────────────────────────────────────────────────────────────────
+// Two soft radial blooms (Friendly Blue + Pool Blue) at low opacity behind a
+// hero, turning dead-black into "electric night" — the single biggest lift of
+// the dark theme. Absolutely positioned, non-interactive, DARK MODE ONLY:
+// light mode stays clean. Drop it as the first child of a relative container.
+
+export function TWAurora({
+  variant = "hero",
+  height = 320,
+  style,
+}: {
+  variant?: "hero" | "login";
+  height?: number;
+  style?: StyleProp<ViewStyle>;
+}): React.JSX.Element | null {
+  const { isDark, palette: p } = useTheme();
+  // Unique gradient ids so multiple auroras on screen never collide.
+  const uid = React.useId().replace(/:/g, "");
+  if (!isDark) return null;
+
+  // Login floats the blooms lower and centered so they sit behind the form,
+  // not the status bar; hero pins them to the top corners behind the header.
+  const blue =
+    variant === "login"
+      ? { cx: "0.82", cy: "0.30", r: "0.6" }
+      : { cx: "0.86", cy: "0.02", r: "0.62" };
+  const cyan =
+    variant === "login"
+      ? { cx: "0.12", cy: "0.44", r: "0.52" }
+      : { cx: "0.06", cy: "0.08", r: "0.5" };
+
+  return (
+    <View
+      pointerEvents="none"
+      style={[{ position: "absolute", top: 0, left: 0, right: 0, height }, style]}
+    >
+      <Svg width="100%" height="100%">
+        <Defs>
+          <SvgRadialGradient id={`auroraB${uid}`} cx={blue.cx} cy={blue.cy} r={blue.r}>
+            <Stop offset="0" stopColor={p.aurora1} stopOpacity="1" />
+            <Stop offset="1" stopColor={p.aurora1} stopOpacity="0" />
+          </SvgRadialGradient>
+          <SvgRadialGradient id={`auroraC${uid}`} cx={cyan.cx} cy={cyan.cy} r={cyan.r}>
+            <Stop offset="0" stopColor={p.aurora2} stopOpacity="1" />
+            <Stop offset="1" stopColor={p.aurora2} stopOpacity="0" />
+          </SvgRadialGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#auroraB${uid})`} />
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#auroraC${uid})`} />
+      </Svg>
+    </View>
+  );
 }
 
 // ──────────────────────────────────────────────────────────────────────────

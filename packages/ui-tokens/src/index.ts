@@ -93,21 +93,43 @@ export type Palette = {
   lime: string;
   pool: string;
   red: string;
+  // Electric Night — depth + glow. `surface` sits one step above `bg`,
+  // `elevated` is the top of the ramp (sheets/pressed). `hairLit` is a
+  // luminous Pool-Blue hairline for "electric" edges. `glowPink` is the CTA
+  // shadow color. `aurora1`/`aurora2` are the two hero-backdrop blooms.
+  // `dim` is tertiary text (below `muted`).
+  surface: string;
+  elevated: string;
+  hairLit: string;
+  glowPink: string;
+  aurora1: string;
+  aurora2: string;
+  dim: string;
 };
 
 export function twPalette(dark: boolean): Palette {
   if (dark) {
     return {
-      bg: colors.brand.trustWorth,
-      card: colors.dark.card,
-      cardAlt: "#120F3D",
-      border: colors.dark.border,
-      text: colors.brand.loyalty,
-      muted: "rgba(255,255,255,0.58)",
+      // Electric Night ramp: bg #02011F → surface #0A0833 → card #14103F →
+      // elevated #1B1750. Four visible tones instead of two near-identical
+      // darks, so every card and sheet reads as floating above the base.
+      bg: colors.brand.trustWorth, // #02011F
+      surface: "#0A0833",
+      card: "#14103F", // lifted a step so cards float off the base
+      cardAlt: "#1B1750",
+      elevated: "#1B1750",
+      border: colors.dark.border, // #1E1B4B
+      hairLit: "rgba(0,199,234,0.35)", // luminous Pool-Blue edge
+      text: "#F5F5FA", // off-white, not stark #FFFFFF
+      muted: "#A5A1C8", // tinted lavender, not flat gray
+      dim: "#6E6A93",
       faint: "rgba(255,255,255,0.14)",
-      hairline: "rgba(255,255,255,0.08)",
+      hairline: "rgba(255,255,255,0.09)",
       tabInactive: "rgba(255,255,255,0.42)",
       chipBg: "rgba(255,255,255,0.06)",
+      glowPink: "rgba(255,0,101,0.55)",
+      aurora1: "rgba(43,15,248,0.55)", // Friendly Blue bloom
+      aurora2: "rgba(0,199,234,0.40)", // Pool Blue bloom
       blue: colors.brand.friendlyBlue,
       pink: colors.brand.trendyPink,
       lime: colors.brand.ecoLimelight,
@@ -117,15 +139,22 @@ export function twPalette(dark: boolean): Palette {
   }
   return {
     bg: "#F7F7FB",
+    surface: "#FFFFFF",
     card: colors.brand.loyalty,
     cardAlt: colors.ink[50],
+    elevated: colors.ink[50],
     border: colors.ink[100],
+    hairLit: "rgba(0,199,234,0.35)",
     text: colors.brand.trustWorth,
     muted: "#6B6A85",
+    dim: colors.ink[300],
     faint: colors.ink[100],
     hairline: "rgba(2,1,31,0.08)",
     tabInactive: colors.ink[300],
     chipBg: colors.ink[50],
+    glowPink: "rgba(255,0,101,0.30)",
+    aurora1: "rgba(43,15,248,0.10)",
+    aurora2: "rgba(0,199,234,0.08)",
     blue: colors.brand.friendlyBlue,
     pink: colors.brand.trendyPink,
     lime: colors.brand.ecoLimelight,
