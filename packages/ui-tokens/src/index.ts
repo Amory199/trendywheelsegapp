@@ -153,8 +153,10 @@ export function twPalette(dark: boolean): Palette {
     tabInactive: colors.ink[300],
     chipBg: colors.ink[50],
     glowPink: "rgba(255,0,101,0.30)",
-    aurora1: "rgba(43,15,248,0.10)",
-    aurora2: "rgba(0,199,234,0.08)",
+    // Light mode = a soft "dawn" (blue → warm pink) so it has its own identity
+    // rather than being flat white — the counterpart to dark's electric night.
+    aurora1: "rgba(43,15,248,0.11)",
+    aurora2: "rgba(255,0,101,0.07)",
     blue: colors.brand.friendlyBlue,
     pink: colors.brand.trendyPink,
     lime: colors.brand.ecoLimelight,

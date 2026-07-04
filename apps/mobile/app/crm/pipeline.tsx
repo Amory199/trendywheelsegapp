@@ -18,6 +18,7 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { EarningsCard } from "../../components/crm/EarningsCard";
+import { TWAurora } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { initialGreeting } from "../../lib/lead-templates";
@@ -173,6 +174,7 @@ export default function CrmPipeline(): React.JSX.Element {
 
   return (
     <View style={styles.root}>
+      <TWAurora variant="ambient" />
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.kicker, { letterSpacing: track(1.5) }]}>

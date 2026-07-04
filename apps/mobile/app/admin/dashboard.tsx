@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { RoleSwitcher } from "../../components/RoleSwitcher";
+import { TWAurora } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
@@ -47,6 +48,7 @@ export default function AdminDashboard(): JSX.Element {
 
   return (
     <View style={styles.root}>
+      <TWAurora variant="ambient" />
       <View style={styles.header}>
         <View>
           <Text style={styles.hello}>

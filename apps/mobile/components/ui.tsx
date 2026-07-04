@@ -47,6 +47,17 @@ export function TWCard({
   padded?: boolean;
 }): React.JSX.Element {
   const { palette: p, isDark } = useTheme();
+  // Light mode: a soft drop shadow so white cards lift off the dawn-tinted bg
+  // (light's counterpart to the dark glass sheen). Dark keeps the sheen below.
+  const lightLift = !isDark
+    ? {
+        shadowColor: "#1B1750",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+        elevation: 3,
+      }
+    : null;
   return (
     <View
       style={[
@@ -58,6 +69,7 @@ export function TWCard({
           padding: padded ? 16 : 0,
           overflow: "hidden",
         },
+        lightLift,
         style,
       ]}
     >
@@ -396,10 +408,11 @@ export function TWAurora({
   height?: number;
   style?: StyleProp<ViewStyle>;
 }): React.JSX.Element | null {
-  const { isDark, palette: p } = useTheme();
+  const { palette: p } = useTheme();
   // Unique gradient ids so multiple auroras on screen never collide.
   const uid = React.useId().replace(/:/g, "");
-  if (!isDark) return null;
+  // Renders in BOTH themes now — dark gets the electric blue/cyan night, light
+  // gets a soft blue/pink dawn (colors come from the palette, tuned per mode).
 
   // hero: corners behind a header. login: lower + centered behind the form.
   // ambient: fills a whole scroll screen so the glow bleeds through the page's

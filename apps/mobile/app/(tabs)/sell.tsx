@@ -5,6 +5,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HubCard } from "../../components/HubCard";
+import { TWAurora } from "../../components/ui";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useDisplay, useTracking } from "../../lib/typography";
@@ -41,45 +42,48 @@ export default function SellScreen(): JSX.Element {
   const track = useTracking();
 
   return (
-    <Animated.ScrollView
-      style={[styles.container, { backgroundColor: palette.bg }]}
-      contentContainerStyle={styles.scrollContent}
-      onScroll={scrollHandler}
-      scrollEventThrottle={16}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={[styles.title, display(0.3), { color: palette.text }]}>
-          {t("sell.hub.title")}
-        </Text>
-        <Text style={[styles.subtitle, { color: palette.muted }]}>{t("sell.hub.subtitle")}</Text>
-      </View>
+    <View style={{ flex: 1, backgroundColor: palette.bg }}>
+      <TWAurora variant="ambient" />
+      <Animated.ScrollView
+        style={[styles.container, { backgroundColor: "transparent" }]}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <Text style={[styles.title, display(0.3), { color: palette.text }]}>
+            {t("sell.hub.title")}
+          </Text>
+          <Text style={[styles.subtitle, { color: palette.muted }]}>{t("sell.hub.subtitle")}</Text>
+        </View>
 
-      <View style={styles.cards}>
-        {HUB_PATHS.map((p, i) => (
-          <Animated.View key={p.href} entering={FadeInDown.delay(i * 60).duration(360)}>
-            <HubCard
-              imageUri={p.image}
-              label={t(p.labelKey)}
-              sub={t(p.subKey)}
-              onPress={() => router.push(p.href as never)}
-            />
-          </Animated.View>
-        ))}
-      </View>
+        <View style={styles.cards}>
+          {HUB_PATHS.map((p, i) => (
+            <Animated.View key={p.href} entering={FadeInDown.delay(i * 60).duration(360)}>
+              <HubCard
+                imageUri={p.image}
+                label={t(p.labelKey)}
+                sub={t(p.subKey)}
+                onPress={() => router.push(p.href as never)}
+              />
+            </Animated.View>
+          ))}
+        </View>
 
-      <View style={styles.footer}>
-        <Text
-          style={[
-            styles.footerLink,
-            { letterSpacing: track(0.4), color: colors.brand.friendlyBlue },
-          ]}
-          onPress={() => router.push("/sell/category/all" as never)}
-        >
-          {t("sell.hub.browseMarketplace")}
-        </Text>
-      </View>
-    </Animated.ScrollView>
+        <View style={styles.footer}>
+          <Text
+            style={[
+              styles.footerLink,
+              { letterSpacing: track(0.4), color: colors.brand.friendlyBlue },
+            ]}
+            onPress={() => router.push("/sell/category/all" as never)}
+          >
+            {t("sell.hub.browseMarketplace")}
+          </Text>
+        </View>
+      </Animated.ScrollView>
+    </View>
   );
 }
 

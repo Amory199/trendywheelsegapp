@@ -24,7 +24,7 @@ import { KpiRow } from "../../components/profile/KpiRow";
 import { LoyaltyCard } from "../../components/profile/LoyaltyCard";
 import { ReferralCard } from "../../components/profile/ReferralCard";
 import { SettingsList } from "../../components/profile/SettingsList";
-import { TWButton } from "../../components/ui";
+import { TWAurora, TWButton } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
@@ -161,155 +161,158 @@ export default function ProfileScreen(): React.JSX.Element {
     "1.0.0";
 
   return (
-    <Animated.ScrollView
-      style={{ flex: 1, backgroundColor: palette.bg }}
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: TAB_BAR_SAFE_BOTTOM }}
-      onScroll={scrollHandler}
-      scrollEventThrottle={16}
-    >
-      <Animated.View entering={FadeInDown.duration(360)}>
-        <HeroStrip name={user.name ?? t("profile.welcome")} phone={user.phone} tier={tier} />
-      </Animated.View>
+    <View style={{ flex: 1, backgroundColor: palette.bg }}>
+      <TWAurora variant="ambient" />
+      <Animated.ScrollView
+        style={{ flex: 1, backgroundColor: "transparent" }}
+        contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: TAB_BAR_SAFE_BOTTOM }}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+      >
+        <Animated.View entering={FadeInDown.duration(360)}>
+          <HeroStrip name={user.name ?? t("profile.welcome")} phone={user.phone} tier={tier} />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(380).delay(60)}>
-        <KpiRow
-          stats={[
-            { value: points.toLocaleString(), label: t("profile.kpiPoints") },
-            { value: bookingsCount, label: t("profile.kpiBookings") },
-            { value: listingsCount, label: t("profile.kpiListings") },
-          ]}
-        />
-      </Animated.View>
+        <Animated.View entering={FadeInDown.duration(380).delay(60)}>
+          <KpiRow
+            stats={[
+              { value: points.toLocaleString(), label: t("profile.kpiPoints") },
+              { value: bookingsCount, label: t("profile.kpiBookings") },
+              { value: listingsCount, label: t("profile.kpiListings") },
+            ]}
+          />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(400).delay(120)}>
-        <LoyaltyCard tier={tier} points={points} />
-      </Animated.View>
+        <Animated.View entering={FadeInDown.duration(400).delay(120)}>
+          <LoyaltyCard tier={tier} points={points} />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(420).delay(180)}>
-        <ActivityCard
-          icon="calendar-outline"
-          title={t("profile.activity.bookingsTitle")}
-          subtitle={
-            bookingsCount === 0
-              ? t("profile.activity.bookingsEmpty")
-              : latestBooking?.status
-                ? `${bookingsCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestBooking.status}`
-                : `${bookingsCount} ${t("profile.activity.total")}`
-          }
-          tone="blue"
-          onPress={() => router.push("/rent/my-bookings")}
-        />
-      </Animated.View>
+        <Animated.View entering={FadeInDown.duration(420).delay(180)}>
+          <ActivityCard
+            icon="calendar-outline"
+            title={t("profile.activity.bookingsTitle")}
+            subtitle={
+              bookingsCount === 0
+                ? t("profile.activity.bookingsEmpty")
+                : latestBooking?.status
+                  ? `${bookingsCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestBooking.status}`
+                  : `${bookingsCount} ${t("profile.activity.total")}`
+            }
+            tone="blue"
+            onPress={() => router.push("/rent/my-bookings")}
+          />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(430).delay(210)}>
-        <ActivityCard
-          icon="bag-outline"
-          title={t("profile.activity.ordersTitle")}
-          subtitle={
-            ordersCount === 0
-              ? t("profile.activity.ordersEmpty")
-              : latestOrder?.status
-                ? `${ordersCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestOrder.status}`
-                : `${ordersCount} ${t("profile.activity.total")}`
-          }
-          tone="pink"
-          onPress={() => router.push("/buy/my-orders")}
-        />
-      </Animated.View>
+        <Animated.View entering={FadeInDown.duration(430).delay(210)}>
+          <ActivityCard
+            icon="bag-outline"
+            title={t("profile.activity.ordersTitle")}
+            subtitle={
+              ordersCount === 0
+                ? t("profile.activity.ordersEmpty")
+                : latestOrder?.status
+                  ? `${ordersCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestOrder.status}`
+                  : `${ordersCount} ${t("profile.activity.total")}`
+            }
+            tone="pink"
+            onPress={() => router.push("/buy/my-orders")}
+          />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(432).delay(217)}>
-        <ActivityCard
-          icon="pricetag-outline"
-          title={t("profile.activity.reservationsTitle")}
-          subtitle={t("profile.activity.reservationsSubtitle")}
-          tone="blue"
-          onPress={() => router.push("/sale/my-reservations")}
-        />
-      </Animated.View>
+        <Animated.View entering={FadeInDown.duration(432).delay(217)}>
+          <ActivityCard
+            icon="pricetag-outline"
+            title={t("profile.activity.reservationsTitle")}
+            subtitle={t("profile.activity.reservationsSubtitle")}
+            tone="blue"
+            onPress={() => router.push("/sale/my-reservations")}
+          />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(435).delay(225)}>
-        <ActivityCard
-          icon="heart-outline"
-          title={t("profile.activity.savedTitle")}
-          subtitle={t("profile.activity.savedSubtitle")}
-          tone="pink"
-          onPress={() => router.push("/profile/favorites")}
-        />
-      </Animated.View>
+        <Animated.View entering={FadeInDown.duration(435).delay(225)}>
+          <ActivityCard
+            icon="heart-outline"
+            title={t("profile.activity.savedTitle")}
+            subtitle={t("profile.activity.savedSubtitle")}
+            tone="pink"
+            onPress={() => router.push("/profile/favorites")}
+          />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(440).delay(240)}>
-        <ActivityCard
-          icon="pricetag-outline"
-          title={t("profile.activity.listingsTitle")}
-          subtitle={
-            listingsCount === 0
-              ? t("profile.activity.listingsEmpty")
-              : latestListing?.title
-                ? `${listingsCount} ${t("profile.activity.total")} · ${latestListing.title}`
-                : `${listingsCount} ${t("profile.activity.total")}`
-          }
-          tone="pink"
-          onPress={() => router.push("/sell/my-listings")}
-        />
-      </Animated.View>
+        <Animated.View entering={FadeInDown.duration(440).delay(240)}>
+          <ActivityCard
+            icon="pricetag-outline"
+            title={t("profile.activity.listingsTitle")}
+            subtitle={
+              listingsCount === 0
+                ? t("profile.activity.listingsEmpty")
+                : latestListing?.title
+                  ? `${listingsCount} ${t("profile.activity.total")} · ${latestListing.title}`
+                  : `${listingsCount} ${t("profile.activity.total")}`
+            }
+            tone="pink"
+            onPress={() => router.push("/sell/my-listings")}
+          />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(460).delay(300)}>
-        <ActivityCard
-          icon="construct-outline"
-          title={t("profile.activity.repairsTitle")}
-          subtitle={
-            repairsCount === 0
-              ? t("profile.activity.repairsEmpty")
-              : latestRepair?.status
-                ? `${repairsCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestRepair.status}`
-                : `${repairsCount} ${t("profile.activity.total")}`
-          }
-          tone="amber"
-          onPress={() => router.push("/(tabs)/repair")}
-        />
-      </Animated.View>
+        <Animated.View entering={FadeInDown.duration(460).delay(300)}>
+          <ActivityCard
+            icon="construct-outline"
+            title={t("profile.activity.repairsTitle")}
+            subtitle={
+              repairsCount === 0
+                ? t("profile.activity.repairsEmpty")
+                : latestRepair?.status
+                  ? `${repairsCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestRepair.status}`
+                  : `${repairsCount} ${t("profile.activity.total")}`
+            }
+            tone="amber"
+            onPress={() => router.push("/(tabs)/repair")}
+          />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(470).delay(330)}>
-        <ActivityCard
-          icon="car-sport-outline"
-          title={t("profile.activity.rentalsTitle")}
-          subtitle={
-            rentalsCount === 0
-              ? t("profile.activity.rentalsEmpty")
-              : latestRental?.status
-                ? `${rentalsCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestRental.status}`
-                : `${rentalsCount} ${t("profile.activity.total")}`
-          }
-          tone="purple"
-          onPress={() => router.push("/sell/list-for-rent/my")}
-        />
-      </Animated.View>
+        <Animated.View entering={FadeInDown.duration(470).delay(330)}>
+          <ActivityCard
+            icon="car-sport-outline"
+            title={t("profile.activity.rentalsTitle")}
+            subtitle={
+              rentalsCount === 0
+                ? t("profile.activity.rentalsEmpty")
+                : latestRental?.status
+                  ? `${rentalsCount} ${t("profile.activity.total")} · ${t("profile.activity.latest")}: ${latestRental.status}`
+                  : `${rentalsCount} ${t("profile.activity.total")}`
+            }
+            tone="purple"
+            onPress={() => router.push("/sell/list-for-rent/my")}
+          />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(475).delay(345)}>
-        <ActivityCard
-          icon="swap-horizontal-outline"
-          title={t("profile.activity.tradeInsTitle")}
-          subtitle={
-            tradeInsCount === 0
-              ? t("profile.activity.tradeInsEmpty")
-              : `${tradeInsCount} ${t("profile.activity.total")}`
-          }
-          tone="pool"
-          onPress={() => router.push("/sell/trade-in/my")}
-        />
-      </Animated.View>
+        <Animated.View entering={FadeInDown.duration(475).delay(345)}>
+          <ActivityCard
+            icon="swap-horizontal-outline"
+            title={t("profile.activity.tradeInsTitle")}
+            subtitle={
+              tradeInsCount === 0
+                ? t("profile.activity.tradeInsEmpty")
+                : `${tradeInsCount} ${t("profile.activity.total")}`
+            }
+            tone="pool"
+            onPress={() => router.push("/sell/trade-in/my")}
+          />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(500).delay(420)}>
-        <ReferralCard />
-      </Animated.View>
+        <Animated.View entering={FadeInDown.duration(500).delay(420)}>
+          <ReferralCard />
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.duration(520).delay(480)}>
-        <SettingsList
-          appVersion={appVersion}
-          onSignOut={onLogout}
-          onDeleteAccount={() => deleteAccount.mutate()}
-        />
-      </Animated.View>
-    </Animated.ScrollView>
+        <Animated.View entering={FadeInDown.duration(520).delay(480)}>
+          <SettingsList
+            appVersion={appVersion}
+            onSignOut={onLogout}
+            onDeleteAccount={() => deleteAccount.mutate()}
+          />
+        </Animated.View>
+      </Animated.ScrollView>
+    </View>
   );
 }

@@ -44,7 +44,14 @@ function RepairHero(): React.JSX.Element {
   );
 }
 
-import { TWBadge, TWButton, TWCard, TWPressable, TWSkeletonCard } from "../../components/ui";
+import {
+  TWAurora,
+  TWBadge,
+  TWButton,
+  TWCard,
+  TWPressable,
+  TWSkeletonCard,
+} from "../../components/ui";
 import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
@@ -276,6 +283,7 @@ export default function RepairScreen(): React.JSX.Element {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
+      <TWAurora variant="ambient" />
       <Animated.FlatList<RepairRequest>
         data={repairs}
         keyExtractor={(r) => r.id}

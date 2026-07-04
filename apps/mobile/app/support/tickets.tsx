@@ -16,6 +16,7 @@ import {
 import { BackButton } from "../../components/BackButton";
 import { ErrorState } from "../../components/ErrorState";
 import { GuestGate } from "../../components/GuestGate";
+import { TWAurora } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
@@ -81,6 +82,7 @@ export default function SupportTickets(): JSX.Element {
 
   return (
     <View style={styles.root}>
+      <TWAurora variant="ambient" />
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <BackButton style={{ marginLeft: -10 }} />
