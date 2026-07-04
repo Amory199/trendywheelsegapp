@@ -14,9 +14,19 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  type SharedValue,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import Svg, { Defs, RadialGradient as SvgRadialGradient, Rect, Stop } from "react-native-svg";
 
+import { useAuroraScrollY } from "../lib/tab-bar-scroll";
 import { useTheme } from "../lib/use-theme";
 
 // Frozen palettes kept for legacy module-level styles. Prefer useTheme() in
@@ -392,12 +402,101 @@ export function TWScreen({
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// TWAurora — Electric Night hero backdrop.
+// TWAurora — living, flowing backdrop.
 // ──────────────────────────────────────────────────────────────────────────
-// Two soft radial blooms (Friendly Blue + Pool Blue) at low opacity behind a
-// hero, turning dead-black into "electric night" — the single biggest lift of
-// the dark theme. Absolutely positioned, non-interactive, DARK MODE ONLY:
-// light mode stays clean. Drop it as the first child of a relative container.
+// Soft radial blooms (Friendly Blue + Pool Blue/Pink) that SLOWLY DRIFT like
+// aurora / water on an endless sine loop, and PARALLAX with the user's scroll
+// (via the shared scrollY from TabBarScrollProvider — null-safe elsewhere).
+// Renders in both themes: dark = electric night, light = soft dawn. Non-
+// interactive; drop as the first child of a relative container. Respects
+// reduced-motion (falls back to a static bloom). Motion is transform-only, so
+// it runs on the UI thread and stays cheap on budget devices.
+
+// One drifting bloom. Its own component so each gets an isolated hook set.
+function AuroraBloom({
+  color,
+  size,
+  leftPct,
+  topPct,
+  ampX,
+  ampY,
+  durationMs,
+  parallax,
+  scrollY,
+  paused,
+}: {
+  color: string;
+  size: number;
+  leftPct: number;
+  topPct: number;
+  ampX: number;
+  ampY: number;
+  durationMs: number;
+  parallax: number;
+  scrollY: SharedValue<number> | null;
+  paused: boolean;
+}): React.JSX.Element {
+  const uid = React.useId().replace(/:/g, "");
+  const prog = useSharedValue(0.5); // 0.5 = at-rest center
+
+  React.useEffect(() => {
+    if (paused) {
+      cancelAnimation(prog);
+      prog.value = withTiming(0.5, { duration: 600 });
+      return;
+    }
+    prog.value = withRepeat(
+      withTiming(1, { duration: durationMs, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true, // reverse → smooth back-and-forth
+    );
+    return () => cancelAnimation(prog);
+  }, [paused, durationMs, prog]);
+
+  const aStyle = useAnimatedStyle(() => {
+    const t = prog.value;
+    const sy = scrollY ? scrollY.value : 0;
+    // Clamp scroll parallax so a long page never flings the bloom off-canvas.
+    const par = Math.max(-80, Math.min(80, sy * parallax));
+    return {
+      transform: [
+        { translateX: (t - 0.5) * ampX },
+        { translateY: (t - 0.5) * ampY + par },
+        { scale: 0.9 + t * 0.2 },
+      ],
+      opacity: 0.7 + t * 0.3,
+    };
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          width: size,
+          height: size,
+          left: `${leftPct}%` as `${number}%`,
+          top: `${topPct}%` as `${number}%`,
+          marginLeft: -size / 2,
+          marginTop: -size / 2,
+        },
+        aStyle,
+      ]}
+    >
+      <Svg width="100%" height="100%">
+        <Defs>
+          <SvgRadialGradient id={`bloom${uid}`} cx="0.5" cy="0.5" r="0.5">
+            <Stop offset="0" stopColor={color} stopOpacity="1" />
+            <Stop offset="0.7" stopColor={color} stopOpacity="0.35" />
+            <Stop offset="1" stopColor={color} stopOpacity="0" />
+          </SvgRadialGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#bloom${uid})`} />
+      </Svg>
+    </Animated.View>
+  );
+}
 
 export function TWAurora({
   variant = "hero",
@@ -407,50 +506,59 @@ export function TWAurora({
   variant?: "hero" | "login" | "ambient";
   height?: number;
   style?: StyleProp<ViewStyle>;
-}): React.JSX.Element | null {
-  const { palette: p } = useTheme();
-  // Unique gradient ids so multiple auroras on screen never collide.
-  const uid = React.useId().replace(/:/g, "");
-  // Renders in BOTH themes now — dark gets the electric blue/cyan night, light
-  // gets a soft blue/pink dawn (colors come from the palette, tuned per mode).
-
-  // hero: corners behind a header. login: lower + centered behind the form.
-  // ambient: fills a whole scroll screen so the glow bleeds through the page's
-  // negative space (gaps/margins between cards) — the dark canvas feels alive.
-  const blue =
-    variant === "login"
-      ? { cx: "0.82", cy: "0.30", r: "0.6" }
-      : variant === "ambient"
-        ? { cx: "0.88", cy: "0.16", r: "0.7" }
-        : { cx: "0.86", cy: "0.02", r: "0.62" };
-  const cyan =
-    variant === "login"
-      ? { cx: "0.12", cy: "0.44", r: "0.52" }
-      : variant === "ambient"
-        ? { cx: "0.05", cy: "0.42", r: "0.6" }
-        : { cx: "0.06", cy: "0.08", r: "0.5" };
+}): React.JSX.Element {
+  const { isDark, palette: p } = useTheme();
+  const reduced = useReducedMotion();
+  const scrollY = useAuroraScrollY();
 
   const box: ViewStyle =
     variant === "ambient"
       ? { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }
       : { position: "absolute", top: 0, left: 0, right: 0, height };
 
+  // Login floats the cluster a bit lower so it sits behind the centered form.
+  const yShift = variant === "login" ? 16 : 0;
+  // Third hue completes a "flow of colors": pink in the dark night, cyan at dawn.
+  const third = isDark ? "rgba(255,0,101,0.16)" : "rgba(0,199,234,0.06)";
+
   return (
-    <View pointerEvents="none" style={[box, style]}>
-      <Svg width="100%" height="100%">
-        <Defs>
-          <SvgRadialGradient id={`auroraB${uid}`} cx={blue.cx} cy={blue.cy} r={blue.r}>
-            <Stop offset="0" stopColor={p.aurora1} stopOpacity="1" />
-            <Stop offset="1" stopColor={p.aurora1} stopOpacity="0" />
-          </SvgRadialGradient>
-          <SvgRadialGradient id={`auroraC${uid}`} cx={cyan.cx} cy={cyan.cy} r={cyan.r}>
-            <Stop offset="0" stopColor={p.aurora2} stopOpacity="1" />
-            <Stop offset="1" stopColor={p.aurora2} stopOpacity="0" />
-          </SvgRadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#auroraB${uid})`} />
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#auroraC${uid})`} />
-      </Svg>
+    <View pointerEvents="none" style={[box, { overflow: "hidden" }, style]}>
+      <AuroraBloom
+        color={p.aurora1}
+        size={480}
+        leftPct={80}
+        topPct={12 + yShift}
+        ampX={44}
+        ampY={34}
+        durationMs={12000}
+        parallax={-0.08}
+        scrollY={scrollY}
+        paused={reduced}
+      />
+      <AuroraBloom
+        color={p.aurora2}
+        size={440}
+        leftPct={12}
+        topPct={42 + yShift}
+        ampX={38}
+        ampY={48}
+        durationMs={16000}
+        parallax={0.12}
+        scrollY={scrollY}
+        paused={reduced}
+      />
+      <AuroraBloom
+        color={third}
+        size={400}
+        leftPct={60}
+        topPct={80}
+        ampX={32}
+        ampY={40}
+        durationMs={9500}
+        parallax={-0.16}
+        scrollY={scrollY}
+        paused={reduced}
+      />
     </View>
   );
 }

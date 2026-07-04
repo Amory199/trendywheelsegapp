@@ -23,14 +23,21 @@ const COMMIT_PX = 6;
 
 interface TabBarScrollContextValue {
   translateY: SharedValue<number>;
+  // Raw scroll offset (px), written every frame. Read by the living aurora so
+  // the background flow drifts with the user's swipe. Separate from translateY
+  // (which is a debounced show/hide target) so the aurora tracks scroll 1:1.
+  scrollY: SharedValue<number>;
 }
 
 const TabBarScrollContext = createContext<TabBarScrollContextValue | null>(null);
 
 export function TabBarScrollProvider({ children }: { children: ReactNode }): JSX.Element {
   const translateY = useSharedValue(0);
+  const scrollY = useSharedValue(0);
   return (
-    <TabBarScrollContext.Provider value={{ translateY }}>{children}</TabBarScrollContext.Provider>
+    <TabBarScrollContext.Provider value={{ translateY, scrollY }}>
+      {children}
+    </TabBarScrollContext.Provider>
   );
 }
 
@@ -40,14 +47,23 @@ export function useTabBarTranslate(): SharedValue<number> {
   return ctx.translateY;
 }
 
+// Null-safe: aurora is also mounted OUTSIDE the tabs provider (auth, admin,
+// staff). Those screens just get ambient drift with no scroll parallax.
+export function useAuroraScrollY(): SharedValue<number> | null {
+  return useContext(TabBarScrollContext)?.scrollY ?? null;
+}
+
 export function useTabBarScrollHandler(): ReturnType<typeof useAnimatedScrollHandler> {
-  const translateY = useTabBarTranslate();
+  const ctx = useContext(TabBarScrollContext);
+  if (!ctx) throw new Error("useTabBarScrollHandler must be used within TabBarScrollProvider");
+  const { translateY, scrollY } = ctx;
   const lastY = useSharedValue(0);
   const accumulated = useSharedValue(0);
   const direction = useSharedValue<0 | 1 | -1>(0);
   return useAnimatedScrollHandler({
     onScroll: (e) => {
       const y = e.contentOffset.y;
+      scrollY.value = y; // feed the living aurora
       const dy = y - lastY.value;
       lastY.value = y;
 
