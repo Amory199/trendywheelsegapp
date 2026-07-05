@@ -19,6 +19,7 @@ import { initOtaTelemetry } from "../lib/instrument-ota";
 import { routeNotification } from "../lib/notification-router";
 import { ensureNotificationPermission, initPushHandler, registerPushToken } from "../lib/push";
 import { initMobileSentry } from "../lib/sentry";
+import { useTheme } from "../lib/use-theme";
 
 // Wrap in try/catch — nothing at module-load should ever block first paint.
 try {
@@ -83,6 +84,7 @@ const queryClient = new QueryClient({
 export default function RootLayout(): JSX.Element {
   const user = useAuth((s) => s.user);
   const router = useRouter();
+  const { palette } = useTheme();
   // Ask for notification permission in-app on first launch — independent of
   // login, so guests and staff alike actually get the system prompt. Delayed
   // slightly so the dialog doesn't collide with the cold-start splash.
@@ -150,6 +152,11 @@ export default function RootLayout(): JSX.Element {
           <Stack
             screenOptions={{
               headerShown: false,
+              // Paint the scene container in the theme background so a screen
+              // that's still loading (or mid-transition) never flashes the
+              // navigator's default WHITE — it shows the dark/dawn bg + skeleton
+              // instead. Applies to every screen in the root stack.
+              contentStyle: { backgroundColor: palette.bg },
               // One coherent horizontal push for the whole detail hierarchy
               // (rent/buy/sell flows, profile sub-pages, messages, …) plus
               // edge swipe-back. Native-screen driven, so it's OTA-safe.

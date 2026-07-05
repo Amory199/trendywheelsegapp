@@ -96,6 +96,8 @@ const ar: TranslationKeys = {
     mechanic: "فني",
     cancel: "إلغاء",
     failed: "تعذّر تبديل الدور",
+    exitFailedTitle: "تعذّر العودة إلى المدير",
+    exitFailedBody: "جلستك بحاجة إلى تسجيل دخول جديد. من فضلك سجّل الدخول مرة أخرى كمدير.",
   },
   verifyId: {
     title: "توثيق الهوية",

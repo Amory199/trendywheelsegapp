@@ -67,6 +67,8 @@ export default function TabLayout(): JSX.Element {
         tabBar={(props) => <AutoHidingTabBar {...props} />}
         screenOptions={{
           headerShown: false,
+          // Paint the scene bg so a loading tab never flashes white.
+          sceneStyle: { backgroundColor: palette.bg },
           // Soft crossfade between tabs instead of a hard cut.
           animation: "fade",
           tabBarBackground: () => <GlassTabBar isDark={isDark} />,

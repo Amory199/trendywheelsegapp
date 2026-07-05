@@ -39,6 +39,8 @@ export default function SupportLayout(): JSX.Element {
     <Tabs
       screenOptions={{
         headerShown: false,
+        // Paint the scene bg so a loading screen never flashes white.
+        sceneStyle: { backgroundColor: colors.brand.trustWorth },
         animation: "fade",
         tabBarBackground: () => <GlassTabBar />,
         tabBarStyle: {

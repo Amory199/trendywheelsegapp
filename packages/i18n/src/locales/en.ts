@@ -101,6 +101,8 @@ const en = {
     mechanic: "Mechanic",
     cancel: "Cancel",
     failed: "Couldn't switch role",
+    exitFailedTitle: "Couldn't return to admin",
+    exitFailedBody: "Your session needs a fresh sign-in. Please log in again as admin.",
   },
   verifyId: {
     title: "Verify your ID",

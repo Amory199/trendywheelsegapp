@@ -15,6 +15,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Svg, { Defs, RadialGradient as SvgRadialGradient, Rect, Stop } from "react-native-svg";
 
 import { useTheme } from "../lib/use-theme";
 
@@ -391,18 +392,61 @@ export function TWScreen({
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// TWAurora — removed.
+// TWAurora — static soft background wash.
 // ──────────────────────────────────────────────────────────────────────────
-// The animated aurora backdrop was pulled at the owner's request — it made the
-// app feel heavy. Screens now show the plain solid palette.bg they already set.
-// Kept as a no-op (same signature) so the existing <TWAurora /> call sites stay
-// valid without touching every screen.
-export function TWAurora(_props: {
+// A screen-filling, STATIC (no animation) wash of soft brand-color radial
+// blooms so the background isn't a flat, depressing void. Rendered once — no
+// per-frame work, so it stays light on budget devices (the animated version was
+// pulled for being heavy). Dark = electric night, light = soft dawn. Non-
+// interactive; drop as the first child of a relative container.
+export function TWAurora({
+  variant = "hero",
+  height = 320,
+  style,
+}: {
   variant?: "hero" | "login" | "ambient";
   height?: number;
   style?: StyleProp<ViewStyle>;
-}): React.JSX.Element | null {
-  return null;
+}): React.JSX.Element {
+  const { isDark } = useTheme();
+  const uid = React.useId().replace(/:/g, "");
+
+  const box: ViewStyle =
+    variant === "ambient"
+      ? { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }
+      : { position: "absolute", top: 0, left: 0, right: 0, height };
+
+  // Login drops the field lower so it sits behind the centered form.
+  const yb = variant === "login" ? 0.18 : 0;
+
+  // Big soft radius + low alpha = a gentle wash, not a hard dot.
+  const cBlue = isDark ? "rgba(43,15,248,0.42)" : "rgba(43,15,248,0.11)";
+  const cCyan = isDark ? "rgba(0,199,234,0.30)" : "rgba(0,199,234,0.07)";
+  const cPink = isDark ? "rgba(255,0,101,0.18)" : "rgba(255,0,101,0.08)";
+
+  return (
+    <View pointerEvents="none" style={[box, { overflow: "hidden" }, style]}>
+      <Svg width="100%" height="100%">
+        <Defs>
+          <SvgRadialGradient id={`ab${uid}`} cx="0.82" cy={`${0.08 + yb}`} r="0.9">
+            <Stop offset="0" stopColor={cBlue} stopOpacity="1" />
+            <Stop offset="1" stopColor={cBlue} stopOpacity="0" />
+          </SvgRadialGradient>
+          <SvgRadialGradient id={`ac${uid}`} cx="0.1" cy={`${0.4 + yb}`} r="0.75">
+            <Stop offset="0" stopColor={cCyan} stopOpacity="1" />
+            <Stop offset="1" stopColor={cCyan} stopOpacity="0" />
+          </SvgRadialGradient>
+          <SvgRadialGradient id={`ap${uid}`} cx="0.72" cy="0.85" r="0.7">
+            <Stop offset="0" stopColor={cPink} stopOpacity="1" />
+            <Stop offset="1" stopColor={cPink} stopOpacity="0" />
+          </SvgRadialGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#ab${uid})`} />
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#ac${uid})`} />
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#ap${uid})`} />
+      </Svg>
+    </View>
+  );
 }
 
 // ──────────────────────────────────────────────────────────────────────────

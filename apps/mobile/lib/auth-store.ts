@@ -5,18 +5,23 @@ import { create } from "zustand";
 import { logEvent, setAnalyticsUser } from "./analytics";
 import {
   api,
+  clearStashedAdminRefresh,
   clearTokens,
   getAccessToken,
   getRefreshToken,
+  getStashedAdminRefresh,
   registerLogoutHandler,
   setTokens,
+  stashAdminRefresh,
 } from "./api";
 import { getLastPushToken } from "./push";
 
-// The real admin access token, kept in memory while "acting as" another role so
-// exit can restore it instantly. Null after a reload — exitActing then falls
-// back to refreshing with the admin refresh token (which is never overwritten).
+// The real admin session, kept in memory while "acting as" another role so exit
+// can restore it INSTANTLY (no round-trip). Both are null after an app restart —
+// exitActing then falls back to the stashed admin refresh token (persisted in
+// SecureStore) to mint a fresh admin session.
 let savedAdminToken: string | null = null;
+let savedAdminUser: User | null = null;
 
 export interface ActingAs {
   role: AccountType;
@@ -119,30 +124,74 @@ export const useAuth = create<AuthState>((set, get) => ({
   // place (setTokens without a refresh arg) so exitActing can always recover.
   async assumeRole(role, staffRole) {
     const current = await getAccessToken();
+    const currentRefresh = await getRefreshToken();
+    const adminUser = get().user;
     const res = await api.assumeRole({ role, staffRole });
     savedAdminToken = current;
+    savedAdminUser = adminUser;
+    // Persist the admin refresh token so exit can recover the admin session even
+    // after an app restart clears the in-memory copies above.
+    if (currentRefresh) await stashAdminRefresh(currentRefresh);
     await setTokens(res.token);
     set({ user: res.user, actingAs: { role, staffRole: staffRole ?? null } });
     setAnalyticsUser(res.user.id);
     logEvent("assume_role", { role, staffRole: staffRole ?? "" });
   },
 
-  // Leave the previewed role and restore the real admin session. Prefer the
-  // in-memory admin token; after a reload that's gone, so refresh with the
-  // admin refresh token (never overwritten while acting) to mint a fresh one.
+  // Leave the previewed role and restore the real admin session.
+  //
+  // Order matters: we restore the admin TOKEN *before* clearing `actingAs`, so a
+  // failure leaves the banner in place to retry instead of stranding the admin
+  // in the previewed interface with no exit button (the reported bug).
+  //   • Warm path (no restart): in-memory admin token → instant, no network.
+  //   • Cold path (after restart, memory gone): try the stashed admin refresh
+  //     token, then the stored refresh token — whichever mints an admin session.
+  // Throws if it cannot restore, so the caller can fall back (never stuck).
   async exitActing() {
-    set({ actingAs: null });
+    let restored = false;
+
     if (savedAdminToken) {
       await setTokens(savedAdminToken);
-      savedAdminToken = null;
+      restored = true;
     } else {
-      const refresh = await getRefreshToken();
-      if (refresh) {
-        const tokens = await api.refreshToken(refresh);
-        await setTokens(tokens.token, tokens.refreshToken);
+      // De-duped candidates: the stash first (definitely the admin's), then the
+      // current stored refresh (in case the stash was rotated mid-session).
+      const stashed = await getStashedAdminRefresh();
+      const stored = await getRefreshToken();
+      const candidates = [stashed, stored].filter(
+        (v, i, a): v is string => !!v && a.indexOf(v) === i,
+      );
+      for (const refresh of candidates) {
+        try {
+          const tokens = await api.refreshToken(refresh);
+          await setTokens(tokens.token, tokens.refreshToken);
+          restored = true;
+          break;
+        } catch {
+          // try the next candidate
+        }
       }
     }
-    await get().hydrate();
+
+    if (!restored) {
+      throw new Error("Could not restore the admin session");
+    }
+
+    savedAdminToken = null;
+    await clearStashedAdminRefresh();
+
+    if (savedAdminUser) {
+      // Warm: show the admin UI immediately, reconcile with the server in the
+      // background so exit feels instant.
+      const admin = savedAdminUser;
+      savedAdminUser = null;
+      set({ actingAs: null, user: admin });
+      void get().hydrate();
+    } else {
+      // Cold: we don't have the cached admin user — fetch it fresh.
+      set({ actingAs: null });
+      await get().hydrate();
+    }
   },
 
   async logout() {
@@ -155,6 +204,8 @@ export const useAuth = create<AuthState>((set, get) => ({
     }
     await clearTokens();
     savedAdminToken = null;
+    savedAdminUser = null;
+    await clearStashedAdminRefresh();
     set({ user: null, actingAs: null });
     setAnalyticsUser(null);
     logEvent("sign_out");
@@ -189,6 +240,8 @@ registerLogoutHandler((info) => {
     },
   });
   savedAdminToken = null;
+  savedAdminUser = null;
+  void clearStashedAdminRefresh();
   useAuth.setState({ user: null, actingAs: null });
   // Land the user on the public catalog immediately. Without this they'd stay
   // on whatever authed screen detected the dead session, which would render its

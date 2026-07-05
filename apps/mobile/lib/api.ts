@@ -5,6 +5,22 @@ import { useNetwork } from "./network-store";
 
 const ACCESS_KEY = "tw_access";
 const REFRESH_KEY = "tw_refresh";
+// While an admin is "acting as" another role, we stash their real refresh token
+// here so exit can always restore the admin session — even after an app restart
+// wipes the in-memory copy. Persisted (SecureStore) so it survives cold starts.
+const ADMIN_REFRESH_KEY = "tw_admin_refresh";
+
+export async function stashAdminRefresh(token: string): Promise<void> {
+  await SecureStore.setItemAsync(ADMIN_REFRESH_KEY, token);
+}
+
+export async function getStashedAdminRefresh(): Promise<string | null> {
+  return SecureStore.getItemAsync(ADMIN_REFRESH_KEY);
+}
+
+export async function clearStashedAdminRefresh(): Promise<void> {
+  await SecureStore.deleteItemAsync(ADMIN_REFRESH_KEY);
+}
 
 const baseUrl = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:4000";
 
