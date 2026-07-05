@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { colors, twPalette, type Palette } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect } from "expo-router";
 import * as React from "react";
 import {
   Pressable,
@@ -15,19 +14,8 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import Animated, {
-  cancelAnimation,
-  Easing,
-  useAnimatedProps,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
-import Svg, { Defs, RadialGradient as SvgRadialGradient, Rect, Stop } from "react-native-svg";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
-import { useAuroraScrollY } from "../lib/tab-bar-scroll";
 import { useTheme } from "../lib/use-theme";
 
 // Frozen palettes kept for legacy module-level styles. Prefer useTheme() in
@@ -403,126 +391,18 @@ export function TWScreen({
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// TWAurora — living, flowing backdrop.
+// TWAurora — removed.
 // ──────────────────────────────────────────────────────────────────────────
-// Soft radial blooms (Friendly Blue + Pool Blue/Pink) that SLOWLY DRIFT like
-// aurora / water on an endless sine loop, and PARALLAX with the user's scroll
-// (via the shared scrollY from TabBarScrollProvider — null-safe elsewhere).
-// Renders in both themes: dark = electric night, light = soft dawn. Non-
-// interactive; drop as the first child of a relative container. Respects
-// reduced-motion (falls back to a static bloom). Motion is transform-only, so
-// it runs on the UI thread and stays cheap on budget devices.
-
-// The whole colour field is ONE full-screen soft wash of overlapping radial
-// gradients whose CENTERS drift on slow circular paths — so the colours flow
-// like water instead of moving as hard dots. Animating SVG gradient attributes
-// (cheap) rather than moving views keeps the screen-filling softness.
-const AnimatedRadialGradient = Animated.createAnimatedComponent(SvgRadialGradient);
-
-export function TWAurora({
-  variant = "hero",
-  height = 320,
-  style,
-}: {
+// The animated aurora backdrop was pulled at the owner's request — it made the
+// app feel heavy. Screens now show the plain solid palette.bg they already set.
+// Kept as a no-op (same signature) so the existing <TWAurora /> call sites stay
+// valid without touching every screen.
+export function TWAurora(_props: {
   variant?: "hero" | "login" | "ambient";
   height?: number;
   style?: StyleProp<ViewStyle>;
-}): React.JSX.Element {
-  const { isDark } = useTheme();
-  const reduced = useReducedMotion();
-  const scrollY = useAuroraScrollY();
-  const uid = React.useId().replace(/:/g, "");
-  const t = useSharedValue(0);
-
-  // Only animate while this screen is focused — the tabs stay mounted, so
-  // without this up to 6 auroras would run at once and tax budget devices.
-  const [focused, setFocused] = React.useState(true);
-  useFocusEffect(
-    React.useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
-
-  React.useEffect(() => {
-    if (reduced || !focused) {
-      cancelAnimation(t);
-      return;
-    }
-    // One slow master clock (0→1, linear, endless). Each bloom reads it at a
-    // different speed + phase so the field never repeats — that's the flow.
-    t.value = withRepeat(withTiming(1, { duration: 16000, easing: Easing.linear }), -1, false);
-    return () => cancelAnimation(t);
-  }, [reduced, focused, t]);
-
-  const box: ViewStyle =
-    variant === "ambient"
-      ? { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }
-      : { position: "absolute", top: 0, left: 0, right: 0, height };
-
-  // Login drops the whole field lower so it sits behind the centered form.
-  const yb = variant === "login" ? 0.2 : 0;
-
-  // Big soft radius + baked alpha = a wash, not a dot. Dark night vs light dawn.
-  const cBlue = isDark ? "rgba(43,15,248,0.55)" : "rgba(43,15,248,0.14)";
-  const cCyan = isDark ? "rgba(0,199,234,0.42)" : "rgba(0,199,234,0.08)";
-  const cPink = isDark ? "rgba(255,0,101,0.30)" : "rgba(255,0,101,0.11)";
-
-  // Each bloom drifts its center on a circle; also parallaxes with scroll.
-  const blue = useAnimatedProps(() => {
-    const a = t.value * 2 * Math.PI;
-    const sy = scrollY ? scrollY.value : 0;
-    const par = Math.max(-0.14, Math.min(0.14, sy * -0.0004));
-    return {
-      cx: 0.72 + Math.sin(a) * 0.18,
-      cy: 0.14 + yb + Math.cos(a) * 0.14 + par,
-      r: 0.85 + Math.sin(a * 0.6) * 0.07,
-    };
-  });
-  const cyan = useAnimatedProps(() => {
-    const a = t.value * 2 * Math.PI * 0.78 + 2.1;
-    const sy = scrollY ? scrollY.value : 0;
-    const par = Math.max(-0.14, Math.min(0.14, sy * 0.00055));
-    return {
-      cx: 0.22 + Math.sin(a) * 0.2,
-      cy: 0.42 + yb + Math.cos(a) * 0.16 + par,
-      r: 0.8 + Math.sin(a * 0.5) * 0.08,
-    };
-  });
-  const pink = useAnimatedProps(() => {
-    const a = t.value * 2 * Math.PI * 1.27 + 4.2;
-    const sy = scrollY ? scrollY.value : 0;
-    const par = Math.max(-0.14, Math.min(0.14, sy * -0.0006));
-    return {
-      cx: 0.6 + Math.sin(a) * 0.22,
-      cy: 0.8 + Math.cos(a) * 0.15 + par,
-      r: 0.75 + Math.sin(a * 0.7) * 0.07,
-    };
-  });
-
-  return (
-    <View pointerEvents="none" style={[box, { overflow: "hidden" }, style]}>
-      <Svg width="100%" height="100%">
-        <Defs>
-          <AnimatedRadialGradient id={`ab${uid}`} animatedProps={blue}>
-            <Stop offset="0" stopColor={cBlue} stopOpacity="1" />
-            <Stop offset="1" stopColor={cBlue} stopOpacity="0" />
-          </AnimatedRadialGradient>
-          <AnimatedRadialGradient id={`ac${uid}`} animatedProps={cyan}>
-            <Stop offset="0" stopColor={cCyan} stopOpacity="1" />
-            <Stop offset="1" stopColor={cCyan} stopOpacity="0" />
-          </AnimatedRadialGradient>
-          <AnimatedRadialGradient id={`ap${uid}`} animatedProps={pink}>
-            <Stop offset="0" stopColor={cPink} stopOpacity="1" />
-            <Stop offset="1" stopColor={cPink} stopOpacity="0" />
-          </AnimatedRadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#ab${uid})`} />
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#ac${uid})`} />
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#ap${uid})`} />
-      </Svg>
-    </View>
-  );
+}): React.JSX.Element | null {
+  return null;
 }
 
 // ──────────────────────────────────────────────────────────────────────────
