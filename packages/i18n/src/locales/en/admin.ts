@@ -326,6 +326,16 @@ export default {
   typeUtility: "Utility",
   typeLuxury: "Luxury",
 
+  // Manual-OTP inbox
+  otpInboxTitle: "OTP Requests",
+  otpInboxEmpty: "No pending code requests",
+  otpIssue: "Issue code",
+  otpConfirmTitle: "Issue a login code for this number?",
+  otpIssuedTitle: "Code issued",
+  otpIssuedBody: "The code was sent to the customer's app. They'll see it on their screen now.",
+  otpIssueFailed: "Couldn't issue code",
+
   // Shared
+  cancel: "Cancel",
   tryAgain: "Try again",
 } as const;

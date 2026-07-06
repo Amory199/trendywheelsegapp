@@ -1,9 +1,10 @@
-import { type VehicleCategory, VEHICLE_CATEGORIES } from "@trendywheels/types";
+import { type VehicleCategory } from "@trendywheels/types";
 import { Image } from "expo-image";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useT } from "../lib/locale";
 import { useTheme } from "../lib/use-theme";
+import { useVisibleCategories } from "../lib/use-visible-categories";
 
 // Branded category icons (sliced from the official icon board). Transparent
 // PNGs shown on a dark brand circle so the artwork pops the same way it does on
@@ -26,13 +27,14 @@ interface Props {
 export function CategoryCircles({ onPress }: Props): JSX.Element {
   const t = useT();
   const { palette } = useTheme();
+  const categories = useVisibleCategories();
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.content}
     >
-      {VEHICLE_CATEGORIES.map((c) => (
+      {categories.map((c) => (
         <Pressable
           key={c.key}
           onPress={() => onPress(c.key)}

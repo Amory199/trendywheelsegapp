@@ -107,6 +107,15 @@ export default function AdminDashboard(): JSX.Element {
           />
         </View>
 
+        <Pressable
+          onPress={() => router.push("/admin/otp-requests")}
+          style={({ pressed }) => [styles.linkRow, pressed && { opacity: 0.85 }]}
+        >
+          <Ionicons name="key-outline" size={18} color={colors.brand.trendyPink} />
+          <Text style={styles.linkLabel}>{t("admin.otpInboxTitle")}</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
+        </Pressable>
+
         {metricsQ.isLoading && (
           <ActivityIndicator color={colors.brand.friendlyBlue} style={{ marginTop: 24 }} />
         )}
@@ -182,4 +191,17 @@ const styles = StyleSheet.create({
   },
   value: { color: colors.text.light, fontSize: 24, fontWeight: "800" },
   label: { color: colors.text.secondary, fontSize: 12, fontWeight: "600" },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 16,
+    marginHorizontal: 16,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+    backgroundColor: colors.dark.card,
+  },
+  linkLabel: { flex: 1, color: colors.text.light, fontSize: 15, fontWeight: "700" },
 });

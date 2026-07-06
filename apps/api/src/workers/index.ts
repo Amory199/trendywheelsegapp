@@ -24,6 +24,10 @@ const CRITICAL_PUSH_TYPES = new Set([
   "message_new",
   "payment_failed",
   "security_alert",
+  // Manual-OTP: the admin alert and the issued code must never be suppressed by
+  // fatigue caps or push-off prefs — they're time-critical login flows.
+  "otp_request",
+  "otp_code",
 ]);
 
 interface UserPrefs {

@@ -4,6 +4,7 @@ import { assertDeliverableEmail } from "../../utils/email-validation.js";
 import { writeError } from "../../utils/error-sink.js";
 import { AppError } from "../../utils/errors.js";
 import { verifyFirebaseIdToken } from "../../utils/firebase.js";
+import { notifyAdmins, notifyUser } from "../../utils/notify.js";
 
 import * as authService from "./service.js";
 
@@ -32,6 +33,78 @@ export async function adminIssueOtp(req: Request, res: Response): Promise<void> 
     metadata: { phone, byAdminId: req.user?.userId, userExists: result.userExists },
   });
   res.json({ code: result.code, expiresAt: result.expiresAt, userExists: result.userExists });
+}
+
+// Customer taps "didn't get a code". Public + rate-limited. Creates a pending
+// manual-OTP request and pushes every ADMIN (not staff). 409 once the phone has
+// already used its one-time manual path. The device polls getOtpRequest.
+export async function requestManualOtp(req: Request, res: Response): Promise<void> {
+  const { phone } = req.body as { phone: string };
+  try {
+    const { requestId, status, reused } = await authService.createOtpRequest(phone);
+    if (!reused) {
+      await notifyAdmins(
+        `otp-request-${requestId}`,
+        {
+          type: "otp_request",
+          title: "Manual OTP requested",
+          body: `${phone} can't receive a code. Tap to issue one.`,
+          data: { type: "otp_request", phone, requestId },
+        },
+        { adminOnly: true },
+      );
+      await writeError({
+        level: "warn",
+        source: "customer",
+        message: "manual_otp_requested",
+        metadata: { phone, requestId },
+      });
+    }
+    res.json({ data: { requestId, status } });
+  } catch (err) {
+    if (err instanceof authService.OtpRequestExhaustedError) {
+      res.status(409).json({ error: err.message, status: "exhausted" });
+      return;
+    }
+    throw err;
+  }
+}
+
+// Admin issues a real code for a pending request. Writes an otp_codes row and
+// flips the request to `issued`; the waiting device picks the code up on its
+// next poll. Best-effort push to the user too, if they have an account/token.
+export async function issueManualOtp(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const adminId = req.user!.userId;
+  const result = await authService.issueOtpRequest(id, adminId);
+  if (result.userId) {
+    await notifyUser(result.userId, `otp-issued-${id}`, {
+      type: "otp_code",
+      title: "Your verification code",
+      body: `Your TrendyWheels code is ${result.code}. It expires in 15 minutes.`,
+      data: { type: "otp_code", requestId: id, code: result.code },
+    });
+  }
+  await writeError({
+    level: "warn",
+    source: "admin",
+    message: "manual_otp_issued",
+    metadata: { requestId: id, phone: result.phone, byAdminId: adminId },
+  });
+  res.json({ data: { ok: true } });
+}
+
+// Public poll for the waiting device. Returns the code only while `issued`.
+export async function getManualOtp(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const result = await authService.getOtpRequest(id);
+  res.json({ data: result });
+}
+
+// Admin inbox: pending manual-OTP requests.
+export async function listManualOtpRequests(_req: Request, res: Response): Promise<void> {
+  const data = await authService.listPendingOtpRequests();
+  res.json({ data });
 }
 
 // Pre-login routing: should this phone use password or OTP? (See service.)

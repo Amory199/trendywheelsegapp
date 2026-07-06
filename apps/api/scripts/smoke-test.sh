@@ -941,6 +941,42 @@ NOACC_BODY=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
   || fail "unknown-email code=$(echo "$NOACC_BODY" | jq -r '.code') (expected NO_ACCOUNT)"
 pass "login failures are specific (wrong password ≠ no account)"
 
+# ─── 12r. Category visibility (admin-controlled, public read) ─
+note "12r. Category visibility GET(public) + PATCH(admin) round-trip"
+CV_BEFORE=$(curl -fsS -A "$SMOKE_UA" "$BASE/categories/visibility") || fail "categories visibility GET failed"
+echo "$CV_BEFORE" | jq -e '.data.hidden | type == "array"' >/dev/null \
+  || fail "categories visibility missing .data.hidden array: $CV_BEFORE"
+CV_ORIG=$(echo "$CV_BEFORE" | jq -c '.data.hidden')
+# Flip to a known set, confirm the public read reflects it, then restore.
+curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/admin/categories/visibility" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"hidden":["utv","jet-ski"]}' >/dev/null || fail "categories visibility PATCH failed"
+CV_AFTER=$(curl -fsS -A "$SMOKE_UA" "$BASE/categories/visibility" | jq -c '.data.hidden')
+[ "$CV_AFTER" = '["utv","jet-ski"]' ] || fail "visibility PATCH not reflected in public read: $CV_AFTER"
+# Restore the original set so the smoke run leaves visibility unchanged.
+curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/admin/categories/visibility" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"hidden\":$CV_ORIG}" >/dev/null || fail "categories visibility restore failed"
+pass "category visibility read/write round-trips and restores ($CV_ORIG)"
+
+# ─── 12s. Manual-OTP request lifecycle ───────────────────────
+note "12s. Manual-OTP request → issue → poll → second-request 409"
+SMOKE_OTP_PHONE="${SMOKE_OTP_PHONE:-+201555000199}"
+OTPREQ=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/otp-request" -H "$JSON" \
+  -d "{\"phone\":\"$SMOKE_OTP_PHONE\"}") || fail "otp-request create failed"
+OTP_REQ_ID=$(echo "$OTPREQ" | jq -r '.data.requestId // empty')
+[ -n "$OTP_REQ_ID" ] || fail "otp-request returned no requestId: $OTPREQ"
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/otp-request/$OTP_REQ_ID/issue" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || fail "otp-request issue failed"
+OTP_POLL=$(curl -fsS -A "$SMOKE_UA" "$BASE/auth/otp-request/$OTP_REQ_ID") || fail "otp-request poll failed"
+[ "$(echo "$OTP_POLL" | jq -r '.data.status')" = "issued" ] || fail "otp-request status not issued: $OTP_POLL"
+echo "$OTP_POLL" | jq -r '.data.code' | grep -qE '^[0-9]{6}$' || fail "otp-request poll returned no 6-digit code: $OTP_POLL"
+# One manual path per phone: a second request must be refused with 409.
+OTP_2ND_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w '%{http_code}' -XPOST "$BASE/auth/otp-request" \
+  -H "$JSON" -d "{\"phone\":\"$SMOKE_OTP_PHONE\"}")
+[ "$OTP_2ND_CODE" = "409" ] || fail "second otp-request for same phone returned $OTP_2ND_CODE (expected 409)"
+pass "manual-OTP lifecycle: request→issue→poll(code)→exhausted(409)"
+
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
 # No DELETE endpoint on /crm/leads, so leave the smoke-test lead. The contact
@@ -981,6 +1017,8 @@ DELETE FROM support_tickets WHERE subject ILIKE '%smoke%';
 DELETE FROM repair_requests WHERE description ILIKE '%smoke%';
 DELETE FROM lead_activities WHERE lead_id IN (SELECT id FROM leads WHERE contact_name ILIKE '%smoke%');
 DELETE FROM leads WHERE contact_name ILIKE '%smoke%';
+DELETE FROM otp_requests WHERE phone = '${SMOKE_OTP_PHONE}';
+DELETE FROM otp_codes WHERE phone = '${SMOKE_OTP_PHONE}';
 SQL
   then pass "smoke artifacts hard-purged (no staff/vehicle tombstones left)"
   else note "smoke purge skipped (db error) — soft-deleted rows harmless, hidden from lists/metrics"

@@ -8,7 +8,10 @@ import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 
 import { ErrorState } from "../../components/ErrorState";
 import { ImageCarousel } from "../../components/ImageCarousel";
+import { PriceGate } from "../../components/PriceGate";
+import { ShareButton } from "../../components/ShareButton";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 import { useDisplay, useTracking } from "../../lib/typography";
@@ -37,6 +40,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
   const display = useDisplay();
   const track = useTracking();
   const requireAuth = useRequireAuth();
+  const user = useAuth((s) => s.user);
   const { palette } = useTheme();
   const [showSpecs, setShowSpecs] = useState(false);
 
@@ -119,6 +123,24 @@ export default function ProductDetailScreen(): React.JSX.Element {
           >
             <Text style={{ fontSize: 18, fontWeight: "700" }}>‹</Text>
           </Pressable>
+          <ShareButton
+            kind="buy"
+            id={p.id}
+            title={p.name}
+            style={{
+              position: "absolute",
+              top: 56,
+              right: 16,
+              backgroundColor: "rgba(255,255,255,0.92)",
+              borderRadius: 999,
+              width: 40,
+              height: 40,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            iconColor="#02011F"
+            size={20}
+          />
         </View>
 
         {/* Content */}
@@ -138,18 +160,21 @@ export default function ProductDetailScreen(): React.JSX.Element {
           <Text style={[{ fontSize: 30, color: palette.text, lineHeight: 32 }, display(0)]}>
             {p.name}
           </Text>
-          <Text
-            style={[
-              {
-                fontSize: 36,
-                color: colors.brand.trendyPink,
-                marginTop: 14,
-              },
-              display(0.3),
-            ]}
-          >
-            {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
-          </Text>
+          <View style={{ marginTop: 14 }}>
+            <PriceGate size="lg">
+              <Text
+                style={[
+                  {
+                    fontSize: 36,
+                    color: colors.brand.trendyPink,
+                  },
+                  display(0.3),
+                ]}
+              >
+                {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
+              </Text>
+            </PriceGate>
+          </View>
 
           {p.description ? (
             <Text style={{ marginTop: 14, color: palette.text, lineHeight: 22 }}>
@@ -204,27 +229,48 @@ export default function ProductDetailScreen(): React.JSX.Element {
           gap: 12,
         }}
       >
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 11, color: palette.muted }}>{t("buy.total")}</Text>
-          <Text style={[{ fontSize: 22, color: colors.brand.trendyPink }, display(0)]}>
-            {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
-          </Text>
-        </View>
-        <Pressable
-          disabled={!p.inStock}
-          onPress={goToCheckout}
-          style={({ pressed }) => ({
-            paddingHorizontal: 26,
-            paddingVertical: 14,
-            borderRadius: 12,
-            backgroundColor: !p.inStock ? "rgba(2,1,31,0.2)" : colors.brand.friendlyBlue,
-            transform: [{ scale: pressed ? 0.96 : 1 }],
-          })}
-        >
-          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
-            {!p.inStock ? t("buy.unavailable") : isCart ? t("buy.reserveNow") : t("buy.buyNow")}
-          </Text>
-        </Pressable>
+        {!user ? (
+          <Pressable
+            onPress={() => router.push("/(auth)/phone")}
+            style={({ pressed }) => ({
+              flex: 1,
+              paddingHorizontal: 26,
+              paddingVertical: 14,
+              borderRadius: 12,
+              backgroundColor: colors.brand.trendyPink,
+              alignItems: "center",
+              transform: [{ scale: pressed ? 0.96 : 1 }],
+            })}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+              {t("auth.seePrice")}
+            </Text>
+          </Pressable>
+        ) : (
+          <>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11, color: palette.muted }}>{t("buy.total")}</Text>
+              <Text style={[{ fontSize: 22, color: colors.brand.trendyPink }, display(0)]}>
+                {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
+              </Text>
+            </View>
+            <Pressable
+              disabled={!p.inStock}
+              onPress={goToCheckout}
+              style={({ pressed }) => ({
+                paddingHorizontal: 26,
+                paddingVertical: 14,
+                borderRadius: 12,
+                backgroundColor: !p.inStock ? "rgba(2,1,31,0.2)" : colors.brand.friendlyBlue,
+                transform: [{ scale: pressed ? 0.96 : 1 }],
+              })}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+                {!p.inStock ? t("buy.unavailable") : isCart ? t("buy.reserveNow") : t("buy.buyNow")}
+              </Text>
+            </Pressable>
+          </>
+        )}
       </View>
     </View>
   );

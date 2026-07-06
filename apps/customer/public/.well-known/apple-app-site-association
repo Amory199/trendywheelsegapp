@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "P8RUCTV7DY.com.trendywheels.app",
+        "paths": ["/rent/*", "/sale/*", "/buy/*"]
+      }
+    ]
+  }
+}

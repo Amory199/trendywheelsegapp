@@ -28,10 +28,18 @@ export async function notifyUser(
 }
 
 // Notify every active admin/staff user — used by signup, sales-listing
-// creation, broadcasts, etc.
-export async function notifyAdmins(jobIdPrefix: string, payload: NotifyPayload): Promise<void> {
+// creation, broadcasts, etc. Pass { adminOnly: true } to reach only true admins
+// (not staff) — e.g. manual-OTP requests, which only admins can action.
+export async function notifyAdmins(
+  jobIdPrefix: string,
+  payload: NotifyPayload,
+  opts?: { adminOnly?: boolean },
+): Promise<void> {
   const admins = await prisma.user.findMany({
-    where: { accountType: { in: ["admin", "staff"] }, status: "active" },
+    where: {
+      accountType: opts?.adminOnly ? "admin" : { in: ["admin", "staff"] },
+      status: "active",
+    },
     select: { id: true },
   });
   await Promise.all(admins.map((a) => notifyUser(a.id, jobIdPrefix, payload)));

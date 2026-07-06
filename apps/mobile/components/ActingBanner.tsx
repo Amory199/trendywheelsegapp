@@ -48,40 +48,62 @@ export function ActingBanner(): JSX.Element | null {
     }
   };
 
+  // Compact floating pill (not a full-width bar): sits just under the status
+  // bar, only as wide as its content, so it never eats the header. The whole
+  // pill is the exit target — big, obvious, one tap back to admin.
   return (
-    <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-      <Text style={styles.text} numberOfLines={1}>
-        👁 {t("roleSwitch.actingAs")} <Text style={styles.role}>{label}</Text>
-      </Text>
-      <Pressable onPress={() => void onExit()} hitSlop={8} style={styles.exitBtn}>
-        <Text style={styles.exitText}>{busy ? "…" : t("roleSwitch.exit")}</Text>
+    <View pointerEvents="box-none" style={[styles.wrap, { top: insets.top + 6 }]}>
+      <Pressable
+        onPress={() => void onExit()}
+        disabled={busy}
+        hitSlop={6}
+        style={({ pressed }) => [styles.pill, pressed && styles.pillPressed]}
+      >
+        <Text style={styles.eye}>👁</Text>
+        <Text style={styles.label} numberOfLines={1}>
+          {t("roleSwitch.actingAs")} <Text style={styles.role}>{label}</Text>
+        </Text>
+        <View style={styles.exitChip}>
+          <Text style={styles.exitText}>{busy ? "…" : t("roleSwitch.exit")}</Text>
+        </View>
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: {
+  wrap: {
     position: "absolute",
-    top: 0,
     left: 0,
     right: 0,
     zIndex: 9999,
-    paddingHorizontal: 14,
-    paddingBottom: 8,
+    alignItems: "center",
+  },
+  pill: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 8,
+    maxWidth: "92%",
     backgroundColor: colors.brand.trendyPink,
-  },
-  text: { color: "#fff", fontSize: 13, fontWeight: "600", flex: 1 },
-  role: { fontWeight: "800", textTransform: "capitalize" },
-  exitBtn: {
-    backgroundColor: "rgba(255,255,255,0.22)",
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    marginLeft: 10,
+    paddingLeft: 14,
+    paddingRight: 6,
+    paddingVertical: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
   },
-  exitText: { color: "#fff", fontSize: 13, fontWeight: "800" },
+  pillPressed: { opacity: 0.85 },
+  eye: { fontSize: 13 },
+  label: { color: "#fff", fontSize: 12.5, fontWeight: "600", flexShrink: 1 },
+  role: { fontWeight: "800", textTransform: "capitalize" },
+  exitChip: {
+    backgroundColor: "rgba(255,255,255,0.26)",
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 4,
+  },
+  exitText: { color: "#fff", fontSize: 12, fontWeight: "800" },
 });

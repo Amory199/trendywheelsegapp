@@ -1,6 +1,7 @@
 import { colors, spacing, typography, borderRadius, type Palette } from "@trendywheels/ui-tokens";
+import * as Notifications from "expo-notifications";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -14,10 +15,13 @@ import {
 } from "react-native";
 
 import { BackButton } from "../../components/BackButton";
+import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { confirmFirebaseOtp } from "../../lib/firebase-phone-auth";
 import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
+
+const POLL_INTERVAL_MS = 4000;
 
 export default function OtpScreen(): JSX.Element {
   const router = useRouter();
@@ -33,6 +37,76 @@ export default function OtpScreen(): JSX.Element {
   // (call / WhatsApp). That code lives in the server OTP table, so verifying it
   // takes the DB path, NOT Firebase — flipping this switches the screen over.
   const [useSupport, setUseSupport] = useState(false);
+
+  // ── Manual-OTP request (in-app delivery) ──
+  // A brand-new phone with no push token can't be reached by a server push, so
+  // once the customer requests a manual code we POLL for it and, when the admin
+  // issues it, auto-fill the field + raise a local notification.
+  const [requesting, setRequesting] = useState(false);
+  const [manualRequested, setManualRequested] = useState(false);
+  const [manualExhausted, setManualExhausted] = useState(false);
+  const requestIdRef = useRef<string | null>(null);
+
+  const requestManualCode = async (): Promise<void> => {
+    setRequesting(true);
+    try {
+      const res = await api.request<{ data: { requestId: string; status: string } }>(
+        "POST",
+        "/api/auth/otp-request",
+        { body: { phone: phone ?? "" } },
+      );
+      requestIdRef.current = res.data.requestId;
+      setManualRequested(true);
+      setUseSupport(true); // issued code lives in the server OTP table (DB path)
+    } catch (err) {
+      // 409 → this phone already spent its one-time manual path.
+      const status = (err as { status?: number; statusCode?: number })?.status;
+      const msg = err instanceof Error ? err.message : "";
+      if (status === 409 || /contact support/i.test(msg)) {
+        setManualExhausted(true);
+        Alert.alert(t("auth.verifyTitle"), t("auth.manualOtpExhausted"));
+      } else {
+        Alert.alert(t("auth.verifyTitle"), t("auth.manualOtpFailed"));
+      }
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  // Poll for the issued code while a manual request is outstanding and the field
+  // isn't already filled. Stops on unmount, on fill, or when the code arrives.
+  useEffect(() => {
+    if (!manualRequested || otp.length === 6) return;
+    let cancelled = false;
+    const timer = setInterval(async () => {
+      const id = requestIdRef.current;
+      if (!id) return;
+      try {
+        const res = await api.request<{ data: { status: string; code: string | null } }>(
+          "GET",
+          `/api/auth/otp-request/${id}`,
+        );
+        if (cancelled) return;
+        if (res.data.status === "issued" && res.data.code) {
+          setOtp(res.data.code);
+          setManualRequested(false);
+          void Notifications.scheduleNotificationAsync({
+            content: {
+              title: t("auth.manualOtpArrivedTitle"),
+              body: `${t("auth.manualOtpArrivedBody")} (${res.data.code})`,
+            },
+            trigger: null,
+          }).catch(() => {});
+        }
+      } catch {
+        // Transient poll failure — keep trying until unmount.
+      }
+    }, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [manualRequested, otp.length, t]);
 
   const handleVerify = async (): Promise<void> => {
     setLoading(true);
@@ -121,6 +195,26 @@ export default function OtpScreen(): JSX.Element {
             </Text>
           </TouchableOpacity>
 
+          {/* Manual-OTP request: if the SMS never arrives, the customer asks an
+              admin to issue a code, which is delivered right back into this
+              screen (poll + local notification). One-time per phone. */}
+          {manualRequested ? (
+            <Text style={styles.manualStatus}>{t("auth.manualOtpRequested")}</Text>
+          ) : manualExhausted ? (
+            <Text style={styles.manualStatus}>{t("auth.manualOtpExhausted")}</Text>
+          ) : (
+            <TouchableOpacity
+              style={styles.supportLink}
+              onPress={() => void requestManualCode()}
+              disabled={requesting}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.supportLinkText}>
+                {requesting ? t("auth.requestingManualOtp") : t("auth.requestManualOtp")}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {/* Fallback shown only on the real-SMS (Firebase) path: if the code
               never arrives, let support issue one out-of-band and verify it. */}
           {mode === "firebase" && !useSupport ? (
@@ -192,6 +286,14 @@ function makeStyles(p: Palette) {
       color: p.pool,
       fontWeight: typography.fontWeight.semibold,
       textAlign: "center",
+    },
+    manualStatus: {
+      marginTop: spacing.lg,
+      paddingHorizontal: spacing.md,
+      fontSize: typography.fontSize.body,
+      color: p.muted,
+      textAlign: "center",
+      lineHeight: 20,
     },
   });
 }

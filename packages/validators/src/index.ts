@@ -18,6 +18,11 @@ export const verifyOtpSchema = z.object({
     .regex(/^[0-9]+$/, "OTP must contain only digits"),
 });
 
+// Manual-OTP request (customer taps "didn't get a code"). Public + rate-limited.
+export const otpRequestSchema = z.object({
+  phone: sendOtpSchema.shape.phone,
+});
+
 export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, "Refresh token is required"),
 });
@@ -749,6 +754,26 @@ export const updateSystemConfigSchema = z.object({
 
 export const createCustomerNoteSchema = z.object({
   body: z.string().min(1).max(5000),
+});
+
+// ─── Category visibility (admin-controlled rent/discovery categories) ──
+// Mirrors VEHICLE_CATEGORIES in @trendywheels/types. Kept as a local tuple so
+// the validators package stays dependency-light; a drift guard lives in the
+// smoke test (every key must be a real category).
+export const VEHICLE_CATEGORY_KEYS = [
+  "golf-cart",
+  "hover-board",
+  "scooter",
+  "scooter-sidecar",
+  "buggy",
+  "utv",
+  "jet-ski",
+] as const;
+
+export const updateCategoryVisibilitySchema = z.object({
+  // The full HIDDEN set (categories the admin turned off). Replaces the
+  // stored set wholesale — the admin UI sends every toggle each save.
+  hidden: z.array(z.enum(VEHICLE_CATEGORY_KEYS)),
 });
 
 // ─── Diagnostics (anonymous client error reporting) ──────────

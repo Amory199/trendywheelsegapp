@@ -9,6 +9,20 @@ const nextConfig = {
     "@trendywheels/i18n",
   ],
   eslint: { ignoreDuringBuilds: true },
+  async headers() {
+    return [
+      // Apple fetches the (extensionless) AASA and expects application/json.
+      // Next would otherwise serve the public/ file as octet-stream.
+      {
+        source: "/.well-known/apple-app-site-association",
+        headers: [{ key: "Content-Type", value: "application/json" }],
+      },
+      {
+        source: "/.well-known/assetlinks.json",
+        headers: [{ key: "Content-Type", value: "application/json" }],
+      },
+    ];
+  },
   async redirects() {
     return [
       // Short aliases for legal pages — App Store reviewers + older mobile

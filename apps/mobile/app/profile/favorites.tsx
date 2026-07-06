@@ -122,7 +122,16 @@ export default function FavoritesScreen(): JSX.Element {
           }
           renderItem={({ item, index }) => (
             <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
-              <Pressable style={styles.card} onPress={() => router.push(`/rent/${item.vehicleId}`)}>
+              <Pressable
+                style={styles.card}
+                onPress={() =>
+                  router.push(
+                    item.vehicle.listingType === "sale"
+                      ? `/sale/${item.vehicleId}`
+                      : `/rent/${item.vehicleId}`,
+                  )
+                }
+              >
                 <Image
                   source={{ uri: thumbOf(item.vehicle) }}
                   style={styles.thumb}

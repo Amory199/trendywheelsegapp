@@ -173,6 +173,114 @@ export async function adminIssueOtp(
   return { code, expiresAt, userExists: !!user };
 }
 
+// ─── Manual-OTP request lifecycle (in-app delivery) ──────────
+// A phone with no SMS taps "didn't get a code". We create a pending request and
+// (in the controller) push every admin. One manual path per phone: once a
+// request has been ISSUED we refuse further requests for that phone.
+
+export type OtpRequestStatus = "pending" | "issued" | "consumed" | "exhausted";
+
+export class OtpRequestExhaustedError extends Error {
+  constructor() {
+    super("This number has already used its one-time manual code. Please contact support.");
+    this.name = "OtpRequestExhaustedError";
+  }
+}
+
+// Reuse a pending row created in this window instead of spawning a new one, so
+// repeated taps don't spam admins with duplicate alerts.
+const OTP_REQUEST_REUSE_MS = 30 * 60 * 1000;
+
+export async function createOtpRequest(
+  phone: string,
+): Promise<{ requestId: string; status: OtpRequestStatus; reused: boolean }> {
+  // One manual path per phone: a prior issued/consumed request exhausts it.
+  const alreadyIssued = await prisma.otpRequest.findFirst({
+    where: { phone, status: { in: ["issued", "consumed"] } },
+  });
+  if (alreadyIssued) throw new OtpRequestExhaustedError();
+
+  // Idempotent within the reuse window — don't re-alert admins on every tap.
+  const recentPending = await prisma.otpRequest.findFirst({
+    where: {
+      phone,
+      status: "pending",
+      requestedAt: { gt: new Date(Date.now() - OTP_REQUEST_REUSE_MS) },
+    },
+    orderBy: { requestedAt: "desc" },
+  });
+  if (recentPending) return { requestId: recentPending.id, status: "pending", reused: true };
+
+  const created = await prisma.otpRequest.create({ data: { phone, status: "pending" } });
+  return { requestId: created.id, status: "pending", reused: false };
+}
+
+// Admin issues a real code for a pending request. Writes an otp_codes row (so
+// verifyOtp is unchanged) and flips the request to `issued`. Idempotent-ish:
+// re-issuing regenerates the code. Returns the phone so the caller can push the
+// user if they happen to have an account/token.
+export async function issueOtpRequest(
+  requestId: string,
+  adminId: string,
+): Promise<{ phone: string; code: string; codeExpiresAt: Date; userId: string | null }> {
+  const request = await prisma.otpRequest.findUnique({ where: { id: requestId } });
+  if (!request) throw AppError.notFound("OTP request not found");
+
+  const issued = await adminIssueOtp(request.phone);
+  const user = await prisma.user.findUnique({
+    where: { phone: request.phone },
+    select: { id: true },
+  });
+
+  await prisma.otpRequest.update({
+    where: { id: requestId },
+    data: {
+      status: "issued",
+      code: issued.code,
+      codeExpiresAt: issued.expiresAt,
+      issuedByAdminId: adminId,
+      issuedAt: new Date(),
+    },
+  });
+  logger.warn({ requestId, phone: request.phone, adminId, msg: "manual OTP request issued" });
+  return {
+    phone: request.phone,
+    code: issued.code,
+    codeExpiresAt: issued.expiresAt,
+    userId: user?.id ?? null,
+  };
+}
+
+// The waiting device polls this. The id is an unguessable uuid, so returning the
+// code here is the in-app delivery channel. Code is only exposed while `issued`
+// and unexpired.
+export async function getOtpRequest(
+  requestId: string,
+): Promise<{ status: OtpRequestStatus; code: string | null; codeExpiresAt: Date | null }> {
+  const request = await prisma.otpRequest.findUnique({ where: { id: requestId } });
+  if (!request) throw AppError.notFound("OTP request not found");
+  const expired = request.codeExpiresAt ? request.codeExpiresAt.getTime() < Date.now() : false;
+  const deliverable = request.status === "issued" && !expired;
+  return {
+    status: request.status as OtpRequestStatus,
+    code: deliverable ? request.code : null,
+    codeExpiresAt: request.codeExpiresAt,
+  };
+}
+
+// List pending requests for the admin inbox (newest first, small cap).
+export async function listPendingOtpRequests(): Promise<
+  Array<{ id: string; phone: string; requestedAt: Date }>
+> {
+  const rows = await prisma.otpRequest.findMany({
+    where: { status: "pending" },
+    orderBy: { requestedAt: "desc" },
+    take: 50,
+    select: { id: true, phone: true, requestedAt: true },
+  });
+  return rows;
+}
+
 export async function verifyOtp(
   phone: string,
   otp: string,

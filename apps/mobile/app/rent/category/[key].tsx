@@ -4,7 +4,7 @@ import { VEHICLE_CATEGORIES, type Vehicle, type VehicleCategory } from "@trendyw
 import { colors, spacing, twEGP, twPalette } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -22,6 +22,7 @@ import { ErrorState } from "../../../components/ErrorState";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
 import { useRTL } from "../../../lib/typography";
+import { useIsCategoryHidden } from "../../../lib/use-visible-categories";
 
 // The API returns vehicle images as rows ({ url, sortOrder }); older cached
 // payloads were plain strings. Accept both so covers never silently break.
@@ -43,6 +44,14 @@ export default function RentCategoryScreen(): JSX.Element {
   const [search, setSearch] = useState("");
 
   const isAll = key === "all";
+
+  // Admin can hide categories from the customer app. If someone lands on a
+  // now-hidden category (stale link, deep link), bounce back to the rent tab.
+  const isHidden = useIsCategoryHidden(!isAll ? (key as VehicleCategory) : undefined);
+  useEffect(() => {
+    if (isHidden) router.replace("/(tabs)/rent");
+  }, [isHidden, router]);
+
   const categoryMeta = useMemo(() => VEHICLE_CATEGORIES.find((c) => c.key === key) ?? null, [key]);
   const categoryLabel = useMemo(() => {
     if (isAll) return t("rent.allCategories");

@@ -4,7 +4,7 @@ export default {
 
   // Catalog tab — app/(tabs)/buy.tsx
   catalogTitle: "Catalog",
-  catalogSubtitle: "Carts, parts, and accessories.",
+  catalogSubtitle: "Golf carts, parts, and accessories.",
   tabAll: "All",
   tabNew: "New",
   tabUsed: "Used",
@@ -14,8 +14,8 @@ export default {
   outOfStock: "OUT OF STOCK",
 
   // Product detail — app/buy/[id].tsx
-  categoryCartNew: "New cart",
-  categoryCartUsed: "Used cart",
+  categoryCartNew: "New golf cart",
+  categoryCartUsed: "Used golf cart",
   categoryParts: "Parts",
   categoryAccessory: "Accessory",
   notFound: "Not found.",

@@ -2,11 +2,11 @@ export default {
   egp: "EGP",
 
   hub: {
-    title: "Got a cart?",
+    title: "Got a golf cart?",
     subtitle: "Three ways to turn it into something else.",
-    sellOutright: "Sell my cart outright",
+    sellOutright: "Sell my golf cart outright",
     sellOutrightSub: "List your golf cart for sale. We handle the buyers.",
-    listForRent: "List my cart for rent",
+    listForRent: "List my golf cart for rent",
     listForRentSub: "Earn passive income — we manage the rentals end-to-end.",
     tradeIn: "Trade in for a new one",
     tradeInSub: "Get a quote on yours, apply credit toward a fresh model.",
@@ -122,7 +122,7 @@ export default {
 
   rent: {
     eyebrow: "LIST FOR RENT",
-    titleStep0: "Tell us about your cart",
+    titleStep0: "Tell us about your golf cart",
     titleStep1: "Add photos",
     titleStep2: "Review + submit",
     brand: "Brand",
@@ -162,7 +162,7 @@ export default {
 
   tradeIn: {
     eyebrow: "TRADE-IN",
-    titleStep0: "Tell us about your cart",
+    titleStep0: "Tell us about your golf cart",
     titleStep1: "Add photos",
     titleStep2: "Review + submit",
     brand: "Brand",

@@ -14,8 +14,26 @@ function isSmokeTest(req: { headers?: Record<string, unknown> }): boolean {
   return typeof ua === "string" && ua.startsWith("tw-smoke-test");
 }
 
+// Automated exploit/secret scanners hammer well-known probe paths (.env, .git,
+// wp-*, phpMyAdmin, etc.). These are never real application errors — they're
+// internet background noise that was burying the actual errors in the admin log
+// and Sentry (254×/2wk on /api/.env alone). We still RESPOND normally (the
+// client gets its 401/404); we just don't PERSIST the 4xx. Same spirit as the
+// smoke-test skip above: keep the log triageable. 5xx is never skipped.
+const SCAN_PROBE_RE =
+  /(^|\/)\.(env|git|aws|ssh|htaccess)|\/(wp-|wordpress|phpmyadmin|xmlrpc|\.well-known\/security|vendor\/phpunit|actuator|cgi-bin)/i;
+
+function isScanProbe(req: { path?: string; url?: string }): boolean {
+  const p = req.path ?? req.url ?? "";
+  return SCAN_PROBE_RE.test(p);
+}
+
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
-  const smoke = isSmokeTest(req);
+  // Skip PERSISTENCE (not the response) for our own smoke traffic and for
+  // internet exploit-scanner noise on 4xx. Real app errors are unaffected.
+  const skipPersist =
+    isSmokeTest(req) || (err instanceof AppError && err.statusCode < 500 && isScanProbe(req));
+  const smoke = skipPersist;
 
   // RECORD-EVERYTHING (owner directive 2026-06-21): nothing should go unnoticed.
   // Every error — including client validation 400s — is sent to Sentry + the

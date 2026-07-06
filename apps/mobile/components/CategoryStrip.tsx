@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { VEHICLE_CATEGORIES, type VehicleCategory } from "@trendywheels/types";
+import { type VehicleCategory } from "@trendywheels/types";
 import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -10,6 +10,7 @@ import Animated from "react-native-reanimated";
 import { useT } from "../lib/locale";
 import { useTracking } from "../lib/typography";
 import { useTheme } from "../lib/use-theme";
+import { useVisibleCategories } from "../lib/use-visible-categories";
 
 // Maps the VehicleCategory enum (English labels live in @trendywheels/types) to
 // our localized home.categories.* keys, resolved at render so the strip reads
@@ -76,6 +77,7 @@ interface Props {
 function CategoryStripImpl({ value, onChange, showAll = true, onScroll }: Props): JSX.Element {
   const { palette } = useTheme();
   const t = useT();
+  const categories = useVisibleCategories();
   return (
     <Animated.ScrollView
       contentContainerStyle={[styles.grid, { paddingBottom: TAB_BAR_SAFE_BOTTOM }]}
@@ -107,7 +109,7 @@ function CategoryStripImpl({ value, onChange, showAll = true, onScroll }: Props)
           <BlockLabel label={t("home.allCategories")} active={value === "all"} />
         </Pressable>
       ) : null}
-      {VEHICLE_CATEGORIES.map((c) => (
+      {categories.map((c) => (
         <CategoryBlock
           key={c.key}
           categoryKey={c.key}

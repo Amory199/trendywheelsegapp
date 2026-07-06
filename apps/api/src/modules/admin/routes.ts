@@ -1,6 +1,10 @@
 import { Router, type Router as RouterType } from "express";
 
-import { createCustomerNoteSchema, updateSystemConfigSchema } from "@trendywheels/validators";
+import {
+  createCustomerNoteSchema,
+  updateCategoryVisibilitySchema,
+  updateSystemConfigSchema,
+} from "@trendywheels/validators";
 
 import { PAGINATION } from "../../config/limits.js";
 import { prisma } from "../../config/database.js";
@@ -73,6 +77,30 @@ router.patch("/system-config", async (req, res) => {
     ? await prisma.systemConfig.update({ where: { id: existing.id }, data })
     : await prisma.systemConfig.create({ data });
   res.json({ data: updated });
+});
+
+// ─── Category visibility (admin-controlled) ──────────────────
+// Reads/writes the HIDDEN category set on the singleton SystemConfig row. The
+// public GET /api/categories/visibility (health module) serves the same data
+// to the customer app. Admin sends the full hidden set each save.
+router.get("/categories/visibility", async (_req, res) => {
+  const config =
+    (await prisma.systemConfig.findFirst({ orderBy: { updatedAt: "desc" } })) ??
+    (await prisma.systemConfig.create({ data: {} }));
+  const hidden = Array.isArray(config.hiddenCategories) ? config.hiddenCategories : [];
+  res.json({ data: { hidden } });
+});
+
+router.patch("/categories/visibility", async (req, res) => {
+  const { hidden } = updateCategoryVisibilitySchema.parse(req.body);
+  const userId = req.user!.userId;
+  const existing = await prisma.systemConfig.findFirst({ orderBy: { updatedAt: "desc" } });
+  const data = { hiddenCategories: hidden as never, updatedById: userId };
+  const updated = existing
+    ? await prisma.systemConfig.update({ where: { id: existing.id }, data })
+    : await prisma.systemConfig.create({ data });
+  const saved = Array.isArray(updated.hiddenCategories) ? updated.hiddenCategories : [];
+  res.json({ data: { hidden: saved } });
 });
 
 router.get("/metrics", async (_req, res) => {

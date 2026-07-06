@@ -165,6 +165,29 @@ model OtpCode {
   @@map("otp_codes")
 }
 
+// Manual-OTP request lifecycle. When a phone can't receive a Firebase SMS, the
+// customer taps "didn't get a code" → a pending row is created and every admin
+// is pushed. An admin issues a real code (written to otp_codes so verifyOtp is
+// unchanged) and the row flips to `issued` with the code; the waiting device
+// polls GET /otp-request/:id, auto-fills it, and fires a local notification.
+// One manual path per phone: once a row reaches `issued`, further requests for
+// that phone are refused (409 → contact support). Unlike otp_codes this table is
+// NOT purged on a 15-min cron — it's the durable per-phone allowance ledger.
+model OtpRequest {
+  id              String    @id @default(uuid()) @db.Uuid
+  phone           String
+  status          String    @default("pending") // pending | issued | consumed | exhausted
+  code            String?
+  codeExpiresAt   DateTime? @map("code_expires_at")
+  issuedByAdminId String?   @map("issued_by_admin_id") @db.Uuid
+  requestedAt     DateTime  @default(now()) @map("requested_at")
+  issuedAt        DateTime? @map("issued_at")
+
+  @@index([phone])
+  @@index([status])
+  @@map("otp_requests")
+}
+
 // ─── Vehicles ────────────────────────────────────────────────
 
 enum VehicleType {
@@ -761,6 +784,11 @@ model SystemConfig {
   currency       String   @default("EGP")
   taxRatePct     Decimal  @default(14.0) @map("tax_rate_pct") @db.Decimal(5, 2)
   emailTemplates Json     @default("{}") @map("email_templates")
+  // Vehicle-category keys the admin has HIDDEN from the customer app (rent +
+  // discovery). Stored as the hidden set (not the visible set) so a newly
+  // added category defaults to visible. Seeded to hide everything except
+  // golf-cart + scooter at launch (client request).
+  hiddenCategories Json   @default("[]") @map("hidden_categories")
   updatedAt      DateTime @updatedAt @map("updated_at")
   updatedById    String?  @map("updated_by_id") @db.Uuid
 

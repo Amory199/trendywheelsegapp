@@ -7,6 +7,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../lib/use-theme";
 import { useDisplay, useTracking } from "../lib/typography";
 
+import { PriceGate } from "./PriceGate";
+
 // On-card chrome that always sits over a fixed surface (white rating pill,
 // image placeholder) keeps its own ink; the title/location render on the page
 // background, so those follow the theme palette instead.
@@ -116,17 +118,21 @@ function ListingCardImpl({
       ) : null}
 
       <View style={styles.priceRow}>
-        {/* Struck original sits ON ITS OWN LINE above the sale price. Two full
-            EGP prices never fit side-by-side on a narrow card, so inlining them
-            overflowed the card edge into the next one. */}
-        {strikePriceLabel ? (
-          <Text numberOfLines={1} style={[styles.strikePrice, { color: palette.muted }]}>
-            {strikePriceLabel}
+        {/* Prices are gated to signed-in users. A guest sees a "sign in to see
+            price" pill in place of the whole price block (struck + sale). */}
+        <PriceGate>
+          {/* Struck original sits ON ITS OWN LINE above the sale price. Two full
+              EGP prices never fit side-by-side on a narrow card, so inlining them
+              overflowed the card edge into the next one. */}
+          {strikePriceLabel ? (
+            <Text numberOfLines={1} style={[styles.strikePrice, { color: palette.muted }]}>
+              {strikePriceLabel}
+            </Text>
+          ) : null}
+          <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.price, display(0.3)]}>
+            {priceLabel}
           </Text>
-        ) : null}
-        <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.price, display(0.3)]}>
-          {priceLabel}
-        </Text>
+        </PriceGate>
       </View>
     </Pressable>
   );

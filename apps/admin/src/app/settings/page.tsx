@@ -32,6 +32,20 @@ const TEMPLATE_DEFS: EmailTemplateMeta[] = [
   { id: "otp", name: "OTP Verification" },
 ];
 
+// Vehicle categories shown in the customer app (rent + discovery). Toggling one
+// OFF hides it everywhere for customers. Mirrors VEHICLE_CATEGORIES in
+// @trendywheels/types (kebab keys) — kept inline so the page has no cross-package
+// coupling. The API validates keys against the same canonical set.
+const CATEGORY_DEFS: Array<{ key: string; label: string }> = [
+  { key: "golf-cart", label: "Golf Carts" },
+  { key: "scooter", label: "Scooters" },
+  { key: "scooter-sidecar", label: "Side-Car Scooters" },
+  { key: "buggy", label: "Buggies" },
+  { key: "utv", label: "UTVs" },
+  { key: "jet-ski", label: "Jet Skis" },
+  { key: "hover-board", label: "Hover Boards" },
+];
+
 const TEMPLATE_DEFAULTS: Record<string, { subject: string; body: string }> = {
   "booking-confirm": {
     subject: "Your booking is confirmed — TrendyWheels",
@@ -49,7 +63,9 @@ const TEMPLATE_DEFAULTS: Record<string, { subject: string; body: string }> = {
 
 export default function SettingsPage(): JSX.Element {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"company" | "payment" | "templates" | "api">("company");
+  const [tab, setTab] = useState<"company" | "payment" | "categories" | "templates" | "api">(
+    "company",
+  );
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -93,6 +109,28 @@ export default function SettingsPage(): JSX.Element {
       }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["system-config"] }),
   });
+
+  // ── Category visibility (customer app rent/discovery) ──
+  const visibilityQuery = useQuery({
+    queryKey: ["category-visibility"],
+    queryFn: () => authedFetch<{ data: { hidden: string[] } }>("/api/admin/categories/visibility"),
+  });
+  const [hiddenDraft, setHiddenDraft] = useState<string[]>([]);
+  useEffect(() => {
+    if (visibilityQuery.data) setHiddenDraft(visibilityQuery.data.data.hidden ?? []);
+  }, [visibilityQuery.data]);
+
+  const visibilityMutation = useMutation({
+    mutationFn: (hidden: string[]) =>
+      authedFetch("/api/admin/categories/visibility", {
+        method: "PATCH",
+        body: JSON.stringify({ hidden }),
+      }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["category-visibility"] }),
+  });
+
+  const toggleCategory = (key: string): void =>
+    setHiddenDraft((h) => (h.includes(key) ? h.filter((k) => k !== key) : [...h, key]));
 
   const updateField = <K extends keyof typeof draft>(key: K, value: (typeof draft)[K]): void =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -138,7 +176,7 @@ export default function SettingsPage(): JSX.Element {
       />
       <div className="p-8">
         <div className="flex gap-1 mb-6 border-b">
-          {(["company", "payment", "templates", "api"] as const).map((t) => (
+          {(["company", "payment", "categories", "templates", "api"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -154,7 +192,9 @@ export default function SettingsPage(): JSX.Element {
                   ? "Email Templates"
                   : t === "payment"
                     ? "Payment"
-                    : "Company Info"}
+                    : t === "categories"
+                      ? "Categories"
+                      : "Company Info"}
             </button>
           ))}
         </div>
@@ -224,6 +264,52 @@ export default function SettingsPage(): JSX.Element {
               onClick={savePayment}
               isPending={saveMutation.isPending}
               isSuccess={saveMutation.isSuccess}
+            />
+          </div>
+        )}
+
+        {tab === "categories" && (
+          <div className="max-w-xl bg-white rounded-xl border p-6 space-y-4">
+            <h2 className="font-semibold">Customer App Categories</h2>
+            <p className="text-sm text-gray-500">
+              Choose which vehicle categories customers can browse in Rent and on the home screen.
+              Turning one off hides it everywhere in the customer app immediately.
+            </p>
+            <div className="divide-y">
+              {CATEGORY_DEFS.map((c) => {
+                const visible = !hiddenDraft.includes(c.key);
+                return (
+                  <div key={c.key} className="flex items-center justify-between py-3">
+                    <span className="text-sm font-medium text-gray-800">{c.label}</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={visible}
+                      onClick={() => toggleCategory(c.key)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                        visible ? "bg-blue-500" : "bg-gray-300"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                          visible ? "translate-x-5" : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            {hiddenDraft.length === CATEGORY_DEFS.length && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-700">
+                Every category is hidden — customers will see an empty catalog. Keep at least one
+                on.
+              </div>
+            )}
+            <SaveButton
+              onClick={() => visibilityMutation.mutate(hiddenDraft)}
+              isPending={visibilityMutation.isPending}
+              isSuccess={visibilityMutation.isSuccess}
             />
           </div>
         )}

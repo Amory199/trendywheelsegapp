@@ -73,6 +73,10 @@ export function routeNotification(
     case "customer_signup":
       return userId ? `/admin/users/${userId}` : null;
 
+    // Manual-OTP request: an admin tap lands in the inbox to issue a code.
+    case "otp_request":
+      return role === "admin" ? "/admin/otp-requests" : null;
+
     default:
       return null;
   }

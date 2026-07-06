@@ -305,6 +305,15 @@ const admin: Stringify<typeof enNs> = {
   typeUtility: "خدمية",
   typeLuxury: "فاخرة",
 
+  otpInboxTitle: "طلبات الرمز",
+  otpInboxEmpty: "لا توجد طلبات رمز معلّقة",
+  otpIssue: "إصدار رمز",
+  otpConfirmTitle: "إصدار رمز دخول لهذا الرقم؟",
+  otpIssuedTitle: "تم إصدار الرمز",
+  otpIssuedBody: "تم إرسال الرمز إلى تطبيق العميل. سيظهر على شاشته الآن.",
+  otpIssueFailed: "تعذّر إصدار الرمز",
+
+  cancel: "إلغاء",
   tryAgain: "حاول مرة أخرى",
 };
 

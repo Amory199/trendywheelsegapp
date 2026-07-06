@@ -17,6 +17,9 @@ import Animated, {
 
 import { ErrorState } from "../../components/ErrorState";
 import { ImageCarousel } from "../../components/ImageCarousel";
+import { LockedDetails } from "../../components/LockedDetails";
+import { PriceGate } from "../../components/PriceGate";
+import { ShareButton } from "../../components/ShareButton";
 import { TWBadge, TWButton, TWCard, TWChip, TWPressable } from "../../components/ui";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
@@ -195,23 +198,39 @@ export default function RentDetailScreen(): React.JSX.Element {
         >
           <Ionicons name="chevron-back" size={22} color={palette.text} />
         </TWPressable>
-        <TWPressable
-          onPress={onToggleFavorite}
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 21,
-            backgroundColor: "rgba(255,255,255,0.9)",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Ionicons
-            name={isFavorite ? "heart" : "heart-outline"}
-            size={22}
-            color={colors.brand.trendyPink}
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <ShareButton
+            kind="rent"
+            id={vehicle.id}
+            title={vehicle.name}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: "rgba(255,255,255,0.9)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            iconColor={palette.text}
           />
-        </TWPressable>
+          <TWPressable
+            onPress={onToggleFavorite}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: "rgba(255,255,255,0.9)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons
+              name={isFavorite ? "heart" : "heart-outline"}
+              size={22}
+              color={colors.brand.trendyPink}
+            />
+          </TWPressable>
+        </View>
       </View>
 
       <Animated.ScrollView
@@ -276,194 +295,206 @@ export default function RentDetailScreen(): React.JSX.Element {
                 </View>
               </View>
               <View style={{ alignItems: "flex-end" }}>
-                <Text style={{ fontSize: 20, color: colors.brand.trendyPink, fontWeight: "800" }}>
-                  {twEGP(Number(vehicle.dailyRate))}
-                </Text>
-                <Text style={{ fontSize: 12, color: palette.muted }}>{t("rent.perDay")}</Text>
+                <PriceGate size="lg">
+                  <Text style={{ fontSize: 20, color: colors.brand.trendyPink, fontWeight: "800" }}>
+                    {twEGP(Number(vehicle.dailyRate))}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: palette.muted }}>{t("rent.perDay")}</Text>
+                </PriceGate>
               </View>
             </View>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(140).duration(420)}>
-            <TWCard padded={false}>
-              <View style={{ flexDirection: "row", padding: 14 }}>
-                <SpecCell
-                  icon="person"
-                  label={t("rent.specSeats")}
-                  value={String(vehicle.seating)}
-                />
-                <SpecCell
-                  icon="cog-outline"
-                  label={t("rent.specDrive")}
-                  value={vehicle.transmission}
-                />
-                <SpecCell
-                  icon="water-outline"
-                  label={t("rent.specFuel")}
-                  value={vehicle.fuelType ?? t("rent.fuelPetrol")}
-                />
-                <SpecCell
-                  icon="location-outline"
-                  label={t("rent.specCity")}
-                  value={vehicle.location}
-                  last
-                />
-              </View>
-            </TWCard>
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.delay(200).duration(420)}>
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "700",
-                color: palette.muted,
-                letterSpacing: track(0.8),
-                marginBottom: 8,
-              }}
-            >
-              {t("rent.aboutVehicle").toUpperCase()}
-            </Text>
-            <Text style={{ fontSize: 14, lineHeight: 22, color: palette.text }}>
-              {t("rent.aboutVehicleBody")}
-            </Text>
-          </Animated.View>
-
-          {features.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(260).duration(420)}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "700",
-                  color: palette.muted,
-                  letterSpacing: track(0.8),
-                  marginBottom: 10,
-                }}
-              >
-                {t("rent.features").toUpperCase()}
-              </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {features.map((f) => (
-                  <TWChip key={f}>{f}</TWChip>
-                ))}
-              </View>
+          {!user ? (
+            <Animated.View entering={FadeInDown.delay(140).duration(420)}>
+              <LockedDetails />
             </Animated.View>
-          )}
+          ) : (
+            <>
+              <Animated.View entering={FadeInDown.delay(140).duration(420)}>
+                <TWCard padded={false}>
+                  <View style={{ flexDirection: "row", padding: 14 }}>
+                    <SpecCell
+                      icon="person"
+                      label={t("rent.specSeats")}
+                      value={String(vehicle.seating)}
+                    />
+                    <SpecCell
+                      icon="cog-outline"
+                      label={t("rent.specDrive")}
+                      value={vehicle.transmission}
+                    />
+                    <SpecCell
+                      icon="water-outline"
+                      label={t("rent.specFuel")}
+                      value={vehicle.fuelType ?? t("rent.fuelPetrol")}
+                    />
+                    <SpecCell
+                      icon="location-outline"
+                      label={t("rent.specCity")}
+                      value={vehicle.location}
+                      last
+                    />
+                  </View>
+                </TWCard>
+              </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(320).duration(420)}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 10,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "700",
-                  color: palette.muted,
-                  letterSpacing: track(0.8),
-                }}
-              >
-                {t("rent.recentReviews").toUpperCase()}
-              </Text>
-              {reviewSummary && reviewSummary.count > 0 && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Ionicons name="star" size={12} color="#F5B800" />
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: palette.text }}>
-                    {Number(reviewSummary.average).toFixed(1)}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: palette.muted }}>
-                    · {reviewSummary.count}
-                  </Text>
-                </View>
-              )}
-            </View>
-            {reviews.length === 0 ? (
-              <TWCard>
-                <Text style={{ fontSize: 13, color: palette.muted, lineHeight: 18 }}>
-                  {t("rent.noReviewsYet")}
+              <Animated.View entering={FadeInDown.delay(200).duration(420)}>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "700",
+                    color: palette.muted,
+                    letterSpacing: track(0.8),
+                    marginBottom: 8,
+                  }}
+                >
+                  {t("rent.aboutVehicle").toUpperCase()}
                 </Text>
-              </TWCard>
-            ) : (
-              <View style={{ gap: 10 }}>
-                {reviews.slice(0, 3).map((r) => (
-                  <TWCard key={r.id}>
-                    <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
-                      <LinearGradient
-                        colors={[colors.brand.trendyPink, colors.brand.friendlyBlue]}
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 18,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
-                          {initialsOf(r.user?.name ?? null)}
-                        </Text>
-                      </LinearGradient>
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                          <Text
-                            style={{
-                              fontSize: 14,
-                              fontWeight: "700",
-                              color: palette.text,
-                              flexShrink: 1,
-                            }}
-                            numberOfLines={1}
-                          >
-                            {r.user?.name ?? t("rent.defaultRiderName")}
-                          </Text>
-                          <View style={{ flexDirection: "row", gap: 1 }}>
-                            {[1, 2, 3, 4, 5].map((i) => (
-                              <Ionicons
-                                key={i}
-                                name={i <= r.rating ? "star" : "star-outline"}
-                                size={10}
-                                color="#F5B800"
-                              />
-                            ))}
-                          </View>
-                          <Text style={{ fontSize: 11, color: palette.muted, marginLeft: "auto" }}>
-                            {new Date(r.createdAt).toLocaleDateString()}
-                          </Text>
-                        </View>
-                        {r.title ? (
-                          <Text
-                            style={{
-                              fontSize: 13,
-                              fontWeight: "700",
-                              color: palette.text,
-                              marginTop: 4,
-                            }}
-                          >
-                            {r.title}
-                          </Text>
-                        ) : null}
-                        {r.body ? (
-                          <Text
-                            style={{
-                              fontSize: 13,
-                              color: palette.muted,
-                              marginTop: r.title ? 2 : 4,
-                              lineHeight: 18,
-                            }}
-                          >
-                            {r.body}
-                          </Text>
-                        ) : null}
-                      </View>
+                <Text style={{ fontSize: 14, lineHeight: 22, color: palette.text }}>
+                  {t("rent.aboutVehicleBody")}
+                </Text>
+              </Animated.View>
+
+              {features.length > 0 && (
+                <Animated.View entering={FadeInDown.delay(260).duration(420)}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "700",
+                      color: palette.muted,
+                      letterSpacing: track(0.8),
+                      marginBottom: 10,
+                    }}
+                  >
+                    {t("rent.features").toUpperCase()}
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {features.map((f) => (
+                      <TWChip key={f}>{f}</TWChip>
+                    ))}
+                  </View>
+                </Animated.View>
+              )}
+
+              <Animated.View entering={FadeInDown.delay(320).duration(420)}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "700",
+                      color: palette.muted,
+                      letterSpacing: track(0.8),
+                    }}
+                  >
+                    {t("rent.recentReviews").toUpperCase()}
+                  </Text>
+                  {reviewSummary && reviewSummary.count > 0 && (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Ionicons name="star" size={12} color="#F5B800" />
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: palette.text }}>
+                        {Number(reviewSummary.average).toFixed(1)}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: palette.muted }}>
+                        · {reviewSummary.count}
+                      </Text>
                     </View>
+                  )}
+                </View>
+                {reviews.length === 0 ? (
+                  <TWCard>
+                    <Text style={{ fontSize: 13, color: palette.muted, lineHeight: 18 }}>
+                      {t("rent.noReviewsYet")}
+                    </Text>
                   </TWCard>
-                ))}
-              </View>
-            )}
-          </Animated.View>
+                ) : (
+                  <View style={{ gap: 10 }}>
+                    {reviews.slice(0, 3).map((r) => (
+                      <TWCard key={r.id}>
+                        <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+                          <LinearGradient
+                            colors={[colors.brand.trendyPink, colors.brand.friendlyBlue]}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 18,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
+                              {initialsOf(r.user?.name ?? null)}
+                            </Text>
+                          </LinearGradient>
+                          <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                              <Text
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: "700",
+                                  color: palette.text,
+                                  flexShrink: 1,
+                                }}
+                                numberOfLines={1}
+                              >
+                                {r.user?.name ?? t("rent.defaultRiderName")}
+                              </Text>
+                              <View style={{ flexDirection: "row", gap: 1 }}>
+                                {[1, 2, 3, 4, 5].map((i) => (
+                                  <Ionicons
+                                    key={i}
+                                    name={i <= r.rating ? "star" : "star-outline"}
+                                    size={10}
+                                    color="#F5B800"
+                                  />
+                                ))}
+                              </View>
+                              <Text
+                                style={{ fontSize: 11, color: palette.muted, marginLeft: "auto" }}
+                              >
+                                {new Date(r.createdAt).toLocaleDateString()}
+                              </Text>
+                            </View>
+                            {r.title ? (
+                              <Text
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: "700",
+                                  color: palette.text,
+                                  marginTop: 4,
+                                }}
+                              >
+                                {r.title}
+                              </Text>
+                            ) : null}
+                            {r.body ? (
+                              <Text
+                                style={{
+                                  fontSize: 13,
+                                  color: palette.muted,
+                                  marginTop: r.title ? 2 : 4,
+                                  lineHeight: 18,
+                                }}
+                              >
+                                {r.body}
+                              </Text>
+                            ) : null}
+                          </View>
+                        </View>
+                      </TWCard>
+                    ))}
+                  </View>
+                )}
+              </Animated.View>
+            </>
+          )}
         </View>
       </Animated.ScrollView>
 
@@ -483,52 +514,67 @@ export default function RentDetailScreen(): React.JSX.Element {
           gap: 14,
         }}
       >
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontSize: 11,
-              color: palette.muted,
-              fontWeight: "700",
-              letterSpacing: track(0.5),
-            }}
+        {!user ? (
+          <TWButton
+            kind="pink"
+            size="lg"
+            icon="arrow-forward"
+            iconRight
+            full
+            onPress={() => router.push("/(auth)/phone")}
           >
-            {t("rent.total").toUpperCase()}
-          </Text>
-          <Text style={{ fontSize: 18, color: colors.brand.trendyPink, fontWeight: "800" }}>
-            {twEGP(Number(vehicle.dailyRate))}
-            <Text style={{ fontSize: 12, color: palette.muted, fontWeight: "500" }}>
-              {" "}
-              {t("rent.perDayShort")}
-            </Text>
-          </Text>
-        </View>
-        <TWButton
-          kind="pink"
-          size="lg"
-          icon="arrow-forward"
-          iconRight
-          onPress={() => {
-            const u = useAuth.getState().user;
-            const bookParams = {
-              vehicleId: vehicle.id,
-              dailyRate: String(vehicle.dailyRate),
-              name: vehicle.name,
-            };
-            // Every transaction requires the customer's ID on file first.
-            if (!ensureId(u, router, `/rent/${vehicle.id}`)) return;
-            if (!u?.licenseNumber) {
-              router.push({
-                pathname: "/profile/license",
-                params: { next: "/rent/book", ...bookParams },
-              });
-            } else {
-              router.push({ pathname: "/rent/book", params: bookParams });
-            }
-          }}
-          style={{ paddingHorizontal: 28 }}
-        >
-          {t("rent.bookNow")}
-        </TWButton>
+            {t("auth.lockedTitle")}
+          </TWButton>
+        ) : (
+          <>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: palette.muted,
+                  fontWeight: "700",
+                  letterSpacing: track(0.5),
+                }}
+              >
+                {t("rent.total").toUpperCase()}
+              </Text>
+              <Text style={{ fontSize: 18, color: colors.brand.trendyPink, fontWeight: "800" }}>
+                {twEGP(Number(vehicle.dailyRate))}
+                <Text style={{ fontSize: 12, color: palette.muted, fontWeight: "500" }}>
+                  {" "}
+                  {t("rent.perDayShort")}
+                </Text>
+              </Text>
+            </View>
+            <TWButton
+              kind="pink"
+              size="lg"
+              icon="arrow-forward"
+              iconRight
+              onPress={() => {
+                const u = useAuth.getState().user;
+                const bookParams = {
+                  vehicleId: vehicle.id,
+                  dailyRate: String(vehicle.dailyRate),
+                  name: vehicle.name,
+                };
+                // Every transaction requires the customer's ID on file first.
+                if (!ensureId(u, router, `/rent/${vehicle.id}`)) return;
+                if (!u?.licenseNumber) {
+                  router.push({
+                    pathname: "/profile/license",
+                    params: { next: "/rent/book", ...bookParams },
+                  });
+                } else {
+                  router.push({ pathname: "/rent/book", params: bookParams });
+                }
+              }}
+              style={{ paddingHorizontal: 28 }}
+            >
+              {t("rent.bookNow")}
+            </TWButton>
+          </>
+        )}
       </View>
     </View>
   );

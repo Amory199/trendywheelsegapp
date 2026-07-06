@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Linking,
   KeyboardAvoidingView,
   ScrollView,
   Platform,
@@ -156,10 +155,7 @@ export default function PhoneScreen(): JSX.Element {
             </View>
             <Text style={styles.consentText}>
               {t("auth.privacyAgreePrefix")}{" "}
-              <Text
-                style={styles.consentLink}
-                onPress={() => void Linking.openURL("https://app.trendywheelseg.com/legal/privacy")}
-              >
+              <Text style={styles.consentLink} onPress={() => router.push("/privacy")}>
                 {t("auth.privacyPolicy")}
               </Text>{" "}
               {t("auth.privacyAgreeSuffix")}

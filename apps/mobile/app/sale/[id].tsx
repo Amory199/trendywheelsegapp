@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { discountPercent, isVehicleOnSale } from "@trendywheels/types";
 import { colors, twEGP } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
@@ -10,12 +10,18 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { ErrorState } from "../../components/ErrorState";
 import { ImageCarousel } from "../../components/ImageCarousel";
+import { LockedDetails } from "../../components/LockedDetails";
+import { PriceGate } from "../../components/PriceGate";
+import { ShareButton } from "../../components/ShareButton";
 import { TWBadge, TWButton, TWCard, TWChip, TWPressable } from "../../components/ui";
+import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
+
+type FavoritesResponse = Awaited<ReturnType<typeof api.getFavorites>>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HERO_HEIGHT = 320;
@@ -33,11 +39,62 @@ export default function SaleDetailScreen(): React.JSX.Element {
   const track = useTracking();
   const user = useAuth((s) => s.user);
 
+  const qc = useQueryClient();
+
   const q = useQuery({
     queryKey: ["vehicle", id],
     queryFn: () => api.getVehicle(id as string),
     enabled: Boolean(id),
   });
+
+  const favoritesQ = useQuery({
+    queryKey: ["favorites"],
+    queryFn: () => api.getFavorites(),
+    enabled: Boolean(user),
+  });
+  const isFavorite = (favoritesQ.data?.data ?? []).some((f) => f.vehicleId === id);
+
+  const favoriteMutation = useMutation({
+    mutationFn: async (next: boolean): Promise<unknown> =>
+      next ? api.addFavorite(id as string) : api.removeFavorite(id as string),
+    onMutate: async (next) => {
+      await qc.cancelQueries({ queryKey: ["favorites"] });
+      const prev = qc.getQueryData<FavoritesResponse>(["favorites"]);
+      qc.setQueryData<FavoritesResponse>(["favorites"], (old) => {
+        const rows = old?.data ?? [];
+        return {
+          data: next
+            ? [
+                {
+                  id: `optimistic-${String(id)}`,
+                  vehicleId: id as string,
+                  createdAt: new Date().toISOString(),
+                  vehicle: q.data?.data as FavoritesResponse["data"][number]["vehicle"],
+                },
+                ...rows,
+              ]
+            : rows.filter((f) => f.vehicleId !== id),
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _next, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["favorites"], ctx.prev);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["favorites"] });
+    },
+  });
+
+  const onToggleFavorite = (): void => {
+    if (!user) {
+      router.push("/(auth)/phone");
+      return;
+    }
+    const next = !isFavorite;
+    favoriteMutation.mutate(next);
+    logEvent(next ? "favorite_added" : "favorite_removed", { vehicle_id: id });
+  };
 
   const vehicle = q.data?.data;
   const rawImages = (vehicle?.images ?? []) as Array<string | { url: string }>;
@@ -90,7 +147,10 @@ export default function SaleDetailScreen(): React.JSX.Element {
           position: "absolute",
           top: 56,
           left: 20,
+          right: 20,
           zIndex: 10,
+          flexDirection: "row",
+          justifyContent: "space-between",
         }}
       >
         <TWPressable
@@ -106,6 +166,39 @@ export default function SaleDetailScreen(): React.JSX.Element {
         >
           <Ionicons name="chevron-back" size={22} color={palette.text} />
         </TWPressable>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <ShareButton
+            kind="sale"
+            id={vehicle.id}
+            title={vehicle.name}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: "rgba(255,255,255,0.9)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            iconColor={palette.text}
+          />
+          <TWPressable
+            onPress={onToggleFavorite}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: "rgba(255,255,255,0.9)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons
+              name={isFavorite ? "heart" : "heart-outline"}
+              size={22}
+              color={colors.brand.trendyPink}
+            />
+          </TWPressable>
+        </View>
       </View>
 
       <Animated.ScrollView
@@ -151,22 +244,26 @@ export default function SaleDetailScreen(): React.JSX.Element {
             >
               {vehicle.name}
             </Text>
-            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10, marginTop: 10 }}>
-              <Text style={{ fontSize: 26, color: colors.brand.trendyPink, fontWeight: "800" }}>
-                {twEGP(sale)}
-              </Text>
-              {hasDiscount ? (
-                <Text
-                  style={{
-                    fontSize: 16,
-                    color: palette.muted,
-                    fontWeight: "600",
-                    textDecorationLine: "line-through",
-                  }}
-                >
-                  {twEGP(original as number)}
-                </Text>
-              ) : null}
+            <View style={{ marginTop: 10 }}>
+              <PriceGate size="lg">
+                <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10 }}>
+                  <Text style={{ fontSize: 26, color: colors.brand.trendyPink, fontWeight: "800" }}>
+                    {twEGP(sale)}
+                  </Text>
+                  {hasDiscount ? (
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        color: palette.muted,
+                        fontWeight: "600",
+                        textDecorationLine: "line-through",
+                      }}
+                    >
+                      {twEGP(original as number)}
+                    </Text>
+                  ) : null}
+                </View>
+              </PriceGate>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
               <Ionicons name="location-outline" size={14} color={palette.muted} />
@@ -174,68 +271,76 @@ export default function SaleDetailScreen(): React.JSX.Element {
             </View>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(140).duration(420)}>
-            <TWCard padded={false}>
-              <View style={{ flexDirection: "row", padding: 14 }}>
-                <SpecCell
-                  icon="person"
-                  label={t("rent.specSeats")}
-                  value={String(vehicle.seating)}
-                />
-                <SpecCell
-                  icon="cog-outline"
-                  label={t("rent.specDrive")}
-                  value={vehicle.transmission}
-                />
-                <SpecCell
-                  icon="water-outline"
-                  label={t("rent.specFuel")}
-                  value={vehicle.fuelType ?? t("rent.fuelPetrol")}
-                  last
-                />
-              </View>
-            </TWCard>
-          </Animated.View>
-
-          {vehicle.saleDescription ? (
-            <Animated.View entering={FadeInDown.delay(200).duration(420)}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "700",
-                  color: palette.muted,
-                  letterSpacing: track(0.8),
-                  marginBottom: 8,
-                }}
-              >
-                {t("sale.details").toUpperCase()}
-              </Text>
-              <Text style={{ fontSize: 14, lineHeight: 22, color: palette.text }}>
-                {vehicle.saleDescription}
-              </Text>
+          {!user ? (
+            <Animated.View entering={FadeInDown.delay(140).duration(420)}>
+              <LockedDetails />
             </Animated.View>
-          ) : null}
+          ) : (
+            <>
+              <Animated.View entering={FadeInDown.delay(140).duration(420)}>
+                <TWCard padded={false}>
+                  <View style={{ flexDirection: "row", padding: 14 }}>
+                    <SpecCell
+                      icon="person"
+                      label={t("rent.specSeats")}
+                      value={String(vehicle.seating)}
+                    />
+                    <SpecCell
+                      icon="cog-outline"
+                      label={t("rent.specDrive")}
+                      value={vehicle.transmission}
+                    />
+                    <SpecCell
+                      icon="water-outline"
+                      label={t("rent.specFuel")}
+                      value={vehicle.fuelType ?? t("rent.fuelPetrol")}
+                      last
+                    />
+                  </View>
+                </TWCard>
+              </Animated.View>
 
-          {features.length > 0 ? (
-            <Animated.View entering={FadeInDown.delay(260).duration(420)}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "700",
-                  color: palette.muted,
-                  letterSpacing: track(0.8),
-                  marginBottom: 10,
-                }}
-              >
-                {t("rent.features").toUpperCase()}
-              </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {features.map((f) => (
-                  <TWChip key={f}>{f}</TWChip>
-                ))}
-              </View>
-            </Animated.View>
-          ) : null}
+              {vehicle.saleDescription ? (
+                <Animated.View entering={FadeInDown.delay(200).duration(420)}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "700",
+                      color: palette.muted,
+                      letterSpacing: track(0.8),
+                      marginBottom: 8,
+                    }}
+                  >
+                    {t("sale.details").toUpperCase()}
+                  </Text>
+                  <Text style={{ fontSize: 14, lineHeight: 22, color: palette.text }}>
+                    {vehicle.saleDescription}
+                  </Text>
+                </Animated.View>
+              ) : null}
+
+              {features.length > 0 ? (
+                <Animated.View entering={FadeInDown.delay(260).duration(420)}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "700",
+                      color: palette.muted,
+                      letterSpacing: track(0.8),
+                      marginBottom: 10,
+                    }}
+                  >
+                    {t("rent.features").toUpperCase()}
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {features.map((f) => (
+                      <TWChip key={f}>{f}</TWChip>
+                    ))}
+                  </View>
+                </Animated.View>
+              ) : null}
+            </>
+          )}
         </View>
       </Animated.ScrollView>
 
@@ -255,31 +360,46 @@ export default function SaleDetailScreen(): React.JSX.Element {
           gap: 14,
         }}
       >
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontSize: 11,
-              color: palette.muted,
-              fontWeight: "700",
-              letterSpacing: track(0.5),
-            }}
+        {!user ? (
+          <TWButton
+            kind="pink"
+            size="lg"
+            icon="arrow-forward"
+            iconRight
+            full
+            onPress={() => router.push("/(auth)/phone")}
           >
-            {t("sale.price").toUpperCase()}
-          </Text>
-          <Text style={{ fontSize: 18, color: colors.brand.trendyPink, fontWeight: "800" }}>
-            {twEGP(sale)}
-          </Text>
-        </View>
-        <TWButton
-          kind="pink"
-          size="lg"
-          icon="arrow-forward"
-          iconRight
-          onPress={onReserve}
-          style={{ paddingHorizontal: 28 }}
-        >
-          {t("sale.reserveCta")}
-        </TWButton>
+            {t("auth.lockedTitle")}
+          </TWButton>
+        ) : (
+          <>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: palette.muted,
+                  fontWeight: "700",
+                  letterSpacing: track(0.5),
+                }}
+              >
+                {t("sale.price").toUpperCase()}
+              </Text>
+              <Text style={{ fontSize: 18, color: colors.brand.trendyPink, fontWeight: "800" }}>
+                {twEGP(sale)}
+              </Text>
+            </View>
+            <TWButton
+              kind="pink"
+              size="lg"
+              icon="arrow-forward"
+              iconRight
+              onPress={onReserve}
+              style={{ paddingHorizontal: 28 }}
+            >
+              {t("sale.reserveCta")}
+            </TWButton>
+          </>
+        )}
       </View>
     </View>
   );

@@ -24,6 +24,16 @@ router.get("/app-config", (_req, res) => {
   });
 });
 
+// Public category visibility for the customer app (rent + discovery). Guests
+// browse, so this must be unauthenticated. Returns the HIDDEN set the admin
+// configured; the client hides those and shows everything else. Defaults to an
+// empty set (all visible) if no config row exists yet.
+router.get("/categories/visibility", async (_req, res) => {
+  const config = await prisma.systemConfig.findFirst({ orderBy: { updatedAt: "desc" } });
+  const hidden = Array.isArray(config?.hiddenCategories) ? config.hiddenCategories : [];
+  res.json({ data: { hidden } });
+});
+
 router.get("/readyz", async (_req, res) => {
   const checks: Record<string, string> = {};
 

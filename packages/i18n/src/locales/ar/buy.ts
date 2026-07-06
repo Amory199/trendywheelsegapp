@@ -7,7 +7,7 @@ const buy: Stringify<typeof enNs> = {
 
   // Catalog tab — app/(tabs)/buy.tsx
   catalogTitle: "الكتالوج",
-  catalogSubtitle: "عربات وقطع غيار وإكسسوارات.",
+  catalogSubtitle: "عربات جولف وقطع غيار وإكسسوارات.",
   tabAll: "الكل",
   tabNew: "جديد",
   tabUsed: "مستعمل",
@@ -17,8 +17,8 @@ const buy: Stringify<typeof enNs> = {
   outOfStock: "غير متوفر",
 
   // Product detail — app/buy/[id].tsx
-  categoryCartNew: "عربة جديدة",
-  categoryCartUsed: "عربة مستعملة",
+  categoryCartNew: "عربة جولف جديدة",
+  categoryCartUsed: "عربة جولف مستعملة",
   categoryParts: "قطع غيار",
   categoryAccessory: "إكسسوار",
   notFound: "غير موجود.",

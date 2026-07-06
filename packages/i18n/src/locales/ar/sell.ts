@@ -5,11 +5,11 @@ const sell: Stringify<typeof enNs> = {
   egp: "ج.م",
 
   hub: {
-    title: "عندك عربية؟",
+    title: "عندك عربية جولف؟",
     subtitle: "ثلاث طرق تحوّلها بيها لحاجة تانية.",
-    sellOutright: "بيع عربيتي بالكامل",
+    sellOutright: "بيع عربية الجولف بالكامل",
     sellOutrightSub: "اعرض عربية الجولف للبيع. واحنا نتولّى المشترين.",
-    listForRent: "اعرض عربيتي للإيجار",
+    listForRent: "اعرض عربية الجولف للإيجار",
     listForRentSub: "اكسب دخلاً إضافياً — واحنا ندير الإيجارات من أوّلها لآخرها.",
     tradeIn: "استبدلها بواحدة جديدة",
     tradeInSub: "احصل على عرض سعر لعربيتك، واستخدم القيمة في موديل جديد.",
@@ -125,7 +125,7 @@ const sell: Stringify<typeof enNs> = {
 
   rent: {
     eyebrow: "اعرض للإيجار",
-    titleStep0: "احكيلنا عن عربيتك",
+    titleStep0: "احكيلنا عن عربية الجولف",
     titleStep1: "أضف الصور",
     titleStep2: "المراجعة + الإرسال",
     brand: "الماركة",
@@ -165,7 +165,7 @@ const sell: Stringify<typeof enNs> = {
 
   tradeIn: {
     eyebrow: "الاستبدال",
-    titleStep0: "احكيلنا عن عربيتك",
+    titleStep0: "احكيلنا عن عربية الجولف",
     titleStep1: "أضف الصور",
     titleStep2: "المراجعة + الإرسال",
     brand: "الماركة",

@@ -30,7 +30,7 @@ export default {
   },
   updateGate: {
     title: "Update required",
-    body: "This version of TrendyWheels is no longer supported. Please update to keep booking, buying, and managing your carts.",
+    body: "This version of TrendyWheels is no longer supported. Please update to keep booking, buying, and managing your golf carts.",
     updateNow: "Update now",
   },
   review: {
