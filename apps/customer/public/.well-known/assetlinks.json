@@ -4,7 +4,9 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.trendywheels.app",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_ANDROID_RELEASE_SHA256"]
+      "sha256_cert_fingerprints": [
+        "2E:F7:EC:F2:EF:45:72:CB:D4:89:E0:73:8B:96:75:7C:97:6C:6B:BD:99:36:94:62:B4:C6:27:20:C7:76:4F:B0"
+      ]
     }
   }
 ]
