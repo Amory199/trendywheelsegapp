@@ -46,6 +46,20 @@ export default function AdminDashboard(): JSX.Element {
 
   const m = metricsQ.data;
 
+  // Push-independent signal for manual-OTP requests: poll the pending count so
+  // admins see waiting requests even when a device can't receive push (e.g. iOS
+  // before an APNs key is configured). Critical for the "issue a code" flow.
+  const otpQ = useQuery({
+    queryKey: ["admin", "otp-requests", "count"],
+    queryFn: async (): Promise<number> => {
+      const r = await api.request<{ data: unknown[] }>("GET", "/api/auth/otp-requests");
+      return (r.data ?? []).length;
+    },
+    refetchInterval: 20000,
+    enabled: user?.accountType === "admin",
+  });
+  const pendingOtp = otpQ.data ?? 0;
+
   return (
     <View style={styles.root}>
       <TWAurora variant="ambient" />
@@ -109,10 +123,19 @@ export default function AdminDashboard(): JSX.Element {
 
         <Pressable
           onPress={() => router.push("/admin/otp-requests")}
-          style={({ pressed }) => [styles.linkRow, pressed && { opacity: 0.85 }]}
+          style={({ pressed }) => [
+            styles.linkRow,
+            pendingOtp > 0 && styles.linkRowAlert,
+            pressed && { opacity: 0.85 },
+          ]}
         >
           <Ionicons name="key-outline" size={18} color={colors.brand.trendyPink} />
           <Text style={styles.linkLabel}>{t("admin.otpInboxTitle")}</Text>
+          {pendingOtp > 0 ? (
+            <View style={styles.otpBadge}>
+              <Text style={styles.otpBadgeText}>{pendingOtp}</Text>
+            </View>
+          ) : null}
           <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
         </Pressable>
 
@@ -204,4 +227,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dark.card,
   },
   linkLabel: { flex: 1, color: colors.text.light, fontSize: 15, fontWeight: "700" },
+  linkRowAlert: { borderColor: colors.brand.trendyPink },
+  otpBadge: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    paddingHorizontal: 7,
+    backgroundColor: colors.brand.trendyPink,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  otpBadgeText: { color: "#fff", fontSize: 13, fontWeight: "800" },
 });
