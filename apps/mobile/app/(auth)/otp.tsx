@@ -46,6 +46,11 @@ export default function OtpScreen(): JSX.Element {
   const [manualRequested, setManualRequested] = useState(false);
   const [manualExhausted, setManualExhausted] = useState(false);
   const requestIdRef = useRef<string | null>(null);
+  // Latest handleVerify, so the poll loop (declared above it) can trigger the
+  // auto-login without a stale closure or use-before-declaration.
+  const handleVerifyRef = useRef<
+    ((code?: string, forceSupport?: boolean) => Promise<void>) | undefined
+  >(undefined);
 
   const requestManualCode = async (): Promise<void> => {
     setRequesting(true);
@@ -88,15 +93,19 @@ export default function OtpScreen(): JSX.Element {
         );
         if (cancelled) return;
         if (res.data.status === "issued" && res.data.code) {
-          setOtp(res.data.code);
+          const code = res.data.code;
+          setOtp(code);
           setManualRequested(false);
           void Notifications.scheduleNotificationAsync({
             content: {
               title: t("auth.manualOtpArrivedTitle"),
-              body: `${t("auth.manualOtpArrivedBody")} (${res.data.code})`,
+              body: `${t("auth.manualOtpArrivedBody")} (${code})`,
             },
             trigger: null,
           }).catch(() => {});
+          // Auto-login: the admin-issued code IS the current valid code — verify
+          // it and sign the user in immediately, no tap required.
+          void handleVerifyRef.current?.(code, true);
         }
       } catch {
         // Transient poll failure — keep trying until unmount.
@@ -108,14 +117,18 @@ export default function OtpScreen(): JSX.Element {
     };
   }, [manualRequested, otp.length, t]);
 
-  const handleVerify = async (): Promise<void> => {
+  // overrideCode/forceSupport let the auto-login path pass the freshly-polled
+  // admin code directly, without waiting on the async `otp` state update.
+  const handleVerify = async (overrideCode?: string, forceSupport?: boolean): Promise<void> => {
+    const code = overrideCode ?? otp;
+    const viaSupport = forceSupport || useSupport;
     setLoading(true);
     try {
-      if (mode === "firebase" && !useSupport) {
-        const idToken = await confirmFirebaseOtp(otp);
+      if (mode === "firebase" && !viaSupport) {
+        const idToken = await confirmFirebaseOtp(code);
         await verifyFirebaseIdToken(idToken);
       } else {
-        await verifyOtp(phone ?? "", otp);
+        await verifyOtp(phone ?? "", code);
       }
       const u = useAuth.getState().user;
 
@@ -155,6 +168,7 @@ export default function OtpScreen(): JSX.Element {
       setLoading(false);
     }
   };
+  handleVerifyRef.current = handleVerify;
 
   return (
     <KeyboardAvoidingView

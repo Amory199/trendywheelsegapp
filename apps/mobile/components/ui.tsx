@@ -411,8 +411,11 @@ export function TWAurora({
   const { isDark } = useTheme();
   const uid = React.useId().replace(/:/g, "");
 
+  // `ambient` and `login` fill the whole screen — the login form is centered on
+  // a full-height background, so a fixed-height wash would leave a hard seam
+  // where it stops. `hero` stays a capped band behind a header.
   const box: ViewStyle =
-    variant === "ambient"
+    variant === "ambient" || variant === "login"
       ? { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }
       : { position: "absolute", top: 0, left: 0, right: 0, height };
 
