@@ -228,18 +228,6 @@ export default function OtpScreen(): JSX.Element {
               </Text>
             </TouchableOpacity>
           )}
-
-          {/* Fallback shown only on the real-SMS (Firebase) path: if the code
-              never arrives, let support issue one out-of-band and verify it. */}
-          {mode === "firebase" && !useSupport ? (
-            <TouchableOpacity
-              style={styles.supportLink}
-              onPress={() => setUseSupport(true)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.supportLinkText}>{t("auth.haveSupportCode")}</Text>
-            </TouchableOpacity>
-          ) : null}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
