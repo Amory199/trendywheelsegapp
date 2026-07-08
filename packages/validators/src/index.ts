@@ -317,24 +317,13 @@ export const updateUserSchema = z.object({
   licensePhotoUrl: z.string().url().nullable().optional(),
   idFrontUrl: z.string().url().nullable().optional(),
   idBackUrl: z.string().url().nullable().optional(),
-  preferences: z
-    .object({
-      theme: z.enum(["light", "dark"]).optional(),
-      language: z.enum(["en", "ar"]).optional(),
-      notifications: z
-        .object({
-          email: z.boolean(),
-          sms: z.boolean(),
-          whatsapp: z.boolean(),
-          push: z.boolean(),
-        })
-        .optional(),
-      marketingOptIn: z.boolean().optional(),
-    })
-    // Customers default to preferences=null on signup; PUT must accept null
-    // so the profile editor can submit without populating prefs first.
-    .nullable()
-    .optional(),
+  // Reuse the canonical (deep-partial) preferences shape so every field a client
+  // legitimately stores round-trips — notably theme:"system", which this inline
+  // schema used to omit. Because the app-wide default theme IS "system", any PUT
+  // that echoed a user's saved prefs (e.g. the admin editor seeding its form from
+  // the full user row) 400-ed on parse, silently blocking role/status edits too
+  // (INC-055). Customers default to preferences=null on signup, so still accept null.
+  preferences: updateUserPreferencesSchema.nullable().optional(),
 });
 
 // ─── Messages ────────────────────────────────────────────────

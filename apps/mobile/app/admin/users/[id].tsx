@@ -74,7 +74,14 @@ export default function AdminUserEdit(): React.JSX.Element {
   }, [q.data]);
 
   const save = useMutation({
-    mutationFn: async () => api.adminUpdateUser(id!, form as Record<string, unknown>),
+    mutationFn: async () => {
+      // `form` is seeded from the full user row, so it carries the stored
+      // `preferences` blob. Echoing it back risks 400-ing the entire PUT on
+      // prefs-schema drift (INC-055) — and this editor never changes prefs
+      // anyway. Send only the fields it actually edits; drop preferences.
+      const { preferences: _prefs, ...payload } = form as Record<string, unknown>;
+      return api.adminUpdateUser(id!, payload);
+    },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["admin"] });
       Alert.alert(t("admin.userSavedTitle"), t("admin.userSavedMessage"));
