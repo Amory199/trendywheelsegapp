@@ -103,6 +103,21 @@ export default function VehicleEditPage(): JSX.Element {
     setExistingImages((prev) => prev.filter((u) => u !== url));
   };
 
+  // Photo order == display order (the API rewrites sort_order from the array
+  // index on save), so reordering here is all it takes to rearrange placement.
+  // The first photo is the cover.
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const moveExisting = (from: number, to: number): void => {
+    setExistingImages((prev) => {
+      if (from === to || to < 0 || to >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
+
   const addImages = (files: FileList): void => {
     const imgs = Array.from(files).map((f) => ({ file: f, preview: URL.createObjectURL(f) }));
     setNewImages((prev) => [...prev, ...imgs]);
@@ -431,26 +446,68 @@ export default function VehicleEditPage(): JSX.Element {
         </div>
 
         <div className="bg-white rounded-xl border p-6 space-y-4">
-          <h2 className="font-semibold">Photos</h2>
+          <div className="flex items-baseline justify-between gap-3 flex-wrap">
+            <h2 className="font-semibold">Photos</h2>
+            {existingImages.length > 1 && (
+              <span className="text-xs text-gray-400">
+                Drag or use ‹ › to reorder — the first photo is the cover
+              </span>
+            )}
+          </div>
           <div className="flex gap-3 flex-wrap">
             {existingImages.map((url, i) => (
-              <div key={url} className="relative group">
+              <div
+                key={url}
+                className={`relative group transition ${dragIndex === i ? "opacity-40" : ""}`}
+                draggable
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIndex !== null) moveExisting(dragIndex, i);
+                  setDragIndex(null);
+                }}
+                onDragEnd={() => setDragIndex(null)}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={url}
                   alt={`photo ${i + 1}`}
-                  className="w-24 h-24 object-cover rounded-lg border"
+                  className="w-24 h-24 object-cover rounded-lg border cursor-move"
                 />
                 <button
                   onClick={() => removeExisting(url)}
+                  aria-label="Remove photo"
                   className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
                 >
                   ×
                 </button>
                 {i === 0 && (
-                  <span className="absolute bottom-1 left-1 bg-primary-500 text-white text-xs px-1 rounded">
+                  <span className="absolute top-1 left-1 bg-primary-500 text-white text-xs px-1 rounded">
                     Cover
                   </span>
+                )}
+                {existingImages.length > 1 && (
+                  <div className="absolute bottom-1 inset-x-1 flex justify-between opacity-80 group-hover:opacity-100 transition">
+                    <button
+                      type="button"
+                      onClick={() => moveExisting(i, i - 1)}
+                      disabled={i === 0}
+                      aria-label="Move photo earlier"
+                      className="w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded flex items-center justify-center leading-none disabled:opacity-30 disabled:cursor-default"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveExisting(i, i + 1)}
+                      disabled={i === existingImages.length - 1}
+                      aria-label="Move photo later"
+                      className="w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded flex items-center justify-center leading-none disabled:opacity-30 disabled:cursor-default"
+                    >
+                      ›
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
