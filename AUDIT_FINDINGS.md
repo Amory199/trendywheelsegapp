@@ -136,3 +136,43 @@ Companion files:
 
 - [INCIDENTS.md](./INCIDENTS.md) — per-incident postmortems and reusable fix patterns.
 - [CHECKLISTS/FEATURE.md](./CHECKLISTS/FEATURE.md), [SECURITY.md](./CHECKLISTS/SECURITY.md), [SCALE.md](./CHECKLISTS/SCALE.md) — gate every new PR against these.
+
+---
+
+# Audit round 2 — 2026-07-08 (3 parallel deep audits: security / correctness / ops)
+
+All findings below were adversarially verified against code or live system state. Known items from the 2026-05-28 audit (INC-016/017/020, staff-2FA, seed passwords) were re-verified as STILL OPEN but are not re-listed.
+
+## CRITICAL / P1 — fix first
+
+1. **[SEC-P1] Manual-OTP in-app delivery = account takeover of any customer.** `POST /api/auth/otp-request {phone}` is public with no phone-ownership proof; requester gets the `requestId`, admin issues, and the PUBLIC poll `GET /api/auth/otp-request/:id` hands the real login code to the REQUESTER (who may not own the phone) → `verify-otp` → full session. UUID unguessability doesn't help — the attacker owns their own requestId. FIX DIRECTION: if a User already exists for that phone, disable in-app delivery (admin relays out-of-band after verifying identity); new-phone requests (no account to steal) may keep the auto flow.
+2. **[CORRECTNESS-P1] 0-EGP bookings.** `bookings/controller.ts create()` never checks `listingType`/null `dailyRate`; `Number(null)*days = 0` → free booking on sale-only vehicles. Reservation path HAS the guard (`reservations/service.ts:19`); booking path is missing it.
+3. **[CORRECTNESS-P1] CRM lead contact edits silently dropped.** `crm/routes.ts` uses a LOCAL `updateLeadSchema` that omits `contactName/Phone/Email` while the canonical exported one (validators:452, DEAD — never imported) has them. Mobile "edit lead" sends the fields; Zod strips them; 200 "Saved"; DB unchanged.
+4. **[OPS-P0] `error_logs` grows forever + admin logs page ILIKE-scans it every 5s per open tab.** Only otp_codes has a purge. First-outage candidate. FIX: retention purge worker (resolved/older-than-N-days) + drop count/groupBy from the 5s poll.
+
+## P1
+
+5. [OPS] `messages listConversations` unbounded; every staff is a participant in every support thread → payload grows with lifetime tickets. Cursor-paginate.
+6. [OPS] `notifications` + `otp_requests` have no purge (fastest growers after error_logs).
+7. [OPS] Missing indexes (INC-016 still unshipped): `Notification @@index([userId,createdAt])`, `Vehicle @@index([category])`.
+8. [OPS] Workers: no retry/backoff/concurrency/idempotency; Expo push failures silently dropped, receipts never polled (INC-017 still open).
+9. [OPS] Backups run daily but MinIO target is the SAME VPS — not offsite (INC-020).
+10. [SEC-P2→P1 at scale] `otp-request` limiter keys per-phone only → attacker rotates phones → push storm to every admin + unbounded rows. Add per-IP cap + coalesce admin pushes.
+
+## P2
+
+11. [SEC] Upload endpoints: no per-user rate/quota → disk-exhaustion DoS (10MB loops).
+12. [SEC] `POST /api/storage/vehicles/:vehicleId/images` lacks `authorize("admin","staff")` (DELETE has it) — any customer writes into vehicle namespace.
+13. [CORRECTNESS] Transport status vocabulary drift: web admin writes `scheduled/in_transit/...`, mobile admin writes `submitted/in-progress/...` to the same String column → the two surfaces can't read each other's states.
+14. [CORRECTNESS] Staff `phone` round-trip trap (INC-055/056 class, still live): `createStaffSchema.phone` permissive (6-40 any chars) vs `updateUserSchema.phone` strict → stored staff phone can 400 the whole edit incl. role change.
+15. [OPS] `exportData` + trade-in/transport `listMine` unbounded; vehicle list `include images` pulls all images for card views (`take:1` suffices); alert-evaluator does N+1 per 15-min tick; admin users page silently truncates at 100.
+
+## P3
+
+16. [SEC] (see 12). [CORRECTNESS] `otp_requests.consumed` never set — public poll keeps returning an already-used code until expiry; close it on verify. Dead unreachable fields in `bookings update()` (paymentStatus/pickup/return stripped by validator). [OPS] uploads dir no lifecycle; api restart count = deploys (benign, verified); pm2-logrotate unstable=1.
+
+## Verified-clean worth recording (don't re-flag)
+
+- Upload path traversal + SVG-XSS handled (safeKey, raster-only mime enum); upload HMAC uses timingSafeEqual.
+- Admin router fully auth-gated; admin raw SQL parameterized; secrets hygiene clean (tracked env files contain only public keys).
+- Most list endpoints ARE bounded; otp_codes/bookings/error_logs indexed for main paths; `max_memory_restart` set on all services; log rotation active; backups recent (424K, 30d retention, restores unverified).

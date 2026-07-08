@@ -1,6 +1,8 @@
 /**
  * BullMQ workers. Run as a separate process: `tsx src/workers/index.ts`.
  */
+import { mkdirSync, writeFileSync } from "node:fs";
+
 import { Worker } from "bullmq";
 import { Expo, type ExpoPushMessage, type ExpoPushTicket } from "expo-server-sdk";
 
@@ -10,6 +12,7 @@ import { sweepStaleLeads } from "../modules/crm/service.js";
 import { queueConnection, scheduleRecurringSweeps } from "../queues/index.js";
 import { getIO } from "../utils/io-registry.js";
 import { logger } from "../utils/logger.js";
+import { notifyAdmins } from "../utils/notify.js";
 
 const expo = new Expo();
 
@@ -219,6 +222,88 @@ const otpCleanupWorker = new Worker<Record<string, never>>(
   { connection: queueConnection },
 );
 
+// Daily ops brief (09:03 Cairo via the recurring sweep): one push to admins
+// with the morning numbers + a markdown brief dropped into the owner's ops
+// vault. DB-side stats only — host-level stats (pm2/disk) are appended by the
+// companion cron script in /opt/brain/scripts. Credential-free by design:
+// this process already has DB access and the push pipeline.
+const BRAIN_BRIEFS_DIR = "/opt/brain/briefs";
+const dailyBriefWorker = new Worker<Record<string, never>>(
+  "daily-brief",
+  async () => {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [otpPending, errors24h, bookings24h, newCustomers24h, openTickets] = await Promise.all([
+      prisma.otpRequest.count({ where: { status: "pending" } }),
+      prisma.errorLog.count({ where: { resolvedAt: null, createdAt: { gte: since } } }),
+      prisma.booking.count({ where: { createdAt: { gte: since } } }),
+      prisma.user.count({ where: { accountType: "customer", createdAt: { gte: since } } }),
+      prisma.supportTicket.count({ where: { status: { in: ["open", "in_progress"] } } }),
+    ]);
+    // The workers process is separate from the API process, so this is a real
+    // liveness probe, not a self-check.
+    let apiHealthy = false;
+    try {
+      const r = await fetch(`http://127.0.0.1:${process.env.PORT ?? "4000"}/healthz`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      apiHealthy = r.ok;
+    } catch {
+      // stays false
+    }
+
+    const day = new Date().toISOString().slice(0, 10);
+    const cairoNow = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Africa/Cairo",
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date());
+    const summary =
+      `${apiHealthy ? "API ✅" : "API 🔴 DOWN"} · ${otpPending} OTP pending · ` +
+      `${errors24h} errors 24h · ${bookings24h} bookings · ` +
+      `${newCustomers24h} new customers · ${openTickets} open tickets`;
+
+    // Vault write is best-effort — a missing/readonly vault must never block the push.
+    try {
+      mkdirSync(BRAIN_BRIEFS_DIR, { recursive: true });
+      writeFileSync(
+        `${BRAIN_BRIEFS_DIR}/${day}.md`,
+        [
+          `# Daily brief — ${cairoNow} Cairo`,
+          ``,
+          `SUMMARY: ${summary}`,
+          ``,
+          `## Business (last 24h)`,
+          ``,
+          `- New bookings: ${bookings24h}`,
+          `- New customers: ${newCustomers24h}`,
+          `- Open support tickets: ${openTickets}`,
+          ``,
+          `## Needs a human`,
+          ``,
+          `- Pending OTP requests: ${otpPending}${otpPending > 0 ? " ← issue them in the admin app" : ""}`,
+          `- Unresolved errors (24h): ${errors24h}`,
+          ``,
+          `## Systems`,
+          ``,
+          `- API health: ${apiHealthy ? "OK ✅" : "DOWN 🔴 — check pm2 now"}`,
+          `<!-- host-section -->`,
+          ``,
+        ].join("\n"),
+      );
+    } catch (err) {
+      logger.warn({ err }, "Daily brief vault write failed (push still sent)");
+    }
+
+    await notifyAdmins(
+      `daily-brief-${day}`,
+      { type: "daily_brief", title: "🌅 TrendyWheels daily brief", body: summary },
+      { adminOnly: true },
+    );
+    logger.info({ summary }, "Daily brief sent");
+  },
+  { connection: queueConnection },
+);
+
 // Periodic sweep: evaluate fleet against AlertConfig thresholds and emit AlertEvent rows.
 const alertEvaluatorWorker = new Worker<Record<string, never>>(
   "alert-evaluator",
@@ -358,6 +443,7 @@ for (const w of [
   reminderWorker,
   otpCleanupWorker,
   bookingReminderSchedulerWorker,
+  dailyBriefWorker,
   alertEvaluatorWorker,
   leadSweeperWorker,
 ]) {
@@ -395,5 +481,5 @@ for (const w of [
 }
 
 logger.info(
-  "Workers started: notifications, emails, reminders, otp-cleanup, booking-reminder-scheduler, alert-evaluator, lead-sweeper",
+  "Workers started: notifications, emails, reminders, otp-cleanup, booking-reminder-scheduler, daily-brief, alert-evaluator, lead-sweeper",
 );

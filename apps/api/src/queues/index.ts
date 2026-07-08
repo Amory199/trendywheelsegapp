@@ -10,9 +10,12 @@ export const emailQueue = new Queue("emails", { connection });
 export const reminderQueue = new Queue("reminders", { connection });
 export const remindersQueue = reminderQueue;
 export const otpCleanupQueue = new Queue("otp-cleanup", { connection });
-export const bookingReminderSchedulerQueue = new Queue("booking-reminder-scheduler", { connection });
+export const bookingReminderSchedulerQueue = new Queue("booking-reminder-scheduler", {
+  connection,
+});
 export const alertEvaluatorQueue = new Queue("alert-evaluator", { connection });
 export const leadSweeperQueue = new Queue("lead-sweeper", { connection });
+export const dailyBriefQueue = new Queue("daily-brief", { connection });
 
 export const queueConnection = connection;
 
@@ -54,6 +57,17 @@ export async function scheduleRecurringSweeps(): Promise<void> {
     {
       jobId: "lead-sweeper-recurring",
       repeat: { pattern: "*/5 * * * *" },
+      removeOnComplete: true,
+      removeOnFail: 50,
+    },
+  );
+  // Morning ops brief for admins — 09:03 Cairo, once a day.
+  await dailyBriefQueue.add(
+    "daily-brief-tick",
+    {},
+    {
+      jobId: "daily-brief-recurring",
+      repeat: { pattern: "3 9 * * *", tz: "Africa/Cairo" },
       removeOnComplete: true,
       removeOnFail: 50,
     },
