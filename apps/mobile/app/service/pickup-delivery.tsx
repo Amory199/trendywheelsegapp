@@ -17,7 +17,9 @@ import {
   View,
 } from "react-native";
 
+import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { useTracking } from "../../lib/typography";
 import { useRequireAuth } from "../../lib/use-require-auth";
@@ -28,6 +30,7 @@ export default function PickupDeliveryScreen(): JSX.Element {
   const t = useT();
   const track = useTracking();
   const requireAuth = useRequireAuth();
+  const user = useAuth((s) => s.user);
   const [fromAddress, setFromAddress] = useState("");
   const [toAddress, setToAddress] = useState("");
   const [pickupAt, setPickupAt] = useState<Date>(new Date(Date.now() + 86400000));
@@ -58,6 +61,9 @@ export default function PickupDeliveryScreen(): JSX.Element {
         err instanceof Error ? err.message : t("service.submitErrorFallback"),
       ),
   });
+
+  // Booking pickup & delivery is account-bound — wall guests at the form, nicely.
+  if (!user) return <GuestGate />;
 
   return (
     <>

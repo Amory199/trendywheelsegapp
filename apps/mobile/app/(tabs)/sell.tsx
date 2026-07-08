@@ -4,8 +4,10 @@ import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { GuestGate } from "../../components/GuestGate";
 import { HubCard } from "../../components/HubCard";
 import { TWAurora } from "../../components/ui";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useDisplay, useTracking } from "../../lib/typography";
@@ -40,6 +42,11 @@ export default function SellScreen(): JSX.Element {
   const insets = useSafeAreaInsets();
   const display = useDisplay();
   const track = useTracking();
+  const user = useAuth((s) => s.user);
+
+  // Selling / listing / trade-in are all account-bound — wall the whole hub to
+  // sign-in for guests (GuestGate keeps a "browse" escape, Apple 5.1.1(v)).
+  if (!user) return <GuestGate />;
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>

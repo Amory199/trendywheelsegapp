@@ -17,7 +17,9 @@ import {
   View,
 } from "react-native";
 
+import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { useTracking } from "../../lib/typography";
 import { useRequireAuth } from "../../lib/use-require-auth";
@@ -38,6 +40,7 @@ export default function MaintenanceScreen(): JSX.Element {
   const t = useT();
   const track = useTracking();
   const requireAuth = useRequireAuth();
+  const user = useAuth((s) => s.user);
   const [serviceType, setServiceType] = useState<ServiceType>("oil");
   const [preferredDate, setPreferredDate] = useState<Date>(new Date(Date.now() + 86400000));
   const [showPicker, setShowPicker] = useState(false);
@@ -64,6 +67,9 @@ export default function MaintenanceScreen(): JSX.Element {
         err instanceof Error ? err.message : t("service.submitErrorFallback"),
       ),
   });
+
+  // Booking a service is account-bound — wall guests at the form, nicely.
+  if (!user) return <GuestGate />;
 
   return (
     <>

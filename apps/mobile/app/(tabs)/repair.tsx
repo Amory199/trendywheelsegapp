@@ -44,6 +44,7 @@ function RepairHero(): React.JSX.Element {
   );
 }
 
+import { GuestGate } from "../../components/GuestGate";
 import {
   TWAurora,
   TWBadge,
@@ -53,6 +54,7 @@ import {
   TWSkeletonCard,
 } from "../../components/ui";
 import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useDisplay, useTracking } from "../../lib/typography";
@@ -89,13 +91,20 @@ export default function RepairScreen(): React.JSX.Element {
   const t = useT();
   const display = useDisplay();
   const track = useTracking();
+  const user = useAuth((s) => s.user);
 
   const q = useQuery({
     queryKey: ["repair-requests"],
     queryFn: () => api.getRepairRequests(),
+    enabled: !!user,
   });
 
   const repairs = (q.data?.data ?? []) as RepairRequest[];
+
+  // Services are account-bound (book, track, history), so a guest is walled to
+  // sign-in at the tab itself — nicely, via GuestGate, which keeps a "browse"
+  // escape hatch so this never becomes a dead end (Apple 5.1.1(v)).
+  if (!user) return <GuestGate />;
 
   // Header section moves into ListHeaderComponent so the FlatList becomes the
   // single scrolling surface. The previous layout stacked header + hero + tile
