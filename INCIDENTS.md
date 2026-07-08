@@ -1580,3 +1580,13 @@ A "remember to restart after building" rule WILL be forgotten — encode it. Shi
 **Fix:** (1) `updateUserSchema.preferences` now reuses the canonical `updateUserPreferencesSchema` (deep-partial of `userPreferencesBase`, allows `theme:"system"`), still `.nullable().optional()`. (2) Mobile admin editor strips `preferences` from the PUT payload (it never edits prefs anyway). API runs via `tsx src/server.ts` from source, so deploy = `pm2 restart trendywheels-api trendywheels-workers` (no dist build needed). Verified: tsx schema probe parses the exact failing body (accountType+staffRole+theme:system) → success; full smoke PASSED. The server fix resolves it for ALL current installs with no app update. NOTE: build 37 = OTA runtime 1.0.1 while live installs are 1.0.0, so the mobile change ships with the next build, not an OTA.
 
 **Watch:** any other place that copies a canonical schema inline instead of importing it — grep for duplicated `z.enum(["light","dark"` / notification shapes.
+
+## INC-056 — Role change blocked by re-validating an UNCHANGED junk email (2026-07-08)
+
+**Symptom:** After INC-055, admin role changes STILL failed for some users — mobile showed "they don't have a valid email". Sentry: `15x PUT /api/users/f13bf5b6… :: "That email domain can't receive mail"` (user "Khaled Ashmawy", email `kwashmawy@kkkkkk.com`).
+
+**Root cause:** Same class as INC-055 — the mobile admin editor round-trips the user's full row, including their stored `email`. `users/controller.ts update()` called `assertDeliverableEmail(data.email)` on EVERY PUT with a non-empty email. For a user whose email predates the MX guard (junk domain `kkkkkk.com`, no MX records → `ENODATA`), the deliverability check 400'd the whole update — blocking an unrelated **role** change.
+
+**Fix:** `apps/api/src/modules/users/controller.ts` — only call `assertDeliverableEmail` when `data.email !== current stored email` (fetch current email first). Changing the email to a junk domain is still blocked; echoing an unchanged one is not. Verified end-to-end: admin PUT {accountType:"customer", email:"kwashmawy@kkkkkk.com"} on Khaled → 200, accountType now customer (was 400). API runs via tsx from source → deploy = `pm2 restart trendywheels-api trendywheels-workers`.
+
+**Broader lesson (INC-055 + INC-056):** the mobile admin editor PUTs the whole user row, so any per-field re-validation that can newly fail on an unchanged stored value breaks unrelated edits. Durable fix = editor sends only changed fields (done in `apps/mobile/app/admin/users/[id].tsx` for the next build); server-side, avoid re-validating unchanged values.

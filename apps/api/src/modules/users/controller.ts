@@ -189,9 +189,21 @@ export async function update(req: Request, res: Response): Promise<void> {
   }
   // Keep emails lowercased so the case-insensitive login lookup stays canonical.
   if (typeof data.email === "string") data.email = data.email.trim().toLowerCase();
-  // A non-empty email must be on a real, deliverable domain (no junk like x@kkkkkk.com).
+  // A non-empty email must be on a real, deliverable domain (no junk like
+  // x@kkkkkk.com) — but ONLY when it's actually CHANGING. The admin editor
+  // round-trips a user's existing email on every save, so re-checking an
+  // unchanged address wrongly blocked unrelated edits (e.g. a role change) when
+  // that address predates this guard or has since lost its MX records (INC-056).
   if (typeof data.email === "string" && data.email.length > 0) {
-    await assertDeliverableEmail(data.email);
+    const currentEmail = (
+      await prisma.user.findUnique({
+        where: { id: req.params.id },
+        select: { email: true },
+      })
+    )?.email;
+    if (data.email !== currentEmail) {
+      await assertDeliverableEmail(data.email);
+    }
   }
 
   // National-ID: once BOTH front and back are on file, mark the user verified
