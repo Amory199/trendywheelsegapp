@@ -16,6 +16,7 @@ export const bookingReminderSchedulerQueue = new Queue("booking-reminder-schedul
 export const alertEvaluatorQueue = new Queue("alert-evaluator", { connection });
 export const leadSweeperQueue = new Queue("lead-sweeper", { connection });
 export const dailyBriefQueue = new Queue("daily-brief", { connection });
+export const logPurgeQueue = new Queue("log-purge", { connection });
 
 export const queueConnection = connection;
 
@@ -57,6 +58,17 @@ export async function scheduleRecurringSweeps(): Promise<void> {
     {
       jobId: "lead-sweeper-recurring",
       repeat: { pattern: "*/5 * * * *" },
+      removeOnComplete: true,
+      removeOnFail: 50,
+    },
+  );
+  // Nightly retention purge for error_logs — 04:17 Cairo, off-peak.
+  await logPurgeQueue.add(
+    "log-purge-tick",
+    {},
+    {
+      jobId: "log-purge-recurring",
+      repeat: { pattern: "17 4 * * *", tz: "Africa/Cairo" },
       removeOnComplete: true,
       removeOnFail: 50,
     },

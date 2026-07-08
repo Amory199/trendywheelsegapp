@@ -71,6 +71,11 @@ export async function create(req: Request, res: Response): Promise<void> {
   const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
   if (!vehicle) throw AppError.notFound("Vehicle not found");
   if (vehicle.status !== "available") throw AppError.conflict("Vehicle is not available");
+  // Sale-only vehicles have no dailyRate (nullable since 20260630120000) —
+  // without this guard Number(null) * days = 0 and the booking is free.
+  if (vehicle.listingType === "sale" || vehicle.dailyRate == null) {
+    throw AppError.badRequest("This vehicle is not available for rent");
+  }
 
   // Stock check: count active overlapping bookings against the vehicle's
   // quantity. A vehicle with quantity > 1 represents N identical units that

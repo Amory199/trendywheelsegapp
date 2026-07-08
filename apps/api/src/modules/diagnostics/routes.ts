@@ -55,6 +55,9 @@ router.get("/admin/error-logs", async (req, res) => {
     ];
   }
 
+  // stats=0 lets high-frequency pollers skip the table-wide count/groupBy
+  // aggregates and fetch rows only (the admin logs page polls every 5s).
+  const wantStats = req.query.stats !== "0";
   const [items, total, counts] = await Promise.all([
     prisma.errorLog.findMany({
       where,
@@ -62,12 +65,14 @@ router.get("/admin/error-logs", async (req, res) => {
       take: limit,
       skip,
     }),
-    prisma.errorLog.count({ where }),
-    prisma.errorLog.groupBy({
-      by: ["level"],
-      where: { resolvedAt: null },
-      _count: { _all: true },
-    }),
+    wantStats ? prisma.errorLog.count({ where }) : Promise.resolve(null),
+    wantStats
+      ? prisma.errorLog.groupBy({
+          by: ["level"],
+          where: { resolvedAt: null },
+          _count: { _all: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   res.json({ data: items, total, limit, skip, openCounts: counts });

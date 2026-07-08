@@ -1,6 +1,8 @@
 import { Router, type Router as RouterType } from "express";
 import { z } from "zod";
 
+import { updateLeadSchema } from "@trendywheels/validators";
+
 import { prisma } from "../../config/database.js";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { isAdmin } from "../../utils/auth-roles.js";
@@ -386,18 +388,11 @@ router.post("/leads", async (req, res) => {
   res.status(201).json({ data: fresh });
 });
 
-// ─── Update lead status / value / notes ──────────────────────
+// ─── Update lead status / value / notes / contact ────────────
 // "lost" is kept in the enum for historical leads but new UIs route the user
 // to /rotate instead. Admin can still toggle to lost via this endpoint.
-const updateLeadSchema = z.object({
-  status: z.enum(["new", "contacted", "qualified", "proposal", "won", "lost"]).optional(),
-  estimatedValue: z.number().min(0).optional(),
-  notes: z.string().max(2000).optional(),
-  // Follow-up reminder. ISO datetime to schedule, null to clear. Surfaces in
-  // the mobile pipeline's "Follow-ups due" list once the time arrives.
-  nextActionAt: z.string().datetime().nullable().optional(),
-});
-
+// Schema comes from @trendywheels/validators — a local copy here drifted and
+// silently stripped contactName/Phone/Email edits (INC-057).
 router.patch("/leads/:id", async (req, res) => {
   const body = updateLeadSchema.parse(req.body);
   const userId = req.user!.userId;

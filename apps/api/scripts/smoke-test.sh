@@ -214,6 +214,44 @@ CLEARED=$(curl -fsS -A "$SMOKE_UA" "$BASE/crm/leads/$LEAD_ID" \
 [ "$CLEARED" = "null" ] || fail "nextActionAt not cleared (got $CLEARED)"
 pass "follow-up reminder set + cleared"
 
+# ─── 2c. Lead contact edits persist (INC-057 regression) ─────
+# A drifted local schema used to strip contactName/Phone/Email silently.
+note "2c. Lead contact edit round-trip"
+curl -fsS -A "$SMOKE_UA" -XPATCH "$BASE/crm/leads/$LEAD_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"contactPhone":"+201000000042"}' >/dev/null \
+  || fail "PATCH /crm/leads/:id contactPhone rejected"
+PHONE_VAL=$(curl -fsS -A "$SMOKE_UA" "$BASE/crm/leads/$LEAD_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.data.contactPhone // empty')
+[ "$PHONE_VAL" = "+201000000042" ] || fail "lead contactPhone did not persist (got '$PHONE_VAL') — schema drift back?"
+pass "lead contact edit persists"
+
+# ─── 2d. Sale-only vehicles cannot be BOOKED (0-EGP guard) ───
+# dailyRate is nullable for sale-only carts; without the guard the booking
+# would cost Number(null) * days = 0 EGP.
+note "2d. Booking a sale-only vehicle is rejected"
+SALE_ONLY_ID=$(curl -fsS -A "$SMOKE_UA" "$BASE/vehicles?limit=200" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  | jq -r '[.data[] | select(.listingType == "sale" and .status == "available")][0].id // empty')
+if [ -n "$SALE_ONLY_ID" ]; then
+  BK_START=$(date -u -d '+30 days' +%Y-%m-%dT10:00:00.000Z)
+  BK_END=$(date -u -d '+31 days' +%Y-%m-%dT10:00:00.000Z)
+  BK_BODY=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/bookings" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+    -d "{\"vehicleId\":\"$SALE_ONLY_ID\",\"startDate\":\"$BK_START\",\"endDate\":\"$BK_END\"}")
+  echo "$BK_BODY" | grep -qi "not available for rent" \
+    || fail "booking a sale-only vehicle was not rejected by the rent guard: $BK_BODY"
+  pass "sale-only booking rejected (not available for rent)"
+else
+  pass "(no available sale-only vehicle to test — skipped)"
+fi
+
+# ─── 2e. error-logs stats=0 fast path ────────────────────────
+STATS0=$(curl -fsS -A "$SMOKE_UA" "$BASE/admin/error-logs?limit=1&stats=0" \
+  -H "Authorization: Bearer $ADMIN_TOKEN") || fail "GET /admin/error-logs?stats=0 failed"
+echo "$STATS0" | jq -e '.total == null and (.openCounts | length == 0)' >/dev/null \
+  || fail "error-logs stats=0 should skip aggregates (total=null, openCounts=[]): $STATS0"
+pass "error-logs stats=0 skips aggregates"
+
 # ─── 3. CRM activities — NEW types ───────────────────────────
 note "3. CRM activity types (call_attempted, call_no_answer, whatsapp_sent, call_answered, note)"
 for t in call_attempted call_no_answer whatsapp_sent call_answered note; do

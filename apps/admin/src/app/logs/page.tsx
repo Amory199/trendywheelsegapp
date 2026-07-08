@@ -66,14 +66,24 @@ export default function LogsPage(): JSX.Element {
   if (filter.unresolvedOnly) params.set("unresolved", "1");
   params.set("limit", "200");
 
+  // Rows poll every 5s WITHOUT the table-wide count/groupBy aggregates
+  // (stats=0); the heavier stats query refreshes once a minute. Keeps the
+  // live feed snappy without ILIKE-scanning error_logs 12×/min per tab.
   const q = useQuery<{
     data: ErrorRow[];
+  }>({
+    queryKey: ["error-logs", filter],
+    queryFn: () => authedFetch(`/api/admin/error-logs?${params.toString()}&stats=0`),
+    refetchInterval: autoRefresh ? 5000 : false,
+  });
+
+  const statsQ = useQuery<{
     total: number;
     openCounts: OpenCount[];
   }>({
-    queryKey: ["error-logs", filter],
-    queryFn: () => authedFetch(`/api/admin/error-logs?${params.toString()}`),
-    refetchInterval: autoRefresh ? 5000 : false,
+    queryKey: ["error-logs", "stats", filter],
+    queryFn: () => authedFetch(`/api/admin/error-logs?${params.toString()}&limit=1`),
+    refetchInterval: autoRefresh ? 60000 : false,
   });
 
   const resolveMutation = useMutation({
@@ -95,7 +105,7 @@ export default function LogsPage(): JSX.Element {
   });
 
   const items = q.data?.data ?? [];
-  const counts = q.data?.openCounts ?? [];
+  const counts = statsQ.data?.openCounts ?? [];
   const fatalOpen = counts.find((c) => c.level === "fatal")?._count._all ?? 0;
   const errorOpen = counts.find((c) => c.level === "error")?._count._all ?? 0;
   const warnOpen = counts.find((c) => c.level === "warn")?._count._all ?? 0;
@@ -125,8 +135,8 @@ export default function LogsPage(): JSX.Element {
             Nothing escapes<span style={{ color: colors.brand.trendyPink }}>.</span>
           </h1>
           <p style={{ color: "#6B6A85", marginTop: 4 }}>
-            {q.data?.total ?? 0} matching · {fatalOpen} fatal · {errorOpen} error · {warnOpen} warn
-            open
+            {statsQ.data?.total ?? 0} matching · {fatalOpen} fatal · {errorOpen} error · {warnOpen}{" "}
+            warn open
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>

@@ -1590,3 +1590,29 @@ A "remember to restart after building" rule WILL be forgotten — encode it. Shi
 **Fix:** `apps/api/src/modules/users/controller.ts` — only call `assertDeliverableEmail` when `data.email !== current stored email` (fetch current email first). Changing the email to a junk domain is still blocked; echoing an unchanged one is not. Verified end-to-end: admin PUT {accountType:"customer", email:"kwashmawy@kkkkkk.com"} on Khaled → 200, accountType now customer (was 400). API runs via tsx from source → deploy = `pm2 restart trendywheels-api trendywheels-workers`.
 
 **Broader lesson (INC-055 + INC-056):** the mobile admin editor PUTs the whole user row, so any per-field re-validation that can newly fail on an unchanged stored value breaks unrelated edits. Durable fix = editor sends only changed fields (done in `apps/mobile/app/admin/users/[id].tsx` for the next build); server-side, avoid re-validating unchanged values.
+
+## INC-057 — CRM lead contact edits silently dropped by drifted local schema (2026-07-08)
+
+**Symptom:** Editing a lead's contact name/phone/email in the mobile CRM shows "Saved" (HTTP 200) but the values never change in the DB or UI.
+
+**Root cause:** `apps/api/src/modules/crm/routes.ts` defined a LOCAL `updateLeadSchema` (status/estimatedValue/notes/nextActionAt only) while the canonical `updateLeadSchema` in `packages/validators/src/index.ts` — which includes `contactName/contactPhone/contactEmail` — was exported but NEVER imported (dead). Zod's default strip mode silently removed the contact fields from the parsed body, so `prisma.lead.update` ran with them absent and returned 200. Third instance of the local-copy schema-drift class (INC-055, INC-056).
+
+**Fix:** Deleted the local copy; `crm/routes.ts` now imports the canonical `updateLeadSchema` from `@trendywheels/validators`. Smoke test 2c added: PATCH `contactPhone` → GET → assert persisted.
+
+**Watch:** grep for `const \w+Schema = z.object` inside `apps/api/src/modules/**` where a same-named export exists in validators — every one is a future drift.
+
+## INC-058 — Sale-only vehicles bookable for 0 EGP (2026-07-08)
+
+**Symptom:** A rental booking could be created on a sale-only vehicle for a total of 0 EGP.
+
+**Root cause:** `dailyRate` became nullable for sale-only carts (migration `20260630120000`, INC "EGP 1 price bug"), but `bookings/controller.ts create()` still computed `Number(vehicle.dailyRate) * days` with no `listingType`/null check → `Number(null) = 0` → free booking. The reservation path had the mirror-image guard (`reservations/service.ts`: "not for sale"); the booking path never got one.
+
+**Fix:** Guard in `create()` right after the availability check: `listingType === "sale" || dailyRate == null` → 400 "This vehicle is not available for rent". Smoke test 2d added (books a sale-only vehicle, asserts the guard message).
+
+## INC-059 — error_logs unbounded growth + admin logs page full-table aggregates every 5s (2026-07-08)
+
+**Symptom:** `error_logs` had NO retention purge (only otp_codes is purged) and the admin `/logs` page polled `GET /api/admin/error-logs` every 5s per open tab — each poll running a table-wide `count` + `groupBy(level)` and, with search, an unindexed ILIKE scan. First-outage candidate as the table grows.
+
+**Fix:** (1) New `log-purge` BullMQ recurring job (04:17 Cairo daily, queue in `queues/index.ts`, worker in `workers/index.ts`): deletes rows resolved >14 days ago OR created >90 days ago (unresolved rows kept the full 90d). (2) `GET /admin/error-logs?stats=0` skips count/groupBy; the admin logs page now polls rows-only at 5s and fetches stats (`limit=1`, full aggregates) once a minute. Smoke test 2e asserts the stats=0 fast path.
+
+**Deploy note:** requires `pm2 restart trendywheels-api trendywheels-workers` + admin web rebuild.

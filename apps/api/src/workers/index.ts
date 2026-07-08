@@ -437,6 +437,26 @@ const leadSweeperWorker = new Worker<Record<string, never>>(
   { connection: queueConnection },
 );
 
+// Nightly retention purge (04:17 Cairo via the recurring sweep). error_logs
+// is the fastest-growing table and had NO purge — resolved rows are kept 14
+// days for post-mortems, unresolved rows a full 90 days so nothing open is
+// lost, and everything older goes regardless of state.
+const logPurgeWorker = new Worker<Record<string, never>>(
+  "log-purge",
+  async () => {
+    const days = (n: number): Date => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+    const result = await prisma.errorLog.deleteMany({
+      where: {
+        OR: [{ resolvedAt: { lt: days(14) } }, { createdAt: { lt: days(90) } }],
+      },
+    });
+    if (result.count > 0) {
+      logger.info({ purged: result.count }, "error_logs retention purge");
+    }
+  },
+  { connection: queueConnection },
+);
+
 for (const w of [
   notificationsWorker,
   emailWorker,
@@ -446,6 +466,7 @@ for (const w of [
   dailyBriefWorker,
   alertEvaluatorWorker,
   leadSweeperWorker,
+  logPurgeWorker,
 ]) {
   w.on("failed", (job, err) => {
     logger.error({ jobId: job?.id, err }, "Job failed");
@@ -481,5 +502,5 @@ for (const w of [
 }
 
 logger.info(
-  "Workers started: notifications, emails, reminders, otp-cleanup, booking-reminder-scheduler, daily-brief, alert-evaluator, lead-sweeper",
+  "Workers started: notifications, emails, reminders, otp-cleanup, booking-reminder-scheduler, daily-brief, alert-evaluator, lead-sweeper, log-purge",
 );
