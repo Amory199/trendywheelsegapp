@@ -31,18 +31,17 @@ const SPEC = {
 
 // the story. order == upload order. <b> marks the accent-coloured word(s).
 const FRAMES = [
-  { p:"ios", src:"ios-1-home.jpg",       a:PINK, k:"Buy · Rent · Sell · Service", t:"Egypt's <b>golf-cart</b> super-app" },
-  { p:"ios", src:"ios-2-catalog.jpg",    a:CYAN, k:"Marketplace",                 t:"Buy new &amp; used — <b>real prices</b>" },
-  { p:"ios", src:"ios-3-categories.jpg", a:BLUE, k:"Explore",                     t:"Find your ride <b>in seconds</b>" },
-  { p:"ios", src:"ios-4-sell.jpg",       a:LIME, k:"Got a cart?",                 t:"Sell, rent out, or <b>trade in</b>" },
-  { p:"ios", src:"ios-5-service.jpg",    a:PINK, k:"Service",                     t:"Book service. <b>Track repairs</b> live." },
-  { p:"ios", src:"ios-6-transport.jpg",  a:CYAN, k:"Transport",                   t:"<b>Door-to-door</b> cart transport" },
+  { p:"ios", src:"1-home.png",    a:PINK, k:"Buy · Rent · Sell · Service", t:"Egypt's <b>golf-cart</b> super-app" },
+  { p:"ios", src:"2-browse.png",  a:CYAN, k:"Marketplace",                 t:"Golf carts for sale — <b>real deals</b>" },
+  { p:"ios", src:"3-sell.png",    a:LIME, k:"Got a golf cart?",            t:"Sell, rent out, or <b>trade in</b>" },
+  { p:"ios", src:"4-service.png", a:BLUE, k:"Service on demand",           t:"Book repairs. <b>Track live.</b>" },
+  { p:"ios", src:"5-profile.png", a:PINK, k:"All in one place",            t:"Your whole <b>garage</b>, one app" },
 
-  { p:"and", src:"and-1-home.jpg",       a:PINK, k:"All-in-one",   t:"Egypt's <b>golf-cart</b> super-app" },
-  { p:"and", src:"and-2-browse.jpg",     a:BLUE, k:"Marketplace",  t:"Browse new &amp; used — <b>top brands</b>" },
-  { p:"and", src:"and-3-detail.jpg",     a:CYAN, k:"Every detail", t:"Full specs &amp; photos — <b>then book</b>" },
-  { p:"and", src:"and-4-service.jpg",    a:LIME, k:"Service",      t:"Book service. <b>Track repairs</b> live." },
-  { p:"and", src:"and-5-allinone.jpg",   a:PINK, k:"One app",      t:"Buy · Rent · Sell · <b>Service</b>" },
+  { p:"and", src:"1-home.png",    a:PINK, k:"Buy · Rent · Sell · Service", t:"Egypt's <b>golf-cart</b> super-app" },
+  { p:"and", src:"2-browse.png",  a:CYAN, k:"Marketplace",                 t:"Golf carts for sale — <b>real deals</b>" },
+  { p:"and", src:"3-sell.png",    a:LIME, k:"Got a golf cart?",            t:"Sell, rent out, or <b>trade in</b>" },
+  { p:"and", src:"4-service.png", a:BLUE, k:"Service on demand",           t:"Book repairs. <b>Track live.</b>" },
+  { p:"and", src:"5-profile.png", a:PINK, k:"All in one place",            t:"Your whole <b>garage</b>, one app" },
 ];
 
 const mime = (f) => f.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
