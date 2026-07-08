@@ -1560,3 +1560,13 @@ A "remember to restart after building" rule WILL be forgotten — encode it. Shi
 5. Cross-link from related INCs via `**Related:** INC-MMM`.
 
 **When to skip:** typo fixes, single-line CSS tweaks, dependency patch-bumps with no behaviour change, anything that took <10 min to diagnose and touched ≤2 files. Use judgement — the log is useful only if entries are signal, not noise.
+
+## INC-054 — iOS build 36 failed Apple processing: closed 1.0.0 version train (2026-07-07)
+
+**Symptom:** `eas submit -p ios` reported success (submission FINISHED, no error) and Apple accepted the upload, but build 36 never appeared in App Store Connect in ANY processing state (VALID/PROCESSING/FAILED/INVALID) after >90 min. Failed-processing builds create NO build record — the reason arrives ONLY by email to the account holder.
+
+**Root cause:** Apple email `ITMS-90186` (Invalid Pre-Release Train — "'1.0.0' is closed for new build submissions") + `ITMS-90062` (CFBundleShortVersionString 1.0.0 must be higher than previously approved 1.0.0). A prior 1.0.0 build had already closed the marketing-version train, so no new build could upload under 1.0.0. Build number (36 > 35) was fine — it's the **marketing version** that must increment, not the build number.
+
+**Fix:** Bump `apps/mobile/app.config.js` `expo.version` "1.0.0" → "1.0.1" (commit `b20b36b`), rebuild (`eas build -p ios --profile production` → build 37), resubmit. `appVersionSource: "remote"` manages only the build number; the marketing version still comes from app.config.js. NOTE: `runtimeVersion: {policy:"appVersion"}` means the new build's OTA runtime becomes 1.0.1 — existing 1.0.0 installs stay on runtime 1.0.0; the new binary bundles current JS so needs no OTA. Future OTAs targeting both must publish to both runtimes.
+
+**Diagnosis gotchas:** (1) don't wrap `eas submit` in `timeout` — upload takes >7 min, a kill (exit 143) leaves it un-uploaded. (2) Absence from `/v1/builds` in all states = failed initial processing, not slowness; the ITMS reason is email-only. Probe scripts (scratchpad): `asc_probe.py`, `asc_builds.py`, `asc_failed.py`, `asc_caps.py` (ES256 JWT, kid 559655S624).
