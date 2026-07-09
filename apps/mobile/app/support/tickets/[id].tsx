@@ -103,7 +103,12 @@ export default function SupportTicketDetail(): React.JSX.Element {
 
   const update = useMutation({
     mutationFn: async (patch: Record<string, unknown>) => api.updateTicket(id!, patch as never),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["support"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["support"] });
+      // The CRM hub's ticket queue caches under a different key — without this
+      // a ticket closed here kept showing "open" in that list.
+      void qc.invalidateQueries({ queryKey: ["staff", "tickets"] });
+    },
     onError: (err) =>
       Alert.alert(
         t("support.updateFailed"),
@@ -116,6 +121,7 @@ export default function SupportTicketDetail(): React.JSX.Element {
     onSuccess: () => {
       setReply("");
       void qc.invalidateQueries({ queryKey: ["support", "ticket", id] });
+      void qc.invalidateQueries({ queryKey: ["staff", "tickets"] });
     },
     onError: (err) =>
       Alert.alert(

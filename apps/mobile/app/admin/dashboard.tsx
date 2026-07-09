@@ -104,14 +104,37 @@ export default function AdminDashboard(): JSX.Element {
             tone="pink"
             onPress={() => router.push("/admin/bookings")}
           />
-          <Kpi label={t("admin.kpiTotalUsers")} value={m?.totalUsers ?? 0} tone="blue" />
-          <Kpi label={t("admin.kpiVehicles")} value={m?.totalVehicles ?? 0} tone="pool" />
-          <Kpi label={t("admin.kpiBookingsTotal")} value={m?.totalBookings ?? 0} tone="amber" />
-          <Kpi label={t("admin.kpiOpenTickets")} value={m?.openTickets ?? 0} tone="pink" />
+          <Kpi
+            label={t("admin.kpiTotalUsers")}
+            value={m?.totalUsers ?? 0}
+            tone="blue"
+            onPress={() => router.push("/admin/users")}
+          />
+          <Kpi
+            label={t("admin.kpiVehicles")}
+            value={m?.totalVehicles ?? 0}
+            tone="pool"
+            onPress={() => router.push("/admin/vehicles")}
+          />
+          <Kpi
+            label={t("admin.kpiBookingsTotal")}
+            value={m?.totalBookings ?? 0}
+            tone="amber"
+            onPress={() => router.push("/admin/bookings")}
+          />
+          {/* Tickets live in the staff hub's Support tab — admins pass the crm
+              gate, and this is their only route to the ticket queue. */}
+          <Kpi
+            label={t("admin.kpiOpenTickets")}
+            value={m?.openTickets ?? 0}
+            tone="pink"
+            onPress={() => router.push("/crm/tickets")}
+          />
           <Kpi
             label={t("admin.kpiRevenue")}
             value={m?.monthlyRevenue ? Math.round(Number(m.monthlyRevenue)) : 0}
             tone="blue"
+            onPress={() => router.push("/admin/sales")}
           />
           <Kpi
             label={t("admin.kpiInactiveLeads")}

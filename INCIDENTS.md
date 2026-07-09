@@ -1626,3 +1626,13 @@ A "remember to restart after building" rule WILL be forgotten — encode it. Shi
 **Fix:** (1) `logout(userId, pushToken?, refreshToken?)` — when the client presents its refresh token, bcrypt-match and revoke ONLY that row; no token = legacy revoke-all. Security paths (password reset, role/status change, force-recredential) still `revokeUserSessions` (all). (2) api-client `logout(pushToken?, refreshToken?)` sends both. (3) Mobile `auth-store.logout()`: sends its refresh token; while `actingAs` it skips the server call entirely (local clear only) — the stored refresh is the admin's and must survive. (4) Smoke 12t: mint two sessions, scoped-logout one, assert the other still refreshes.
 
 **Watch:** any new `revokeUserSessions`/`refreshToken.updateMany` caller — ask "should this kill other devices?". Old app binaries (pre-OTA) still send bare logout → revoke-all for them until they update.
+
+## INC-061 — Closed ticket still showed "open" in the staff queue; admin had no route to tickets (2026-07-09)
+
+**Symptom:** Staff marks a support ticket closed in the detail screen; back in the CRM Support queue the same ticket still shows open ("marked as open AND closed"). Separately, the mobile admin panel showed an Open-tickets COUNT but had no way to open any ticket list.
+
+**Root cause:** (1) The shared ticket detail (`app/support/tickets/[id].tsx`) invalidates React Query keys under `["support"]`, but the CRM queue (`app/crm/tickets/index.tsx`) caches under `["staff","tickets",status]` — the status change never refreshed the list (the screen stays mounted in the Tabs navigator, so no refetch-on-mount either). The DB status was correct all along. (2) Tickets only render inside the staff CRM hub; the admin console had no link and the dashboard KPI tiles were mostly non-pressable.
+
+**Fix:** Detail mutations now also invalidate `["staff","tickets"]`; every admin dashboard KPI is tappable (users/vehicles/bookings/sales), with Open tickets routing to `/crm/tickets` (admins pass the crm gate by design).
+
+**Watch:** any screen pair where a detail mutates what a differently-keyed list displays — grep for `invalidateQueries` keys that don't match the list's `queryKey` prefix.
