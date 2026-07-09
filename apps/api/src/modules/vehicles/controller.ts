@@ -4,6 +4,8 @@ import type { Request, Response } from "express";
 import { prisma } from "../../config/database.js";
 import { redis } from "../../config/redis.js";
 import { AppError } from "../../utils/errors.js";
+import { logger } from "../../utils/logger.js";
+import { notifyCustomers } from "../../utils/notify.js";
 
 import { syncVehicleProduct } from "./product-sync.js";
 
@@ -158,6 +160,24 @@ export async function create(req: Request, res: Response): Promise<void> {
   // Vehicles are the single inventory source — sale/both listings keep a
   // Buy-section product in sync automatically.
   await syncVehicleProduct(vehicle!.id);
+
+  // Announce the new listing to every customer (one blast per vehicle —
+  // the per-user job id dedupes retries). Marketing-tier push: user push
+  // prefs + the daily fatigue cap apply. Best-effort: a notify failure must
+  // never fail the admin's vehicle save. Smoke-test runs create throwaway
+  // vehicles every deploy — never announce those to real customers.
+  const smokeUa = String(req.get("user-agent") ?? "").startsWith("tw-smoke-test");
+  if (vehicle!.status === "available" && !smokeUa) {
+    const forSale = vehicle!.listingType === "sale" || vehicle!.listingType === "both";
+    notifyCustomers(`new-listing-${vehicle!.id}`, {
+      type: "new_listing",
+      title: "New ride just landed 🛞",
+      body: forSale
+        ? `${vehicle!.name} is now up for grabs on TrendyWheels — be the first to see it`
+        : `${vehicle!.name} is now available to rent on TrendyWheels — take a look`,
+      data: { vehicleId: vehicle!.id, listingType: vehicle!.listingType },
+    }).catch((err) => logger.warn({ err }, "new-listing announcement failed (non-fatal)"));
+  }
 
   res.status(201).json({ data: serializeVehicle(vehicle!), id: vehicle!.id });
 }

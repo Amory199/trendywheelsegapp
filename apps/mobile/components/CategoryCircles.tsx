@@ -9,8 +9,9 @@ import { useVisibleCategories } from "../lib/use-visible-categories";
 
 // Branded category icons (sliced from the official icon board). Transparent
 // PNGs shown on a dark brand circle so the artwork pops the same way it does on
-// the brand sheet, in both light and dark app themes.
-const CATEGORY_IMAGES: Record<VehicleCategory, number> = {
+// the brand sheet, in both light and dark app themes. Exported so the rent
+// CategoryStrip's "All" tile can reuse the same artwork.
+export const CATEGORY_ICONS: Record<VehicleCategory, number> = {
   "golf-cart": require("../assets/icons/golf-cart.png"),
   scooter: require("../assets/icons/scooter.png"),
   "scooter-sidecar": require("../assets/icons/scooter-sidecar.png"),
@@ -47,7 +48,7 @@ export function CategoryCircles({ onPress, selected }: Props): JSX.Element {
           >
             <View style={[styles.circle, active && styles.circleActive]}>
               <Image
-                source={CATEGORY_IMAGES[c.key]}
+                source={CATEGORY_ICONS[c.key]}
                 style={styles.icon}
                 contentFit="contain"
                 transition={200}

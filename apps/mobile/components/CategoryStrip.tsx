@@ -12,6 +12,8 @@ import { useTracking } from "../lib/typography";
 import { useTheme } from "../lib/use-theme";
 import { useVisibleCategories } from "../lib/use-visible-categories";
 
+import { CATEGORY_ICONS } from "./CategoryCircles";
+
 // Maps the VehicleCategory enum (English labels live in @trendywheels/types) to
 // our localized home.categories.* keys, resolved at render so the strip reads
 // fully in the active locale.
@@ -97,39 +99,32 @@ function CategoryStripImpl({ value, onChange, showAll = true, onScroll }: Props)
             value === "all" && styles.blockActive,
           ]}
         >
-          {/* 2×2 collage of the first four visible categories' photos so the
-              All tile matches the photo language of its siblings (the old flat
-              gradient + icon read as a cropped placeholder). */}
-          <View style={[StyleSheet.absoluteFill, styles.collage]}>
-            {(categories.length >= 4
-              ? categories.slice(0, 4)
-              : [...categories, ...categories, ...categories, ...categories].slice(0, 4)
-            ).map((c, i) => (
-              <View key={`${c.key}-${i}`} style={styles.collageCell}>
-                {CATEGORY_IMAGES[c.key] ? (
-                  <Image
-                    source={CATEGORY_IMAGES[c.key]}
-                    style={StyleSheet.absoluteFill}
-                    contentFit="cover"
-                    transition={200}
-                  />
-                ) : (
-                  <LinearGradient
-                    colors={CATEGORY_GRADIENTS[c.key]}
-                    style={StyleSheet.absoluteFill}
-                  />
-                )}
+          {/* Distinct "view all" card: dark brand ground + the round category
+              icon badges (home's artwork — never used on this grid, so nothing
+              here repeats a neighbouring photo tile). */}
+          <LinearGradient
+            colors={["#0c0b3a", "#1a0b6e"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.allCluster}>
+            {categories.slice(0, 4).map((c) => (
+              <View key={c.key} style={styles.allIconCircle}>
+                <Image
+                  source={CATEGORY_ICONS[c.key]}
+                  style={styles.allIconImg}
+                  contentFit="contain"
+                  transition={200}
+                />
               </View>
             ))}
           </View>
           <LinearGradient
-            colors={["rgba(0,0,0,0.1)", "rgba(0,0,0,0.65)"]}
-            style={StyleSheet.absoluteFill}
+            colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.45)"]}
+            style={[StyleSheet.absoluteFill, { top: BLOCK_H * 0.55 }]}
             pointerEvents="none"
           />
-          <View style={styles.allBadge}>
-            <Ionicons name="grid" size={18} color="#fff" />
-          </View>
           <BlockLabel label={t("home.allCategories")} active={value === "all"} />
         </Pressable>
       ) : null}
@@ -243,26 +238,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  collage: {
+  allCluster: {
+    ...StyleSheet.absoluteFillObject,
     flexDirection: "row",
     flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "center",
+    alignContent: "center",
+    gap: 12,
+    paddingBottom: 34, // keep clear of the bottom label
   },
-  collageCell: {
-    width: "50%",
-    height: "50%",
-    overflow: "hidden",
-  },
-  allBadge: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(2,1,31,0.55)",
+  allIconCircle: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
+  allIconImg: { width: 50, height: 50 },
   labelWrap: {
     position: "absolute",
     left: 12,

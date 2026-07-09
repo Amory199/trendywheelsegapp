@@ -77,6 +77,17 @@ export function routeNotification(
     case "otp_request":
       return role === "admin" ? "/admin/otp-requests" : null;
 
+    // New fleet listing announced to customers — open the listing itself,
+    // on the sale or rent detail screen depending on how it's listed.
+    case "new_listing": {
+      const vehicleId = typeof data.vehicleId === "string" ? data.vehicleId : null;
+      if (!vehicleId) return null;
+      const listingType = typeof data.listingType === "string" ? data.listingType : "rent";
+      return listingType === "sale" || listingType === "both"
+        ? `/sale/${vehicleId}`
+        : `/rent/${vehicleId}`;
+    }
+
     default:
       return null;
   }

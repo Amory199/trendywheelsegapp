@@ -45,6 +45,17 @@ export async function notifyAdmins(
   await Promise.all(admins.map((a) => notifyUser(a.id, jobIdPrefix, payload)));
 }
 
+// Notify every active customer — used for new-listing announcements. These
+// are marketing-tier pushes: the worker's fatigue cap and the user's push
+// preference both apply (the type must NOT be in CRITICAL_PUSH_TYPES).
+export async function notifyCustomers(jobIdPrefix: string, payload: NotifyPayload): Promise<void> {
+  const customers = await prisma.user.findMany({
+    where: { accountType: "customer", status: "active" },
+    select: { id: true },
+  });
+  await Promise.all(customers.map((c) => notifyUser(c.id, jobIdPrefix, payload)));
+}
+
 // Broadcast a customer-activity event on the /admin Socket.IO namespace and
 // stamp the standard `{id, userId, at}` envelope. Returns nothing — fire and
 // forget like the underlying emitter.
