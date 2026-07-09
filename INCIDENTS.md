@@ -1616,3 +1616,13 @@ A "remember to restart after building" rule WILL be forgotten — encode it. Shi
 **Fix:** (1) New `log-purge` BullMQ recurring job (04:17 Cairo daily, queue in `queues/index.ts`, worker in `workers/index.ts`): deletes rows resolved >14 days ago OR created >90 days ago (unresolved rows kept the full 90d). (2) `GET /admin/error-logs?stats=0` skips count/groupBy; the admin logs page now polls rows-only at 5s and fetches stats (`limit=1`, full aggregates) once a minute. Smoke test 2e asserts the stats=0 fast path.
 
 **Deploy note:** requires `pm2 restart trendywheels-api trendywheels-workers` + admin web rebuild.
+
+## INC-060 — Any logout force-logged the user out of EVERY device; broke acting-as exit (2026-07-09)
+
+**Symptom:** (a) Admin previews a role (acting-as), kills the app, reopens — still previewing (by design) — taps Exit → "can't switch", bounced to relogin. (b) A customer reported being kicked out of the app (mobile `session_forced_logout`, reason REFRESH_FAILED, after `Invalid refresh token` on `/api/auth/refresh-token`).
+
+**Root cause:** `authService.logout()` revoked ALL of the user's refresh tokens (`updateMany` on userId), not just the session logging out. Two blast radii: (1) a user with two devices logging out on one killed the other device's session — its next silent refresh 401'd → forced logout; (2) the acting-as access token carries the ADMIN's userId, and while acting the stored+stashed refresh tokens are the ADMIN's — so any logout fired during a preview (e.g. the acted role's "Log Out" pill, or the ActingBanner failure fallback) revoked the admin's own tokens including the `tw_admin_refresh` exit stash. The next cold-path exit found both refresh candidates dead → threw → fallback logout+relogin.
+
+**Fix:** (1) `logout(userId, pushToken?, refreshToken?)` — when the client presents its refresh token, bcrypt-match and revoke ONLY that row; no token = legacy revoke-all. Security paths (password reset, role/status change, force-recredential) still `revokeUserSessions` (all). (2) api-client `logout(pushToken?, refreshToken?)` sends both. (3) Mobile `auth-store.logout()`: sends its refresh token; while `actingAs` it skips the server call entirely (local clear only) — the stored refresh is the admin's and must survive. (4) Smoke 12t: mint two sessions, scoped-logout one, assert the other still refreshes.
+
+**Watch:** any new `revokeUserSessions`/`refreshToken.updateMany` caller — ask "should this kill other devices?". Old app binaries (pre-OTA) still send bare logout → revoke-all for them until they update.
