@@ -97,14 +97,38 @@ function CategoryStripImpl({ value, onChange, showAll = true, onScroll }: Props)
             value === "all" && styles.blockActive,
           ]}
         >
+          {/* 2×2 collage of the first four visible categories' photos so the
+              All tile matches the photo language of its siblings (the old flat
+              gradient + icon read as a cropped placeholder). */}
+          <View style={[StyleSheet.absoluteFill, styles.collage]}>
+            {(categories.length >= 4
+              ? categories.slice(0, 4)
+              : [...categories, ...categories, ...categories, ...categories].slice(0, 4)
+            ).map((c, i) => (
+              <View key={`${c.key}-${i}`} style={styles.collageCell}>
+                {CATEGORY_IMAGES[c.key] ? (
+                  <Image
+                    source={CATEGORY_IMAGES[c.key]}
+                    style={StyleSheet.absoluteFill}
+                    contentFit="cover"
+                    transition={200}
+                  />
+                ) : (
+                  <LinearGradient
+                    colors={CATEGORY_GRADIENTS[c.key]}
+                    style={StyleSheet.absoluteFill}
+                  />
+                )}
+              </View>
+            ))}
+          </View>
           <LinearGradient
-            colors={[colors.brand.poolBlue, colors.brand.friendlyBlue]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            colors={["rgba(0,0,0,0.1)", "rgba(0,0,0,0.65)"]}
             style={StyleSheet.absoluteFill}
+            pointerEvents="none"
           />
-          <View style={styles.iconWrap}>
-            <Ionicons name="grid" size={40} color="rgba(255,255,255,0.95)" />
+          <View style={styles.allBadge}>
+            <Ionicons name="grid" size={18} color="#fff" />
           </View>
           <BlockLabel label={t("home.allCategories")} active={value === "all"} />
         </Pressable>
@@ -216,6 +240,26 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  collage: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  collageCell: {
+    width: "50%",
+    height: "50%",
+    overflow: "hidden",
+  },
+  allBadge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(2,1,31,0.55)",
     alignItems: "center",
     justifyContent: "center",
   },

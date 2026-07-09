@@ -1,4 +1,5 @@
 import { type VehicleCategory } from "@trendywheels/types";
+import { colors } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -21,10 +22,12 @@ const CATEGORY_IMAGES: Record<VehicleCategory, number> = {
 
 interface Props {
   onPress: (key: VehicleCategory) => void;
+  /** When set, the circles act as a FILTER: the selected one gets a pink ring. */
+  selected?: VehicleCategory | null;
 }
 
 /** Talabat-style round category shortcuts for the home discovery feed. */
-export function CategoryCircles({ onPress }: Props): JSX.Element {
+export function CategoryCircles({ onPress, selected }: Props): JSX.Element {
   const t = useT();
   const { palette } = useTheme();
   const categories = useVisibleCategories();
@@ -34,25 +37,35 @@ export function CategoryCircles({ onPress }: Props): JSX.Element {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.content}
     >
-      {categories.map((c) => (
-        <Pressable
-          key={c.key}
-          onPress={() => onPress(c.key)}
-          style={({ pressed }) => [styles.item, pressed && { opacity: 0.7 }]}
-        >
-          <View style={styles.circle}>
-            <Image
-              source={CATEGORY_IMAGES[c.key]}
-              style={styles.icon}
-              contentFit="contain"
-              transition={200}
-            />
-          </View>
-          <Text numberOfLines={1} style={[styles.label, { color: palette.text }]}>
-            {t(`home.categories.${c.key}`)}
-          </Text>
-        </Pressable>
-      ))}
+      {categories.map((c) => {
+        const active = selected === c.key;
+        return (
+          <Pressable
+            key={c.key}
+            onPress={() => onPress(c.key)}
+            style={({ pressed }) => [styles.item, pressed && { opacity: 0.7 }]}
+          >
+            <View style={[styles.circle, active && styles.circleActive]}>
+              <Image
+                source={CATEGORY_IMAGES[c.key]}
+                style={styles.icon}
+                contentFit="contain"
+                transition={200}
+              />
+            </View>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.label,
+                { color: palette.text },
+                active && { color: colors.brand.trendyPink, fontWeight: "800" },
+              ]}
+            >
+              {t(`home.categories.${c.key}`)}
+            </Text>
+          </Pressable>
+        );
+      })}
     </ScrollView>
   );
 }
@@ -72,6 +85,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(43,15,248,0.25)",
+  },
+  circleActive: {
+    borderWidth: 2,
+    borderColor: colors.brand.trendyPink,
   },
   icon: { width: CIRCLE - 8, height: CIRCLE - 8 },
   label: { marginTop: 6, fontSize: 11, fontWeight: "600", textAlign: "center" },

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { discountPercent, isVehicleOnSale } from "@trendywheels/types";
+import { discountPercent, isVehicleOnSale, type VehicleCategory } from "@trendywheels/types";
 import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import * as React from "react";
@@ -8,6 +8,7 @@ import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CategoryCircles } from "../../components/CategoryCircles";
 import { ErrorState } from "../../components/ErrorState";
 import { ListingCard } from "../../components/ListingCard";
 import { TWAurora } from "../../components/ui";
@@ -31,6 +32,9 @@ interface Product {
   // Surfaced by the API from a linked on-sale vehicle so Buy matches On-Sale.
   salePrice?: string | number | null;
   originalPriceEgp?: string | number | null;
+  // Linked vehicle's category (golf-cart / scooter / …) so carts filter by
+  // vehicle category the way Rent does. Null for parts/accessories.
+  vehicleCategory?: VehicleCategory | null;
 }
 
 const TABS: { id: Category | "all"; labelKey: string }[] = [
@@ -51,6 +55,9 @@ export default function BuyScreen(): React.JSX.Element {
   const display = useDisplay();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Category | "all">("all");
+  // Vehicle-category filter (golf-cart / scooter / …) — same taxonomy as Rent.
+  // Tapping the active circle again clears it.
+  const [vehicleCat, setVehicleCat] = useState<VehicleCategory | null>(null);
   const scrollHandler = useTabBarScrollHandler();
   const { palette } = useTheme();
 
@@ -68,7 +75,8 @@ export default function BuyScreen(): React.JSX.Element {
   );
   // If the selected category empties out (admin recategorized), fall back to All.
   const activeTab = tab !== "all" && !presentCategories.has(tab) ? "all" : tab;
-  const items = activeTab === "all" ? all : all.filter((p) => p.category === activeTab);
+  const byTab = activeTab === "all" ? all : all.filter((p) => p.category === activeTab);
+  const items = vehicleCat ? byTab.filter((p) => p.vehicleCategory === vehicleCat) : byTab;
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
@@ -114,6 +122,18 @@ export default function BuyScreen(): React.JSX.Element {
           })}
         </ScrollView>
       </View>
+
+      {/* Vehicle-category shortcuts (same circles as home/rent) — filter the
+          catalog to carts of that category; tap again to clear. Hidden until
+          the API serves vehicleCategory (older API → no dead filter). */}
+      {all.some((p) => p.vehicleCategory != null) ? (
+        <View style={{ marginBottom: 12 }}>
+          <CategoryCircles
+            selected={vehicleCat}
+            onPress={(key) => setVehicleCat((cur) => (cur === key ? null : key))}
+          />
+        </View>
+      ) : null}
 
       <Animated.ScrollView
         onScroll={scrollHandler}

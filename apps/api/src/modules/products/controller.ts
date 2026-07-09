@@ -18,17 +18,33 @@ import { AppError } from "../../utils/errors.js";
 // without the nested vehicle relation.
 function withVehicleSale<
   T extends {
-    vehicle?: { salePrice: unknown; originalPriceEgp: unknown } | null;
+    vehicle?: { salePrice: unknown; originalPriceEgp: unknown; category?: unknown } | null;
   },
->(product: T): Omit<T, "vehicle"> & { salePrice?: unknown; originalPriceEgp?: unknown } {
+>(
+  product: T,
+): Omit<T, "vehicle"> & {
+  salePrice?: unknown;
+  originalPriceEgp?: unknown;
+  vehicleCategory?: unknown;
+} {
   const { vehicle, ...rest } = product;
+  // Surface the linked vehicle's category so the Buy page can filter carts by
+  // vehicle category (golf-cart / scooter / …) the way Rent does.
+  const vehicleCategory = vehicle?.category ?? null;
   if (vehicle && isVehicleOnSale(vehicle as never)) {
-    return { ...rest, salePrice: vehicle.salePrice, originalPriceEgp: vehicle.originalPriceEgp };
+    return {
+      ...rest,
+      salePrice: vehicle.salePrice,
+      originalPriceEgp: vehicle.originalPriceEgp,
+      vehicleCategory,
+    };
   }
-  return rest;
+  return { ...rest, vehicleCategory };
 }
 
-const SALE_SELECT = { select: { salePrice: true, originalPriceEgp: true } } as const;
+const SALE_SELECT = {
+  select: { salePrice: true, originalPriceEgp: true, category: true },
+} as const;
 
 export async function list(req: Request, res: Response): Promise<void> {
   const q = productListQuerySchema.parse(req.query);
