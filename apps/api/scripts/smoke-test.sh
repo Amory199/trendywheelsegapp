@@ -804,6 +804,18 @@ TK2=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/tickets" \
   || fail "a NEW ticket carried over prior messages — discrete-ticket separation regressed"
 pass "second ticket is a fresh, separate thread (no old messages)"
 
+# ─── 12n-2. Ticket list STATUS FILTER actually filters (INC-062) ──
+# The route once validated the query with paginationSchema only — the validate
+# middleware replaced req.query, stripping ?status → every tab showed every
+# ticket (a closed ticket kept "showing open"). TK1 is in-progress here.
+IN_LIST=$(curl -fsS -A "$SMOKE_UA" "$BASE/tickets?status=in-progress&limit=100" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r --arg id "$TK1_ID" '[.data[] | select(.id == $id)] | length')
+[ "$IN_LIST" = "1" ] || fail "status=in-progress filter did not return the in-progress ticket"
+IN_CLOSED=$(curl -fsS -A "$SMOKE_UA" "$BASE/tickets?status=closed&limit=100" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r --arg id "$TK1_ID" '[.data[] | select(.id == $id)] | length')
+[ "$IN_CLOSED" = "0" ] || fail "status=closed filter returned a non-closed ticket — filter stripped again?"
+pass "ticket status filter applies server-side"
+
 # ─── 12o. Sales admin board surfaces pending + approve/reject ─
 # Customer listings are created "pending"; the public /sales is active-only, so
 # they were invisible to admin. The authed /sales/admin/all board returns every

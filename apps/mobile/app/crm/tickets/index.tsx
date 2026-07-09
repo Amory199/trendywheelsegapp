@@ -34,14 +34,23 @@ interface Ticket {
 
 const FILTERS: Array<{ key: string; labelKey: string }> = [
   { key: "open", labelKey: "crm.tickets.filterOpen" },
-  { key: "in_progress", labelKey: "crm.tickets.filterInProgress" },
+  { key: "in-progress", labelKey: "crm.tickets.filterInProgress" },
   { key: "resolved", labelKey: "crm.tickets.filterResolved" },
+  { key: "closed", labelKey: "crm.tickets.filterClosed" },
 ];
 
 const STATUS_LABEL_KEY: Record<string, string> = {
   open: "crm.tickets.filterOpen",
-  in_progress: "crm.tickets.filterInProgress",
+  "in-progress": "crm.tickets.filterInProgress",
   resolved: "crm.tickets.filterResolved",
+  closed: "crm.tickets.filterClosed",
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  open: "#FF7A00",
+  "in-progress": colors.brand.poolBlue,
+  resolved: "#3ECF6A",
+  closed: colors.text.secondary,
 };
 
 const PRIORITY_COLOR: Record<string, string> = {
@@ -51,7 +60,16 @@ const PRIORITY_COLOR: Record<string, string> = {
   low: "#7AD2FF",
 };
 
-export default function StaffTickets(): React.JSX.Element {
+// Shared queue UI: the staff hub renders it at /crm/tickets and the admin
+// console at /admin/tickets — same data, each staying inside its own
+// navigator (admins must not be dumped into the staff interface).
+export function TicketQueue({
+  detailBase = "/crm/tickets",
+  backFallback = "/crm/pipeline",
+}: {
+  detailBase?: string;
+  backFallback?: string;
+}): React.JSX.Element {
   const router = useRouter();
   const t = useT();
   const display = useDisplay();
@@ -69,7 +87,7 @@ export default function StaffTickets(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <BackButton style={{ marginLeft: -8, marginBottom: 6 }} fallback="/crm/pipeline" />
+        <BackButton style={{ marginLeft: -8, marginBottom: 6 }} fallback={backFallback as never} />
         <Text style={[styles.kicker, { letterSpacing: track(1.5) }]}>
           {t("crm.tickets.kicker")}
         </Text>
@@ -115,7 +133,10 @@ export default function StaffTickets(): React.JSX.Element {
             </View>
           }
           renderItem={({ item }) => (
-            <Pressable style={styles.card} onPress={() => router.push(`/crm/tickets/${item.id}`)}>
+            <Pressable
+              style={styles.card}
+              onPress={() => router.push(`${detailBase}/${item.id}` as never)}
+            >
               <View
                 style={[
                   styles.priorityBar,
@@ -132,6 +153,24 @@ export default function StaffTickets(): React.JSX.Element {
                 </Text>
                 <Text style={styles.age}>{new Date(item.createdAt).toLocaleString()}</Text>
               </View>
+              {/* The ticket's OWN status — never infer it from the active tab. */}
+              <View
+                style={[
+                  styles.statusChip,
+                  { borderColor: STATUS_COLOR[item.status] ?? colors.dark.border },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusChipText,
+                    { color: STATUS_COLOR[item.status] ?? colors.text.secondary },
+                  ]}
+                >
+                  {STATUS_LABEL_KEY[item.status]
+                    ? t(STATUS_LABEL_KEY[item.status] as Parameters<typeof t>[0])
+                    : item.status}
+                </Text>
+              </View>
               <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
             </Pressable>
           )}
@@ -139,6 +178,10 @@ export default function StaffTickets(): React.JSX.Element {
       )}
     </View>
   );
+}
+
+export default function StaffTickets(): React.JSX.Element {
+  return <TicketQueue />;
 }
 
 const styles = StyleSheet.create({
@@ -177,6 +220,13 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
   priorityBar: { width: 4, alignSelf: "stretch", borderRadius: 999 },
+  statusChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  statusChipText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
   subject: { color: colors.text.light, fontSize: 14, fontWeight: "700" },
   meta: { color: colors.text.secondary, fontSize: 11 },
   age: { color: colors.text.secondary, fontSize: 10 },

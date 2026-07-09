@@ -122,13 +122,11 @@ export default function AdminDashboard(): JSX.Element {
             tone="amber"
             onPress={() => router.push("/admin/bookings")}
           />
-          {/* Tickets live in the staff hub's Support tab — admins pass the crm
-              gate, and this is their only route to the ticket queue. */}
           <Kpi
             label={t("admin.kpiOpenTickets")}
             value={m?.openTickets ?? 0}
             tone="pink"
-            onPress={() => router.push("/crm/tickets")}
+            onPress={() => router.push("/admin/tickets")}
           />
           <Kpi
             label={t("admin.kpiRevenue")}

@@ -227,6 +227,7 @@ export default {
     filterOpen: "Open",
     filterInProgress: "In Progress",
     filterResolved: "Resolved",
+    filterClosed: "Closed",
     emptyPrefix: "No",
     emptySuffix: "tickets",
     unknownUser: "Unknown",

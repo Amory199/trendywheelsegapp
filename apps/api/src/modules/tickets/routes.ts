@@ -1,7 +1,7 @@
 import {
   createTicketSchema,
   idParamSchema,
-  paginationSchema,
+  ticketListQuerySchema,
   ticketMessageSchema,
   updateTicketSchema,
 } from "@trendywheels/validators";
@@ -14,7 +14,7 @@ import * as ticketsController from "./controller.js";
 
 const router: RouterType = Router();
 
-router.get("/", authenticate, validate({ query: paginationSchema }), ticketsController.list);
+router.get("/", authenticate, validate({ query: ticketListQuerySchema }), ticketsController.list);
 router.get("/:id", authenticate, validate({ params: idParamSchema }), ticketsController.getOne);
 router.post("/", authenticate, validate({ body: createTicketSchema }), ticketsController.create);
 router.post(

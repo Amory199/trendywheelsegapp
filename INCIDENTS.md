@@ -1636,3 +1636,13 @@ A "remember to restart after building" rule WILL be forgotten — encode it. Shi
 **Fix:** Detail mutations now also invalidate `["staff","tickets"]`; every admin dashboard KPI is tappable (users/vehicles/bookings/sales), with Open tickets routing to `/crm/tickets` (admins pass the crm gate by design).
 
 **Watch:** any screen pair where a detail mutates what a differently-keyed list displays — grep for `invalidateQueries` keys that don't match the list's `queryKey` prefix.
+
+## INC-062 — Ticket status filter silently stripped; admin dumped into staff hub (2026-07-09)
+
+**Symptom:** A closed ticket ("Testttt") kept appearing under the Open tab no matter how many times staff closed it (DB status was correctly `closed` the whole time). Separately, the admin dashboard's Open-tickets tile routed into the staff CRM hub — the owner read it as the app "switching roles on its own".
+
+**Root cause:** (1) `GET /api/tickets` validated its query with `paginationSchema` — and the validate middleware REPLACES `req.query` with the parsed result, so `?status=` (and priority/userId/assignedAgentId) were stripped before the controller read them. Every tab requested a filter, got ALL tickets. Rows showed no status chip, so a closed ticket under "Open" looked open. (2) Tickets only existed inside the staff hub navigator; routing an admin there swapped their whole tab bar.
+
+**Fix:** `ticketListQuerySchema` in validators (status kebab+snake accepted, priority, userId, assignedAgentId) wired into the route; CRM queue got a Closed tab + a per-row status chip showing the ticket's OWN status; queue refactored into a shared `TicketQueue` component rendered at BOTH `/crm/tickets` (staff hub) and new `/admin/tickets` (admin navigator, own detail screen); dashboard KPI now routes to `/admin/tickets`. Smoke 12n-2 asserts the filter includes/excludes correctly.
+
+**Watch:** every `validate({ query: paginationSchema })` route whose controller reads extra query keys — the middleware strips them. Grep for `req.query as Record` in controllers whose route validates a narrower schema.

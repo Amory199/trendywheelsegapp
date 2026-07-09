@@ -229,6 +229,7 @@ const crm: Stringify<typeof enNs> = {
     filterOpen: "مفتوحة",
     filterInProgress: "قيد المعالجة",
     filterResolved: "تم حلها",
+    filterClosed: "مغلقة",
     emptyPrefix: "لا توجد",
     emptySuffix: "تذاكر",
     unknownUser: "غير معروف",

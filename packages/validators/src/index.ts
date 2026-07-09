@@ -414,6 +414,18 @@ export const paginationSchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).default(20),
 });
 
+// Tickets list filters. The validate middleware REPLACES req.query with the
+// parsed result, so any filter missing from the schema is silently stripped
+// before the controller reads it — the status filter never applied and closed
+// tickets rode along on every tab. Status accepts both kebab (API
+// serialization) and snake (Prisma enum) forms; the controller normalizes.
+export const ticketListQuerySchema = paginationSchema.extend({
+  status: z.enum(["open", "in-progress", "in_progress", "resolved", "closed"]).optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+  userId: z.string().uuid().optional(),
+  assignedAgentId: z.string().uuid().optional(),
+});
+
 // ─── ID param ────────────────────────────────────────────────
 
 export const idParamSchema = z.object({
