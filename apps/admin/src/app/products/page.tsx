@@ -48,6 +48,17 @@ export default function AdminProductsPage(): JSX.Element {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-products"] }),
   });
 
+  // Inline recategorize: vehicle-synced products are all created as cart_new,
+  // so this is the only way to move one to Used/Parts/Accessories.
+  const recategorize = useMutation({
+    mutationFn: ({ id, category }: { id: string; category: Category }) =>
+      authedFetch(`/api/products/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ category }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-products"] }),
+  });
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-5">
@@ -124,8 +135,20 @@ export default function AdminProductsPage(): JSX.Element {
                     />
                   </td>
                   <td className="px-4 py-3 font-medium">{p.name}</td>
-                  <td className="px-4 py-3 capitalize text-gray-500">
-                    {p.category.replace("_", " ")}
+                  <td className="px-4 py-3">
+                    <select
+                      value={p.category}
+                      onChange={(e) =>
+                        recategorize.mutate({ id: p.id, category: e.target.value as Category })
+                      }
+                      className="text-sm text-gray-700 border border-gray-200 rounded-md px-2 py-1.5 bg-white"
+                    >
+                      {CATEGORIES.filter((c) => c.id !== "all").map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-4 py-3 text-gray-500">{p.brand ?? "—"}</td>
                   <td className="px-4 py-3 text-right font-semibold">

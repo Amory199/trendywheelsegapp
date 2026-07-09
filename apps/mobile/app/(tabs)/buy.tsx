@@ -54,15 +54,21 @@ export default function BuyScreen(): React.JSX.Element {
   const scrollHandler = useTabBarScrollHandler();
   const { palette } = useTheme();
 
+  // One fetch, client-side category filter. Lets us hide tabs for categories
+  // with no products (all synced carts start as cart_new until the admin
+  // recategorizes, so Used/Parts/Access. would otherwise be dead-empty tabs).
   const q = useQuery({
-    queryKey: ["mobile-products", tab],
-    queryFn: () => {
-      const url =
-        tab === "all" ? "/api/products?limit=80" : `/api/products?category=${tab}&limit=80`;
-      return api.request<{ data: Product[] }>("GET", url);
-    },
+    queryKey: ["mobile-products"],
+    queryFn: () => api.request<{ data: Product[] }>("GET", "/api/products?limit=80"),
   });
-  const items = q.data?.data ?? [];
+  const all = q.data?.data ?? [];
+  const presentCategories = new Set(all.map((p) => p.category));
+  const visibleTabs = TABS.filter(
+    (tb) => tb.id === "all" || presentCategories.has(tb.id as Category),
+  );
+  // If the selected category empties out (admin recategorized), fall back to All.
+  const activeTab = tab !== "all" && !presentCategories.has(tab) ? "all" : tab;
+  const items = activeTab === "all" ? all : all.filter((p) => p.category === activeTab);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
@@ -78,8 +84,8 @@ export default function BuyScreen(): React.JSX.Element {
 
       <View style={{ paddingHorizontal: PADDING, marginBottom: 12 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {TABS.map((tabItem) => {
-            const active = tab === tabItem.id;
+          {visibleTabs.map((tabItem) => {
+            const active = activeTab === tabItem.id;
             return (
               <Pressable
                 key={tabItem.id}
