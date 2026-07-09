@@ -29,8 +29,10 @@ function withVehicleSale<
 } {
   const { vehicle, ...rest } = product;
   // Surface the linked vehicle's category so the Buy page can filter carts by
-  // vehicle category (golf-cart / scooter / …) the way Rent does.
-  const vehicleCategory = vehicle?.category ?? null;
+  // vehicle category (golf-cart / scooter / …) the way Rent does. The DB enum
+  // uses underscores (golf_cart) but the public API + mobile taxonomy use
+  // dashes (golf-cart) — serialize like the vehicles endpoint does.
+  const vehicleCategory = vehicle?.category ? String(vehicle.category).replace(/_/g, "-") : null;
   if (vehicle && isVehicleOnSale(vehicle as never)) {
     return {
       ...rest,
