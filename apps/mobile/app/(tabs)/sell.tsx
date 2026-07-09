@@ -65,17 +65,34 @@ export default function SellScreen(): JSX.Element {
           <Text style={[styles.subtitle, { color: palette.muted }]}>{t("sell.hub.subtitle")}</Text>
         </View>
 
+        {/* Hero card + a 2-up row so the three paths don't stack into one
+            tall column ("not all on top of each other"). */}
         <View style={styles.cards}>
-          {HUB_PATHS.map((p, i) => (
-            <Animated.View key={p.href} entering={FadeInDown.delay(i * 60).duration(360)}>
-              <HubCard
-                imageUri={p.image}
-                label={t(p.labelKey)}
-                sub={t(p.subKey)}
-                onPress={() => router.push(p.href as never)}
-              />
-            </Animated.View>
-          ))}
+          <Animated.View entering={FadeInDown.duration(360)}>
+            <HubCard
+              imageUri={HUB_PATHS[0].image}
+              label={t(HUB_PATHS[0].labelKey)}
+              sub={t(HUB_PATHS[0].subKey)}
+              onPress={() => router.push(HUB_PATHS[0].href as never)}
+            />
+          </Animated.View>
+          <View style={styles.cardsRow}>
+            {HUB_PATHS.slice(1).map((p, i) => (
+              <Animated.View
+                key={p.href}
+                style={{ flex: 1 }}
+                entering={FadeInDown.delay((i + 1) * 60).duration(360)}
+              >
+                <HubCard
+                  compact
+                  imageUri={p.image}
+                  label={t(p.labelKey)}
+                  sub={t(p.subKey)}
+                  onPress={() => router.push(p.href as never)}
+                />
+              </Animated.View>
+            ))}
+          </View>
         </View>
 
         <View style={styles.footer}>
@@ -100,7 +117,8 @@ const styles = StyleSheet.create({
   header: { paddingTop: 60, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
   title: { fontSize: 44, lineHeight: 46 },
   subtitle: { fontSize: 15, marginTop: 8 },
-  cards: { paddingHorizontal: spacing.lg, gap: 16, marginTop: 8 },
+  cards: { paddingHorizontal: spacing.lg, gap: 14, marginTop: 8 },
+  cardsRow: { flexDirection: "row", gap: 14 },
   footer: { paddingHorizontal: spacing.lg, marginTop: 28, alignItems: "center" },
   footerLink: { fontSize: 13, fontWeight: "700" },
 });

@@ -161,10 +161,19 @@ export function ContinueCard(): JSX.Element | null {
     const favorite = favoritesQ.data?.data?.[0];
     const vehicle = favorite?.vehicle as Vehicle | undefined;
     if (vehicle) {
+      // Sale-only carts have a null dailyRate — Number(null) is 0, which is
+      // finite, so without the branch they'd render as "EGP 0/day" and route
+      // to the rent screen they can't be booked on.
+      const saleOnly = vehicle.listingType === "sale" || vehicle.dailyRate == null;
       const rate = Number(vehicle.dailyRate);
-      const priceLabel = Number.isFinite(rate)
-        ? `${t("home.egp")} ${rate.toLocaleString()}${t("home.perDay")}`
-        : "";
+      const sale = Number(vehicle.salePrice);
+      const priceLabel = saleOnly
+        ? Number.isFinite(sale) && sale > 0
+          ? `${t("home.egp")} ${sale.toLocaleString()}`
+          : ""
+        : Number.isFinite(rate) && rate > 0
+          ? `${t("home.egp")} ${rate.toLocaleString()}${t("home.perDay")}`
+          : "";
       return {
         titleKey: "home.continueFavoriteTitle",
         ctaKey: "home.continueCtaView",
@@ -172,7 +181,7 @@ export function ContinueCard(): JSX.Element | null {
         title: vehicle.name,
         priceLabel,
         image: vehicleImageUrl(vehicle.images?.[0]),
-        route: `/rent/${vehicle.id}`,
+        route: saleOnly ? `/sale/${vehicle.id}` : `/rent/${vehicle.id}`,
       };
     }
 
