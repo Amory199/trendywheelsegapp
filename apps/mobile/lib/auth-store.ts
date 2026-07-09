@@ -196,9 +196,18 @@ export const useAuth = create<AuthState>((set, get) => ({
 
   async logout() {
     try {
-      // Pass this device's push token so the API unbinds only this device —
-      // a shared/handed-over phone must not keep getting the old user's pushes.
-      await api.logout(getLastPushToken() ?? undefined);
+      // While ACTING AS someone, the stored refresh token is the ADMIN's — a
+      // server-side logout here would revoke the admin's own sessions (the
+      // exit-acting stash included) and strand them at relogin. The acting
+      // session is synthetic: clearing it locally is a complete logout.
+      if (!get().actingAs) {
+        // Pass this device's push token so the API unbinds only this device —
+        // a shared/handed-over phone must not keep getting the old user's
+        // pushes — and this session's refresh token so ONLY this device's
+        // session is revoked (other devices stay signed in).
+        const refresh = await getRefreshToken();
+        await api.logout(getLastPushToken() ?? undefined, refresh ?? undefined);
+      }
     } catch {
       /* ignore */
     }

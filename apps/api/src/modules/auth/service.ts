@@ -606,12 +606,41 @@ export async function refreshAccessToken(
   return { token: signAccessToken(payload), refreshToken: newRefreshToken };
 }
 
-export async function logout(userId: string, pushToken?: string): Promise<void> {
-  // Revoke all refresh tokens for this user
-  await prisma.refreshToken.updateMany({
-    where: { userId, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
+export async function logout(
+  userId: string,
+  pushToken?: string,
+  refreshToken?: string,
+): Promise<void> {
+  // Scope the revocation to THIS session when the client identifies it.
+  // Revoking every token on any logout meant logging out on one device (or
+  // the web admin) silently killed the user's session on every other device —
+  // the next refresh there 401'd into a forced logout. Security paths
+  // (password reset, role change, force-recredential) still revoke ALL
+  // sessions via revokeUserSessions.
+  let revokedSingle = false;
+  if (refreshToken) {
+    const tokens = await prisma.refreshToken.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+    });
+    for (const t of tokens) {
+      if (await bcrypt.compare(refreshToken, t.tokenHash)) {
+        await prisma.refreshToken.update({
+          where: { id: t.id },
+          data: { revokedAt: new Date() },
+        });
+        revokedSingle = true;
+        break;
+      }
+    }
+  }
+  if (!revokedSingle && !refreshToken) {
+    // Legacy clients (no refresh token sent) keep the old revoke-all
+    // behaviour — better safe than leaving a session alive unexpectedly.
+    await prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
   // Stop push delivery to logged-out sessions. With the device's token we
   // delete just that row; otherwise all of the user's tokens go (shared
   // devices must not keep receiving the previous user's notifications —

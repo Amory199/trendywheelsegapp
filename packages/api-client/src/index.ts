@@ -295,9 +295,14 @@ class ApiClient {
 
   // pushToken (optional) lets the API unbind only THIS device's push
   // registration; omitted → all the user's tokens are unbound server-side.
-  async logout(pushToken?: string): Promise<{ success: boolean }> {
+  // refreshToken (optional) scopes the session revocation to THIS device —
+  // without it the server revokes every session the user has anywhere.
+  async logout(pushToken?: string, refreshToken?: string): Promise<{ success: boolean }> {
+    const body: Record<string, string> = {};
+    if (pushToken) body.pushToken = pushToken;
+    if (refreshToken) body.refreshToken = refreshToken;
     return this.request("POST", "/api/auth/logout", {
-      body: pushToken ? { pushToken } : undefined,
+      body: Object.keys(body).length > 0 ? body : undefined,
     });
   }
 

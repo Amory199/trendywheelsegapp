@@ -126,7 +126,11 @@ export async function logout(req: Request, res: Response): Promise<void> {
   // receiving pushes. Without it we unbind all the user's tokens — the safe
   // default for shared/handed-over devices (next login re-registers).
   const pushToken = typeof req.body?.pushToken === "string" ? req.body.pushToken : undefined;
-  await authService.logout(userId, pushToken);
+  // Optional: the session's refresh token — when present only THAT session is
+  // revoked, so logging out here doesn't kill the user's other devices.
+  const refreshToken =
+    typeof req.body?.refreshToken === "string" ? req.body.refreshToken : undefined;
+  await authService.logout(userId, pushToken, refreshToken);
   res.json({ success: true });
 }
 

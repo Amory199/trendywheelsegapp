@@ -1015,6 +1015,29 @@ OTP_2ND_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w '%{http_code}' -XPOST "$B
 [ "$OTP_2ND_CODE" = "409" ] || fail "second otp-request for same phone returned $OTP_2ND_CODE (expected 409)"
 pass "manual-OTP lifecycle: request→issue→poll(code)→exhausted(409)"
 
+# ─── 12t. Logout revokes ONLY the presented session ──────────
+# Any logout used to revoke every refresh token the user had — logging out on
+# one device silently forced-logged-out all their other devices.
+note "12t. Scoped logout (other sessions survive)"
+SESS_A=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$SALES_EMAIL\",\"password\":\"$SALES_PASSWORD\"}")
+SESS_B=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$SALES_EMAIL\",\"password\":\"$SALES_PASSWORD\"}")
+REFRESH_A=$(echo "$SESS_A" | jq -r '.refreshToken // empty')
+REFRESH_B=$(echo "$SESS_B" | jq -r '.refreshToken // empty')
+TOKEN_A=$(echo "$SESS_A" | jq -r '.token // .accessToken')
+[ -n "$REFRESH_A" ] && [ -n "$REFRESH_B" ] || fail "could not mint two sales sessions"
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/logout" \
+  -H "Authorization: Bearer $TOKEN_A" -H "$JSON" \
+  -d "{\"refreshToken\":\"$REFRESH_A\"}" >/dev/null || fail "scoped logout failed"
+A_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w '%{http_code}' -XPOST "$BASE/auth/refresh-token" \
+  -H "$JSON" -d "{\"refreshToken\":\"$REFRESH_A\"}")
+[ "$A_CODE" = "401" ] || fail "logged-out session's refresh still works ($A_CODE, expected 401)"
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/refresh-token" \
+  -H "$JSON" -d "{\"refreshToken\":\"$REFRESH_B\"}" >/dev/null \
+  || fail "OTHER session was revoked by a scoped logout — revoke-all regression"
+pass "scoped logout: own session dead, other session alive"
+
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
 # No DELETE endpoint on /crm/leads, so leave the smoke-test lead. The contact
