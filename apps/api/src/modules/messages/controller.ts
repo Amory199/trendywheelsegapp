@@ -102,10 +102,16 @@ export async function listMessages(req: Request, res: Response): Promise<void> {
 }
 
 export async function send(req: Request, res: Response): Promise<void> {
-  const { recipientId, message, attachments } = req.body;
+  const { recipientId, message, attachments, conversationId: requestedConversationId } = req.body;
   const senderId = req.user!.userId;
 
   if (recipientId === senderId) throw AppError.badRequest("Cannot message yourself");
+
+  // Context threads must receive their messages directly — routing by
+  // recipient would silently divert replies into the generic support thread.
+  if (requestedConversationId) {
+    await assertParticipant(requestedConversationId, senderId);
+  }
 
   // Detect a support thread: exactly one side is staff/admin (the other a
   // customer). Those become shared, team-wide threads with a broadcast ping so
@@ -119,7 +125,9 @@ export async function send(req: Request, res: Response): Promise<void> {
   const isSupport = senderIsStaff !== recipientIsStaff;
 
   let conversationId: string;
-  if (isSupport) {
+  if (requestedConversationId) {
+    conversationId = requestedConversationId;
+  } else if (isSupport) {
     const customerId = senderIsStaff ? recipientId : senderId;
     const staffId = senderIsStaff ? senderId : recipientId;
     conversationId = await findOrCreateSupportConversation(customerId, staffId);
@@ -186,6 +194,80 @@ export async function createConversation(req: Request, res: Response): Promise<v
   if (recipientId === userId) throw AppError.badRequest("Cannot message yourself");
   const conversationId = await findOrCreateConversation(userId, recipientId);
   res.status(201).json({ data: { id: conversationId } });
+}
+
+// ─── Context threads (a chat ABOUT a booking/reservation/repair) ──────
+// One shared customer+staff thread per transaction, with a pinned label.
+
+const CONTEXT_OWNER_LOOKUP: Record<string, (id: string) => Promise<{ userId: string } | null>> = {
+  booking: (id) => prisma.booking.findUnique({ where: { id }, select: { userId: true } }),
+  reservation: (id) => prisma.reservation.findUnique({ where: { id }, select: { userId: true } }),
+  repair: (id) => prisma.repairRequest.findUnique({ where: { id }, select: { userId: true } }),
+  order: (id) => prisma.order.findUnique({ where: { id }, select: { userId: true } }),
+  listing: (id) => prisma.salesListing.findUnique({ where: { id }, select: { userId: true } }),
+};
+
+export async function openContextThread(req: Request, res: Response): Promise<void> {
+  const { contextType, contextId, contextTitle } = req.body as {
+    contextType: string;
+    contextId: string;
+    contextTitle?: string;
+  };
+  const caller = req.user!;
+
+  const lookup = CONTEXT_OWNER_LOOKUP[contextType];
+  if (!lookup) throw AppError.badRequest("Unknown context type");
+  const record = await lookup(contextId);
+  if (!record) throw AppError.notFound("Context record not found");
+
+  // Access: the transaction's owner, or staff/admin. Nobody else can open
+  // (or discover) a thread about someone else's booking.
+  const callerIsStaff = STAFF_ACCOUNT_TYPES.includes(caller.accountType);
+  if (!callerIsStaff && record.userId !== caller.userId) {
+    throw AppError.forbidden("Not your transaction");
+  }
+  const customerId = record.userId;
+
+  const existing = await prisma.conversation.findFirst({
+    where: { contextType, contextId },
+  });
+  if (existing) {
+    // Staff coverage may have changed since creation; keep the team looped in.
+    await ensureAllStaffParticipants(existing.id);
+    res.json({ data: existing });
+    return;
+  }
+
+  const staff = await prisma.user.findFirst({
+    where: { accountType: { in: ["admin", "staff"] }, status: "active" },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  const participantIds = [...new Set([customerId, caller.userId, staff?.id].filter(Boolean))];
+  const conv = await prisma.conversation.create({
+    data: {
+      contextType,
+      contextId,
+      contextTitle: (contextTitle ?? "").slice(0, 120) || null,
+      participants: { create: participantIds.map((userId) => ({ userId: userId! })) },
+    },
+  });
+  await ensureAllStaffParticipants(conv.id);
+  res.status(201).json({ data: conv });
+}
+
+export async function getConversation(req: Request, res: Response): Promise<void> {
+  await assertParticipant(req.params.conversationId, req.user!.userId);
+  const conv = await prisma.conversation.findUnique({
+    where: { id: req.params.conversationId },
+    include: {
+      participants: {
+        include: { user: { select: { id: true, name: true, accountType: true } } },
+      },
+    },
+  });
+  if (!conv) throw AppError.notFound("Conversation not found");
+  res.json({ data: conv });
 }
 
 export async function unreadCount(req: Request, res: Response): Promise<void> {

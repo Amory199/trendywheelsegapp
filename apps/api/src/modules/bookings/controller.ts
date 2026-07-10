@@ -64,6 +64,7 @@ export async function create(req: Request, res: Response): Promise<void> {
     loyaltyPointsRedeemed,
     dropoffLocationUrl,
     fulfillmentType,
+    paymentMethod,
   } = req.body;
   const userId = req.user!.userId;
 
@@ -144,6 +145,7 @@ export async function create(req: Request, res: Response): Promise<void> {
       paymentStatus: "pending",
       dropoffLocationUrl: dropoffLocationUrl ?? null,
       fulfillmentType: fulfillmentType ?? null,
+      paymentMethod: paymentMethod ?? "cash",
       promoCode: validPromo?.code ?? null,
       promoDiscount: promoDiscount > 0 ? promoDiscount : null,
       loyaltyPointsRedeemed: loyaltyPts,

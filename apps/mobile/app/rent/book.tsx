@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -32,6 +33,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import QRCode from "react-native-qrcode-svg";
+
 import {
   FulfillmentPicker,
   optionNeedsLocation,
@@ -39,6 +42,7 @@ import {
 } from "../../components/FulfillmentPicker";
 import { GuestGate } from "../../components/GuestGate";
 import { TWSkiaConfetti } from "../../components/skia/confetti";
+import { openContextChat } from "../../lib/context-chat";
 import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
@@ -122,6 +126,7 @@ export default function BookScreen(): JSX.Element {
           ? fulfillment.location.trim() || null
           : null,
         fulfillmentType: fulfillment.type,
+        paymentMethod: "cash" as const,
       };
       if (__DEV__) console.log("[book] POST /bookings", payload);
       return api.createBooking(payload);
@@ -144,7 +149,16 @@ export default function BookScreen(): JSX.Element {
   if (!user) return <GuestGate />;
 
   if (booked) {
-    return <SuccessScreen bookingRef={bookingRef} email={email} router={router} />;
+    return (
+      <SuccessScreen
+        bookingRef={bookingRef}
+        email={email}
+        router={router}
+        vehicleName={vehicle?.name ?? ""}
+        startDate={startDate}
+        endDate={endDate}
+      />
+    );
   }
 
   return (
@@ -230,22 +244,33 @@ export default function BookScreen(): JSX.Element {
                 selected={paymentMethod === "cash"}
                 onPress={() => setPaymentMethod("cash")}
               />
+              {/* Card is not wired to a gateway yet — show it honestly as
+                  coming soon instead of a selectable option that does nothing. */}
               <PaymentOption
                 label={t("rent.creditDebitCard")}
                 icon="card-outline"
-                selected={paymentMethod === "card"}
-                onPress={() => setPaymentMethod("card")}
+                selected={false}
+                disabled
+                badge={t("rent.comingSoon")}
+                onPress={() => {}}
               />
               <View style={styles.totalCard}>
-                <Text style={styles.totalLabel}>{t("rent.total")}</Text>
-                <Text style={styles.totalValue}>
-                  {totalCost.toLocaleString()} {t("rent.currency")}
-                </Text>
-                <Text style={styles.totalDays}>
-                  {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} @{" "}
-                  {Number(vehicle?.dailyRate).toLocaleString()} {t("rent.currency")}
-                  {t("rent.perDayPaymentSuffix")}
-                </Text>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>
+                    {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} ×{" "}
+                    {Number(vehicle?.dailyRate).toLocaleString()} {t("rent.currency")}
+                  </Text>
+                  <Text style={styles.breakdownValue}>
+                    {totalCost.toLocaleString()} {t("rent.currency")}
+                  </Text>
+                </View>
+                <View style={styles.breakdownDivider} />
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.totalLabel}>{t("rent.total")}</Text>
+                  <Text style={styles.totalValue}>
+                    {totalCost.toLocaleString()} {t("rent.currency")}
+                  </Text>
+                </View>
               </View>
             </Animated.View>
           )}
@@ -404,21 +429,35 @@ function PaymentOption({
   icon,
   selected,
   onPress,
+  disabled,
+  badge,
 }: {
   label: string;
   icon: React.ComponentProps<typeof Ionicons>["name"];
   selected: boolean;
   onPress: () => void;
+  disabled?: boolean;
+  badge?: string;
 }): JSX.Element {
   const { palette } = useTheme();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   return (
     <Pressable
-      style={[styles.paymentOption, selected && styles.paymentOptionSelected]}
+      style={[
+        styles.paymentOption,
+        selected && styles.paymentOptionSelected,
+        disabled && { opacity: 0.5 },
+      ]}
       onPress={onPress}
+      disabled={disabled}
     >
       <Ionicons name={icon} size={24} color={selected ? colors.accent.DEFAULT : palette.muted} />
       <Text style={[styles.paymentLabel, selected && styles.paymentLabelSelected]}>{label}</Text>
+      {badge ? (
+        <View style={styles.paymentBadge}>
+          <Text style={styles.paymentBadgeText}>{badge}</Text>
+        </View>
+      ) : null}
       {selected && <Ionicons name="checkmark-circle" size={20} color={colors.accent.DEFAULT} />}
     </Pressable>
   );
@@ -526,6 +565,25 @@ function makeStyles(palette: Palette) {
     totalLabel: { color: palette.muted, fontSize: 13 },
     totalValue: { color: palette.text, fontSize: 28, fontWeight: "700" },
     totalDays: { color: palette.muted, fontSize: 13 },
+    breakdownRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
+    },
+    breakdownLabel: { color: palette.muted, fontSize: 14 },
+    breakdownValue: { color: palette.text, fontSize: 14, fontWeight: "600" },
+    breakdownDivider: {
+      height: 1,
+      backgroundColor: palette.border,
+      marginVertical: spacing.sm,
+    },
+    paymentBadge: {
+      backgroundColor: palette.border,
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    paymentBadgeText: { color: palette.muted, fontSize: 10, fontWeight: "800" },
     footer: {
       position: "absolute",
       bottom: 0,
@@ -575,6 +633,25 @@ function makeStyles(palette: Palette) {
     successTitle: { color: palette.text, fontSize: 24, fontWeight: "700" },
     successRef: { color: colors.accent.DEFAULT, fontSize: 16, fontWeight: "600" },
     successMsg: { color: palette.muted, textAlign: "center", lineHeight: 22 },
+    qrWrap: {
+      padding: spacing.md,
+      backgroundColor: "#fff",
+      borderRadius: 16,
+      marginTop: spacing.sm,
+    },
+    successShowHint: { color: palette.muted, fontSize: 12 },
+    successActionsRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs },
+    successActionBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      borderWidth: 1,
+      borderColor: palette.border,
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+    },
+    successActionText: { color: palette.text, fontSize: 13, fontWeight: "600" },
     doneBtn: {
       backgroundColor: colors.accent.DEFAULT,
       borderRadius: 12,
@@ -604,16 +681,39 @@ function SuccessScreen({
   bookingRef,
   email,
   router,
+  vehicleName,
+  startDate,
+  endDate,
 }: {
   bookingRef: string;
   email: string;
   router: ReturnType<typeof useRouter>;
+  vehicleName: string;
+  startDate: string;
+  endDate: string;
 }): JSX.Element {
   const { palette } = useTheme();
   const t = useT();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const checkScale = useSharedValue(0);
   const refPulse = useSharedValue(1);
+  // Short human code shown under the QR ("TW-829301" style) — the QR itself
+  // carries the full booking id so staff can look it up exactly.
+  const shortCode = `TW-${bookingRef.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+
+  const addToCalendar = (): void => {
+    // Google Calendar template link — works on iOS + Android without a native
+    // calendar module (OTA-safe). All-day range; end date is exclusive.
+    const fmt = (d: string): string => d.replace(/-/g, "");
+    const end = new Date(endDate);
+    end.setDate(end.getDate() + 1);
+    const url =
+      "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+      `&text=${encodeURIComponent(`TrendyWheels · ${vehicleName}`)}` +
+      `&dates=${fmt(startDate)}/${fmt(end.toISOString().slice(0, 10))}` +
+      `&details=${encodeURIComponent(`${t("rent.refPrefix")} ${shortCode}`)}`;
+    void Linking.openURL(url);
+  };
 
   useEffect(() => {
     checkScale.value = withDelay(120, withSpring(1, { damping: 8, stiffness: 120 }));
@@ -638,15 +738,41 @@ function SuccessScreen({
           <Ionicons name="checkmark-circle" size={88} color={colors.success} />
         </Animated.View>
         <Text style={styles.successTitle}>{t("rent.bookingConfirmed")}</Text>
+        {/* Pickup pass: QR carries the full booking id for staff lookup. */}
+        {bookingRef ? (
+          <View style={styles.qrWrap}>
+            <QRCode value={bookingRef} size={148} backgroundColor="transparent" />
+          </View>
+        ) : null}
         <Animated.View style={refAnim}>
           <Text style={styles.successRef}>
-            {t("rent.refPrefix")} {bookingRef}
+            {shortCode} · {new Date(startDate).toLocaleDateString()}
           </Text>
         </Animated.View>
+        <Text style={styles.successShowHint}>{t("rent.showAtPickup")}</Text>
         <Text style={styles.successMsg}>
           {t("rent.successMessagePrefix")} {email || t("rent.successMessageFallbackInbox")}
           {t("rent.successMessageSuffix")}
         </Text>
+        <View style={styles.successActionsRow}>
+          <Pressable style={styles.successActionBtn} onPress={addToCalendar}>
+            <Ionicons name="calendar-outline" size={16} color={palette.text} />
+            <Text style={styles.successActionText}>{t("rent.addToCalendar")}</Text>
+          </Pressable>
+          <Pressable
+            style={styles.successActionBtn}
+            onPress={() =>
+              void openContextChat(router, {
+                contextType: "booking",
+                contextId: bookingRef,
+                contextTitle: `${vehicleName} · ${shortCode}`,
+              })
+            }
+          >
+            <Ionicons name="chatbubble-outline" size={16} color={palette.text} />
+            <Text style={styles.successActionText}>{t("rent.messageUs")}</Text>
+          </Pressable>
+        </View>
         {/* Both buttons route explicitly — fall-through to /(tabs)/ would land
             an admin/sales user on their dashboard since they don't have a Rent
             tab in their nav. /rent/my-bookings works for every authenticated

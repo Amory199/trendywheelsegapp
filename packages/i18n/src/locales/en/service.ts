@@ -9,6 +9,7 @@ export default {
     tilePickup: "Pickup & Delivery",
     tileCustomize: "Customization",
     myRepairs: "My repairs",
+    myServiceRequests: "My service requests",
     emptyTitle: "No repairs yet",
     emptyBody: "Certified mechanics come to you. Track every step in real-time.",
     bookRepair: "Book a repair",
@@ -37,6 +38,7 @@ export default {
     currency: "EGP",
     assignedMechanic: "Assigned Mechanic",
     mechanicAssigned: "Mechanic Assigned",
+    eta: "Estimated completion",
     idPrefix: "ID:",
     pendingAssignment: "Pending assignment — our team will review and assign a mechanic shortly.",
     viewMessages: "View Messages",
@@ -134,6 +136,17 @@ export default {
     submit: "Submit request",
     successTitle: "Request received",
     successBody: "We'll confirm pickup within a few hours.",
+  },
+
+  // My service requests (app/service/my-requests.tsx)
+  myRequests: {
+    kicker: "SERVICE TRACKING",
+    title: "My Requests",
+    emptyTitle: "No service requests yet",
+    emptyBody: "Maintenance, customization, and pickup requests you submit will show up here.",
+    kindMaintenance: "Maintenance",
+    kindCustomization: "Customization",
+    kindTransport: "Pickup & Delivery",
   },
 
   // Shared submit-error alert across service forms

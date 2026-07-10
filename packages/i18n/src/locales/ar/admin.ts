@@ -100,6 +100,10 @@ const admin: Stringify<typeof enNs> = {
   repairPickMechanic: "اختر فنياً",
   repairNoMechanics: "لا يوجد فنيون.",
   repairMechanicFallback: "فني",
+  repairEta: "الوقت المتوقع",
+  repairSetEta: "تحديد الوقت المتوقع",
+  repairClearEta: "مسح",
+  repairEtaDone: "تم",
   updateFailed: "فشل التحديث",
 
   salesTeamKicker: "وحدة المبيعات",

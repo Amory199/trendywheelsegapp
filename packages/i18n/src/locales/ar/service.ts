@@ -11,6 +11,7 @@ const service: Stringify<typeof enNs> = {
     tilePickup: "الاستلام والتسليم",
     tileCustomize: "تخصيص",
     myRepairs: "إصلاحاتي",
+    myServiceRequests: "طلبات الخدمة الخاصة بي",
     emptyTitle: "لا توجد إصلاحات بعد",
     emptyBody: "فنيون معتمدون يأتون إليك. تابع كل خطوة لحظة بلحظة.",
     bookRepair: "احجز إصلاحًا",
@@ -37,6 +38,7 @@ const service: Stringify<typeof enNs> = {
     currency: "ج.م",
     assignedMechanic: "الفني المعيّن",
     mechanicAssigned: "تم تعيين فني",
+    eta: "الوقت المتوقع للانتهاء",
     idPrefix: "المعرّف:",
     pendingAssignment: "في انتظار التعيين — سيراجع فريقنا الطلب ويعيّن فنيًا قريبًا.",
     viewMessages: "عرض الرسائل",
@@ -126,6 +128,16 @@ const service: Stringify<typeof enNs> = {
     submit: "إرسال الطلب",
     successTitle: "تم استلام الطلب",
     successBody: "سنؤكد الاستلام خلال ساعات قليلة.",
+  },
+
+  myRequests: {
+    kicker: "متابعة الخدمة",
+    title: "طلباتي",
+    emptyTitle: "لا توجد طلبات خدمة بعد",
+    emptyBody: "ستظهر هنا طلبات الصيانة والتخصيص والاستلام التي ترسلها.",
+    kindMaintenance: "صيانة",
+    kindCustomization: "تخصيص",
+    kindTransport: "الاستلام والتسليم",
   },
 
   submitErrorTitle: "تعذّر الإرسال",

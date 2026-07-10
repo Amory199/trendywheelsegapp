@@ -108,6 +108,10 @@ export default {
   repairPickMechanic: "Pick mechanic",
   repairNoMechanics: "No mechanics found.",
   repairMechanicFallback: "Mechanic",
+  repairEta: "ETA",
+  repairSetEta: "Set ETA",
+  repairClearEta: "Clear",
+  repairEtaDone: "Done",
   updateFailed: "Update failed",
 
   // Sales team list — app/admin/sales-team/index.tsx

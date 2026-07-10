@@ -8,6 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ActingBanner } from "../components/ActingBanner";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { IntroCarousel } from "../components/IntroCarousel";
 import { LanguageGate } from "../components/LanguageGate";
 import { MobileIntro } from "../components/MobileIntro";
 import { OfflineBanner } from "../components/OfflineBanner";
@@ -178,8 +179,12 @@ export default function RootLayout(): JSX.Element {
           <UpdateGate />
           {/* Admin "act as" indicator — global, top of everything when active. */}
           <ActingBanner />
-          {/* Branded cold-start intro, then (first launch only) the language
-              gate on top of it — both above the app, gate wins z-order. */}
+          {/* First-launch stack, bottom → top: onboarding carousel (shows once
+              language is chosen, until dismissed), the branded cold-start
+              intro (later sibling at the same zIndex, so the splash plays on
+              top of the carousel and fades to reveal it), and the language
+              gate above everything — pick a language first, then the intro. */}
+          <IntroCarousel />
           <MobileIntro />
           <LanguageGate />
         </QueryClientProvider>

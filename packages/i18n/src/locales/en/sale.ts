@@ -6,6 +6,7 @@ export default {
   reserveCta: "Reserve",
   reserving: "Reserving…",
   reservedTitle: "Reserved",
+  viewMyReservations: "View my reservations",
   reservedBody: "We've reserved this vehicle for you — our team will reach out to finish the deal.",
   reserveFailedTitle: "Couldn't reserve",
   // My reservations list — app/sale/my-reservations.tsx

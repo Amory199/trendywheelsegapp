@@ -6,6 +6,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { GuestGate } from "../../components/GuestGate";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { openContextChat } from "../../lib/context-chat";
 import { useT } from "../../lib/locale";
 import { useTracking } from "../../lib/typography";
 
@@ -109,6 +111,14 @@ export default function RepairDetailScreen(): JSX.Element {
   const currentStatusIdx = (STATUS_ORDER as readonly string[]).indexOf(repair.status);
   const currentMeta = STATUS_META[repair.status as RepairStatus] ?? STATUS_META.submitted;
 
+  // Staff-committed ETA — only meaningful while the repair is still live.
+  const eta =
+    repair.etaAt && repair.status !== "completed" && repair.status !== "cancelled"
+      ? new Date(repair.etaAt)
+      : null;
+  const etaIsToday = eta ? eta.toDateString() === new Date().toDateString() : false;
+  const mechanicPhone = repair.mechanic?.phone ?? null;
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -165,6 +175,32 @@ export default function RepairDetailScreen(): JSX.Element {
             </Text>
           </View>
         </Animated.View>
+
+        {/* ETA — the big "ready by" time staff committed to */}
+        {eta ? (
+          <Animated.View entering={FadeInDown.delay(40).springify()} style={styles.etaCard}>
+            <View style={styles.etaIconWrap}>
+              <Ionicons name="time-outline" size={26} color={colors.accent.DEFAULT} />
+            </View>
+            <View style={styles.etaInfo}>
+              <Text style={[styles.etaLabel, { letterSpacing: track(0.8) }]}>
+                {t("service.detail.eta")}
+              </Text>
+              <Text style={styles.etaTime}>
+                {eta.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </Text>
+              {!etaIsToday ? (
+                <Text style={styles.etaDate}>
+                  {eta.toLocaleDateString("en-EG", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "long",
+                  })}
+                </Text>
+              ) : null}
+            </View>
+          </Animated.View>
+        ) : null}
 
         {/* Progress timeline */}
         <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.card}>
@@ -284,17 +320,47 @@ export default function RepairDetailScreen(): JSX.Element {
                 <Ionicons name="person" size={24} color={colors.primary[400]} />
               </View>
               <View style={styles.mechanicInfo}>
-                <Text style={styles.mechanicName}>{t("service.detail.mechanicAssigned")}</Text>
+                <Text style={styles.mechanicName}>
+                  {repair.mechanic?.name ?? t("service.detail.mechanicAssigned")}
+                </Text>
                 <Text style={styles.mechanicSub}>
                   {t("service.detail.idPrefix")} {repair.assignedMechanicId.slice(0, 8)}…
                 </Text>
               </View>
-              <Pressable
-                style={styles.contactMechanic}
-                onPress={() => router.push("/support/tickets/new")}
-              >
-                <Ionicons name="chatbubble-outline" size={18} color="#000" />
-              </Pressable>
+              <View style={styles.mechanicActions}>
+                {mechanicPhone ? (
+                  <>
+                    <Pressable
+                      style={styles.contactMechanicAlt}
+                      onPress={() => void Linking.openURL(`tel:${mechanicPhone}`)}
+                    >
+                      <Ionicons name="call-outline" size={18} color={colors.text.light} />
+                    </Pressable>
+                    <Pressable
+                      style={styles.contactMechanicAlt}
+                      onPress={() =>
+                        void Linking.openURL(
+                          `https://wa.me/${mechanicPhone.replace(/[^0-9]/g, "")}`,
+                        )
+                      }
+                    >
+                      <Ionicons name="logo-whatsapp" size={18} color={colors.success} />
+                    </Pressable>
+                  </>
+                ) : null}
+                <Pressable
+                  style={styles.contactMechanic}
+                  onPress={() =>
+                    void openContextChat(router, {
+                      contextType: "repair",
+                      contextId: repair.id,
+                      contextTitle: `Repair · ${repair.id.slice(0, 8).toUpperCase()}`,
+                    })
+                  }
+                >
+                  <Ionicons name="chatbubble-outline" size={18} color="#000" />
+                </Pressable>
+              </View>
             </View>
           ) : (
             <View style={styles.unassigned}>
@@ -377,6 +443,34 @@ const styles = StyleSheet.create({
   heroDate: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },
   priorityBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   priorityText: { fontSize: 10, fontWeight: "700" },
+
+  etaCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.dark.card,
+    borderRadius: 14,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: `${colors.accent.DEFAULT}55`,
+    gap: spacing.md,
+  },
+  etaIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: `${colors.accent.DEFAULT}22`,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  etaInfo: { flex: 1 },
+  etaLabel: {
+    color: colors.text.secondary,
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  etaTime: { color: colors.accent.DEFAULT, fontSize: 28, fontWeight: "800", marginTop: 2 },
+  etaDate: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },
 
   card: {
     backgroundColor: colors.dark.card,
@@ -473,11 +567,22 @@ const styles = StyleSheet.create({
   mechanicInfo: { flex: 1 },
   mechanicName: { color: colors.text.light, fontSize: 14, fontWeight: "600" },
   mechanicSub: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },
+  mechanicActions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   contactMechanic: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.accent.DEFAULT,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contactMechanicAlt: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.dark.bg,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
     justifyContent: "center",
     alignItems: "center",
   },

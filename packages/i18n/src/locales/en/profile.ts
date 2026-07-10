@@ -28,6 +28,7 @@ export default {
     tradeInsTitle: "My trade-ins",
     tradeInsEmpty: "Trade your golf cart toward a new one",
     messagesTitle: "Messages",
+    messagesSubtitle: "Chat with our team",
     messagesEmpty: "No new messages",
     // Composed subtitles: "{count} total" and "{count} total · latest: {status}"
     total: "total",

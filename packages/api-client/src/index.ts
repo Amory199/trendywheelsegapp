@@ -590,9 +590,12 @@ class ApiClient {
     recipientId: string,
     message: string,
     attachments?: string[],
+    // Post into a specific thread (context threads) — without it the server
+    // routes by recipient into the default pair/support conversation.
+    conversationId?: string,
   ): Promise<ApiResponse<Message>> {
     return this.request("POST", "/api/messages", {
-      body: { recipientId, message, attachments: attachments ?? [] },
+      body: { recipientId, message, attachments: attachments ?? [], conversationId },
     });
   }
 

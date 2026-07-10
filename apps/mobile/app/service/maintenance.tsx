@@ -57,8 +57,9 @@ export default function MaintenanceScreen(): JSX.Element {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["service", "maintenance"] });
+      void qc.invalidateQueries({ queryKey: ["service", "mine"] });
       Alert.alert(t("service.maintenance.successTitle"), t("service.maintenance.successBody"), [
-        { text: t("common.confirm"), onPress: () => router.back() },
+        { text: t("common.confirm"), onPress: () => router.replace("/service/my-requests") },
       ]);
     },
     onError: (err) =>

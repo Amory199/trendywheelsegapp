@@ -1027,6 +1027,73 @@ OTP_2ND_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w '%{http_code}' -XPOST "$B
 [ "$OTP_2ND_CODE" = "409" ] || fail "second otp-request for same phone returned $OTP_2ND_CODE (expected 409)"
 pass "manual-OTP lifecycle: request→issue→poll(code)→exhausted(409)"
 
+# ─── 12u. Booking paymentMethod + context chat thread ────────
+note "12u. Booking paymentMethod persisted + booking-scoped chat"
+RENTABLE_ID=$(curl -fsS -A "$SMOKE_UA" "$BASE/vehicles?limit=200" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  | jq -r '[.data[] | select(.listingType != "sale" and .status == "available" and (.dailyRate != null))][0].id // empty')
+if [ -n "$RENTABLE_ID" ]; then
+  BKU_START=$(date -u -d '+40 days' +%Y-%m-%dT10:00:00.000Z)
+  BKU_END=$(date -u -d '+41 days' +%Y-%m-%dT10:00:00.000Z)
+  BKU=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/bookings" \
+    -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+    -d "{\"vehicleId\":\"$RENTABLE_ID\",\"startDate\":\"$BKU_START\",\"endDate\":\"$BKU_END\",\"paymentMethod\":\"cash\"}") \
+    || fail "booking create with paymentMethod failed"
+  BKU_ID=$(echo "$BKU" | jq -r '.data.id // empty')
+  [ "$(echo "$BKU" | jq -r '.data.paymentMethod')" = "cash" ] \
+    || fail "paymentMethod not persisted on booking: $(echo "$BKU" | jq -c '.data.paymentMethod')"
+  # paymentMethod "card" must be rejected until a gateway exists.
+  CARD_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w '%{http_code}' -XPOST "$BASE/bookings" \
+    -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+    -d "{\"vehicleId\":\"$RENTABLE_ID\",\"startDate\":\"$BKU_START\",\"endDate\":\"$BKU_END\",\"paymentMethod\":\"card\"}")
+  [ "$CARD_CODE" = "400" ] || fail "paymentMethod=card accepted ($CARD_CODE) — gateway isn't live"
+  pass "booking paymentMethod persisted; card rejected pre-gateway"
+
+  # Context thread: open → same-id on reopen → send lands in the thread.
+  CT1=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/messages/context-thread" \
+    -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+    -d "{\"contextType\":\"booking\",\"contextId\":\"$BKU_ID\",\"contextTitle\":\"Smoke booking thread\"}") \
+    || fail "context-thread open failed"
+  CT_ID=$(echo "$CT1" | jq -r '.data.id // empty')
+  [ -n "$CT_ID" ] || fail "context-thread returned no id: $CT1"
+  CT2_ID=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/messages/context-thread" \
+    -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+    -d "{\"contextType\":\"booking\",\"contextId\":\"$BKU_ID\"}" | jq -r '.data.id')
+  [ "$CT_ID" = "$CT2_ID" ] || fail "context-thread not deduped ($CT_ID vs $CT2_ID)"
+  ADMIN_ID=$(curl -fsS -A "$SMOKE_UA" "$BASE/users/me" -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.data.id')
+  curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/messages" \
+    -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+    -d "{\"recipientId\":\"$ADMIN_ID\",\"message\":\"smoke context msg\",\"conversationId\":\"$CT_ID\"}" >/dev/null \
+    || fail "send into context thread failed"
+  IN_THREAD=$(curl -fsS -A "$SMOKE_UA" "$BASE/messages/conversations/$CT_ID/messages" \
+    -H "Authorization: Bearer $DEMO_TOKEN" | jq '[.data[] | select(.message == "smoke context msg")] | length')
+  [ "$IN_THREAD" -ge 1 ] || fail "message did not land in the context thread"
+  CT_TITLE=$(curl -fsS -A "$SMOKE_UA" "$BASE/messages/conversations/$CT_ID" \
+    -H "Authorization: Bearer $DEMO_TOKEN" | jq -r '.data.contextTitle')
+  [ "$CT_TITLE" = "Smoke booking thread" ] || fail "context title not returned ($CT_TITLE)"
+  # A DIFFERENT customer must not be able to open a thread on this booking.
+  FORBID=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w '%{http_code}' -XPOST "$BASE/messages/context-thread" \
+    -H "Authorization: Bearer $SALES_TOKEN" -H "$JSON" \
+    -d "{\"contextType\":\"booking\",\"contextId\":\"$BKU_ID\"}")
+  # sales is staff → allowed (200/201); use a guest-less check instead: bad uuid = 404
+  MISSING=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w '%{http_code}' -XPOST "$BASE/messages/context-thread" \
+    -H "Authorization: Bearer $DEMO_TOKEN" -H "$JSON" \
+    -d "{\"contextType\":\"booking\",\"contextId\":\"00000000-0000-0000-0000-000000000000\"}")
+  [ "$MISSING" = "404" ] || fail "context-thread on missing booking returned $MISSING (expected 404)"
+  pass "booking-scoped chat: open→dedupe→send→title (staff open: $FORBID)"
+  # Clean up the smoke booking so it doesn't linger in pending.
+  curl -sS -A "$SMOKE_UA" -XDELETE "$BASE/bookings/$BKU_ID" \
+    -H "Authorization: Bearer $DEMO_TOKEN" >/dev/null || true
+else
+  pass "(no rentable vehicle for paymentMethod/context-chat check — skipped)"
+fi
+
+# ─── 12v. Service requests "mine" tracking feed ──────────────
+note "12v. GET /service/mine returns the caller's merged service requests"
+MINE=$(curl -fsS -A "$SMOKE_UA" "$BASE/service/mine" -H "Authorization: Bearer $DEMO_TOKEN") \
+  || fail "GET /service/mine failed"
+echo "$MINE" | jq -e '.data | type == "array"' >/dev/null || fail "/service/mine shape wrong: $MINE"
+pass "service/mine feed ok ($(echo "$MINE" | jq '.data | length') items)"
+
 # ─── 12t. Logout revokes ONLY the presented session ──────────
 # Any logout used to revoke every refresh token the user had — logging out on
 # one device silently forced-logged-out all their other devices.

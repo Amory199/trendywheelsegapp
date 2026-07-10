@@ -42,6 +42,7 @@ export default {
     searchPlaceholder: "Search title, make, or model…",
     noMatches: "No matches",
     emptyCategory: "No listings in this category yet",
+    createListing: "Create a listing",
   },
 
   create: {

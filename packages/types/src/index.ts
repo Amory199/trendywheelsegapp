@@ -242,6 +242,10 @@ export interface RepairRequest {
   assignedMechanicId: string | null;
   estimatedCost: number | null;
   actualCost: number | null;
+  /** Staff-set expected completion time; null until staff commit to a time. */
+  etaAt?: string | null;
+  /** Populated on detail fetches so the app can name + call the mechanic. */
+  mechanic?: { id?: string; name?: string | null; phone?: string | null } | null;
   createdAt: string;
   updatedAt: string;
 }

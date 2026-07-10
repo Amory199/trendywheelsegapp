@@ -53,7 +53,7 @@ export async function getById(req: Request, res: Response): Promise<void> {
     where: { id: req.params.id },
     include: {
       vehicle: true,
-      mechanic: { select: { id: true, name: true, email: true } },
+      mechanic: { select: { id: true, name: true, email: true, phone: true } },
       user: { select: { id: true, name: true, email: true, phone: true } },
     },
   });
@@ -105,6 +105,7 @@ export async function update(req: Request, res: Response): Promise<void> {
     assignedMechanicId: string;
     estimatedCost: number;
     actualCost: number;
+    etaAt: string | null;
     notes: string;
   }>;
   const data: Record<string, unknown> = {};
@@ -118,6 +119,8 @@ export async function update(req: Request, res: Response): Promise<void> {
     if (body.assignedMechanicId !== undefined) data.assignedMechanicId = body.assignedMechanicId;
     if (body.estimatedCost !== undefined) data.estimatedCost = body.estimatedCost;
     if (body.actualCost !== undefined) data.actualCost = body.actualCost;
+    // Null clears the ETA; a datetime string commits staff to a time.
+    if (body.etaAt !== undefined) data.etaAt = body.etaAt === null ? null : new Date(body.etaAt);
   }
 
   const updated = await prisma.repairRequest.update({

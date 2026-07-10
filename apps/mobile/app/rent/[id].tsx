@@ -168,6 +168,10 @@ export default function RentDetailScreen(): React.JSX.Element {
 
   const rating = Number(vehicle.averageRating ?? 0) || 0;
   const reviewsCount = Number((vehicle as { reviewCount?: number }).reviewCount ?? 0);
+  // Model year isn't on the Vehicle type (or every row) yet — read it
+  // defensively (same pattern as reviewCount above) and only render the spec
+  // cell when the API actually sends one, so nothing shows a blank chip.
+  const vehicleYear = (vehicle as { year?: number | null }).year ?? null;
   const features = (vehicle.features as string[] | undefined) ?? [];
   const reviews = reviewsQ.data?.data ?? [];
   const reviewSummary = reviewsQ.data?.summary;
@@ -313,7 +317,10 @@ export default function RentDetailScreen(): React.JSX.Element {
             <>
               <Animated.View entering={FadeInDown.delay(140).duration(420)}>
                 <TWCard padded={false}>
-                  <View style={{ flexDirection: "row", padding: 14 }}>
+                  {/* flexWrap — with a 5th (year) cell the row would crush the
+                      city name at flex:1, so cells hold 25% width and any
+                      extra cell wraps to a second line. Nothing is dropped. */}
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 14, padding: 14 }}>
                     <SpecCell
                       icon="person"
                       label={t("rent.specSeats")}
@@ -329,12 +336,22 @@ export default function RentDetailScreen(): React.JSX.Element {
                       label={t("rent.specFuel")}
                       value={vehicle.fuelType ?? t("rent.fuelPetrol")}
                     />
+                    {/* City keeps `last` even when year follows — year wraps
+                        to the next line, so city still ends its own row. */}
                     <SpecCell
                       icon="location-outline"
                       label={t("rent.specCity")}
                       value={vehicle.location}
                       last
                     />
+                    {vehicleYear !== null ? (
+                      <SpecCell
+                        icon="calendar-outline"
+                        label={t("sell.detail.year")}
+                        value={String(vehicleYear)}
+                        last
+                      />
+                    ) : null}
                   </View>
                 </TWCard>
               </Animated.View>
@@ -606,7 +623,9 @@ function SpecCell({
   return (
     <View
       style={{
-        flex: 1,
+        // Fixed 25% basis (not flex:1) so the parent row can wrap a 5th cell
+        // onto a second line instead of squeezing all cells narrower.
+        width: "25%",
         alignItems: "center",
         borderRightWidth: last ? 0 : 1,
         borderRightColor: p.hairline,

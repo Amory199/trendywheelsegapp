@@ -43,6 +43,24 @@ export default function ChatScreen(): JSX.Element {
     enabled: !!id,
   });
 
+  // Thread metadata: context label ("About: Jeep · TW-829301") + participants,
+  // so the header names what this chat is about instead of a generic "Chat".
+  const convQ = useQuery({
+    queryKey: ["messages", "conv", id],
+    queryFn: () =>
+      api.request<{
+        data: {
+          contextType?: string | null;
+          contextTitle?: string | null;
+          participants?: Array<{ user?: { id: string; name?: string | null } }>;
+        };
+      }>("GET", `/api/messages/conversations/${id}`),
+    enabled: !!id,
+    staleTime: 60000,
+  });
+  const conv = convQ.data?.data;
+  const peerName = conv?.participants?.find((p) => p.user && p.user.id !== user?.id)?.user?.name;
+
   const messages = (data?.data ?? []) as Message[];
 
   const mutation = useMutation({
@@ -51,9 +69,15 @@ export default function ChatScreen(): JSX.Element {
       // opener passed (covers the empty-thread case where the old code sent to
       // an empty recipient and silently failed).
       const other = messages.find((m) => m.senderId !== user?.id);
-      const recipientId = other?.senderId ?? peerId ?? "";
+      const recipientId =
+        other?.senderId ??
+        peerId ??
+        conv?.participants?.find((p) => p.user && p.user.id !== user?.id)?.user?.id ??
+        "";
       if (!recipientId) throw new Error(t("messages.noRecipient"));
-      return api.sendMessage(recipientId, msg);
+      // Pin the message to THIS thread — context threads must not fall back
+      // to the recipient's default support conversation.
+      return api.sendMessage(recipientId, msg, undefined, id);
     },
     onSuccess: () => {
       setText("");
@@ -86,9 +110,32 @@ export default function ChatScreen(): JSX.Element {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.text.light} />
         </Pressable>
-        <Text style={styles.headerTitle}>{t("messages.chatTitle")}</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {peerName || t("messages.chatTitle")}
+        </Text>
         <View style={{ width: 24 }} />
       </View>
+
+      {/* Pinned context card — what this thread is ABOUT. */}
+      {conv?.contextTitle ? (
+        <View style={styles.contextCard}>
+          <Ionicons
+            name={
+              conv.contextType === "repair"
+                ? "construct-outline"
+                : conv.contextType === "listing"
+                  ? "pricetag-outline"
+                  : "car-sport-outline"
+            }
+            size={16}
+            color={colors.accent.DEFAULT}
+          />
+          <Text style={styles.contextLabel}>{t("messages.aboutLabel")}</Text>
+          <Text style={styles.contextTitle} numberOfLines={1}>
+            {conv.contextTitle}
+          </Text>
+        </View>
+      ) : null}
 
       {isLoading ? (
         <ActivityIndicator color={colors.accent.DEFAULT} style={{ flex: 1 }} />
@@ -170,7 +217,29 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.dark.border,
   },
-  headerTitle: { color: colors.text.light, fontSize: 16, fontWeight: "700" },
+  headerTitle: {
+    color: colors.text.light,
+    fontSize: 16,
+    fontWeight: "700",
+    flex: 1,
+    textAlign: "center",
+    marginHorizontal: 8,
+  },
+  contextCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: colors.dark.card,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+  contextLabel: { color: colors.text.secondary, fontSize: 11, fontWeight: "800" },
+  contextTitle: { color: colors.text.light, fontSize: 13, fontWeight: "600", flex: 1 },
   bubble: {
     maxWidth: "75%",
     borderRadius: 16,

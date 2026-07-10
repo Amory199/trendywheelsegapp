@@ -220,6 +220,40 @@ export default function RepairScreen(): React.JSX.Element {
             </TWPressable>
           ))}
         </View>
+
+        {/* Track the fire-and-forget service forms — one merged list. */}
+        <TWPressable
+          onPress={() => router.push("/service/my-requests" as never)}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            marginTop: 12,
+            padding: 14,
+            borderRadius: 16,
+            backgroundColor: palette.card,
+            borderWidth: 1,
+            borderColor: palette.border,
+          }}
+        >
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 12,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: `${colors.brand.friendlyBlue}18`,
+            }}
+          >
+            <Ionicons name="list-outline" size={18} color={colors.brand.friendlyBlue} />
+          </View>
+          <Text style={{ flex: 1, color: palette.text, fontSize: 14, fontWeight: "700" }}>
+            {t("service.tab.myServiceRequests")}
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+        </TWPressable>
+
         {repairs.length > 0 ? (
           <Text
             style={{

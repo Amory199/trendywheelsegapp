@@ -21,6 +21,7 @@ import { CategoryVideoHero } from "../../../components/CategoryVideoHero";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
 import { useRTL } from "../../../lib/typography";
+import { useRequireAuth } from "../../../lib/use-require-auth";
 
 const PAGE_SIZE = 20;
 
@@ -29,6 +30,7 @@ export default function SellCategoryScreen(): JSX.Element {
   const t = useT();
   const insets = useSafeAreaInsets();
   const rtl = useRTL();
+  const requireAuth = useRequireAuth();
   const { key } = useLocalSearchParams<{ key: string }>();
   const [search, setSearch] = useState("");
 
@@ -183,6 +185,21 @@ export default function SellCategoryScreen(): JSX.Element {
           }
         />
       )}
+
+      {/* Floating "+" — jump straight into listing creation from anywhere in
+          the marketplace. Auth-gated like every account action: guests get
+          bounced to phone sign-in, browsing itself stays open. */}
+      <Pressable
+        onPress={() => requireAuth(() => router.push("/sell/create"))}
+        accessibilityLabel={t("sell.category.createListing")}
+        style={({ pressed }) => [
+          styles.fab,
+          { bottom: insets.bottom + 24 },
+          pressed && styles.fabPressed,
+        ]}
+      >
+        <Ionicons name="add" size={30} color="#fff" />
+      </Pressable>
     </View>
   );
 }
@@ -242,4 +259,20 @@ const styles = StyleSheet.create({
   cardMeta: { color: colors.text.secondary, fontSize: 11, marginTop: 2 },
   empty: { flex: 1, justifyContent: "center", alignItems: "center", gap: spacing.md },
   emptyText: { color: colors.text.secondary, fontSize: 16, textAlign: "center" },
+  fab: {
+    position: "absolute",
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.brand.trendyPink,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  fabPressed: { opacity: 0.85, transform: [{ scale: 0.94 }] },
 });

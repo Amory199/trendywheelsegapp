@@ -18,6 +18,19 @@ export default {
   // Intro reel
   skip: "Skip ▸",
 
+  // First-run onboarding carousel (3 slides, shown once after language pick)
+  intro: {
+    slide1Title: "Rent a golf cart in Egypt",
+    slide1Body: "Hourly and daily rentals across Egypt's compounds and resorts — book in minutes.",
+    slide2Title: "Buy or sell vehicles",
+    slide2Body: "Private listings and verified sellers — golf carts, buggies, UTVs and more.",
+    slide3Title: "Repairs in minutes",
+    slide3Body: "Certified mechanics come to you — wherever your ride is parked.",
+    next: "Next",
+    getStarted: "Get started",
+    skip: "Skip",
+  },
+
   // Hub card CTA
   start: "START →",
 

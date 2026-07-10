@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@trendywheels/ui-tokens";
 import { Stack, useLocalSearchParams } from "expo-router";
@@ -8,6 +9,7 @@ import {
   Alert,
   FlatList,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -35,6 +37,7 @@ interface Repair {
   assignedMechanicId?: string | null;
   assignedMechanic?: Mechanic | null;
   estimatedCost?: number | string | null;
+  etaAt?: string | null;
   user?: { id: string; name?: string; phone?: string };
 }
 
@@ -44,6 +47,10 @@ export default function AdminRepairDetail(): React.JSX.Element {
   const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [mechanicPickerOpen, setMechanicPickerOpen] = useState(false);
+  // ETA picker. iOS shows one inline datetime spinner; Android has no
+  // combined mode, so it steps date → time before committing.
+  const [etaStage, setEtaStage] = useState<"datetime" | "date" | "time" | null>(null);
+  const [etaDraft, setEtaDraft] = useState<Date>(new Date());
 
   const q = useQuery({
     queryKey: ["admin", "repair", id],
@@ -143,6 +150,90 @@ export default function AdminRepairDetail(): React.JSX.Element {
               </Pressable>
             </View>
 
+            <View style={styles.card}>
+              <Text style={styles.label}>{t("admin.repairEta")}</Text>
+              <View style={styles.etaRow}>
+                <Pressable
+                  style={[styles.picker, { flex: 1 }]}
+                  onPress={() => {
+                    setEtaDraft(
+                      repair.etaAt ? new Date(repair.etaAt) : new Date(Date.now() + 3600000),
+                    );
+                    setEtaStage(Platform.OS === "ios" ? "datetime" : "date");
+                  }}
+                >
+                  <Ionicons name="time-outline" size={16} color={colors.text.light} />
+                  <Text style={styles.pickerText}>
+                    {repair.etaAt
+                      ? new Date(repair.etaAt).toLocaleString()
+                      : t("admin.repairSetEta")}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
+                </Pressable>
+                {repair.etaAt ? (
+                  <Pressable
+                    style={styles.etaClearBtn}
+                    disabled={update.isPending}
+                    onPress={() => update.mutate({ etaAt: null })}
+                  >
+                    <Ionicons name="close" size={14} color={colors.text.secondary} />
+                    <Text style={styles.etaClearText}>{t("admin.repairClearEta")}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              {etaStage === "datetime" && (
+                <>
+                  <DateTimePicker
+                    value={etaDraft}
+                    mode="datetime"
+                    display="spinner"
+                    minimumDate={new Date()}
+                    onChange={(_, d) => {
+                      if (d) setEtaDraft(d);
+                    }}
+                  />
+                  <Pressable
+                    style={styles.etaDoneBtn}
+                    onPress={() => {
+                      setEtaStage(null);
+                      update.mutate({ etaAt: etaDraft.toISOString() });
+                    }}
+                  >
+                    <Text style={styles.etaDoneText}>{t("admin.repairEtaDone")}</Text>
+                  </Pressable>
+                </>
+              )}
+              {etaStage === "date" && (
+                <DateTimePicker
+                  value={etaDraft}
+                  mode="date"
+                  minimumDate={new Date()}
+                  onChange={(_, d) => {
+                    if (!d) {
+                      setEtaStage(null);
+                      return;
+                    }
+                    setEtaDraft(d);
+                    setEtaStage("time");
+                  }}
+                />
+              )}
+              {etaStage === "time" && (
+                <DateTimePicker
+                  value={etaDraft}
+                  mode="time"
+                  onChange={(_, d) => {
+                    setEtaStage(null);
+                    if (d) {
+                      const combined = new Date(etaDraft);
+                      combined.setHours(d.getHours(), d.getMinutes(), 0, 0);
+                      update.mutate({ etaAt: combined.toISOString() });
+                    }
+                  }}
+                />
+              )}
+            </View>
+
             <View style={styles.actionRow}>
               <Pressable
                 style={[styles.actionBtn, { backgroundColor: colors.brand.poolBlue }]}
@@ -235,6 +326,27 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   pickerText: { color: colors.text.light, fontSize: 14, flex: 1 },
+  etaRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  etaClearBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+  etaClearText: { color: colors.text.secondary, fontSize: 12, fontWeight: "700" },
+  etaDoneBtn: {
+    alignSelf: "flex-end",
+    backgroundColor: colors.brand.poolBlue,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  etaDoneText: { color: "#000", fontSize: 13, fontWeight: "800" },
   actionRow: { flexDirection: "row", gap: 10 },
   actionBtn: {
     flex: 1,

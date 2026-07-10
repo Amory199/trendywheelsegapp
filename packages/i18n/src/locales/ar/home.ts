@@ -21,6 +21,19 @@ const home: Stringify<typeof enNs> = {
   // Intro reel
   skip: "تخطّي ▸",
 
+  // First-run onboarding carousel (3 slides, shown once after language pick)
+  intro: {
+    slide1Title: "استأجر عربية جولف في مصر",
+    slide1Body: "إيجار بالساعة أو باليوم في الكمبوندات والقرى السياحية — احجز في دقائق.",
+    slide2Title: "اشترِ أو بِع مركبتك",
+    slide2Body: "إعلانات من المُلّاك وبائعون موثّقون — عربيات جولف وباجي وأكثر.",
+    slide3Title: "صيانة في دقائق",
+    slide3Body: "ميكانيكية معتمدون يصلون إليك أينما كانت مركبتك.",
+    next: "التالي",
+    getStarted: "ابدأ الآن",
+    skip: "تخطّي",
+  },
+
   // Hub card CTA
   start: "ابدأ →",
 

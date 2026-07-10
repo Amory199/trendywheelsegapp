@@ -51,8 +51,9 @@ export default function PickupDeliveryScreen(): JSX.Element {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["service", "transport"] });
+      void qc.invalidateQueries({ queryKey: ["service", "mine"] });
       Alert.alert(t("service.pickup.successTitle"), t("service.pickup.successBody"), [
-        { text: t("common.confirm"), onPress: () => router.back() },
+        { text: t("common.confirm"), onPress: () => router.replace("/service/my-requests") },
       ]);
     },
     onError: (err) =>

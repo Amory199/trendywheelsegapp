@@ -100,6 +100,19 @@ export default function ProfileScreen(): React.JSX.Element {
     queryFn: () => api.getTradeIns().catch(() => ({ data: [] })),
     enabled: !!user,
   });
+  const favoritesQ = useQuery({
+    queryKey: ["favorites"],
+    queryFn: () => api.getFavorites().catch(() => ({ data: [] })),
+    enabled: !!user,
+  });
+  const unreadQ = useQuery({
+    queryKey: ["unread-messages"],
+    queryFn: () => api.getUnreadMessageCount().catch(() => ({ count: 0 })),
+    enabled: !!user,
+    refetchInterval: 30000,
+  });
+  const savedCount = favoritesQ.data?.data?.length ?? 0;
+  const unreadCount = unreadQ.data?.count ?? 0;
 
   // Signed-out fallback.
   if (!user) {
@@ -233,9 +246,27 @@ export default function ProfileScreen(): React.JSX.Element {
           <ActivityCard
             icon="heart-outline"
             title={t("profile.activity.savedTitle")}
-            subtitle={t("profile.activity.savedSubtitle")}
+            subtitle={
+              savedCount > 0
+                ? `${savedCount} ${t("profile.activity.total")}`
+                : t("profile.activity.savedSubtitle")
+            }
             tone="pink"
             onPress={() => router.push("/profile/favorites")}
+          />
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.duration(437).delay(232)}>
+          <ActivityCard
+            icon="chatbubbles-outline"
+            title={t("profile.activity.messagesTitle")}
+            subtitle={
+              unreadCount > 0
+                ? `${unreadCount} ${t("profile.activity.unread")}`
+                : t("profile.activity.messagesSubtitle")
+            }
+            tone="blue"
+            onPress={() => router.push("/messages" as never)}
           />
         </Animated.View>
 

@@ -15,6 +15,7 @@ import { ReviewModal } from "../../components/ReviewModal";
 import { TWSkeletonCard } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
+import { openContextChat } from "../../lib/context-chat";
 import { useT } from "../../lib/locale";
 
 type TabKey = "pending" | "confirmed" | "completed" | "cancelled";
@@ -183,6 +184,33 @@ export default function MyBookingsScreen(): JSX.Element {
                   </View>
                 </View>
 
+                {/* Per-booking thread: lands in the shared chat ABOUT this
+                    booking (pinned context card), not the generic support DM. */}
+                <View style={styles.actionRow}>
+                  <Pressable
+                    style={styles.messageBtn}
+                    onPress={() =>
+                      void openContextChat(router, {
+                        contextType: "booking",
+                        contextId: item.id,
+                        contextTitle: `${item.vehicle?.name ?? t("rent.bookVehicle")} · ${item.id
+                          .slice(-8)
+                          .toUpperCase()}`,
+                      })
+                    }
+                  >
+                    <Ionicons name="chatbubble-outline" size={15} color={colors.text.light} />
+                    <Text style={styles.messageBtnText}>{t("rent.messageBtn")}</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.detailsBtn}
+                    onPress={() => router.push(`/rent/booking/${item.id}` as never)}
+                  >
+                    <Text style={styles.detailsBtnText}>{t("rent.detailsBtn")}</Text>
+                    <Ionicons name="chevron-forward" size={15} color={colors.accent.DEFAULT} />
+                  </Pressable>
+                </View>
+
                 {item.status === "confirmed" && (
                   <Pressable
                     style={styles.cancelBtn}
@@ -312,6 +340,30 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   rateBtnText: { color: "#F5B800", fontWeight: "600", fontSize: 14 },
+  actionRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs },
+  messageBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: colors.primary[700],
+    borderRadius: 10,
+    paddingVertical: spacing.sm,
+  },
+  messageBtnText: { color: colors.text.light, fontWeight: "700", fontSize: 13 },
+  detailsBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+    borderRadius: 10,
+    paddingVertical: spacing.sm,
+  },
+  detailsBtnText: { color: colors.accent.DEFAULT, fontWeight: "700", fontSize: 13 },
   empty: { flex: 1, justifyContent: "center", alignItems: "center", gap: spacing.md },
   emptyText: { color: colors.text.secondary, fontSize: 16 },
 });

@@ -390,6 +390,9 @@ model Booking {
   status        BookingStatus @default(confirmed)
   totalCost     Decimal       @map("total_cost") @db.Decimal(10, 2)
   paymentStatus PaymentStatus @default(pending) @map("payment_status")
+  // How the customer pays — "cash" (on pickup) today; "card" reserved for a
+  // future gateway. Persisted so staff know what to expect at handover.
+  paymentMethod String        @default("cash") @map("payment_method")
   notes         String?
   // Customer's Google Maps drop-off link for delivery. Null = store pickup.
   dropoffLocationUrl String?   @map("dropoff_location_url")
@@ -491,10 +494,18 @@ model Conversation {
   id            String   @id @default(uuid()) @db.Uuid
   lastMessageAt DateTime @default(now()) @map("last_message_at")
   createdAt     DateTime @default(now()) @map("created_at")
+  // Optional transaction context: a thread ABOUT a specific booking /
+  // reservation / repair / listing / order. contextTitle is a denormalized
+  // label snapshot ("Jeep Grand Cherokee · TW-829301") so the chat header
+  // renders without cross-table joins. All null = plain user/support thread.
+  contextType  String? @map("context_type")
+  contextId    String? @map("context_id") @db.Uuid
+  contextTitle String? @map("context_title")
 
   messages     Message[]
   participants ConversationParticipant[]
 
+  @@index([contextType, contextId])
   @@map("conversations")
 }
 
@@ -567,6 +578,9 @@ model RepairRequest {
   estimatedCost      Decimal?       @map("estimated_cost") @db.Decimal(10, 2)
   actualCost         Decimal?       @map("actual_cost") @db.Decimal(10, 2)
   preferredDate      DateTime?      @map("preferred_date")
+  // Staff-set expected completion time — the big "ETA 14:30" the customer
+  // sees on the repair timeline. Null until staff commit to a time.
+  etaAt              DateTime?      @map("eta_at")
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
 

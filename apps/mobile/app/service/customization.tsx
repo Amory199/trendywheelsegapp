@@ -55,8 +55,9 @@ export default function CustomizationScreen(): JSX.Element {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["service", "customization"] });
+      void qc.invalidateQueries({ queryKey: ["service", "mine"] });
       Alert.alert(t("service.customization.successTitle"), t("service.customization.successBody"), [
-        { text: t("common.confirm"), onPress: () => router.back() },
+        { text: t("common.confirm"), onPress: () => router.replace("/service/my-requests") },
       ]);
     },
     onError: (err) =>

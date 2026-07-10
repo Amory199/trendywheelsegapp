@@ -58,6 +58,13 @@ export default {
   // Success screen
   bookingConfirmed: "Booking Confirmed!",
   refPrefix: "Ref:",
+  comingSoon: "COMING SOON",
+  addToCalendar: "Add to calendar",
+  messageUs: "Message us",
+  showAtPickup: "Show this code when you pick up your ride",
+  messageBtn: "Message",
+  detailsBtn: "Details",
+  bookingNotFound: "We couldn't find this booking.",
   successMessagePrefix: "Present this reference at pickup. We sent a confirmation to",
   successMessageFallbackInbox: "your inbox",
   successMessageSuffix: ".",

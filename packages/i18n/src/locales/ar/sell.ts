@@ -45,6 +45,7 @@ const sell: Stringify<typeof enNs> = {
     searchPlaceholder: "ابحث بالعنوان أو الماركة أو الموديل…",
     noMatches: "لا توجد نتائج",
     emptyCategory: "لا توجد إعلانات في هذه الفئة بعد",
+    createListing: "أنشئ إعلانًا",
   },
 
   create: {

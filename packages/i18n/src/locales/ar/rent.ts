@@ -61,6 +61,13 @@ const rent: Stringify<typeof enNs> = {
   // Success screen
   bookingConfirmed: "تم تأكيد الحجز!",
   refPrefix: "الرقم المرجعي:",
+  comingSoon: "قريباً",
+  addToCalendar: "أضِف إلى التقويم",
+  messageUs: "راسلنا",
+  showAtPickup: "أظهر هذا الرمز عند استلام مركبتك",
+  messageBtn: "مراسلة",
+  detailsBtn: "التفاصيل",
+  bookingNotFound: "تعذّر العثور على هذا الحجز.",
   successMessagePrefix: "قدّم هذا الرقم المرجعي عند الاستلام. لقد أرسلنا تأكيداً إلى",
   successMessageFallbackInbox: "بريدك الإلكتروني",
   successMessageSuffix: ".",

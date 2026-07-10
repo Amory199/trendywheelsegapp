@@ -28,6 +28,7 @@ const profile: Stringify<typeof enNs> = {
     tradeInsTitle: "تبديلاتي",
     tradeInsEmpty: "بدّل عربة الجولف واحصل على واحدة جديدة",
     messagesTitle: "الرسائل",
+    messagesSubtitle: "تحدث مع فريقنا",
     messagesEmpty: "لا توجد رسائل جديدة",
     total: "إجمالاً",
     latest: "الأحدث",

@@ -4,6 +4,7 @@ import { colors, twEGP } from "@trendywheels/ui-tokens";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as React from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 
 import {
   FulfillmentPicker,
@@ -11,10 +12,12 @@ import {
   type FulfillmentValue,
 } from "../components/FulfillmentPicker";
 import { GuestGate } from "../components/GuestGate";
+import { TWSkiaConfetti } from "../components/skia/confetti";
 import { logEvent } from "../lib/analytics";
 import { api } from "../lib/api";
 import { reportClientError } from "../lib/error-reporter";
 import { useAuth } from "../lib/auth-store";
+import { openContextChat } from "../lib/context-chat";
 import { useHumanizeError } from "../lib/humanize-error";
 import { useT } from "../lib/locale";
 import { ensureId } from "../lib/require-id";
@@ -45,6 +48,9 @@ export default function CheckoutScreen(): React.JSX.Element {
     type: null,
     location: "",
   });
+  // Set after a successful reserve/buy — swaps the screen for the celebration
+  // (confetti + QR pass) instead of the old bare system Alert.
+  const [doneId, setDoneId] = React.useState<string | null>(null);
 
   // Every transaction needs the customer's ID on file first. If it's missing,
   // bounce to verify-id and come back to this exact checkout afterwards.
@@ -74,27 +80,11 @@ export default function CheckoutScreen(): React.JSX.Element {
         fulfillmentType: fulfillment.type,
       });
     },
-    onSuccess: () => {
-      // Navigate only AFTER the user dismisses the success alert. Firing
-      // router.replace alongside Alert.alert raced — the customer could be left
-      // stuck on the checkout screen. The OK button now owns the navigation.
-      const dest = kind === "buy" ? "/buy/my-orders" : "/sale/my-reservations";
-      Alert.alert(
-        t(kind === "buy" ? "buy.orderPlacedTitle" : "sale.reservedTitle"),
-        t(kind === "buy" ? "buy.orderPlacedNoId" : "sale.reservedBody"),
-        [
-          {
-            text: t("common.confirm"),
-            onPress: () => {
-              // Wipe the whole purchase flow (cart → detail → checkout) off the
-              // stack first, so swiping back from Orders lands on Home — not
-              // back inside the screens where they just placed the order.
-              if (router.canDismiss()) router.dismissAll();
-              router.push(dest);
-            },
-          },
-        ],
-      );
+    onSuccess: (res) => {
+      // Swap to the in-screen celebration (confetti + QR pass) — the old bare
+      // Alert undersold the biggest transaction in the app. Buttons on the
+      // celebration own the navigation, so no Alert/replace race either.
+      setDoneId((res as { data?: { id?: string } }).data?.id ?? "");
     },
     onError: (err) => {
       // Report money-path failures (even though they're handled with an alert)
@@ -126,6 +116,89 @@ export default function CheckoutScreen(): React.JSX.Element {
   };
 
   if (!user) return <GuestGate />;
+
+  if (doneId !== null) {
+    const shortCode = doneId ? `TW-${doneId.replace(/-/g, "").slice(0, 6).toUpperCase()}` : "";
+    const dest = kind === "buy" ? "/buy/my-orders" : "/sale/my-reservations";
+    return (
+      <View style={{ flex: 1, backgroundColor: palette.bg, justifyContent: "center", padding: 24 }}>
+        <TWSkiaConfetti count={80} />
+        <View
+          style={{
+            backgroundColor: palette.card,
+            borderRadius: 20,
+            padding: 24,
+            alignItems: "center",
+            gap: 14,
+            borderWidth: 1,
+            borderColor: palette.border,
+          }}
+        >
+          <Ionicons name="checkmark-circle" size={80} color={colors.success} />
+          <Text style={{ color: palette.text, fontSize: 24, fontWeight: "800" }}>
+            {t(kind === "buy" ? "buy.orderPlacedTitle" : "sale.reservedTitle")}
+          </Text>
+          {doneId ? (
+            <View style={{ backgroundColor: "#fff", padding: 14, borderRadius: 14 }}>
+              <QRCode value={doneId} size={140} backgroundColor="transparent" />
+            </View>
+          ) : null}
+          {shortCode ? (
+            <Text style={{ color: colors.accent.DEFAULT, fontSize: 15, fontWeight: "700" }}>
+              {shortCode}
+            </Text>
+          ) : null}
+          <Text style={{ color: palette.muted, textAlign: "center", lineHeight: 21 }}>
+            {t(kind === "buy" ? "buy.orderPlacedNoId" : "sale.reservedBody")}
+          </Text>
+          <Pressable
+            style={{
+              backgroundColor: colors.accent.DEFAULT,
+              borderRadius: 12,
+              height: 50,
+              width: "100%",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            onPress={() => {
+              // Wipe the purchase flow off the stack so back lands on Home.
+              if (router.canDismiss()) router.dismissAll();
+              router.push(dest as never);
+            }}
+          >
+            <Text style={{ color: "#000", fontWeight: "800" }}>
+              {t(kind === "buy" ? "buy.viewMyOrders" : "sale.viewMyReservations")}
+            </Text>
+          </Pressable>
+          {doneId && kind === "reserve" ? (
+            <Pressable
+              style={{
+                borderRadius: 12,
+                height: 50,
+                width: "100%",
+                justifyContent: "center",
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: palette.border,
+                flexDirection: "row",
+                gap: 6,
+              }}
+              onPress={() =>
+                void openContextChat(router, {
+                  contextType: "reservation",
+                  contextId: doneId,
+                  contextTitle: `${params.title ?? ""} · ${shortCode}`.trim(),
+                })
+              }
+            >
+              <Ionicons name="chatbubble-outline" size={16} color={palette.text} />
+              <Text style={{ color: palette.text, fontWeight: "700" }}>{t("rent.messageUs")}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <>

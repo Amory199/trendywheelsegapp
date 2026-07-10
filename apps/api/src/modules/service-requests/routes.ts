@@ -22,6 +22,59 @@ const STAFF = new Set(["admin", "staff"]);
 // route guard makes the rule explicit + refactor-proof (RBAC Phase 1).
 const staffOnly = authorize("admin", "staff");
 
+// ─── My requests (customer tracking) ────────────────────────────────────
+
+// Merged view of the caller's maintenance + customization + transport
+// requests so the app can show one "My service requests" list instead of
+// three fire-and-forget forms.
+router.get("/mine", authenticate, async (req, res) => {
+  const userId = req.user!.userId;
+  const [maintenance, customization, transport] = await Promise.all([
+    prisma.maintenanceRequest.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      select: { id: true, serviceType: true, notes: true, status: true, createdAt: true },
+    }),
+    prisma.customizationRequest.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      select: { id: true, kind: true, notes: true, status: true, createdAt: true },
+    }),
+    prisma.transportRequest.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      select: { id: true, fromAddress: true, toAddress: true, status: true, createdAt: true },
+    }),
+  ]);
+  const data = [
+    ...maintenance.map((m) => ({
+      id: m.id,
+      kind: "maintenance" as const,
+      status: m.status,
+      createdAt: m.createdAt,
+      summary: m.notes ? `${m.serviceType} — ${m.notes}` : m.serviceType,
+    })),
+    ...customization.map((c) => ({
+      id: c.id,
+      kind: "customization" as const,
+      status: c.status,
+      createdAt: c.createdAt,
+      summary: c.notes ? `${c.kind} — ${c.notes}` : c.kind,
+    })),
+    ...transport.map((t) => ({
+      id: t.id,
+      kind: "transport" as const,
+      status: t.status,
+      createdAt: t.createdAt,
+      summary: `${t.fromAddress} → ${t.toAddress}`,
+    })),
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  res.json({ data });
+});
+
 // ─── Maintenance ────────────────────────────────────────────────────────
 
 router.get("/maintenance", authenticate, async (req, res) => {

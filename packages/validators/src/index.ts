@@ -242,6 +242,9 @@ export const createBookingSchema = z
     loyaltyPointsRedeemed: z.number().int().min(0).optional(),
     dropoffLocationUrl: dropoffLocationUrlSchema,
     fulfillmentType: fulfillmentTypeSchema,
+    // Only cash is accepted until a card gateway ships — the app shows card
+    // as "coming soon" and must not be able to submit it early.
+    paymentMethod: z.enum(["cash"]).optional(),
   })
   .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
     message: "End date must be after start date",
@@ -332,6 +335,16 @@ export const sendMessageSchema = z.object({
   recipientId: z.string().uuid(),
   message: z.string().min(1).max(2000),
   attachments: z.array(z.string().url()).max(10).default([]),
+  // Post directly into a specific thread (context threads) instead of the
+  // recipient's default pair/support conversation. Sender must be a participant.
+  conversationId: z.string().uuid().optional(),
+});
+
+// Open (or resume) the shared thread ABOUT one transaction.
+export const contextThreadSchema = z.object({
+  contextType: z.enum(["booking", "reservation", "repair", "order", "listing"]),
+  contextId: z.string().uuid(),
+  contextTitle: z.string().max(120).optional(),
 });
 
 // ─── Repair Requests ─────────────────────────────────────────
@@ -354,6 +367,7 @@ export const updateRepairRequestSchema = z.object({
   assignedMechanicId: z.string().uuid().optional(),
   estimatedCost: z.number().positive().optional(),
   actualCost: z.number().positive().optional(),
+  etaAt: z.string().datetime().nullable().optional(),
 });
 
 // ─── Sales Listings ──────────────────────────────────────────
