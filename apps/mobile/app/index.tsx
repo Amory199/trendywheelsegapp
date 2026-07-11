@@ -48,7 +48,9 @@ export default function Index(): JSX.Element {
     return <Redirect href="/(auth)/onboarding" />;
   }
 
-  // Role-aware cold-start routing. Admin → admin console. ANY staff member
+  // Role-aware cold-start routing. hydrate() already restored the ADMIN
+  // session if the app cold-started mid-"acting as", so routing by accountType
+  // here is correct. Admin → admin console. ANY staff member
   // (regardless of staffRole) → the unified staff hub (pipeline + inventory +
   // repairs + tickets). A staff person does all of these jobs.
   if (user.accountType === "admin") return <Redirect href="/admin/dashboard" />;

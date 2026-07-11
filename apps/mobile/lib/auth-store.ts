@@ -1,3 +1,4 @@
+import { ApiClientError } from "@trendywheels/api-client";
 import type { AccountType, User } from "@trendywheels/types";
 import { router } from "expo-router";
 import { create } from "zustand";
@@ -28,6 +29,52 @@ export interface ActingAs {
   staffRole?: string | null;
 }
 
+// Cold-path admin restore: mint a fresh admin session from a persisted refresh
+// token (after a restart wiped savedAdminToken). Used by exitActing AND by
+// hydrate, which restores the ADMIN at boot instead of booting into the
+// previewed role's interface. Outcomes:
+//   • "restored" — a candidate minted a session; new tokens are stored.
+//   • "dead"     — the server ACTIVELY rejected every candidate (400/401/403)
+//                  — the admin session is genuinely gone.
+//   • "network"  — some attempt died at the network layer (timeout /
+//                  statusCode 0 / fetch failure) with no success. Anything we
+//                  can't classify — including 429 rate-limits and 5xx — lands
+//                  here too: never destroy a session on an ambiguous error
+//                  (INC-032). No candidates at all is also non-destructive:
+//                  a live access token keeps working until it expires.
+// `abortIfStale` is checked after the refresh resolves but BEFORE tokens are
+// persisted — if another session was established while we waited (fresh login
+// past the 6s boot release), we must not clobber its tokens.
+const REFRESH_REJECTED_CODES = [400, 401, 403];
+async function restoreAdminFromRefresh(
+  abortIfStale?: () => boolean,
+): Promise<"restored" | "dead" | "network"> {
+  // De-duped candidates: the stash first (definitely the admin's), then the
+  // current stored refresh (in case the stash was rotated mid-session).
+  const stashed = await getStashedAdminRefresh();
+  const stored = await getRefreshToken();
+  const candidates = [stashed, stored].filter((v, i, a): v is string => !!v && a.indexOf(v) === i);
+  if (candidates.length === 0) return "network";
+
+  let sawNetworkError = false;
+  for (const refresh of candidates) {
+    try {
+      const tokens = await api.refreshToken(refresh);
+      if (abortIfStale?.()) return "network";
+      await setTokens(tokens.token, tokens.refreshToken);
+      return "restored";
+    } catch (err) {
+      // Only a definite auth rejection on the pre-auth refresh endpoint marks
+      // this candidate dead. TIMEOUT / statusCode 0 / a raw fetch failure — or
+      // a 429 / 5xx / unknown error — counts as network trouble.
+      const rejected =
+        err instanceof ApiClientError && REFRESH_REJECTED_CODES.includes(err.statusCode ?? 0);
+      if (!rejected) sawNetworkError = true;
+    }
+  }
+  return sawNetworkError ? "network" : "dead";
+}
+
 interface AuthState {
   user: User | null;
   initialized: boolean;
@@ -49,6 +96,10 @@ export const useAuth = create<AuthState>((set, get) => ({
   actingAs: null,
 
   async hydrate() {
+    // Only the cold-boot hydrate may auto-restore the admin out of "acting as".
+    // Mid-session callers (profile/settings saves re-hydrate to refresh the
+    // user) must keep the preview exactly as it is.
+    const isBoot = !get().initialized;
     const token = await getAccessToken();
     if (!token) {
       set({ initialized: true });
@@ -70,6 +121,57 @@ export const useAuth = create<AuthState>((set, get) => ({
       // throws WITHOUT clearing, so a flaky boot keeps the session for the next
       // launch instead of silently logging the user out.
       const res = await api.request<{ data: User }>("GET", "/api/users/me");
+      if (res.data.actingAsAdminId && isBoot) {
+        // Cold start mid-"acting as": restore the REAL admin session before
+        // routing, so the admin never boots into the previewed interface.
+        // The releaseBoot cap may have already let the user in — and even log
+        // in fresh as a DIFFERENT account — while we wait on the network.
+        // (/me while acting reports the admin's own id, so a different id can
+        // only mean a new login.) Never touch that session.
+        const stale = (): boolean => {
+          const current = get().user;
+          return !!current && current.id !== res.data.id;
+        };
+        try {
+          const outcome = await restoreAdminFromRefresh(stale);
+          if (outcome === "restored") {
+            try {
+              // Now holding an admin token — re-fetch /me for the admin identity.
+              const adminRes = await api.request<{ data: User }>("GET", "/api/users/me");
+              savedAdminToken = null;
+              savedAdminUser = null;
+              await clearStashedAdminRefresh();
+              if (stale()) return;
+              set({ user: adminRes.data, actingAs: null, initialized: true });
+              return;
+            } catch {
+              // Admin tokens are already on disk but we couldn't confirm the
+              // identity. Roll the ACCESS token back to the acting one (the
+              // stored refresh stays the admin's, exactly as during a normal
+              // preview) so the acting UI below never runs on an admin token.
+              await setTokens(token);
+            }
+          }
+          if (outcome === "dead" && !get().user) {
+            // The admin session is genuinely gone, and the acting session is
+            // synthetic — worthless without it. Tear down locally exactly like
+            // logout() does (no server call — INC-060) and boot to the guest
+            // catalog. No alert at boot.
+            await clearTokens();
+            savedAdminToken = null;
+            savedAdminUser = null;
+            await clearStashedAdminRefresh();
+            set({ user: null, actingAs: null, initialized: true });
+            return;
+          }
+        } catch {
+          // Unexpected failure — treat like a network miss and fall through
+          // rather than crashing boot.
+        }
+        // "network": can't reach the server to restore right now. Fall through
+        // to the acting state below — the banner shows and Exit retries online.
+        if (stale()) return;
+      }
       set({
         user: res.data,
         initialized: true,
@@ -144,9 +246,10 @@ export const useAuth = create<AuthState>((set, get) => ({
   // failure leaves the banner in place to retry instead of stranding the admin
   // in the previewed interface with no exit button (the reported bug).
   //   • Warm path (no restart): in-memory admin token → instant, no network.
-  //   • Cold path (after restart, memory gone): try the stashed admin refresh
-  //     token, then the stored refresh token — whichever mints an admin session.
-  // Throws if it cannot restore, so the caller can fall back (never stuck).
+  //   • Cold path (after restart, memory gone): restoreAdminFromRefresh() mints
+  //     an admin session from the stashed / stored refresh token.
+  // Throws if it cannot restore ("dead" or "network" alike), so the caller can
+  // fall back (never stuck).
   async exitActing() {
     let restored = false;
 
@@ -154,23 +257,7 @@ export const useAuth = create<AuthState>((set, get) => ({
       await setTokens(savedAdminToken);
       restored = true;
     } else {
-      // De-duped candidates: the stash first (definitely the admin's), then the
-      // current stored refresh (in case the stash was rotated mid-session).
-      const stashed = await getStashedAdminRefresh();
-      const stored = await getRefreshToken();
-      const candidates = [stashed, stored].filter(
-        (v, i, a): v is string => !!v && a.indexOf(v) === i,
-      );
-      for (const refresh of candidates) {
-        try {
-          const tokens = await api.refreshToken(refresh);
-          await setTokens(tokens.token, tokens.refreshToken);
-          restored = true;
-          break;
-        } catch {
-          // try the next candidate
-        }
-      }
+      restored = (await restoreAdminFromRefresh()) === "restored";
     }
 
     if (!restored) {
