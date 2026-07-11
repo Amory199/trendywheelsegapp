@@ -1646,3 +1646,27 @@ A "remember to restart after building" rule WILL be forgotten — encode it. Shi
 **Fix:** `ticketListQuerySchema` in validators (status kebab+snake accepted, priority, userId, assignedAgentId) wired into the route; CRM queue got a Closed tab + a per-row status chip showing the ticket's OWN status; queue refactored into a shared `TicketQueue` component rendered at BOTH `/crm/tickets` (staff hub) and new `/admin/tickets` (admin navigator, own detail screen); dashboard KPI now routes to `/admin/tickets`. Smoke 12n-2 asserts the filter includes/excludes correctly.
 
 **Watch:** every `validate({ query: paginationSchema })` route whose controller reads extra query keys — the middleware strips them. Grep for `req.query as Record` in controllers whose route validates a narrower schema.
+
+## INC-063 — Cold start mid-"acting as" booted into the previewed role; Exit could strand the admin (2026-07-10)
+
+**Symptom:** Admin taps "view as customer/staff", kills the app, reopens — the app boots into the
+previewed interface. Historically Exit then failed ("Couldn't return to admin") → forced relogin.
+
+**Root cause:** `hydrate()` faithfully re-derived `actingAs` from `/me`'s `actingAsAdminId` and
+`index.tsx` routed by the assumed `accountType`. Nothing restored the admin at boot (INC-053 era
+called this "by design"). The exit-failure half was already fixed by INC-052/INC-060 (the admin
+refresh token now survives the preview); the boot-into-viewed-role half remained.
+
+**Fix (`apps/mobile/lib/auth-store.ts`, commit `38adbf5`):** boot-only auto-restore. New
+`restoreAdminFromRefresh()` (shared with `exitActing`'s cold path) refreshes with the stashed /
+stored admin refresh token; on success hydrate re-fetches `/me` and boots straight to admin,
+`actingAs: null`. Classification is deliberately conservative: only 400/401/403 on the refresh
+endpoint counts as a dead session (→ silent local teardown to guest); 429/5xx/timeouts/no-candidates
+are "network" → boot into the previewed role with the banner as before (INC-032: never destroy a
+session on an ambiguous error). Guards: `isBoot = !initialized` (mid-session hydrates from profile
+saves must NOT eject the preview), a `stale()` identity check so a fresh login completing during the
+6s boot release (INC-045) is never clobbered, and a token rollback if the post-restore `/me` blips
+(admin tokens must never sit under a previewed UI).
+
+**Watch-item class:** any future `hydrate()` caller runs the boot-only gate — if a new flow needs a
+restore-on-demand, call `exitActing()`, don't widen the hydrate branch.
