@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 
+import { ErrorState } from "../../../components/ErrorState";
 import { GuestGate } from "../../../components/GuestGate";
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-store";
@@ -81,7 +82,11 @@ export default function OrderDetail(): React.JSX.Element {
           headerTintColor: "#fff",
         }}
       />
-      {q.isLoading || !q.data ? (
+      {q.isError ? (
+        // Without this branch a failed/offline fetch settled to
+        // isLoading:false + data:undefined and the spinner span forever.
+        <ErrorState onRetry={() => void q.refetch()} />
+      ) : q.isLoading || !q.data ? (
         <View style={[styles.root, { justifyContent: "center", alignItems: "center" }]}>
           <ActivityIndicator color={colors.brand.trendyPink} />
         </View>

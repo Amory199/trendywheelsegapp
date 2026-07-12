@@ -422,10 +422,12 @@ export function TWAurora({
   // Login drops the field lower so it sits behind the centered form.
   const yb = variant === "login" ? 0.18 : 0;
 
-  // Big soft radius + low alpha = a gentle wash, not a hard dot.
+  // Big soft radius + low alpha = a gentle wash, not a hard dot. Cool tones
+  // only (blue / cyan / faint lemon) — the old pink bloom made pink price text
+  // and the pink fuel badge unreadable wherever they overlapped it.
   const cBlue = isDark ? "rgba(43,15,248,0.42)" : "rgba(43,15,248,0.11)";
   const cCyan = isDark ? "rgba(0,199,234,0.30)" : "rgba(0,199,234,0.07)";
-  const cPink = isDark ? "rgba(255,0,101,0.18)" : "rgba(255,0,101,0.08)";
+  const cLime = isDark ? "rgba(169,244,83,0.20)" : "rgba(169,244,83,0.06)";
 
   return (
     <View pointerEvents="none" style={[box, { overflow: "hidden" }, style]}>
@@ -439,14 +441,14 @@ export function TWAurora({
             <Stop offset="0" stopColor={cCyan} stopOpacity="1" />
             <Stop offset="1" stopColor={cCyan} stopOpacity="0" />
           </SvgRadialGradient>
-          <SvgRadialGradient id={`ap${uid}`} cx="0.72" cy="0.85" r="0.7">
-            <Stop offset="0" stopColor={cPink} stopOpacity="1" />
-            <Stop offset="1" stopColor={cPink} stopOpacity="0" />
+          <SvgRadialGradient id={`al${uid}`} cx="0.18" cy="0.92" r="0.65">
+            <Stop offset="0" stopColor={cLime} stopOpacity="1" />
+            <Stop offset="1" stopColor={cLime} stopOpacity="0" />
           </SvgRadialGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill={`url(#ab${uid})`} />
         <Rect x="0" y="0" width="100%" height="100%" fill={`url(#ac${uid})`} />
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#ap${uid})`} />
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#al${uid})`} />
       </Svg>
     </View>
   );

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { colors } from "@trendywheels/ui-tokens";
+import { categoryColorOf, colors } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -142,54 +142,59 @@ export default function AdminVehicles(): React.JSX.Element {
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <Pressable
-              style={styles.card}
-              onPress={() => router.push(`/admin/vehicles/${item.id}`)}
-            >
-              <View style={styles.thumb}>
-                {item.images?.[0] ? (
-                  <Text>{/* image placeholder */}</Text>
-                ) : (
-                  <Ionicons name="car" size={28} color={colors.brand.poolBlue} />
-                )}
-              </View>
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={styles.name} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={styles.meta} numberOfLines={1}>
-                  {categoryLabel(item.category)} · {item.type ?? t("admin.dash")} ·{" "}
-                  {item.listingType === "sale" ? (
-                    // Sale-only cart: show the sale price, never the (null/placeholder) rent rate.
-                    <>
-                      {t("admin.egp")} {Number(item.salePrice ?? 0).toLocaleString()}
-                    </>
+          renderItem={({ item }) => {
+            // Brand category outline — duo categories fall back to their
+            // first color here (gradient rings stay on customer surfaces).
+            const outline = categoryColorOf(item.category);
+            return (
+              <Pressable
+                style={[styles.card, outline ? { borderWidth: 2, borderColor: outline[0] } : null]}
+                onPress={() => router.push(`/admin/vehicles/${item.id}`)}
+              >
+                <View style={styles.thumb}>
+                  {item.images?.[0] ? (
+                    <Text>{/* image placeholder */}</Text>
                   ) : (
-                    <>
-                      {t("admin.egp")} {Number(item.dailyRate ?? 0).toLocaleString()}
-                      {t("admin.perDay")}
-                    </>
+                    <Ionicons name="car" size={28} color={colors.brand.poolBlue} />
                   )}
-                </Text>
-                <View style={styles.statusRow}>
-                  <View
-                    style={[
-                      styles.statusDot,
-                      {
-                        backgroundColor:
-                          item.status === "available"
-                            ? (colors.brand.ecoLimelight ?? "#A9F453")
-                            : "#F5B800",
-                      },
-                    ]}
-                  />
-                  <Text style={styles.statusText}>{statusLabel(item.status)}</Text>
                 </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
-            </Pressable>
-          )}
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.meta} numberOfLines={1}>
+                    {categoryLabel(item.category)} · {item.type ?? t("admin.dash")} ·{" "}
+                    {item.listingType === "sale" ? (
+                      // Sale-only cart: show the sale price, never the (null/placeholder) rent rate.
+                      <>
+                        {t("admin.egp")} {Number(item.salePrice ?? 0).toLocaleString()}
+                      </>
+                    ) : (
+                      <>
+                        {t("admin.egp")} {Number(item.dailyRate ?? 0).toLocaleString()}
+                        {t("admin.perDay")}
+                      </>
+                    )}
+                  </Text>
+                  <View style={styles.statusRow}>
+                    <View
+                      style={[
+                        styles.statusDot,
+                        {
+                          backgroundColor:
+                            item.status === "available"
+                              ? (colors.brand.ecoLimelight ?? "#A9F453")
+                              : "#F5B800",
+                        },
+                      ]}
+                    />
+                    <Text style={styles.statusText}>{statusLabel(item.status)}</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
+              </Pressable>
+            );
+          }}
         />
       )}
     </View>

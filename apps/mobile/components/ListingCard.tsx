@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@trendywheels/ui-tokens";
+import { categoryColorOf, colors } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -7,6 +7,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../lib/use-theme";
 import { useDisplay, useTracking } from "../lib/typography";
 
+import { CategoryOutline } from "./CategoryOutline";
+import { FuelBadge } from "./FuelBadge";
 import { PriceGate } from "./PriceGate";
 
 // On-card chrome that always sits over a fixed surface (white rating pill,
@@ -35,6 +37,14 @@ export interface ListingCardProps {
   width?: number;
   /** Image aspect = width * this. Defaults 0.78 (slightly landscape). */
   imageRatio?: number;
+  /**
+   * Vehicle category (golf-cart / scooter / …) → brand-colored 2px outline on
+   * the image block (duo categories get the gradient ring). Unknown / absent
+   * keys render the plain card unchanged.
+   */
+  categoryKey?: string | null;
+  /** Pink fuel pill over the image for gasoline / hybrid; electric stays clean. */
+  fuelType?: string | null;
 }
 
 /**
@@ -56,53 +66,74 @@ function ListingCardImpl({
   overlayLabel,
   width = 156,
   imageRatio = 0.78,
+  categoryKey,
+  fuelType,
 }: ListingCardProps): JSX.Element {
   const display = useDisplay();
   const track = useTracking();
   const { palette } = useTheme();
   const imgH = Math.round(width * imageRatio);
   const ratingNum = Number(rating) || 0;
+  const outline = categoryColorOf(categoryKey);
+  // Everything drawn over the image, shared by both wrappers below. The inner
+  // View carries the placeholder background so the outlined variants (whose
+  // wrapper is the border/gradient) still show it while the image loads.
+  const imageBlock = (
+    <View style={styles.imageInner}>
+      {image ? (
+        <Image
+          source={image}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          transition={250}
+          cachePolicy="memory-disk"
+          recyclingKey={image}
+        />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, styles.imagePlaceholder]}>
+          <Ionicons name="car-sport" size={28} color="rgba(2,1,31,0.18)" />
+        </View>
+      )}
+
+      {badge ? (
+        <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+          <Text style={[styles.badgeText, { letterSpacing: track(0.4) }]}>{badge}</Text>
+        </View>
+      ) : null}
+
+      {ratingNum > 0 ? (
+        <View style={styles.ratingPill}>
+          <Ionicons name="star" size={11} color="#FFB400" />
+          <Text style={styles.ratingText}>{ratingNum.toFixed(1)}</Text>
+        </View>
+      ) : null}
+
+      {/* Bottom-right — diagonally opposite the top-left badge, clear of the
+          top-right rating pill. */}
+      <FuelBadge fuelType={fuelType} style={styles.fuelBadge} />
+
+      {overlayLabel ? (
+        <View style={styles.overlay}>
+          <Text style={[styles.overlayText, { letterSpacing: track(1.5) }]}>{overlayLabel}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
   return (
     <Pressable
       onPress={onPress}
       android_ripple={{ color: "rgba(43,15,248,0.10)", borderless: false }}
       style={({ pressed }) => [{ width }, pressed && { transform: [{ scale: 0.97 }] }]}
     >
-      <View style={[styles.imageWrap, { width, height: imgH }]}>
-        {image ? (
-          <Image
-            source={image}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            transition={250}
-            cachePolicy="memory-disk"
-            recyclingKey={image}
-          />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, styles.imagePlaceholder]}>
-            <Ionicons name="car-sport" size={28} color="rgba(2,1,31,0.18)" />
-          </View>
-        )}
-
-        {badge ? (
-          <View style={[styles.badge, { backgroundColor: badgeColor }]}>
-            <Text style={[styles.badgeText, { letterSpacing: track(0.4) }]}>{badge}</Text>
-          </View>
-        ) : null}
-
-        {ratingNum > 0 ? (
-          <View style={styles.ratingPill}>
-            <Ionicons name="star" size={11} color="#FFB400" />
-            <Text style={styles.ratingText}>{ratingNum.toFixed(1)}</Text>
-          </View>
-        ) : null}
-
-        {overlayLabel ? (
-          <View style={styles.overlay}>
-            <Text style={[styles.overlayText, { letterSpacing: track(1.5) }]}>{overlayLabel}</Text>
-          </View>
-        ) : null}
-      </View>
+      {outline ? (
+        // CategoryOutline occupies the exact same box as the plain wrapper
+        // (border-box / padding swap), so outlined cards never resize.
+        <CategoryOutline colors={outline} radius={16} style={{ width, height: imgH }}>
+          {imageBlock}
+        </CategoryOutline>
+      ) : (
+        <View style={[styles.imageWrap, { width, height: imgH }]}>{imageBlock}</View>
+      )}
 
       <Text numberOfLines={1} style={[styles.title, { color: palette.text }]}>
         {title}
@@ -144,9 +175,10 @@ const styles = StyleSheet.create({
   imageWrap: {
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#EAEAF0",
   },
+  imageInner: { flex: 1, backgroundColor: "#EAEAF0" },
   imagePlaceholder: { alignItems: "center", justifyContent: "center" },
+  fuelBadge: { position: "absolute", bottom: 8, right: 8 },
   badge: {
     position: "absolute",
     top: 8,

@@ -19,6 +19,7 @@ import {
 import QRCode from "react-native-qrcode-svg";
 
 import { BackButton } from "../../../components/BackButton";
+import { ErrorState } from "../../../components/ErrorState";
 import { GuestGate } from "../../../components/GuestGate";
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-store";
@@ -66,6 +67,10 @@ export default function BookingDetail(): JSX.Element {
         <BackButton fallback="/rent/my-bookings" />
         {q.isLoading ? (
           <ActivityIndicator color={colors.accent.DEFAULT} style={{ marginTop: 60 }} />
+        ) : q.isError ? (
+          // Distinct from "not found": a failed/offline fetch must offer a
+          // retry, not falsely claim the booking doesn't exist.
+          <ErrorState onRetry={() => void q.refetch()} />
         ) : !booking ? (
           <Text style={styles.missing}>{t("rent.bookingNotFound")}</Text>
         ) : (

@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { isRTL } from "@trendywheels/i18n";
 import type { Vehicle } from "@trendywheels/types";
-import { colors } from "@trendywheels/ui-tokens";
+import { categoryColorOf, colors } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -29,6 +29,8 @@ interface ContinueItem {
   priceLabel: string;
   image?: string;
   route: string;
+  /** Brand category outline color (favorite branch only — orders have none). */
+  outlineColor?: string | null;
 }
 
 // Minimal shapes we read off the loosely-typed (`unknown[]`) order payload.
@@ -96,6 +98,9 @@ export function ContinueCard(): JSX.Element | null {
         style={({ pressed }) => [
           styles.card,
           { backgroundColor: palette.card, borderWidth: 1, borderColor: palette.hairline },
+          // Favorite vehicles carry their brand category outline (duo
+          // categories use the first color on this secondary surface).
+          item.outlineColor ? { borderWidth: 2, borderColor: item.outlineColor } : null,
           pressed && { transform: [{ scale: 0.98 }] },
         ]}
       >
@@ -182,6 +187,7 @@ export function ContinueCard(): JSX.Element | null {
         priceLabel,
         image: vehicleImageUrl(vehicle.images?.[0]),
         route: saleOnly ? `/sale/${vehicle.id}` : `/rent/${vehicle.id}`,
+        outlineColor: categoryColorOf(vehicle.category)?.[0] ?? null,
       };
     }
 

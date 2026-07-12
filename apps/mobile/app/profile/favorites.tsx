@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { colors, spacing, twEGP, typography } from "@trendywheels/ui-tokens";
+import { categoryColorOf, colors, spacing, twEGP, typography } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -53,6 +53,7 @@ export default function FavoritesScreen(): JSX.Element {
   const query = useQuery({
     queryKey: ["favorites"],
     queryFn: async () => (await api.getFavorites()) as unknown as { data: FavoriteRow[] },
+    enabled: !!user,
   });
 
   const removeMutation = useMutation({
@@ -120,70 +121,78 @@ export default function FavoritesScreen(): JSX.Element {
               tintColor={colors.text.light}
             />
           }
-          renderItem={({ item, index }) => (
-            <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
-              <Pressable
-                style={styles.card}
-                onPress={() =>
-                  router.push(
-                    item.vehicle.listingType === "sale"
-                      ? `/sale/${item.vehicleId}`
-                      : `/rent/${item.vehicleId}`,
-                  )
-                }
-              >
-                <Image
-                  source={{ uri: thumbOf(item.vehicle) }}
-                  style={styles.thumb}
-                  contentFit="cover"
-                  transition={200}
-                />
-                <View style={styles.info}>
-                  <Text style={styles.name} numberOfLines={1}>
-                    {item.vehicle.name}
-                  </Text>
-                  <Text style={styles.price}>
-                    {item.vehicle.listingType === "sale" && item.vehicle.salePrice != null
-                      ? twEGP(Number(item.vehicle.salePrice))
-                      : `${twEGP(Number(item.vehicle.dailyRate))} ${t("profile.favorites.perDay")}`}
-                  </Text>
-                  <View style={styles.metaRow}>
-                    {item.vehicle.reviewCount > 0 && (
-                      <View style={styles.ratingWrap}>
-                        <Ionicons name="star" size={12} color="#F5B800" />
-                        <Text style={styles.ratingText}>
-                          {Number(item.vehicle.averageRating).toFixed(1)} (
-                          {item.vehicle.reviewCount})
-                        </Text>
-                      </View>
-                    )}
-                    <View
-                      style={[
-                        styles.statusChip,
-                        item.vehicle.status === "available" && styles.statusChipAvailable,
-                      ]}
-                    >
-                      <Text
+          renderItem={({ item, index }) => {
+            // Brand category outline — duo categories fall back to their first
+            // color here (gradient rings stay on the primary card surfaces).
+            const outline = categoryColorOf(item.vehicle.category);
+            return (
+              <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
+                <Pressable
+                  style={[
+                    styles.card,
+                    outline ? { borderWidth: 2, borderColor: outline[0] } : null,
+                  ]}
+                  onPress={() =>
+                    router.push(
+                      item.vehicle.listingType === "sale"
+                        ? `/sale/${item.vehicleId}`
+                        : `/rent/${item.vehicleId}`,
+                    )
+                  }
+                >
+                  <Image
+                    source={{ uri: thumbOf(item.vehicle) }}
+                    style={styles.thumb}
+                    contentFit="cover"
+                    transition={200}
+                  />
+                  <View style={styles.info}>
+                    <Text style={styles.name} numberOfLines={1}>
+                      {item.vehicle.name}
+                    </Text>
+                    <Text style={styles.price}>
+                      {item.vehicle.listingType === "sale" && item.vehicle.salePrice != null
+                        ? twEGP(Number(item.vehicle.salePrice))
+                        : `${twEGP(Number(item.vehicle.dailyRate))} ${t("profile.favorites.perDay")}`}
+                    </Text>
+                    <View style={styles.metaRow}>
+                      {item.vehicle.reviewCount > 0 && (
+                        <View style={styles.ratingWrap}>
+                          <Ionicons name="star" size={12} color="#F5B800" />
+                          <Text style={styles.ratingText}>
+                            {Number(item.vehicle.averageRating).toFixed(1)} (
+                            {item.vehicle.reviewCount})
+                          </Text>
+                        </View>
+                      )}
+                      <View
                         style={[
-                          styles.statusText,
-                          item.vehicle.status === "available" && styles.statusTextAvailable,
+                          styles.statusChip,
+                          item.vehicle.status === "available" && styles.statusChipAvailable,
                         ]}
                       >
-                        {item.vehicle.status}
-                      </Text>
+                        <Text
+                          style={[
+                            styles.statusText,
+                            item.vehicle.status === "available" && styles.statusTextAvailable,
+                          ]}
+                        >
+                          {item.vehicle.status}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-                <Pressable
-                  hitSlop={8}
-                  style={styles.heartBtn}
-                  onPress={() => onRemove(item.vehicleId)}
-                >
-                  <Ionicons name="heart" size={20} color={colors.brand.trendyPink} />
+                  <Pressable
+                    hitSlop={8}
+                    style={styles.heartBtn}
+                    onPress={() => onRemove(item.vehicleId)}
+                  >
+                    <Ionicons name="heart" size={20} color={colors.brand.trendyPink} />
+                  </Pressable>
                 </Pressable>
-              </Pressable>
-            </Animated.View>
-          )}
+              </Animated.View>
+            );
+          }}
         />
       )}
     </View>

@@ -9,6 +9,7 @@ import { ActivityIndicator, Dimensions, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { ErrorState } from "../../components/ErrorState";
+import { FuelBadge } from "../../components/FuelBadge";
 import { ImageCarousel } from "../../components/ImageCarousel";
 import { LockedDetails } from "../../components/LockedDetails";
 import { PriceGate } from "../../components/PriceGate";
@@ -226,9 +227,11 @@ export default function SaleDetailScreen(): React.JSX.Element {
           }}
         >
           <Animated.View entering={FadeInDown.delay(80).duration(420)}>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <TWBadge tone="pink">{t("sale.forSale")}</TWBadge>
               {hasDiscount ? <TWBadge tone="lime">{`-${discountPct}%`}</TWBadge> : null}
+              {/* Pink fuel pill — combustion vehicles only, electric stays clean. */}
+              <FuelBadge fuelType={vehicle.fuelType} />
             </View>
             <Text
               style={[

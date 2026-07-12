@@ -16,6 +16,12 @@ const buy: Stringify<typeof enNs> = {
   emptyCatalog: "لا يوجد شيء هنا بعد.",
   outOfStock: "غير متوفر",
 
+  // Category page — app/buy/category/[key].tsx
+  allCategories: "كل الفئات",
+  searchPlaceholder: "ابحث بالاسم أو الماركة…",
+  noMatches: "لا توجد نتائج",
+  noProductsInCategory: "لا يوجد شيء للبيع في هذه الفئة بعد",
+
   // Product detail — app/buy/[id].tsx
   categoryCartNew: "عربة جولف جديدة",
   categoryCartUsed: "عربة جولف مستعملة",

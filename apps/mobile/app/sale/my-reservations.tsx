@@ -48,6 +48,7 @@ export default function MyReservations(): React.JSX.Element {
   const q = useQuery({
     queryKey: ["my-reservations"],
     queryFn: () => api.getReservations().catch(() => ({ data: [] as Reservation[] })),
+    enabled: !!user,
   });
   const reservations = (q.data?.data ?? []) as Reservation[];
 

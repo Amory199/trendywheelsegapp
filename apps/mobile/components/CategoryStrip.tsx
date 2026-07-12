@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { type VehicleCategory } from "@trendywheels/types";
-import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
+import { categoryColorOf, colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { memo } from "react";
@@ -13,6 +13,7 @@ import { useTheme } from "../lib/use-theme";
 import { useVisibleCategories } from "../lib/use-visible-categories";
 
 import { CATEGORY_ICONS } from "./CategoryCircles";
+import { CategoryOutline } from "./CategoryOutline";
 
 // Maps the VehicleCategory enum (English labels live in @trendywheels/types) to
 // our localized home.categories.* keys, resolved at render so the strip reads
@@ -162,12 +163,9 @@ function CategoryBlock({
     colors.brand.friendlyBlue,
   ];
   const image = CATEGORY_IMAGES[categoryKey];
-  return (
-    <Pressable
-      onPress={onPress}
-      android_ripple={{ color: "rgba(43,15,248,0.18)", borderless: false }}
-      style={[styles.block, active && styles.blockActive]}
-    >
+  const outline = categoryColorOf(categoryKey);
+  const content = (
+    <>
       {image ? (
         // Real photo tile: image fills the block, dark veil keeps the label legible.
         <Image source={image} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
@@ -197,6 +195,34 @@ function CategoryBlock({
         pointerEvents="none"
       />
       <BlockLabel label={label} active={active} />
+    </>
+  );
+  if (!active && outline?.length === 2) {
+    // Duo categories get a two-stop gradient outline; the pink active border
+    // below always wins over the category color.
+    return (
+      <CategoryOutline colors={outline} radius={18} style={styles.blockDuo}>
+        <Pressable
+          onPress={onPress}
+          android_ripple={{ color: "rgba(43,15,248,0.18)", borderless: false }}
+          style={styles.blockFill}
+        >
+          {content}
+        </Pressable>
+      </CategoryOutline>
+    );
+  }
+  return (
+    <Pressable
+      onPress={onPress}
+      android_ripple={{ color: "rgba(43,15,248,0.18)", borderless: false }}
+      style={[
+        styles.block,
+        outline ? { borderColor: outline[0] } : null,
+        active && styles.blockActive,
+      ]}
+    >
+      {content}
     </Pressable>
   );
 }
@@ -233,6 +259,14 @@ const styles = StyleSheet.create({
   blockActive: {
     borderColor: colors.brand.trendyPink,
   },
+  blockDuo: {
+    width: BLOCK_W,
+    height: BLOCK_H,
+  },
+  blockFill: {
+    width: "100%",
+    height: "100%",
+  },
   iconWrap: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
@@ -252,7 +286,7 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.18)",
     alignItems: "center",

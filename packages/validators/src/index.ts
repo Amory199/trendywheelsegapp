@@ -525,6 +525,11 @@ export const updateProductSchema = createProductSchema.partial();
 
 export const productListQuerySchema = z.object({
   category: productCategoryEnum.optional(),
+  // Filter carts by the LINKED VEHICLE's category, in the same kebab-case
+  // shape as the public vehicles API (golf-cart / scooter / …). The products
+  // controller converts to the snake_case Prisma enum — same pattern as the
+  // rental-listings controller.
+  vehicleCategory: vehicleCategoryEnum.optional(),
   minPrice: z.coerce.number().nonnegative().optional(),
   maxPrice: z.coerce.number().nonnegative().optional(),
   inStock: z

@@ -32,9 +32,11 @@ interface Product {
   // Surfaced by the API from a linked on-sale vehicle so Buy matches On-Sale.
   salePrice?: string | number | null;
   originalPriceEgp?: string | number | null;
-  // Linked vehicle's category (golf-cart / scooter / …) so carts filter by
-  // vehicle category the way Rent does. Null for parts/accessories.
+  // Linked vehicle's category (golf-cart / scooter / …) so carts get their
+  // brand outline and category page the way Rent does. Null for parts/accessories.
   vehicleCategory?: VehicleCategory | null;
+  // Linked vehicle's fuel type — drives the pink fuel pill on combustion carts.
+  vehicleFuelType?: string | null;
 }
 
 const TABS: { id: Category | "all"; labelKey: string }[] = [
@@ -55,9 +57,6 @@ export default function BuyScreen(): React.JSX.Element {
   const display = useDisplay();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Category | "all">("all");
-  // Vehicle-category filter (golf-cart / scooter / …) — same taxonomy as Rent.
-  // Tapping the active circle again clears it.
-  const [vehicleCat, setVehicleCat] = useState<VehicleCategory | null>(null);
   const scrollHandler = useTabBarScrollHandler();
   const { palette } = useTheme();
 
@@ -75,8 +74,7 @@ export default function BuyScreen(): React.JSX.Element {
   );
   // If the selected category empties out (admin recategorized), fall back to All.
   const activeTab = tab !== "all" && !presentCategories.has(tab) ? "all" : tab;
-  const byTab = activeTab === "all" ? all : all.filter((p) => p.category === activeTab);
-  const items = vehicleCat ? byTab.filter((p) => p.vehicleCategory === vehicleCat) : byTab;
+  const items = activeTab === "all" ? all : all.filter((p) => p.category === activeTab);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
@@ -123,15 +121,12 @@ export default function BuyScreen(): React.JSX.Element {
         </ScrollView>
       </View>
 
-      {/* Vehicle-category shortcuts (same circles as home/rent) — filter the
-          catalog to carts of that category; tap again to clear. Hidden until
-          the API serves vehicleCategory (older API → no dead filter). */}
+      {/* Vehicle-category shortcuts (same circles as home/rent) — open the
+          category's own buy page, mirroring the rent flow. Hidden until the
+          API serves vehicleCategory (older API → no dead navigation). */}
       {all.some((p) => p.vehicleCategory != null) ? (
         <View style={{ marginBottom: 12 }}>
-          <CategoryCircles
-            selected={vehicleCat}
-            onPress={(key) => setVehicleCat((cur) => (cur === key ? null : key))}
-          />
+          <CategoryCircles onPress={(key) => router.push(`/buy/category/${key}` as never)} />
         </View>
       ) : null}
 
@@ -180,6 +175,8 @@ export default function BuyScreen(): React.JSX.Element {
                   badgeColor={colors.brand.ecoLimelight}
                   image={p.images[0]}
                   overlayLabel={!p.inStock ? t("buy.outOfStock") : null}
+                  categoryKey={p.vehicleCategory}
+                  fuelType={p.vehicleFuelType}
                   onPress={() => router.push(target as never)}
                 />
               </Animated.View>

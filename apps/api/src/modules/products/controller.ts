@@ -18,7 +18,12 @@ import { AppError } from "../../utils/errors.js";
 // without the nested vehicle relation.
 function withVehicleSale<
   T extends {
-    vehicle?: { salePrice: unknown; originalPriceEgp: unknown; category?: unknown } | null;
+    vehicle?: {
+      salePrice: unknown;
+      originalPriceEgp: unknown;
+      category?: unknown;
+      fuelType?: unknown;
+    } | null;
   },
 >(
   product: T,
@@ -26,6 +31,7 @@ function withVehicleSale<
   salePrice?: unknown;
   originalPriceEgp?: unknown;
   vehicleCategory?: unknown;
+  vehicleFuelType?: unknown;
 } {
   const { vehicle, ...rest } = product;
   // Surface the linked vehicle's category so the Buy page can filter carts by
@@ -33,25 +39,33 @@ function withVehicleSale<
   // uses underscores (golf_cart) but the public API + mobile taxonomy use
   // dashes (golf-cart) — serialize like the vehicles endpoint does.
   const vehicleCategory = vehicle?.category ? String(vehicle.category).replace(/_/g, "-") : null;
+  // Fuel type feeds the mobile fuel badge (shown for non-electric carts). The
+  // enum values are already plain strings (electric/gasoline/hybrid) — no
+  // case conversion needed.
+  const vehicleFuelType = vehicle?.fuelType ?? null;
   if (vehicle && isVehicleOnSale(vehicle as never)) {
     return {
       ...rest,
       salePrice: vehicle.salePrice,
       originalPriceEgp: vehicle.originalPriceEgp,
       vehicleCategory,
+      vehicleFuelType,
     };
   }
-  return { ...rest, vehicleCategory };
+  return { ...rest, vehicleCategory, vehicleFuelType };
 }
 
 const SALE_SELECT = {
-  select: { salePrice: true, originalPriceEgp: true, category: true },
+  select: { salePrice: true, originalPriceEgp: true, category: true, fuelType: true },
 } as const;
 
 export async function list(req: Request, res: Response): Promise<void> {
   const q = productListQuerySchema.parse(req.query);
   const where: Record<string, unknown> = {};
   if (q.category) where.category = q.category;
+  // Kebab query value (golf-cart) → snake_case Prisma enum (golf_cart), then
+  // filter through the vehicle relation so only carts of that category match.
+  if (q.vehicleCategory) where.vehicle = { category: q.vehicleCategory.replace(/-/g, "_") };
   if (q.inStock !== undefined) where.inStock = q.inStock;
   else if (!req.user || req.user.accountType === "customer") where.inStock = true;
   if (q.minPrice !== undefined || q.maxPrice !== undefined) {

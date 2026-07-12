@@ -40,7 +40,10 @@ export default function ChatScreen(): JSX.Element {
     queryKey: ["messages", id],
     queryFn: () => api.getMessages(id!),
     refetchInterval: 5000,
-    enabled: !!id,
+    // Gate on the signed-in user too — a guest deep-linking a thread (tapped
+    // push / shared link) hits GuestGate below, but without this the 5s poll
+    // still fires an authenticated 401 every 5 seconds behind the wall.
+    enabled: !!id && !!user,
   });
 
   // Thread metadata: context label ("About: Jeep · TW-829301") + participants,
@@ -55,7 +58,7 @@ export default function ChatScreen(): JSX.Element {
           participants?: Array<{ user?: { id: string; name?: string | null } }>;
         };
       }>("GET", `/api/messages/conversations/${id}`),
-    enabled: !!id,
+    enabled: !!id && !!user,
     staleTime: 60000,
   });
   const conv = convQ.data?.data;

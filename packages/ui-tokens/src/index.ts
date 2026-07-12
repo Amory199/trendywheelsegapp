@@ -2,6 +2,8 @@
 // Source of truth for all colors, spacing, typography across mobile and web.
 // Brand values sourced from official brand guide (see /opt/trendywheels-brand-source).
 
+import { brandColors } from "./brand";
+
 export const colors = {
   // Friendly Blue — brand primary. Scale built around #2B0FF8.
   primary: {
@@ -22,16 +24,9 @@ export const colors = {
     light: "#FF4D8F",
     dark: "#CC0051",
   },
-  // Full named brand palette from the brand guide.
-  brand: {
-    friendlyBlue: "#2B0FF8",
-    trendyPink: "#FF0065",
-    ecoLimelight: "#A9F453",
-    poolBlue: "#00C7EA",
-    ultraRed: "#FF0000",
-    trustWorth: "#02011F",
-    loyalty: "#FFFFFF",
-  },
+  // Full named brand palette from the brand guide (hexes live in ./brand so
+  // sibling modules like ./categories can reference them cycle-free).
+  brand: brandColors,
   // Hero gradient stops — deep navy → royal → bright cyan/teal. Used on
   // every "feature" hero (mobile home, onboarding heroes, design-studio
   // covers, customer-app login + home banners). Replaces the old
@@ -327,6 +322,7 @@ export const tailwindPreset = {
 // Bare specifiers (no `.js`) because moduleResolution is `bundler` — works for
 // both tsc and the Next/webpack consumers (which can't resolve `./x.js` →
 // `./x.ts` inside transpilePackages).
+export * from "./categories";
 export * from "./loyalty";
 export * from "./statuses";
 export * from "./text";

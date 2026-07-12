@@ -16,6 +16,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { ErrorState } from "../../components/ErrorState";
+import { FuelBadge } from "../../components/FuelBadge";
 import { ImageCarousel } from "../../components/ImageCarousel";
 import { LockedDetails } from "../../components/LockedDetails";
 import { PriceGate } from "../../components/PriceGate";
@@ -263,9 +264,13 @@ export default function RentDetailScreen(): React.JSX.Element {
           }}
         >
           <Animated.View entering={FadeInDown.delay(80).duration(420)}>
-            <TWBadge tone={vehicle.status === "available" ? "lime" : "muted"}>
-              {vehicle.status === "available" ? t("rent.availableNow") : vehicle.status}
-            </TWBadge>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <TWBadge tone={vehicle.status === "available" ? "lime" : "muted"}>
+                {vehicle.status === "available" ? t("rent.availableNow") : vehicle.status}
+              </TWBadge>
+              {/* Pink fuel pill — combustion vehicles only, electric stays clean. */}
+              <FuelBadge fuelType={vehicle.fuelType} />
+            </View>
             <View
               style={{
                 flexDirection: "row",

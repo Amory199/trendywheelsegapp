@@ -1094,6 +1094,36 @@ MINE=$(curl -fsS -A "$SMOKE_UA" "$BASE/service/mine" -H "Authorization: Bearer $
 echo "$MINE" | jq -e '.data | type == "array"' >/dev/null || fail "/service/mine shape wrong: $MINE"
 pass "service/mine feed ok ($(echo "$MINE" | jq '.data | length') items)"
 
+# ─── 12w. products vehicleCategory filter + fuelType surfaced ─
+# The Buy category pages filter GET /products by the linked vehicle's category
+# (kebab query → snake Prisma enum) and read vehicleFuelType for the fuel
+# badge. Create a for-sale buggy (name reuses "Smoke Sale Cart" so the shared
+# hard-purge in section 13 catches it), let the vehicle→product sync run, then
+# assert the synced product shows up under ITS category (as a guest, so the
+# forced inStock=true path is the one exercised) and not under another.
+note "12w. products vehicleCategory filter + fuelType surfaced"
+VC_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/vehicles" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d '{"name":"Smoke Sale Cart","category":"buggy","seating":2,"fuelType":"gasoline","transmission":"automatic","location":"6th October","listingType":"sale","salePrice":42000}') \
+  || fail "admin create sale buggy rejected"
+VC_ID=$(echo "$VC_CREATE" | jq -r '.id // .data.id')
+[ -n "$VC_ID" ] && [ "$VC_ID" != "null" ] || fail "no sale-buggy id: $VC_CREATE"
+VC_HIT=$(curl -fsS -A "$SMOKE_UA" "$BASE/products?vehicleCategory=buggy&limit=100" \
+  | jq -c --arg v "$VC_ID" '[.data[] | select(.vehicleId == $v)][0] // empty')
+[ -n "$VC_HIT" ] || fail "synced product missing from products?vehicleCategory=buggy"
+[ "$(echo "$VC_HIT" | jq -r '.vehicleFuelType')" = "gasoline" ] \
+  || fail "vehicleFuelType not surfaced on product: $VC_HIT"
+[ "$(echo "$VC_HIT" | jq -r '.vehicleCategory')" = "buggy" ] \
+  || fail "vehicleCategory not serialized kebab on product: $VC_HIT"
+VC_MISS=$(curl -fsS -A "$SMOKE_UA" "$BASE/products?vehicleCategory=scooter&limit=100" \
+  | jq --arg v "$VC_ID" '[.data[] | select(.vehicleId == $v)] | length')
+[ "$VC_MISS" = "0" ] || fail "buggy product leaked into vehicleCategory=scooter"
+pass "vehicleCategory filter matches own category, excludes others, fuelType surfaced"
+# Cleanup the sale buggy (soft delete; section 13 hard-purges by name).
+curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/vehicles/$VC_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
+  || fail "admin DELETE sale buggy failed"
+pass "sale-buggy cleanup"
+
 # ─── 12t. Logout revokes ONLY the presented session ──────────
 # Any logout used to revoke every refresh token the user had — logging out on
 # one device silently forced-logged-out all their other devices.

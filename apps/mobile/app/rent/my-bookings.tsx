@@ -67,6 +67,7 @@ export default function MyBookingsScreen(): JSX.Element {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["my-bookings", activeTab],
     queryFn: () => api.getBookings({ status: activeTab }),
+    enabled: !!user,
   });
 
   const cancelMutation = useMutation({

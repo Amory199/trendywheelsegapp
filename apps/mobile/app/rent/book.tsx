@@ -258,7 +258,7 @@ export default function BookScreen(): JSX.Element {
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>
                     {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} ×{" "}
-                    {Number(vehicle?.dailyRate).toLocaleString()} {t("rent.currency")}
+                    {Number(vehicle?.dailyRate ?? 0).toLocaleString()} {t("rent.currency")}
                   </Text>
                   <Text style={styles.breakdownValue}>
                     {totalCost.toLocaleString()} {t("rent.currency")}
@@ -295,8 +295,11 @@ export default function BookScreen(): JSX.Element {
             </Pressable>
           ) : (
             <Pressable
-              style={[styles.confirmBtn, mutation.isPending && styles.btnDisabled]}
-              disabled={mutation.isPending}
+              style={[styles.confirmBtn, (mutation.isPending || !vehicle) && styles.btnDisabled]}
+              // Block confirm until the vehicle (and thus the real price) has
+              // loaded — otherwise a slow/failed fetch lets a booking submit
+              // against a "NaN / 0 EGP" breakdown.
+              disabled={mutation.isPending || !vehicle}
               onPress={() => mutation.mutate()}
             >
               {mutation.isPending ? (

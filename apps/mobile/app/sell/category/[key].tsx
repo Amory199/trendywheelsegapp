@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { VEHICLE_CATEGORIES, type SalesListing, type VehicleCategory } from "@trendywheels/types";
-import { colors, spacing, typography } from "@trendywheels/ui-tokens";
+import { categoryColorOf, colors, spacing, typography } from "@trendywheels/ui-tokens";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -67,37 +67,46 @@ export default function SellCategoryScreen(): JSX.Element {
   }, [listings, search]);
 
   const renderItem = useCallback(
-    ({ item, index }: { item: SalesListing; index: number }) => (
-      <Animated.View entering={FadeInDown.delay(index * 40).springify()} style={{ flex: 1 }}>
-        <Pressable
-          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-          android_ripple={{ color: "rgba(43,15,248,0.10)", borderless: false }}
-          onPress={() => router.push(`/sell/${item.id}`)}
-        >
-          <Image
-            source={{
-              uri:
-                (item.images as string[] | undefined)?.[0] ??
-                "https://placehold.co/400x300/2B0FF8/FFFFFF",
-            }}
-            style={styles.cardImage}
-            contentFit="cover"
-            transition={200}
-          />
-          <View style={styles.cardBody}>
-            <Text style={styles.cardTitle} numberOfLines={2}>
-              {item.title}
-            </Text>
-            <Text style={styles.cardPrice}>
-              {Number(item.price).toLocaleString()} {t("sell.egp")}
-            </Text>
-            <Text style={styles.cardMeta}>
-              {item.year} · {(item.mileage as number | undefined)?.toLocaleString()} km
-            </Text>
-          </View>
-        </Pressable>
-      </Animated.View>
-    ),
+    ({ item, index }: { item: SalesListing; index: number }) => {
+      // Brand category outline — duo categories fall back to their first color
+      // here (full gradient rings stay on the ListingCard/circle surfaces).
+      const outline = categoryColorOf(item.category);
+      return (
+        <Animated.View entering={FadeInDown.delay(index * 40).springify()} style={{ flex: 1 }}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.card,
+              outline ? { borderWidth: 2, borderColor: outline[0] } : null,
+              pressed && styles.cardPressed,
+            ]}
+            android_ripple={{ color: "rgba(43,15,248,0.10)", borderless: false }}
+            onPress={() => router.push(`/sell/${item.id}`)}
+          >
+            <Image
+              source={{
+                uri:
+                  (item.images as string[] | undefined)?.[0] ??
+                  "https://placehold.co/400x300/2B0FF8/FFFFFF",
+              }}
+              style={styles.cardImage}
+              contentFit="cover"
+              transition={200}
+            />
+            <View style={styles.cardBody}>
+              <Text style={styles.cardTitle} numberOfLines={2}>
+                {item.title}
+              </Text>
+              <Text style={styles.cardPrice}>
+                {Number(item.price).toLocaleString()} {t("sell.egp")}
+              </Text>
+              <Text style={styles.cardMeta}>
+                {item.year} · {(item.mileage as number | undefined)?.toLocaleString()} km
+              </Text>
+            </View>
+          </Pressable>
+        </Animated.View>
+      );
+    },
     [router],
   );
 

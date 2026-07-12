@@ -34,6 +34,7 @@ export default function NotificationsScreen(): JSX.Element {
   const user = useAuth((s) => s.user);
   const query = useQuery({
     queryKey: ["notifications"],
+    enabled: !!user,
     queryFn: async (): Promise<NotificationItem[]> => {
       const res = await api.getNotifications();
       return (res.data ?? []) as unknown as NotificationItem[];

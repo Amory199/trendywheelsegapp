@@ -13,6 +13,12 @@ export default {
   emptyCatalog: "Nothing here yet.",
   outOfStock: "OUT OF STOCK",
 
+  // Category page — app/buy/category/[key].tsx
+  allCategories: "All categories",
+  searchPlaceholder: "Search by name or brand…",
+  noMatches: "No matches",
+  noProductsInCategory: "Nothing for sale in this category yet",
+
   // Product detail — app/buy/[id].tsx
   categoryCartNew: "New golf cart",
   categoryCartUsed: "Used golf cart",

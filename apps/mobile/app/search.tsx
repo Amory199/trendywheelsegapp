@@ -89,6 +89,8 @@ export default function SearchScreen(): JSX.Element {
           image={vehicleImageUrl(v.images?.[0])}
           rating={v.averageRating}
           location={v.location}
+          categoryKey={v.category}
+          fuelType={v.fuelType}
           onPress={() => router.push(`/rent/${v.id}` as never)}
         />
       );

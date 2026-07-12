@@ -1,12 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { VEHICLE_CATEGORIES, type Vehicle, type VehicleCategory } from "@trendywheels/types";
-import { categoryColorOf, colors, spacing, twEGP, twPalette } from "@trendywheels/ui-tokens";
-import { Image } from "expo-image";
+import {
+  discountPercent,
+  isVehicleOnSale,
+  VEHICLE_CATEGORIES,
+  type VehicleCategory,
+} from "@trendywheels/types";
+import { colors, spacing, twPalette } from "@trendywheels/ui-tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   Pressable,
   StyleSheet,
@@ -19,23 +24,36 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CategoryVideoHero } from "../../../components/CategoryVideoHero";
 import { ErrorState } from "../../../components/ErrorState";
+import { ListingCard } from "../../../components/ListingCard";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
 import { useRTL } from "../../../lib/typography";
 import { useIsCategoryHidden } from "../../../lib/use-visible-categories";
 
-// The API returns vehicle images as rows ({ url, sortOrder }); older cached
-// payloads were plain strings. Accept both so covers never silently break.
-function vehicleImageUrl(img: unknown): string | undefined {
-  if (typeof img === "string") return img;
-  if (img && typeof img === "object" && "url" in img) return (img as { url: string }).url;
-  return undefined;
+// Same product shape the Buy tab reads — carts link to a Vehicle, which is
+// where the sale price, category, and fuel type actually live (the API
+// flattens them onto the product).
+interface Product {
+  id: string;
+  name: string;
+  priceEgp: string | number;
+  images: string[];
+  inStock: boolean;
+  brand?: string | null;
+  vehicleId?: string | null;
+  salePrice?: string | number | null;
+  originalPriceEgp?: string | number | null;
+  vehicleCategory?: VehicleCategory | null;
+  vehicleFuelType?: string | null;
 }
 
 const PAGE_SIZE = 20;
+const PADDING = 16;
+const GAP = 12;
+const COL_W = (Dimensions.get("window").width - PADDING * 2 - GAP) / 2;
 const palette = twPalette(false);
 
-export default function RentCategoryScreen(): JSX.Element {
+export default function BuyCategoryScreen(): JSX.Element {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const t = useT();
@@ -46,90 +64,69 @@ export default function RentCategoryScreen(): JSX.Element {
   const isAll = key === "all";
 
   // Admin can hide categories from the customer app. If someone lands on a
-  // now-hidden category (stale link, deep link), bounce back to the rent tab.
+  // now-hidden category (stale link, deep link), bounce back to the buy tab.
   const isHidden = useIsCategoryHidden(!isAll ? (key as VehicleCategory) : undefined);
   useEffect(() => {
-    if (isHidden) router.replace("/(tabs)/rent");
+    if (isHidden) router.replace("/(tabs)/buy");
   }, [isHidden, router]);
 
   const categoryMeta = useMemo(() => VEHICLE_CATEGORIES.find((c) => c.key === key) ?? null, [key]);
   const categoryLabel = useMemo(() => {
-    if (isAll) return t("rent.allCategories");
+    if (isAll) return t("buy.allCategories");
     // home.categories.* is the shared, parity-complete localized label source
     // for VehicleCategory (the English labels in @trendywheels/types are data).
-    return categoryMeta ? t(`home.categories.${categoryMeta.key}`) : t("rent.vehiclesFallback");
+    return categoryMeta ? t(`home.categories.${categoryMeta.key}`) : t("buy.catalogTitle");
   }, [categoryMeta, isAll, t]);
 
   const q = useInfiniteQuery({
-    queryKey: ["vehicles", "by-category", key],
+    queryKey: ["products", "by-category", key],
     queryFn: ({ pageParam = 1 }) =>
-      api.getVehicles({
-        page: pageParam,
-        limit: PAGE_SIZE,
-        // Rent browse must never surface sale-only inventory.
-        listingType: "rent",
-        ...(!isAll && key ? { category: key as VehicleCategory } : {}),
-      }),
+      api.request<{ data: Product[] }>(
+        "GET",
+        `/api/products?page=${pageParam}&limit=${PAGE_SIZE}${
+          !isAll && key ? `&vehicleCategory=${key}` : ""
+        }`,
+      ),
     getNextPageParam: (last, all) => (last.data.length === PAGE_SIZE ? all.length + 1 : undefined),
     initialPageParam: 1,
   });
 
-  const vehicles = (q.data?.pages.flatMap((p) => p.data) ?? []) as Vehicle[];
+  const products = q.data?.pages.flatMap((p) => p.data) ?? [];
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    if (!s) return vehicles;
-    return vehicles.filter((v) =>
-      `${v.name} ${v.location ?? ""} ${v.type ?? ""}`.toLowerCase().includes(s),
-    );
-  }, [vehicles, search]);
+    if (!s) return products;
+    return products.filter((p) => `${p.name} ${p.brand ?? ""}`.toLowerCase().includes(s));
+  }, [products, search]);
 
   const renderItem = useCallback(
-    ({ item, index }: { item: Vehicle; index: number }) => {
-      // Brand category outline — duo categories fall back to their first color
-      // here (full gradient rings stay on the ListingCard/circle surfaces).
-      const outline = categoryColorOf(item.category);
+    ({ item: p, index }: { item: Product; index: number }) => {
+      // If the cart is linked to a discounted vehicle, show the sale price
+      // with the original struck through — same as the Buy tab grid.
+      const onSale = isVehicleOnSale(p);
+      const shown = onSale ? Number(p.salePrice) : Number(p.priceEgp);
+      // A discounted cart's sale lives on its linked vehicle, and the vehicle
+      // reserve flow is what actually honors salePrice — so route there
+      // (matches the Buy tab) instead of the product order, which would
+      // charge full price. Non-sale items → /buy/[id].
+      const target = onSale && p.vehicleId ? `/sale/${p.vehicleId}` : `/buy/${p.id}`;
       return (
-        <Animated.View entering={FadeInDown.delay(index * 40).springify()}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.card,
-              outline ? { borderWidth: 2, borderColor: outline[0] } : null,
-              pressed && styles.cardPressed,
-            ]}
-            android_ripple={{ color: "rgba(43,15,248,0.10)", borderless: false }}
-            onPress={() => router.push(`/rent/${item.id}`)}
-          >
-            <Image
-              source={{
-                uri:
-                  vehicleImageUrl(item.images?.[0]) ?? "https://placehold.co/400x225/2B0FF8/FFFFFF",
-              }}
-              style={styles.cardImage}
-              contentFit="cover"
-              transition={200}
-            />
-            {item.status === "available" ? <View style={styles.availableDot} /> : null}
-            <View style={styles.cardBody}>
-              <Text style={styles.cardName} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text style={styles.cardMeta} numberOfLines={1}>
-                {item.type} · {item.seating} {t("rent.seatsSuffix")} · {item.transmission}
-              </Text>
-              <View style={styles.cardFooter}>
-                <Text style={styles.cardPrice}>
-                  {twEGP(Number(item.dailyRate))}
-                  {t("rent.perDaySlash")}
-                </Text>
-                <View style={styles.locationRow}>
-                  <Ionicons name="location-outline" size={12} color={palette.muted} />
-                  <Text style={styles.cardLocation} numberOfLines={1}>
-                    {item.location}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </Pressable>
+        <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 40).springify()}>
+          <ListingCard
+            width={COL_W}
+            imageRatio={1}
+            title={p.name}
+            priceLabel={`${t("buy.egp")} ${shown.toLocaleString()}`}
+            strikePriceLabel={
+              onSale ? `${t("buy.egp")} ${Number(p.originalPriceEgp).toLocaleString()}` : null
+            }
+            badge={onSale ? `-${discountPercent(p)}%` : null}
+            badgeColor={colors.brand.ecoLimelight}
+            image={p.images[0]}
+            overlayLabel={!p.inStock ? t("buy.outOfStock") : null}
+            categoryKey={p.vehicleCategory}
+            fuelType={p.vehicleFuelType}
+            onPress={() => router.push(target as never)}
+          />
         </Animated.View>
       );
     },
@@ -179,7 +176,7 @@ export default function RentCategoryScreen(): JSX.Element {
         <Ionicons name="search-outline" size={18} color={palette.muted} />
         <TextInput
           style={styles.searchInput}
-          placeholder={t("rent.searchPlaceholder")}
+          placeholder={t("buy.searchPlaceholder")}
           placeholderTextColor={palette.muted}
           value={search}
           onChangeText={setSearch}
@@ -204,15 +201,17 @@ export default function RentCategoryScreen(): JSX.Element {
         <ErrorState onRetry={() => void q.refetch()} />
       ) : filtered.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons name="car-outline" size={64} color={palette.muted} />
+          <Ionicons name="pricetag-outline" size={64} color={palette.muted} />
           <Text style={styles.emptyText}>
-            {search ? t("rent.noMatches") : t("rent.noVehiclesInCategory")}
+            {search ? t("buy.noMatches") : t("buy.noProductsInCategory")}
           </Text>
         </View>
       ) : (
-        <FlatList<Vehicle>
+        <FlatList<Product>
           data={filtered}
-          keyExtractor={(v) => v.id}
+          keyExtractor={(p) => p.id}
+          numColumns={2}
+          columnWrapperStyle={{ gap: GAP }}
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 40 }}
           renderItem={renderItem}
           onEndReached={() => q.fetchNextPage()}
@@ -263,39 +262,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   searchInput: { flex: 1, color: palette.text, fontSize: 14 },
-  card: {
-    backgroundColor: palette.card,
-    borderRadius: 16,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: palette.border,
-    position: "relative",
-  },
-  cardPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-  cardImage: { width: "100%", aspectRatio: 16 / 9, backgroundColor: palette.cardAlt },
-  availableDot: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.brand.ecoLimelight,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  cardBody: { padding: spacing.md },
-  cardName: { color: palette.text, fontSize: 16, fontWeight: "800", letterSpacing: -0.2 },
-  cardMeta: { color: palette.muted, fontSize: 12.5, marginTop: 2 },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: spacing.sm,
-  },
-  cardPrice: { color: colors.brand.trendyPink, fontWeight: "800", fontSize: 15 },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
-  cardLocation: { color: palette.muted, fontSize: 11.5 },
   empty: { flex: 1, justifyContent: "center", alignItems: "center", gap: spacing.md },
   emptyText: { color: palette.muted, fontSize: 16 },
 });

@@ -101,6 +101,8 @@ export default function HomeScreen(): React.JSX.Element {
         location={v.location}
         badge={t("home.badgeForRent")}
         badgeColor={colors.brand.friendlyBlue}
+        categoryKey={v.category}
+        fuelType={v.fuelType}
         onPress={() => router.push(`/rent/${v.id}` as never)}
       />
     ),
@@ -121,6 +123,8 @@ export default function HomeScreen(): React.JSX.Element {
           location={v.location}
           badge={t("home.dealsBadge")}
           badgeColor={colors.brand.ecoLimelight}
+          categoryKey={v.category}
+          fuelType={v.fuelType}
           onPress={() => router.push(`/sale/${v.id}` as never)}
         />
       );

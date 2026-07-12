@@ -67,6 +67,7 @@ export default function MyOrders(): React.JSX.Element {
   const q = useQuery({
     queryKey: ["my-orders"],
     queryFn: () => api.getMyOrders().catch(() => ({ data: [] as Order[] })),
+    enabled: !!user,
   });
   const orders = (q.data?.data ?? []) as Order[];
 
