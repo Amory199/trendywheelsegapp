@@ -75,12 +75,23 @@ interface Props {
   // strip's scroll position into the tab-bar auto-hide on rent/sell where no
   // outer FlatList exists.
   onScroll?: ReturnType<typeof import("react-native-reanimated").useAnimatedScrollHandler>;
+  // Category source override. Rent leaves this undefined → the admin
+  // visibility-configured set. Buy passes its sale-catalog set so the two tabs
+  // show different category lists (Buy = whatever is actually listed for sale).
+  categories?: ReturnType<typeof useVisibleCategories>;
 }
 
-function CategoryStripImpl({ value, onChange, showAll = true, onScroll }: Props): JSX.Element {
+function CategoryStripImpl({
+  value,
+  onChange,
+  showAll = true,
+  onScroll,
+  categories: categoriesProp,
+}: Props): JSX.Element {
   const { palette } = useTheme();
   const t = useT();
-  const categories = useVisibleCategories();
+  const visible = useVisibleCategories();
+  const categories = categoriesProp ?? visible;
   return (
     <Animated.ScrollView
       contentContainerStyle={[styles.grid, { paddingBottom: TAB_BAR_SAFE_BOTTOM }]}

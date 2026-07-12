@@ -31,3 +31,26 @@ export function useIsCategoryHidden(key: VehicleCategory | undefined): boolean {
   const hidden = useHiddenCategorySet();
   return key != null && hidden.has(key);
 }
+
+// The categories that have at least one in-stock SALE listing in the catalog,
+// straight from the live product data. The Buy tab uses THIS (not the admin
+// hidden-set) — so it shows exactly the categories the client has actually put
+// up for sale (golf carts / scooters / side scooters / UTVs / buggies / …) and
+// nothing else. Empty while loading (strip just shows the "All" tile for a beat,
+// never phantom categories); full list only on error so it's never permanently
+// broken.
+export function useSaleCategories(): CategoryEntry[] {
+  const q = useQuery({
+    queryKey: ["categories-for-sale"],
+    queryFn: () =>
+      api.request<{ data: { categories: string[] } }>("GET", "/api/categories/for-sale"),
+    staleTime: 5 * 60 * 1000,
+  });
+  const available = q.data?.data?.categories;
+  if (available) {
+    const set = new Set(available);
+    return VEHICLE_CATEGORIES.filter((c) => set.has(c.key));
+  }
+  if (q.isError) return VEHICLE_CATEGORIES.slice();
+  return [];
+}

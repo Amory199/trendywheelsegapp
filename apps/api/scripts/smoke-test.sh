@@ -1119,6 +1119,12 @@ VC_MISS=$(curl -fsS -A "$SMOKE_UA" "$BASE/products?vehicleCategory=scooter&limit
   | jq --arg v "$VC_ID" '[.data[] | select(.vehicleId == $v)] | length')
 [ "$VC_MISS" = "0" ] || fail "buggy product leaked into vehicleCategory=scooter"
 pass "vehicleCategory filter matches own category, excludes others, fuelType surfaced"
+# The Buy tab's category strip is driven by /categories/for-sale (NOT the admin
+# visibility set). With the sale buggy live + in stock, "buggy" must appear.
+FS_HAS_BUGGY=$(curl -fsS -A "$SMOKE_UA" "$BASE/categories/for-sale" \
+  | jq '[.data.categories[] | select(. == "buggy")] | length')
+[ "$FS_HAS_BUGGY" = "1" ] || fail "sale buggy not reflected in /categories/for-sale"
+pass "categories/for-sale reflects in-stock sale listings (buggy present)"
 # Cleanup the sale buggy (soft delete; section 13 hard-purges by name).
 curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/vehicles/$VC_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
   || fail "admin DELETE sale buggy failed"

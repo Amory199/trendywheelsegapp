@@ -10,6 +10,7 @@ import { TWAurora } from "../../components/ui";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useTheme } from "../../lib/use-theme";
+import { useSaleCategories } from "../../lib/use-visible-categories";
 
 // Buy mirrors Rent exactly: a full category photo-grid. Tapping a category
 // opens that category's buy page (/buy/category/[key]); the "All categories"
@@ -20,6 +21,9 @@ export default function BuyScreen(): React.JSX.Element {
   const t = useT();
   const insets = useSafeAreaInsets();
   const scrollHandler = useTabBarScrollHandler();
+  // Buy shows only categories that actually have a sale listing — NOT the admin
+  // visibility set (that governs Rent). See useSaleCategories.
+  const saleCategories = useSaleCategories();
 
   return (
     <View style={[styles.container, { backgroundColor: palette.bg }]}>
@@ -48,6 +52,7 @@ export default function BuyScreen(): React.JSX.Element {
 
       <CategoryStrip
         value={null}
+        categories={saleCategories}
         onChange={(next) => router.push(`/buy/category/${next}` as never)}
         onScroll={scrollHandler}
       />

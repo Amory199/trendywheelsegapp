@@ -34,6 +34,24 @@ router.get("/categories/visibility", async (_req, res) => {
   res.json({ data: { hidden } });
 });
 
+// Categories that actually have an in-stock sale listing in the catalog. The
+// Buy tab shows ONLY these (unlike Rent, which respects the admin visibility
+// config above). Derived live from the product catalog: a category tile appears
+// the moment a cart of that category is listed for sale and drops off once none
+// are in stock. Public (guests browse). Returns kebab-case keys to match the
+// mobile VehicleCategory keys and the /api/products?vehicleCategory= filter.
+router.get("/categories/for-sale", async (_req, res) => {
+  const rows = await prisma.product.findMany({
+    where: { inStock: true, vehicleId: { not: null } },
+    select: { vehicle: { select: { category: true } } },
+  });
+  const set = new Set<string>();
+  for (const r of rows) {
+    if (r.vehicle?.category) set.add(String(r.vehicle.category).replace(/_/g, "-"));
+  }
+  res.json({ data: { categories: [...set] } });
+});
+
 router.get("/readyz", async (_req, res) => {
   const checks: Record<string, string> = {};
 

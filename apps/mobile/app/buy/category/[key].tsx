@@ -8,7 +8,7 @@ import {
 } from "@trendywheels/types";
 import { colors, spacing, twPalette } from "@trendywheels/ui-tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -28,7 +28,6 @@ import { ListingCard } from "../../../components/ListingCard";
 import { api } from "../../../lib/api";
 import { useT } from "../../../lib/locale";
 import { useRTL } from "../../../lib/typography";
-import { useIsCategoryHidden } from "../../../lib/use-visible-categories";
 
 // Same product shape the Buy tab reads — carts link to a Vehicle, which is
 // where the sale price, category, and fuel type actually live (the API
@@ -63,12 +62,10 @@ export default function BuyCategoryScreen(): JSX.Element {
 
   const isAll = key === "all";
 
-  // Admin can hide categories from the customer app. If someone lands on a
-  // now-hidden category (stale link, deep link), bounce back to the buy tab.
-  const isHidden = useIsCategoryHidden(!isAll ? (key as VehicleCategory) : undefined);
-  useEffect(() => {
-    if (isHidden) router.replace("/(tabs)/buy");
-  }, [isHidden, router]);
+  // NOTE: Buy deliberately does NOT honour the admin category-visibility set
+  // (that governs Rent only). Which categories appear in Buy is driven purely by
+  // what's listed for sale in the catalog, so no hidden-category bounce here — a
+  // category with no listings just shows the empty state.
 
   const categoryMeta = useMemo(() => VEHICLE_CATEGORIES.find((c) => c.key === key) ?? null, [key]);
   const categoryLabel = useMemo(() => {
