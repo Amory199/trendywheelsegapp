@@ -130,6 +130,11 @@ model User {
   vehicleStatusChangesMade VehicleStatusChange[]     @relation("VscActor")
   vehicleStatusChangesOn   VehicleStatusChange[]     @relation("VscCustomer")
 
+  // Staff/customer fan-out (notifyAdmins/notifyCustomers, ensureAllStaffParticipants,
+  // round-robin) filters on accountType(+staffRole)+status on every signup, listing,
+  // and support message — unindexed these were full seq scans.
+  @@index([accountType, status])
+  @@index([accountType, staffRole, status])
   @@map("users")
 }
 
@@ -506,6 +511,8 @@ model Conversation {
   participants ConversationParticipant[]
 
   @@index([contextType, contextId])
+  // Inbox lists order by lastMessageAt desc — index the sort key.
+  @@index([lastMessageAt])
   @@map("conversations")
 }
 
@@ -745,6 +752,9 @@ model Notification {
 
   @@index([userId])
   @@index([readAt])
+  // The per-user list sorts by createdAt desc — composite covers filter+sort.
+  @@index([userId, createdAt])
+  @@index([createdAt])
   @@map("notifications")
 }
 
@@ -899,6 +909,7 @@ model Lead {
   activities LeadActivity[]
 
   @@index([ownerId])
+  @@index([ownerId, updatedAt])
   @@index([status])
   @@index([claimDeadline])
   @@index([lastActivityAt])
