@@ -1670,3 +1670,23 @@ saves must NOT eject the preview), a `stale()` identity check so a fresh login c
 
 **Watch-item class:** any future `hydrate()` caller runs the boot-only gate — if a new flow needs a
 restore-on-demand, call `exitActing()`, don't widen the hydrate branch.
+
+## INC-064 — Staff sub-roles could edit/delete/export any account; customer could reschedule a booking without re-pricing (2026-07-12)
+
+**Found by:** adversarial security+money audit (2026-07-12).
+
+**Symptoms (all pre-fix, live app):**
+
+1. `PUT /users/:id`, `DELETE /users/:id`, `GET /users/:id/export` had `authenticate` but no `authorize("admin")` — their only guard was `requireOwner`, which is a **no-op for any `accountType === "staff"`**. So any staff sub-role (sales/support/inventory/mechanic, several passwordless-OTP) could rewrite any customer's phone → OTP-login as them (account takeover), delete/anonymize any account (incl. superadmin), or dump any user's full PII+history.
+2. `PUT /bookings/:id` never recomputed `totalCost` on date change — a customer could book 1 day then edit `endDate` to 60 days and keep the 1-day price, even after paid.
+
+**Fix (commit this batch):**
+
+- New `requireAdminOrSelf(req, targetUserId)` in `utils/auth-roles.ts` — allows only an admin OR the user acting on their own id; rejects staff-on-others. Replaces `requireOwner` in users `update`/`exportData`/`deleteAccount` (getById/getInteractions left as `requireOwner` — reads legit for support). Customer self-service (INC-049 self-delete, self profile edit) preserved.
+- `bookings/controller.ts update()`: on any date change, block reschedule of paid/non-pending bookings for customers, re-check stock (excluding self), and recompute `totalCost = dailyRate × rentalDays − existing discounts`. Server is sole price authority.
+
+**Root-cause class:** any route/controller whose ONLY authorization is `requireOwner` is open to all staff sub-roles (accountType collapses sales/support/inventory/mechanic into one "staff" bucket). Grep for lone `requireOwner` before trusting a handler is scoped. Mirrors INC-057.
+
+## INC-065 — Missing indexes on users/conversations/notifications/leads hot paths (2026-07-12)
+
+**Found by:** performance audit (2026-07-12). The `20260601191746_scale_indexes_100k` migration indexed vehicles/bookings/repairs/sales*listings but skipped these four. Fix: migration `20260712090000_perf_indexes*...`adds`users(account_type,status)`+`(account_type,staff_role,status)`, `conversations(last_message_at)`, `notifications(user_id,created_at)`+`(created_at)`, `leads(owner_id,updated_at)`. Additive (CREATE INDEX only). Latent at current scale; cheap insurance pre-ad-traffic. `listConversations` pagination/select-trim deferred (needs consumer check).

@@ -316,6 +316,43 @@ export async function update(req: Request, res: Response): Promise<void> {
   if (body.returnLocation !== undefined) data.returnLocation = body.returnLocation;
   if (body.notes !== undefined) data.notes = body.notes;
 
+  // Rescheduling must re-price and re-check stock — otherwise a customer could
+  // book 1 day then stretch endDate to 60 and keep the 1-day total. The server
+  // is the sole source of truth for the price; a client-sent total is ignored.
+  const datesChanged = body.startDate !== undefined || body.endDate !== undefined;
+  if (datesChanged) {
+    const newStart = (data.startDate as Date) ?? booking.startDate;
+    const newEnd = (data.endDate as Date) ?? booking.endDate;
+    if (newEnd <= newStart) {
+      throw AppError.badRequest("Return date must be after the pickup date");
+    }
+    // Once money is committed the window is locked — a paid or past-pending
+    // booking can only be rescheduled by staff, never silently by the customer.
+    if (isCustomer && (booking.paymentStatus === "paid" || booking.status !== "pending")) {
+      throw AppError.forbidden("This booking can no longer be rescheduled — contact support");
+    }
+    const vehicle = await prisma.vehicle.findUnique({ where: { id: booking.vehicleId } });
+    if (!vehicle || vehicle.dailyRate == null) {
+      throw AppError.badRequest("This booking's vehicle is no longer rentable");
+    }
+    // Stock re-check for the new window, excluding this booking itself.
+    const overlap = await prisma.booking.count({
+      where: {
+        vehicleId: booking.vehicleId,
+        id: { not: booking.id },
+        status: { in: ["pending", "confirmed"] },
+        startDate: { lte: newEnd },
+        endDate: { gte: newStart },
+      },
+    });
+    if (overlap >= vehicle.quantity) throw AppError.conflict("Out of stock for these dates");
+    // Preserve any discounts already granted; recompute the base from the rate.
+    const base =
+      Number(vehicle.dailyRate) * rentalDays(newStart.toISOString(), newEnd.toISOString());
+    const discounts = Number(booking.promoDiscount ?? 0) + Number(booking.loyaltyDiscount ?? 0);
+    data.totalCost = Math.max(0, base - discounts);
+  }
+
   const updated = await prisma.booking.update({
     where: { id: req.params.id },
     data: data as Prisma.BookingUpdateInput,

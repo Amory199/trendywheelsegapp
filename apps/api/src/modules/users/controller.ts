@@ -12,7 +12,7 @@ import bcrypt from "bcryptjs";
 
 import { PAGINATION } from "../../config/limits.js";
 import { prisma } from "../../config/database.js";
-import { requireOwner } from "../../utils/auth-roles.js";
+import { requireAdminOrSelf, requireOwner } from "../../utils/auth-roles.js";
 import { assertDeliverableEmail } from "../../utils/email-validation.js";
 import { AppError } from "../../utils/errors.js";
 import { revokeUserSessions } from "../auth/session-revocation.js";
@@ -164,8 +164,11 @@ export async function getById(req: Request, res: Response): Promise<void> {
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
-  // Customers can only update their own profile
-  requireOwner(req, req.params.id);
+  // Only an admin, or the user editing their OWN profile, may write here.
+  // requireOwner would let any staff sub-role rewrite anyone's phone/email —
+  // an account-takeover vector (change a customer's phone, then OTP-login as
+  // them). Identity edits must never cross accounts.
+  requireAdminOrSelf(req, req.params.id);
 
   const parsed = updateUserSchema.parse(req.body);
   // Privilege fields are admin-only — strip silently for any non-admin caller
@@ -276,8 +279,9 @@ export async function update(req: Request, res: Response): Promise<void> {
 }
 
 export async function exportData(req: Request, res: Response): Promise<void> {
-  // Users can only export their own data; admins can export any
-  requireOwner(req, req.params.id);
+  // Only an admin, or the user exporting their OWN data. requireOwner would let
+  // any staff sub-role dump any customer's full PII + history.
+  requireAdminOrSelf(req, req.params.id);
 
   const userId = req.params.id;
   const [user, bookings, repairs, tickets, listings, messages] = await Promise.all([
@@ -336,8 +340,10 @@ export async function requestDeletion(req: Request, res: Response): Promise<void
 }
 
 export async function deleteAccount(req: Request, res: Response): Promise<void> {
-  // Only admins can delete any account; customers can delete their own
-  requireOwner(req, req.params.id);
+  // Only an admin, or the user deleting their OWN account (INC-049 self-service).
+  // requireOwner would let any staff sub-role permanently anonymize any account,
+  // superadmin and every customer included.
+  requireAdminOrSelf(req, req.params.id);
 
   const userId = req.params.id;
   const user = await prisma.user.findUnique({ where: { id: userId } });

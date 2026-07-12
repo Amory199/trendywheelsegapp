@@ -66,6 +66,21 @@ export function requireOwner(
 }
 
 /**
+ * Account-management guard: only an admin, or the target user acting on their
+ * OWN record, may proceed. Unlike `requireOwner` (which passes ANY staff
+ * sub-role against ANY target), this rejects staff acting on someone else —
+ * the correct gate for destructive/identity operations like editing, deleting,
+ * or exporting a user account, where "staff" must not mean "everyone's account".
+ *
+ * Usage:
+ *   requireAdminOrSelf(req, req.params.id);   // throws 403 otherwise
+ */
+export function requireAdminOrSelf(req: Request, targetUserId: string): void {
+  if (isAdmin(req.user) || req.user!.userId === targetUserId) return;
+  throw AppError.forbidden();
+}
+
+/**
  * Mutates a Prisma `where` clause to scope list queries to the customer's
  * own records. No-op for admins/staff so they see everything.
  *
