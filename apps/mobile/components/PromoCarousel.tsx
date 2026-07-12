@@ -38,6 +38,11 @@ const PROMOS: Promo[] = [
     image: require("../assets/promos/promo-3.png"),
     route: "/service/pickup-delivery",
   },
+  {
+    key: "service-vehicle",
+    image: require("../assets/promos/promo-4.png"),
+    route: "/service/pickup-delivery",
+  },
 ];
 
 /**
