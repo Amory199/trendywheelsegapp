@@ -23,6 +23,16 @@ export const env = cleanEnv(process.env, {
   // accounts. Must be FALSE in production. See auth/service.ts TRIAL_OTP_BYPASS.
   ENABLE_TRIAL_OTP_BYPASS: bool({ default: false }),
 
+  // Akedly OTP delivery (SMS). When AKEDLY_ENABLED, sendOtp() delivers the
+  // server-generated code via Akedly's V1.2 REST API (challenge → PoW → send).
+  // We still own the code + verify against otp_codes, so manual-admin OTP and
+  // the demo bypass are unaffected — Akedly is purely the SMS transport that
+  // replaces Firebase. See modules/auth/akedly.ts + decision doc.
+  AKEDLY_ENABLED: bool({ default: false }),
+  AKEDLY_API_KEY: str({ default: "" }),
+  AKEDLY_PIPELINE_ID: str({ default: "" }),
+  AKEDLY_BASE_URL: str({ default: "https://api.akedly.io/api/v1.2" }),
+
   // Local filesystem-backed object storage (replaced MinIO/S3).
   UPLOADS_DIR: str({ default: "/var/lib/trendywheels/uploads" }),
   // Public URL clients use to fetch uploaded objects (served by nginx).

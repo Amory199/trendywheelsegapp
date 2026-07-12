@@ -25,7 +25,6 @@ import Animated, {
 import { TWAurora } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
-import { isTrialPhone, sendFirebaseOtp } from "../../lib/firebase-phone-auth";
 import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
@@ -81,15 +80,16 @@ export default function PhoneScreen(): JSX.Element {
         /* network/blip — proceed with the normal OTP path */
       }
 
-      const useFirebase = !isTrialPhone(fullPhone);
-      if (useFirebase) {
-        await sendFirebaseOtp(fullPhone);
-      } else {
-        await sendOtp(fullPhone);
-      }
+      // All phones now request the code from our own API, which delivers it via
+      // Akedly (WhatsApp/SMS). Firebase on-device SMS is retired (cost + App Check
+      // delivery failures). Trial/bypass phones short-circuit inside the server
+      // sendOtp (no Akedly call; verifyOtp accepts their fixed code). If delivery
+      // fails the API throws and the OTP screen's "request a code" path is the
+      // manual backstop.
+      await sendOtp(fullPhone);
       router.push({
         pathname: "/(auth)/otp",
-        params: { phone: fullPhone, mode: useFirebase ? "firebase" : "trial" },
+        params: { phone: fullPhone, mode: "otp" },
       });
     } catch (err) {
       Alert.alert(

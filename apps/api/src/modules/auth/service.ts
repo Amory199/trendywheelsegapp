@@ -12,6 +12,8 @@ import { Sentry } from "../../utils/sentry.js";
 import { emitDomainEvent, notifyAdmins } from "../../utils/notify.js";
 import { assignLeadRoundRobin, recordActivity } from "../crm/service.js";
 
+import { sendAkedlyOtp, AkedlyError } from "./akedly.js";
+
 // Push every admin so they know a new customer just joined. Fire-and-forget
 // from inside the signup setImmediate block — failure here must not break the
 // signup path itself.
@@ -125,7 +127,10 @@ const REFRESH_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 // nears expiry removes that race entirely.
 const REFRESH_ROTATE_WITHIN_MS = 14 * 24 * 60 * 60 * 1000; // last 14 days
 
-export async function sendOtp(phone: string): Promise<{ success: boolean; message: string }> {
+export async function sendOtp(
+  phone: string,
+  endUserIp?: string,
+): Promise<{ success: boolean; message: string }> {
   // Trial bypass — these phones accept a fixed hardcoded code, no DB row.
   if (env.ENABLE_TRIAL_OTP_BYPASS && TRIAL_OTP_BYPASS[phone]) {
     logger.info({ phone, msg: "trial-bypass: no OTP row written" });
@@ -147,8 +152,26 @@ export async function sendOtp(phone: string): Promise<{ success: boolean; messag
     },
   });
 
-  // TODO: Send OTP via Twilio WhatsApp/SMS when account is configured
-  if (env.NODE_ENV === "development") {
+  // Deliver the code via Akedly (WhatsApp/SMS) when enabled. We pass OUR code so
+  // verification stays local (verifyOtp checks otp_codes) — Akedly is purely the
+  // transport, so manual-admin OTP and the demo bypass are untouched. On failure
+  // we surface it so the client can fall back to the manual-code path; the row is
+  // already written, so an admin-issued code for the same phone still verifies.
+  if (env.AKEDLY_ENABLED) {
+    try {
+      await sendAkedlyOtp(phone, otp, endUserIp);
+    } catch (err) {
+      const e = err as AkedlyError;
+      logger.error(
+        { phone: phone.slice(-4), code: e?.code, msg: "akedly_send_failed" },
+        e?.message ?? "Akedly send failed",
+      );
+      throw AppError.badRequest(
+        "We couldn't send your code right now. Tap “request a code” to get one from support.",
+        "OTP_SEND_FAILED",
+      );
+    }
+  } else if (env.NODE_ENV === "development") {
     logger.info({ phone, otp }, "OTP generated (dev mode — not sent via SMS)");
   }
 

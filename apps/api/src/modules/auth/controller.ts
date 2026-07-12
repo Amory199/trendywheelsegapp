@@ -10,7 +10,9 @@ import * as authService from "./service.js";
 
 export async function sendOtp(req: Request, res: Response): Promise<void> {
   const { phone } = req.body;
-  const result = await authService.sendOtp(phone);
+  // Forward the real client IP so Akedly's per-IP rate-limit sees the user, not
+  // our server. Express populates req.ip from X-Forwarded-For (trust proxy is on).
+  const result = await authService.sendOtp(phone, req.ip);
   res.json(result);
 }
 
