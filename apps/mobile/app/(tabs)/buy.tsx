@@ -1,189 +1,74 @@
-import { useQuery } from "@tanstack/react-query";
-import { discountPercent, isVehicleOnSale, type VehicleCategory } from "@trendywheels/types";
-import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
+import { Ionicons } from "@expo/vector-icons";
+import { spacing } from "@trendywheels/ui-tokens";
 import { useRouter } from "expo-router";
 import * as React from "react";
-import { useState } from "react";
-import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CategoryCircles } from "../../components/CategoryCircles";
-import { ErrorState } from "../../components/ErrorState";
-import { ListingCard } from "../../components/ListingCard";
+import { CategoryStrip } from "../../components/CategoryStrip";
 import { TWAurora } from "../../components/ui";
-import { api } from "../../lib/api";
 import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
-import { useDisplay } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
-type Category = "cart_new" | "cart_used" | "parts" | "accessory";
-
-interface Product {
-  id: string;
-  category: Category;
-  name: string;
-  priceEgp: string | number;
-  images: string[];
-  inStock: boolean;
-  brand?: string | null;
-  vehicleId?: string | null;
-  // Surfaced by the API from a linked on-sale vehicle so Buy matches On-Sale.
-  salePrice?: string | number | null;
-  originalPriceEgp?: string | number | null;
-  // Linked vehicle's category (golf-cart / scooter / …) so carts get their
-  // brand outline and category page the way Rent does. Null for parts/accessories.
-  vehicleCategory?: VehicleCategory | null;
-  // Linked vehicle's fuel type — drives the pink fuel pill on combustion carts.
-  vehicleFuelType?: string | null;
-}
-
-const TABS: { id: Category | "all"; labelKey: string }[] = [
-  { id: "all", labelKey: "buy.tabAll" },
-  { id: "cart_new", labelKey: "buy.tabNew" },
-  { id: "cart_used", labelKey: "buy.tabUsed" },
-  { id: "parts", labelKey: "buy.tabParts" },
-  { id: "accessory", labelKey: "buy.tabAccessory" },
-];
-
-const CARD_GAP = 12;
-const PADDING = 16;
-const W = (Dimensions.get("window").width - PADDING * 2 - CARD_GAP) / 2;
-
+// Buy mirrors Rent exactly: a full category photo-grid. Tapping a category
+// opens that category's buy page (/buy/category/[key]); the "All categories"
+// tile opens /buy/category/all which lists everything (carts + parts + access.).
 export default function BuyScreen(): React.JSX.Element {
   const router = useRouter();
-  const t = useT();
-  const display = useDisplay();
-  const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState<Category | "all">("all");
-  const scrollHandler = useTabBarScrollHandler();
   const { palette } = useTheme();
-
-  // One fetch, client-side category filter. Lets us hide tabs for categories
-  // with no products (all synced carts start as cart_new until the admin
-  // recategorizes, so Used/Parts/Access. would otherwise be dead-empty tabs).
-  const q = useQuery({
-    queryKey: ["mobile-products"],
-    queryFn: () => api.request<{ data: Product[] }>("GET", "/api/products?limit=80"),
-  });
-  const all = q.data?.data ?? [];
-  const presentCategories = new Set(all.map((p) => p.category));
-  const visibleTabs = TABS.filter(
-    (tb) => tb.id === "all" || presentCategories.has(tb.id as Category),
-  );
-  // If the selected category empties out (admin recategorized), fall back to All.
-  const activeTab = tab !== "all" && !presentCategories.has(tab) ? "all" : tab;
-  const items = activeTab === "all" ? all : all.filter((p) => p.category === activeTab);
+  const t = useT();
+  const insets = useSafeAreaInsets();
+  const scrollHandler = useTabBarScrollHandler();
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.bg }}>
+    <View style={[styles.container, { backgroundColor: palette.bg }]}>
       <TWAurora variant="ambient" />
-      <View style={{ paddingTop: insets.top + 12, paddingHorizontal: PADDING, paddingBottom: 12 }}>
-        <Text style={[{ fontSize: 38, color: palette.text }, display(0.4)]}>
-          {t("buy.catalogTitle")}
-        </Text>
-        <Text style={{ fontSize: 13, color: palette.muted, marginTop: 2 }}>
-          {t("buy.catalogSubtitle")}
-        </Text>
-      </View>
-
-      <View style={{ paddingHorizontal: PADDING, marginBottom: 12 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {visibleTabs.map((tabItem) => {
-            const active = activeTab === tabItem.id;
-            return (
-              <Pressable
-                key={tabItem.id}
-                onPress={() => setTab(tabItem.id)}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 9,
-                  marginRight: 8,
-                  borderRadius: 999,
-                  backgroundColor: active ? palette.text : palette.card,
-                  borderWidth: active ? 0 : 1,
-                  borderColor: palette.border,
-                }}
-              >
-                <Text
-                  style={{
-                    color: active ? palette.bg : palette.text,
-                    fontWeight: "700",
-                    fontSize: 13,
-                  }}
-                >
-                  {t(tabItem.labelKey)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Vehicle-category shortcuts (same circles as home/rent) — open the
-          category's own buy page, mirroring the rent flow. Hidden until the
-          API serves vehicleCategory (older API → no dead navigation). */}
-      {all.some((p) => p.vehicleCategory != null) ? (
-        <View style={{ marginBottom: 12 }}>
-          <CategoryCircles onPress={(key) => router.push(`/buy/category/${key}` as never)} />
-        </View>
-      ) : null}
-
-      <Animated.ScrollView
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
-        contentContainerStyle={{
-          paddingHorizontal: PADDING,
-          paddingBottom: TAB_BAR_SAFE_BOTTOM,
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: CARD_GAP,
-        }}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: palette.card,
+            borderBottomColor: palette.border,
+            paddingTop: insets.top + 12,
+          },
+        ]}
       >
-        {q.isLoading ? (
-          <Text style={{ padding: 40, color: palette.muted }}>{t("common.loading")}</Text>
-        ) : q.isError ? (
-          <ErrorState onRetry={() => void q.refetch()} style={{ width: "100%", minHeight: 360 }} />
-        ) : items.length === 0 ? (
-          <Text style={{ padding: 40, color: palette.muted }}>{t("buy.emptyCatalog")}</Text>
-        ) : (
-          items.map((p, i) => {
-            // If the cart is linked to a discounted vehicle, show the sale
-            // price with the original struck through — same as the On-Sale rail.
-            const onSale = isVehicleOnSale(p);
-            const shown = onSale ? Number(p.salePrice) : Number(p.priceEgp);
-            // A discounted cart's sale lives on its linked vehicle, and the
-            // vehicle reserve flow is what actually honors salePrice — so route
-            // there (matches the home On-Sale rail) instead of the product
-            // order, which would charge full price. Non-sale items → /buy/[id].
-            const target = onSale && p.vehicleId ? `/sale/${p.vehicleId}` : `/buy/${p.id}`;
-            return (
-              <Animated.View
-                key={p.id}
-                entering={FadeInDown.duration(280).delay(Math.min(i, 8) * 30)}
-              >
-                <ListingCard
-                  width={W}
-                  imageRatio={1}
-                  title={p.name}
-                  priceLabel={`${t("buy.egp")} ${shown.toLocaleString()}`}
-                  strikePriceLabel={
-                    onSale ? `${t("buy.egp")} ${Number(p.originalPriceEgp).toLocaleString()}` : null
-                  }
-                  badge={onSale ? `-${discountPercent(p)}%` : null}
-                  badgeColor={colors.brand.ecoLimelight}
-                  image={p.images[0]}
-                  overlayLabel={!p.inStock ? t("buy.outOfStock") : null}
-                  categoryKey={p.vehicleCategory}
-                  fuelType={p.vehicleFuelType}
-                  onPress={() => router.push(target as never)}
-                />
-              </Animated.View>
-            );
-          })
-        )}
-      </Animated.ScrollView>
+        <Text style={[styles.eyebrow, { color: palette.muted }]}>
+          TRENDY<Text style={styles.eyebrowDot}>.</Text>WHEELS
+        </Text>
+        <Text style={[styles.title, { color: palette.text }]}>{t("buy.catalogTitle")}</Text>
+        <View style={styles.subtitleRow}>
+          <Ionicons name="hand-left-outline" size={14} color={palette.muted} />
+          <Text style={[styles.subtitle, { color: palette.muted }]}>
+            {t("buy.catalogSubtitle")}
+          </Text>
+        </View>
+      </View>
+
+      <CategoryStrip
+        value={null}
+        onChange={(next) => router.push(`/buy/category/${next}` as never)}
+        onScroll={scrollHandler}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 2,
+  },
+  eyebrowDot: { color: "#FF0065" },
+  title: { fontSize: 34, fontWeight: "800", marginTop: 2 },
+  subtitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  subtitle: { fontSize: 14 },
+});

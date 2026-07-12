@@ -37,6 +37,9 @@ interface Product {
   images: string[];
   inStock: boolean;
   category: ProductCategory;
+  // Linked vehicle's category/fuel (API-surfaced) → brand outline + fuel pill.
+  vehicleCategory?: string | null;
+  vehicleFuelType?: string | null;
 }
 
 export default function HomeScreen(): React.JSX.Element {
@@ -138,6 +141,8 @@ export default function HomeScreen(): React.JSX.Element {
         priceLabel={`${t("home.egp")} ${Number(p.priceEgp).toLocaleString()}`}
         image={p.images?.[0]}
         overlayLabel={!p.inStock ? t("buy.outOfStock") : null}
+        categoryKey={p.vehicleCategory}
+        fuelType={p.vehicleFuelType}
         onPress={() => router.push(`/buy/${p.id}` as never)}
       />
     ),
@@ -152,6 +157,8 @@ export default function HomeScreen(): React.JSX.Element {
         badge={t("home.badgeForSale")}
         badgeColor={colors.brand.trendyPink}
         overlayLabel={!p.inStock ? t("buy.outOfStock") : null}
+        categoryKey={p.vehicleCategory}
+        fuelType={p.vehicleFuelType}
         onPress={() => router.push(`/buy/${p.id}` as never)}
       />
     ),
