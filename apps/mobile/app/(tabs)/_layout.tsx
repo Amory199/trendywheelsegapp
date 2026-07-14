@@ -1,7 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBar, type BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { colors, layout } from "@trendywheels/ui-tokens";
 import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
@@ -9,6 +9,34 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useT } from "../../lib/locale";
 import { TabBarScrollProvider, useTabBarTranslate } from "../../lib/tab-bar-scroll";
 import { useTheme } from "../../lib/use-theme";
+
+// Custom brand tab icons (blue→purple 3D set). Full-color, so they can't be
+// tinted like the old Ionicons — active/inactive is conveyed by opacity instead,
+// and the label keeps its active-blue / inactive-muted tint from screenOptions.
+const TAB_ICONS = {
+  home: require("../../assets/tabs/home.png"),
+  buy: require("../../assets/tabs/buy.png"),
+  rent: require("../../assets/tabs/rent.png"),
+  sell: require("../../assets/tabs/sell.png"),
+  service: require("../../assets/tabs/service.png"),
+  profile: require("../../assets/tabs/profile.png"),
+} as const;
+
+function TabIcon({
+  name,
+  focused,
+}: {
+  name: keyof typeof TAB_ICONS;
+  focused: boolean;
+}): JSX.Element {
+  return (
+    <Image
+      source={TAB_ICONS[name]}
+      style={[styles.tabIcon, { opacity: focused ? 1 : 0.5 }]}
+      contentFit="contain"
+    />
+  );
+}
 
 // Glassy bottom tab bar. Translucent BlurView background with theme-aware
 // scrim + hairline brand-tinted top border. Tint swaps based on light/dark.
@@ -57,6 +85,10 @@ function AutoHidingTabBar(props: BottomTabBarProps): JSX.Element {
   );
 }
 
+const styles = StyleSheet.create({
+  tabIcon: { width: 32, height: 30 },
+});
+
 export default function TabLayout(): JSX.Element {
   const { palette, isDark } = useTheme();
   const t = useT();
@@ -90,58 +122,42 @@ export default function TabLayout(): JSX.Element {
           name="index"
           options={{
             title: t("tabs.home"),
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
-            ),
+            tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="buy"
           options={{
             title: t("tabs.buy"),
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? "bag" : "bag-outline"} size={24} color={color} />
-            ),
+            tabBarIcon: ({ focused }) => <TabIcon name="buy" focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="rent"
           options={{
             title: t("tabs.rent"),
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? "car" : "car-outline"} size={24} color={color} />
-            ),
+            tabBarIcon: ({ focused }) => <TabIcon name="rent" focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="sell"
           options={{
             title: t("tabs.sell"),
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? "pricetag" : "pricetag-outline"} size={24} color={color} />
-            ),
+            tabBarIcon: ({ focused }) => <TabIcon name="sell" focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="repair"
           options={{
             title: t("tabs.repair"),
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons
-                name={focused ? "construct" : "construct-outline"}
-                size={24}
-                color={color}
-              />
-            ),
+            tabBarIcon: ({ focused }) => <TabIcon name="service" focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
             title: t("tabs.profile"),
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
-            ),
+            tabBarIcon: ({ focused }) => <TabIcon name="profile" focused={focused} />,
           }}
         />
       </Tabs>
