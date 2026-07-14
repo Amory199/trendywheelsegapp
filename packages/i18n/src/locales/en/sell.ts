@@ -11,6 +11,13 @@ export default {
     tradeIn: "Trade in for a new one",
     tradeInSub: "Get a quote on yours, apply credit toward a fresh model.",
     browseMarketplace: "Browse marketplace →",
+    howTitle: "How selling works",
+    step1Title: "List it in minutes",
+    step1Sub: "Snap a few photos and set your price.",
+    step2Title: "We find the buyer",
+    step2Sub: "Your golf cart reaches thousands of TrendyWheels shoppers.",
+    step3Title: "Get paid, hassle-free",
+    step3Sub: "We handle the deal, the paperwork, and the handover.",
   },
 
   detail: {

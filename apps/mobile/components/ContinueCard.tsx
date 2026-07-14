@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   thumbPlaceholder: { alignItems: "center", justifyContent: "center" },
   middle: { flex: 1, minWidth: 0 },
   title: { fontSize: 14, fontWeight: "700", color: INK },
-  price: { fontSize: 16, color: colors.brand.trendyPink, marginTop: 2 },
+  price: { fontSize: 16, color: INK, marginTop: 2 },
   cta: {
     flexDirection: "row",
     alignItems: "center",

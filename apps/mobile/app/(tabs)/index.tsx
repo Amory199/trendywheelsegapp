@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { isRTL } from "@trendywheels/i18n";
 import { isVehicleOnSale, type Vehicle } from "@trendywheels/types";
 import { colors, TAB_BAR_SAFE_BOTTOM } from "@trendywheels/ui-tokens";
 import { LinearGradient } from "expo-linear-gradient";
@@ -11,6 +10,7 @@ import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CategoryCircles } from "../../components/CategoryCircles";
+import { DeliverAreaPicker } from "../../components/DeliverAreaPicker";
 import { ContinueCard } from "../../components/ContinueCard";
 import { HomeSearchBar } from "../../components/HomeSearchBar";
 import { ListingCard } from "../../components/ListingCard";
@@ -23,7 +23,7 @@ import { ServicesRail } from "../../components/ServicesRail";
 import { TWAurora } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
-import { useLocale, useT } from "../../lib/locale";
+import { useT } from "../../lib/locale";
 import { useTabBarScrollHandler } from "../../lib/tab-bar-scroll";
 import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
@@ -45,7 +45,6 @@ interface Product {
 export default function HomeScreen(): React.JSX.Element {
   const router = useRouter();
   const t = useT();
-  const rtl = isRTL(useLocale((s) => s.locale));
   const display = useDisplay();
   const track = useTracking();
   const insets = useSafeAreaInsets();
@@ -197,22 +196,7 @@ export default function HomeScreen(): React.JSX.Element {
             style={styles.headerDecor}
           />
           <View style={styles.headerTop}>
-            <Pressable
-              onPress={() => router.push("/search")}
-              hitSlop={6}
-              style={styles.locationPill}
-            >
-              <Ionicons name="location-outline" size={14} color="#fff" />
-              <View style={styles.locationText}>
-                <Text style={styles.locationLabel} numberOfLines={1}>
-                  {t("home.deliverTo")}
-                </Text>
-                <Text style={styles.locationArea} numberOfLines={1}>
-                  {t("home.deliverDefault")}
-                </Text>
-              </View>
-              <Ionicons name={rtl ? "chevron-back" : "chevron-forward"} size={14} color="#fff" />
-            </Pressable>
+            <DeliverAreaPicker />
 
             <Pressable
               onPress={() => router.push("/profile/notifications")}
@@ -343,20 +327,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  locationPill: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.18)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  locationText: { flex: 1, minWidth: 0 },
-  locationLabel: { color: "rgba(255,255,255,0.75)", fontSize: 10, fontWeight: "700" },
-  locationArea: { color: "#fff", fontSize: 13, fontWeight: "800" },
   iconBtn: {
     width: 40,
     height: 40,

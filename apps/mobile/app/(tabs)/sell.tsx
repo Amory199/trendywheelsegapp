@@ -18,19 +18,19 @@ const HUB_PATHS = [
     href: "/sell/create",
     labelKey: "sell.hub.sellOutright",
     subKey: "sell.hub.sellOutrightSub",
-    image: "https://picsum.photos/seed/sell-outright/1200/700",
+    image: require("../../assets/sell/outright.jpg"),
   },
   {
     href: "/sell/list-for-rent",
     labelKey: "sell.hub.listForRent",
     subKey: "sell.hub.listForRentSub",
-    image: "https://picsum.photos/seed/sell-list-rent/1200/700",
+    image: require("../../assets/sell/rent.jpg"),
   },
   {
     href: "/sell/trade-in",
     labelKey: "sell.hub.tradeIn",
     subKey: "sell.hub.tradeInSub",
-    image: "https://picsum.photos/seed/sell-trade-in/1200/700",
+    image: require("../../assets/sell/tradein.jpg"),
   },
 ] as const;
 
@@ -106,6 +106,29 @@ export default function SellScreen(): JSX.Element {
             {t("sell.hub.browseMarketplace")}
           </Text>
         </View>
+
+        {/* How-selling-works — fills the space below the hub cards with a clear,
+            reassuring 3-step explainer (brand-colored step numbers). */}
+        <View style={styles.how}>
+          <Text style={[styles.howTitle, display(0), { color: palette.text }]}>
+            {t("sell.hub.howTitle")}
+          </Text>
+          {[
+            { n: "1", c: "#A9F453", title: t("sell.hub.step1Title"), sub: t("sell.hub.step1Sub") },
+            { n: "2", c: "#00C7EA", title: t("sell.hub.step2Title"), sub: t("sell.hub.step2Sub") },
+            { n: "3", c: "#FF0065", title: t("sell.hub.step3Title"), sub: t("sell.hub.step3Sub") },
+          ].map((step) => (
+            <View key={step.n} style={styles.stepRow}>
+              <View style={[styles.stepNum, { backgroundColor: step.c }]}>
+                <Text style={styles.stepNumText}>{step.n}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.stepTitle, { color: palette.text }]}>{step.title}</Text>
+                <Text style={[styles.stepSub, { color: palette.muted }]}>{step.sub}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
       </Animated.ScrollView>
     </View>
   );
@@ -114,6 +137,19 @@ export default function SellScreen(): JSX.Element {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingBottom: TAB_BAR_SAFE_BOTTOM + 24 },
+  how: { paddingHorizontal: spacing.lg, marginTop: spacing.xl, gap: spacing.md },
+  howTitle: { fontSize: 22, fontWeight: "800", marginBottom: 4 },
+  stepRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  stepNum: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepNumText: { fontSize: 16, fontWeight: "900", color: "#02011F" },
+  stepTitle: { fontSize: 15, fontWeight: "700" },
+  stepSub: { fontSize: 13, marginTop: 1 },
   header: { paddingTop: 60, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
   title: { fontSize: 44, lineHeight: 46 },
   subtitle: { fontSize: 15, marginTop: 8 },

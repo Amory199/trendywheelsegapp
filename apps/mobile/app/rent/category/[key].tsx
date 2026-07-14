@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: spacing.sm,
   },
-  cardPrice: { color: colors.brand.trendyPink, fontWeight: "800", fontSize: 15 },
+  cardPrice: { color: colors.text.light, fontWeight: "800", fontSize: 15 },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
   cardLocation: { color: palette.muted, fontSize: 11.5 },
   empty: { flex: 1, justifyContent: "center", alignItems: "center", gap: spacing.md },

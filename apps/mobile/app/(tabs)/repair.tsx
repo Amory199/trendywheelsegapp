@@ -206,7 +206,15 @@ export default function RepairScreen(): React.JSX.Element {
                   borderRadius: 14,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: "#0c0b3a",
+                  // White chip so brand icons read cleanly (matches ServicesRail).
+                  backgroundColor: "#FFFFFF",
+                  borderWidth: 1,
+                  borderColor: "rgba(2,1,31,0.12)",
+                  shadowColor: "#000",
+                  shadowOpacity: 0.14,
+                  shadowRadius: 5,
+                  shadowOffset: { width: 0, height: 2 },
+                  elevation: 3,
                 }}
               >
                 <Image source={s.img} style={{ width: 32, height: 32 }} contentFit="contain" />

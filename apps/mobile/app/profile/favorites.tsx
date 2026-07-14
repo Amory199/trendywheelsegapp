@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   thumb: { width: 72, height: 72, borderRadius: 10, backgroundColor: colors.dark.border },
   info: { flex: 1, gap: 4 },
   name: { color: colors.text.light, fontWeight: "700", fontSize: 15 },
-  price: { color: colors.brand.trendyPink, fontWeight: "700", fontSize: 13 },
+  price: { color: colors.text.light, fontWeight: "700", fontSize: 13 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   ratingWrap: { flexDirection: "row", alignItems: "center", gap: 3 },
   ratingText: { color: colors.text.secondary, fontSize: 12, fontWeight: "600" },

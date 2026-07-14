@@ -305,7 +305,7 @@ export default function RentDetailScreen(): React.JSX.Element {
               </View>
               <View style={{ alignItems: "flex-end" }}>
                 <PriceGate size="lg">
-                  <Text style={{ fontSize: 20, color: colors.brand.trendyPink, fontWeight: "800" }}>
+                  <Text style={{ fontSize: 20, color: palette.text, fontWeight: "800" }}>
                     {twEGP(Number(vehicle.dailyRate))}
                   </Text>
                   <Text style={{ fontSize: 12, color: palette.muted }}>{t("rent.perDay")}</Text>
@@ -560,7 +560,7 @@ export default function RentDetailScreen(): React.JSX.Element {
               >
                 {t("rent.total").toUpperCase()}
               </Text>
-              <Text style={{ fontSize: 18, color: colors.brand.trendyPink, fontWeight: "800" }}>
+              <Text style={{ fontSize: 18, color: palette.text, fontWeight: "800" }}>
                 {twEGP(Number(vehicle.dailyRate))}
                 <Text style={{ fontSize: 12, color: palette.muted, fontWeight: "500" }}>
                   {" "}

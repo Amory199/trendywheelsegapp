@@ -166,7 +166,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
                 style={[
                   {
                     fontSize: 36,
-                    color: colors.brand.trendyPink,
+                    color: palette.text,
                   },
                   display(0.3),
                 ]}
@@ -250,7 +250,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
           <>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 11, color: palette.muted }}>{t("buy.total")}</Text>
-              <Text style={[{ fontSize: 22, color: colors.brand.trendyPink }, display(0)]}>
+              <Text style={[{ fontSize: 22, color: palette.text }, display(0)]}>
                 {t("buy.egp")} {Number(p.priceEgp).toLocaleString()}
               </Text>
             </View>

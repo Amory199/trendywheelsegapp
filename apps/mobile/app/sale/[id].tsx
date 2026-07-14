@@ -250,7 +250,7 @@ export default function SaleDetailScreen(): React.JSX.Element {
             <View style={{ marginTop: 10 }}>
               <PriceGate size="lg">
                 <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10 }}>
-                  <Text style={{ fontSize: 26, color: colors.brand.trendyPink, fontWeight: "800" }}>
+                  <Text style={{ fontSize: 26, color: palette.text, fontWeight: "800" }}>
                     {twEGP(sale)}
                   </Text>
                   {hasDiscount ? (
@@ -387,7 +387,7 @@ export default function SaleDetailScreen(): React.JSX.Element {
               >
                 {t("sale.price").toUpperCase()}
               </Text>
-              <Text style={{ fontSize: 18, color: colors.brand.trendyPink, fontWeight: "800" }}>
+              <Text style={{ fontSize: 18, color: palette.text, fontWeight: "800" }}>
                 {twEGP(sale)}
               </Text>
             </View>

@@ -103,9 +103,16 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0c0b3a",
+    // White chip so the 3D brand icons read cleanly (matches the category
+    // circles). Neutral hairline + soft shadow keep it defined on light bg too.
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "rgba(43,15,248,0.25)",
+    borderColor: "rgba(2,1,31,0.12)",
+    shadowColor: "#000",
+    shadowOpacity: 0.14,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   iconImg: { width: 44, height: 44 },
   label: { fontSize: 11, fontWeight: "700", textAlign: "center" },

@@ -160,7 +160,13 @@ function ListingCardImpl({
               {strikePriceLabel}
             </Text>
           ) : null}
-          <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.price, display(0.3)]}>
+          {/* Price in theme text (white on the dark app, dark in light mode) —
+              the pink was hard to read; white reads cleanly on the card. */}
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[styles.price, display(0.3), { color: palette.text }]}
+          >
             {priceLabel}
           </Text>
         </PriceGate>
@@ -214,7 +220,6 @@ const styles = StyleSheet.create({
   priceRow: { marginTop: 3 },
   price: {
     fontSize: 17,
-    color: colors.brand.trendyPink,
   },
   strikePrice: {
     fontSize: 12,

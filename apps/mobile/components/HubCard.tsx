@@ -11,7 +11,8 @@ import { useT } from "../lib/locale";
 import { useDisplay, useTracking } from "../lib/typography";
 
 interface HubCardProps {
-  imageUri: string;
+  /** Remote URL (string) or a bundled `require(...)` asset (number). */
+  imageUri: string | number;
   label: string;
   sub: string;
   onPress: () => void;
@@ -25,7 +26,11 @@ export function HubCard({ imageUri, label, sub, onPress, compact }: HubCardProps
   const track = useTracking();
   return (
     <Pressable onPress={onPress} style={[styles.card, compact && styles.cardCompact]}>
-      <Image source={{ uri: imageUri }} style={styles.bg} contentFit="cover" />
+      <Image
+        source={typeof imageUri === "number" ? imageUri : { uri: imageUri }}
+        style={styles.bg}
+        contentFit="cover"
+      />
       <LinearGradient
         colors={["rgba(2,1,31,0.9)", "rgba(2,1,31,0.45)", "rgba(2,1,31,0)"]}
         start={compact ? { x: 0, y: 1 } : { x: 0, y: 0 }}
