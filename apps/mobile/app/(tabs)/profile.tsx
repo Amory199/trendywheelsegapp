@@ -203,6 +203,7 @@ export default function ProfileScreen(): React.JSX.Element {
         <Animated.View entering={FadeInDown.duration(420).delay(180)}>
           <ActivityCard
             icon="calendar-outline"
+            image={require("../../assets/menu/bookings.png")}
             title={t("profile.activity.bookingsTitle")}
             subtitle={
               bookingsCount === 0
@@ -219,6 +220,7 @@ export default function ProfileScreen(): React.JSX.Element {
         <Animated.View entering={FadeInDown.duration(430).delay(210)}>
           <ActivityCard
             icon="bag-outline"
+            image={require("../../assets/menu/orders.png")}
             title={t("profile.activity.ordersTitle")}
             subtitle={
               ordersCount === 0
@@ -235,6 +237,7 @@ export default function ProfileScreen(): React.JSX.Element {
         <Animated.View entering={FadeInDown.duration(432).delay(217)}>
           <ActivityCard
             icon="pricetag-outline"
+            image={require("../../assets/menu/reservations.png")}
             title={t("profile.activity.reservationsTitle")}
             subtitle={t("profile.activity.reservationsSubtitle")}
             tone="blue"
@@ -245,6 +248,7 @@ export default function ProfileScreen(): React.JSX.Element {
         <Animated.View entering={FadeInDown.duration(435).delay(225)}>
           <ActivityCard
             icon="heart-outline"
+            image={require("../../assets/menu/saved.png")}
             title={t("profile.activity.savedTitle")}
             subtitle={
               savedCount > 0
@@ -259,6 +263,7 @@ export default function ProfileScreen(): React.JSX.Element {
         <Animated.View entering={FadeInDown.duration(437).delay(232)}>
           <ActivityCard
             icon="chatbubbles-outline"
+            image={require("../../assets/menu/messages.png")}
             title={t("profile.activity.messagesTitle")}
             subtitle={
               unreadCount > 0
@@ -273,6 +278,7 @@ export default function ProfileScreen(): React.JSX.Element {
         <Animated.View entering={FadeInDown.duration(440).delay(240)}>
           <ActivityCard
             icon="pricetag-outline"
+            image={require("../../assets/menu/listings.png")}
             title={t("profile.activity.listingsTitle")}
             subtitle={
               listingsCount === 0
@@ -289,6 +295,7 @@ export default function ProfileScreen(): React.JSX.Element {
         <Animated.View entering={FadeInDown.duration(460).delay(300)}>
           <ActivityCard
             icon="construct-outline"
+            image={require("../../assets/menu/repairs.png")}
             title={t("profile.activity.repairsTitle")}
             subtitle={
               repairsCount === 0
@@ -305,6 +312,7 @@ export default function ProfileScreen(): React.JSX.Element {
         <Animated.View entering={FadeInDown.duration(470).delay(330)}>
           <ActivityCard
             icon="car-sport-outline"
+            image={require("../../assets/menu/rentals.png")}
             title={t("profile.activity.rentalsTitle")}
             subtitle={
               rentalsCount === 0
@@ -321,6 +329,7 @@ export default function ProfileScreen(): React.JSX.Element {
         <Animated.View entering={FadeInDown.duration(475).delay(345)}>
           <ActivityCard
             icon="swap-horizontal-outline"
+            image={require("../../assets/menu/tradeins.png")}
             title={t("profile.activity.tradeInsTitle")}
             subtitle={
               tradeInsCount === 0

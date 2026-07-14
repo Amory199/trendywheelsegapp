@@ -5,6 +5,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@trendywheels/ui-tokens";
+import { Image } from "expo-image";
 import * as React from "react";
 import { Text, View } from "react-native";
 
@@ -29,6 +30,9 @@ interface Props {
   tone: Tone;
   badge?: string;
   onPress: () => void;
+  /** Optional branded PNG icon (require(...)). When set it replaces the Ionicon
+   *  and the tile switches to a neutral box so the full-color icon reads cleanly. */
+  image?: number;
 }
 
 export function ActivityCard({
@@ -38,8 +42,9 @@ export function ActivityCard({
   tone,
   badge,
   onPress,
+  image,
 }: Props): React.JSX.Element {
-  const { palette } = useTheme();
+  const { palette, isDark } = useTheme();
   const track = useTracking();
   const accent = TONE_MAP[tone];
   return (
@@ -64,12 +69,20 @@ export function ActivityCard({
           width: 56,
           height: 56,
           borderRadius: 14,
-          backgroundColor: `${accent}22`,
+          backgroundColor: image
+            ? isDark
+              ? "rgba(255,255,255,0.08)"
+              : "rgba(43,15,248,0.07)"
+            : `${accent}22`,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Ionicons name={icon} size={26} color={accent} />
+        {image ? (
+          <Image source={image} style={{ width: 36, height: 34 }} contentFit="contain" />
+        ) : (
+          <Ionicons name={icon} size={26} color={accent} />
+        )}
       </View>
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
