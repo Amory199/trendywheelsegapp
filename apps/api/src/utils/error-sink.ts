@@ -58,31 +58,43 @@ export async function writeError(ctx: ErrorContext): Promise<void> {
     ctx.message,
   );
 
-  try {
-    Sentry.withScope((scope) => {
-      scope.setLevel(level === "fatal" ? "fatal" : level === "warn" ? "warning" : "error");
-      scope.setTag("source", ctx.source);
-      scope.setTag(
-        "origin",
-        ctx.source === "mobile" ||
-          ["admin", "support", "inventory", "customer"].includes(ctx.source)
-          ? "client-forwarded"
-          : "server",
-      );
-      if (ctx.route) scope.setTag("route", ctx.route);
-      if (ctx.method) scope.setTag("method", ctx.method);
-      if (ctx.userId) scope.setUser({ id: ctx.userId });
-      if (ctx.metadata) scope.setExtras(ctx.metadata);
-      if (ctx.stack) {
-        const err = new Error(ctx.message);
-        err.stack = ctx.stack;
-        Sentry.captureException(err);
-      } else {
-        Sentry.captureMessage(ctx.message);
-      }
-    });
-  } catch {
-    /* never let Sentry breakage prevent local logging */
+  // Expected auth rejections (401 unauthenticated / 403 forbidden) are the auth
+  // layer doing its job — invalid/expired tokens, guest hits on protected routes,
+  // failed logins, permission denials. They are never server bugs, and at volume
+  // they bury the real errors in Sentry. Keep them OUT of Sentry, but still
+  // persist them to the ErrorLog table + local logger below (RECORD-EVERYTHING,
+  // owner directive 2026-06-21 — nothing goes unnoticed, it's just not paged).
+  // Validation 400s and every 5xx still reach Sentry.
+  const isExpectedAuthNoise =
+    level === "warn" && (ctx.statusCode === 401 || ctx.statusCode === 403);
+
+  if (!isExpectedAuthNoise) {
+    try {
+      Sentry.withScope((scope) => {
+        scope.setLevel(level === "fatal" ? "fatal" : level === "warn" ? "warning" : "error");
+        scope.setTag("source", ctx.source);
+        scope.setTag(
+          "origin",
+          ctx.source === "mobile" ||
+            ["admin", "support", "inventory", "customer"].includes(ctx.source)
+            ? "client-forwarded"
+            : "server",
+        );
+        if (ctx.route) scope.setTag("route", ctx.route);
+        if (ctx.method) scope.setTag("method", ctx.method);
+        if (ctx.userId) scope.setUser({ id: ctx.userId });
+        if (ctx.metadata) scope.setExtras(ctx.metadata);
+        if (ctx.stack) {
+          const err = new Error(ctx.message);
+          err.stack = ctx.stack;
+          Sentry.captureException(err);
+        } else {
+          Sentry.captureMessage(ctx.message);
+        }
+      });
+    } catch {
+      /* never let Sentry breakage prevent local logging */
+    }
   }
 
   try {
