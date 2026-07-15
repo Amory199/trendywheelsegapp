@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { JSX } from "react";
 
+import { BlockDatesCalendar } from "../../../components/BlockDatesCalendar";
 import { api } from "../../../lib/api";
 
 const TYPE_LABELS: Record<VehicleType, string> = {
@@ -40,6 +41,9 @@ interface VehicleForm {
   saleDescription: string;
   // Weekdays this vehicle can be rented on (0=Sun … 6=Sat). Empty = every day.
   availableDays: number[];
+  weeklyRate: number;
+  monthlyRate: number;
+  blockedDates: string[];
 }
 
 // Weekday toggles for the rental-availability picker (index = JS getDay).
@@ -76,6 +80,9 @@ export default function VehicleCreatePage(): JSX.Element {
     originalPriceEgp: 0,
     saleDescription: "",
     availableDays: [],
+    weeklyRate: 0,
+    monthlyRate: 0,
+    blockedDates: [],
   });
   // The `type` field is a general, optional vehicle kind ("off-road" /
   // "on-road" / "utility" / "luxury") that applies across every category.
@@ -161,6 +168,9 @@ export default function VehicleCreatePage(): JSX.Element {
         // Weekly availability only applies to rentable vehicles; a sale-only
         // cart carries no day restriction.
         availableDays: needsRent ? form.availableDays : [],
+        weeklyRate: needsRent && form.weeklyRate > 0 ? form.weeklyRate : null,
+        monthlyRate: needsRent && form.monthlyRate > 0 ? form.monthlyRate : null,
+        blockedDates: needsRent ? form.blockedDates : [],
         images: uploadedUrls,
         features: form.features
           .split(",")
@@ -422,6 +432,49 @@ export default function VehicleCreatePage(): JSX.Element {
                 Customers can only book dates that fall on the selected days. Leave all off =
                 available every day.
               </p>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-500 block mb-1">
+                    Weekly Rate (EGP)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.weeklyRate || ""}
+                    placeholder="Optional"
+                    onChange={(e) => setForm((f) => ({ ...f, weeklyRate: Number(e.target.value) }))}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 block mb-1">
+                    Monthly Rate (EGP)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.monthlyRate || ""}
+                    placeholder="Optional"
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, monthlyRate: Number(e.target.value) }))
+                    }
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Leave weekly/monthly blank to charge daily × 7 / × 30. When set, longer rentals
+                auto-use the cheapest mix.
+              </p>
+              <div className="mt-4">
+                <label className="text-xs font-medium text-gray-500 block mb-1">
+                  Blocked dates
+                </label>
+                <BlockDatesCalendar
+                  value={form.blockedDates}
+                  onChange={(next) => setForm((f) => ({ ...f, blockedDates: next }))}
+                />
+              </div>
             </div>
           )}
           <div>

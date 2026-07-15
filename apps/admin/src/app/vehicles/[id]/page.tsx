@@ -15,6 +15,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 
+import { BlockDatesCalendar } from "../../../components/BlockDatesCalendar";
 import { api } from "../../../lib/api";
 
 const TYPE_LABELS: Record<VehicleType, string> = {
@@ -64,6 +65,9 @@ export default function VehicleEditPage(): JSX.Element {
   const [originalPriceEgp, setOriginalPriceEgp] = useState(0);
   const [saleDescription, setSaleDescription] = useState("");
   const [availableDays, setAvailableDays] = useState<number[]>([]);
+  const [weeklyRate, setWeeklyRate] = useState(0);
+  const [monthlyRate, setMonthlyRate] = useState(0);
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<Array<{ file: File; preview: string }>>([]);
   const [loading, setLoading] = useState(false);
@@ -86,6 +90,9 @@ export default function VehicleEditPage(): JSX.Element {
       setOriginalPriceEgp(vehicle.originalPriceEgp ?? 0);
       setSaleDescription(vehicle.saleDescription ?? "");
       setAvailableDays(vehicle.availableDays ?? []);
+      setWeeklyRate(vehicle.weeklyRate ?? 0);
+      setMonthlyRate(vehicle.monthlyRate ?? 0);
+      setBlockedDates((vehicle.blockedDates ?? []).map((d) => String(d).slice(0, 10)));
       // The API returns images as { url, sortOrder, ... } objects; the update
       // contract expects string URLs, so flatten on load.
       const imgs = (vehicle.images as unknown as Array<string | { url: string }>) ?? [];
@@ -172,6 +179,9 @@ export default function VehicleEditPage(): JSX.Element {
         listingType,
         // Weekly availability only applies to rentable vehicles.
         availableDays: needsRent ? availableDays : [],
+        weeklyRate: needsRent && weeklyRate > 0 ? weeklyRate : null,
+        monthlyRate: needsRent && monthlyRate > 0 ? monthlyRate : null,
+        blockedDates: needsRent ? blockedDates : [],
         images: [...existingImages, ...uploadedUrls],
         features: features
           .split(",")
@@ -390,6 +400,44 @@ export default function VehicleEditPage(): JSX.Element {
                 Customers can only book dates that fall on the selected days. Leave all off =
                 available every day.
               </p>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-500 block mb-1">
+                    Weekly Rate (EGP)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={weeklyRate || ""}
+                    placeholder="Optional"
+                    onChange={(e) => setWeeklyRate(Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 block mb-1">
+                    Monthly Rate (EGP)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={monthlyRate || ""}
+                    placeholder="Optional"
+                    onChange={(e) => setMonthlyRate(Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Leave weekly/monthly blank to charge daily × 7 / × 30. When set, longer rentals
+                auto-use the cheapest mix.
+              </p>
+              <div className="mt-4">
+                <label className="text-xs font-medium text-gray-500 block mb-1">
+                  Blocked dates
+                </label>
+                <BlockDatesCalendar value={blockedDates} onChange={setBlockedDates} />
+              </div>
             </div>
           )}
           <div>
