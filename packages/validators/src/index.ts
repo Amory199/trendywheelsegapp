@@ -96,11 +96,12 @@ export const availableDaysSchema = z
   .transform((days) => [...new Set(days)].sort((a, b) => a - b))
   .optional();
 
-// One-off admin blackout dates as YYYY-MM-DD strings (deduped + sorted).
+// One-off admin blackout dates. Accepts YYYY-MM-DD (deduped + sorted), emitted as
+// full ISO-8601 at UTC midnight — Prisma's DateTime[] @db.Date rejects date-only.
 export const blockedDatesSchema = z
   .array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dates must be YYYY-MM-DD"))
   .max(366)
-  .transform((d) => [...new Set(d)].sort())
+  .transform((d) => [...new Set(d)].sort().map((s) => `${s}T00:00:00.000Z`))
   .optional();
 
 export const createVehicleSchema = z
