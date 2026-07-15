@@ -89,6 +89,13 @@ const transmissionEnum = z.enum(["automatic", "manual"]);
 const vehicleStatusEnum = z.enum(["available", "rented", "maintenance", "inactive"]);
 const listingTypeEnum = z.enum(["rent", "sale", "both"]);
 
+// Weekly rental availability: unique weekday numbers 0=Sun … 6=Sat, max 7.
+export const availableDaysSchema = z
+  .array(z.number().int().min(0).max(6))
+  .max(7)
+  .transform((days) => [...new Set(days)].sort((a, b) => a - b))
+  .optional();
+
 export const createVehicleSchema = z
   .object({
     name: z.string().min(1).max(100),
@@ -109,6 +116,8 @@ export const createVehicleSchema = z
     salePrice: z.coerce.number().positive().optional(),
     originalPriceEgp: z.coerce.number().positive().optional(),
     saleDescription: z.string().max(2000).optional(),
+    // Weekdays the vehicle can be rented on (0=Sun … 6=Sat). Empty = every day.
+    availableDays: availableDaysSchema.default([]),
   })
   .refine((v) => v.listingType === "rent" || (v.salePrice !== undefined && v.salePrice > 0), {
     message: "salePrice is required when listingType is 'sale' or 'both'",
@@ -151,6 +160,7 @@ export const updateVehicleSchema = z
     salePrice: z.coerce.number().positive().nullable().optional(),
     originalPriceEgp: z.coerce.number().positive().nullable().optional(),
     saleDescription: z.string().max(2000).nullable().optional(),
+    availableDays: availableDaysSchema,
   })
   .refine(
     // If this update sets the listing to rent/both AND touches dailyRate, the rate

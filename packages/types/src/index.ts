@@ -21,6 +21,39 @@ export function rentalDays(start: Date | string, end: Date | string): number {
   return Math.max(1, Math.ceil(diff));
 }
 
+/** Short weekday labels indexed by JS getDay() (0=Sun … 6=Sat). */
+export const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+/** The weekday number (0=Sun … 6=Sat) of a date-only string, computed in UTC so a
+ *  `YYYY-MM-DD` slice maps to the intended calendar day regardless of the runtime tz. */
+export function weekdayOf(day: Date | string): number {
+  const d = typeof day === "string" ? new Date(`${day.slice(0, 10)}T00:00:00Z`) : day;
+  return d.getUTCDay();
+}
+
+/**
+ * The sorted, unique weekdays (0=Sun … 6=Sat) within [start, end] INCLUSIVE that
+ * are NOT in `availableDays`. Empty `availableDays` = available every day → []. The
+ * CANONICAL weekly-availability rule — the booking guard and the app date picker
+ * must both use this so "block unavailable days" means the same on client & server.
+ */
+export function unavailableWeekdays(
+  start: Date | string,
+  end: Date | string,
+  availableDays: number[] | null | undefined,
+): number[] {
+  if (!availableDays || availableDays.length === 0) return [];
+  const allowed = new Set(availableDays);
+  const s = new Date(`${String(start).slice(0, 10)}T00:00:00Z`);
+  const e = new Date(`${String(end).slice(0, 10)}T00:00:00Z`);
+  const hit = new Set<number>();
+  for (let t = s.getTime(); t <= e.getTime(); t += MS_PER_DAY) {
+    const wd = new Date(t).getUTCDay();
+    if (!allowed.has(wd)) hit.add(wd);
+  }
+  return [...hit].sort((a, b) => a - b);
+}
+
 interface SalePriced {
   salePrice?: number | string | null;
   originalPriceEgp?: number | string | null;
@@ -193,6 +226,8 @@ export interface Vehicle {
   averageRating: number;
   images: string[];
   features: string[];
+  // Weekdays this vehicle can be rented on (0=Sun … 6=Sat). Empty = every day.
+  availableDays: number[];
   createdAt: string;
   updatedAt: string;
 }

@@ -1130,6 +1130,42 @@ curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/vehicles/$VC_ID" -H "Authorization: Bea
   || fail "admin DELETE sale buggy failed"
 pass "sale-buggy cleanup"
 
+# ─── 12x. Weekly rental availability guard ───────────────────
+# A rentable vehicle may be limited to certain weekdays (availableDays, 0=Sun…6=Sat).
+# A booking whose date range touches a weekday outside that set must be rejected
+# with a specific message; a booking wholly on an available weekday succeeds.
+note "12x. Weekly availability blocks out-of-window weekdays"
+WA_WD=$(date -u -d '+30 days' +%w)                                  # 0=Sun..6=Sat, matches getDay
+WA_START=$(date -u -d '+30 days' +%Y-%m-%dT10:00:00.000Z)
+WA_SAMEDAY_END=$(date -u -d '+30 days' +%Y-%m-%dT14:00:00.000Z)     # same weekday, later time
+WA_NEXTDAY=$(date -u -d '+31 days' +%Y-%m-%dT10:00:00.000Z)         # WD+1 — out of window
+WA_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/vehicles" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"name\":\"Smoke Sale Cart\",\"category\":\"golf-cart\",\"seating\":4,\"fuelType\":\"electric\",\"transmission\":\"automatic\",\"location\":\"6th October\",\"listingType\":\"rent\",\"dailyRate\":500,\"availableDays\":[$WA_WD]}") \
+  || fail "admin create rentable vehicle with availableDays rejected"
+WA_ID=$(echo "$WA_CREATE" | jq -r '.id // .data.id')
+[ -n "$WA_ID" ] && [ "$WA_ID" != "null" ] || fail "no availability-vehicle id: $WA_CREATE"
+[ "$(echo "$WA_CREATE" | jq -c '.data.availableDays')" = "[$WA_WD]" ] \
+  || fail "availableDays not persisted/serialized: $WA_CREATE"
+# In-window booking (whole range on the available weekday) succeeds.
+WA_OK_BODY=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/bookings" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"vehicleId\":\"$WA_ID\",\"startDate\":\"$WA_START\",\"endDate\":\"$WA_SAMEDAY_END\"}")
+WA_OK_ID=$(echo "$WA_OK_BODY" | jq -r '.data.id // empty')
+[ -n "$WA_OK_ID" ] || fail "booking on an available weekday should succeed: $WA_OK_BODY"
+# Out-of-window booking (range crosses the next weekday) is rejected specifically.
+WA_BLOCK=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/bookings" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"vehicleId\":\"$WA_ID\",\"startDate\":\"$WA_START\",\"endDate\":\"$WA_NEXTDAY\"}")
+echo "$WA_BLOCK" | grep -qi "not available" \
+  || fail "booking across an unavailable weekday was not rejected: $WA_BLOCK"
+pass "weekly availability: in-window booking ok, out-of-window rejected"
+# Cleanup the booking + vehicle.
+curl -sS -A "$SMOKE_UA" -XDELETE "$BASE/bookings/$WA_OK_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
+curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/vehicles/$WA_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
+  || fail "cleanup availability vehicle failed"
+pass "availability-vehicle cleanup"
+
 # ─── 12t. Logout revokes ONLY the presented session ──────────
 # Any logout used to revoke every refresh token the user had — logging out on
 # one device silently forced-logged-out all their other devices.

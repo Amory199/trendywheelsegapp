@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 
-import { LOYALTY, rentalDays } from "@trendywheels/types";
+import { LOYALTY, rentalDays, unavailableWeekdays, WEEKDAY_LABELS } from "@trendywheels/types";
 
 import { prisma } from "../../config/database.js";
 import { requireOwner, scopeListToOwner } from "../../utils/auth-roles.js";
@@ -76,6 +76,28 @@ export async function create(req: Request, res: Response): Promise<void> {
   // without this guard Number(null) * days = 0 and the booking is free.
   if (vehicle.listingType === "sale" || vehicle.dailyRate == null) {
     throw AppError.badRequest("This vehicle is not available for rent");
+  }
+
+  // Weekly availability: the vehicle may only be rentable on certain weekdays
+  // (availableDays, 0=Sun … 6=Sat). Empty = every day. Reject any range that
+  // touches a weekday it isn't available on, naming the offending days so the
+  // customer gets a specific message instead of a generic "invalid" error.
+  const blockedDays = unavailableWeekdays(
+    startDate as string,
+    endDate as string,
+    vehicle.availableDays,
+  );
+  if (blockedDays.length > 0) {
+    const bad = blockedDays.map((d) => WEEKDAY_LABELS[d]).join(", ");
+    const open = vehicle.availableDays
+      .slice()
+      .sort((a, b) => a - b)
+      .map((d) => WEEKDAY_LABELS[d])
+      .join("/");
+    throw AppError.badRequest(
+      `Not available on ${bad}. This vehicle rents on ${open} only — pick dates on those days.`,
+      "VEHICLE_DAY_UNAVAILABLE",
+    );
   }
 
   // Stock check: count active overlapping bookings against the vehicle's
