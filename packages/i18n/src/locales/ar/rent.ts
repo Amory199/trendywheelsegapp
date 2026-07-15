@@ -74,6 +74,36 @@ const rent: Stringify<typeof enNs> = {
   viewMyBookings: "عرض حجوزاتي",
   backToBrowse: "العودة للتصفح",
 
+  // Verify-identity step (last step of the wizard) — app/rent/book.tsx
+  stepVerify: "التحقق",
+  verifyIdentity: "تأكيد الهوية",
+  verifyIdentitySub:
+    "نحتاج بطاقتك الشخصية ورخصة القيادة لتسليم المركبة. تُحفظ في ملفك للمرات القادمة.",
+  idFront: "البطاقة — الأمام",
+  idBack: "البطاقة — الخلف",
+  tapToUpload: "اضغط للرفع",
+  licenseNumberLabel: "رقم رخصة القيادة",
+  licenseExpiryLabel: "انتهاء الرخصة",
+  licensePhotoLabel: "صورة الرخصة (اختياري)",
+  pickDate: "اختر التاريخ",
+  licenseTooShort: "رقم الرخصة قصير جداً",
+  licenseTooLong: "رقم الرخصة طويل جداً",
+  licenseExpiryRequired: "أضف تاريخ انتهاء الرخصة",
+  idRequired: "ارفع وجهي البطاقة الشخصية",
+  identityVerified: "الهوية محفوظة",
+
+  // Weekly availability
+  availableOnDays: "متاح في",
+  notAvailableOnPrefix: "غير متاح في",
+  rentsOnPrefix: "يتاح في",
+  dow0: "أحد",
+  dow1: "إثنين",
+  dow2: "ثلاثاء",
+  dow3: "أربعاء",
+  dow4: "خميس",
+  dow5: "جمعة",
+  dow6: "سبت",
+
   // Category list — app/rent/category/[key].tsx
   allCategories: "كل الفئات",
   vehiclesFallback: "السيارات",

@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { rentalDays } from "@trendywheels/types";
+import { rentalDays, unavailableWeekdays } from "@trendywheels/types";
 import { colors, type Palette, spacing, typography } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -51,7 +53,32 @@ import { useT } from "../../lib/locale";
 import { playSound } from "../../lib/sounds";
 import { useTheme } from "../../lib/use-theme";
 
-const STEP_KEYS = ["rent.stepDates", "rent.stepYourInfo", "rent.stepPayment"] as const;
+const STEP_KEYS = [
+  "rent.stepDates",
+  "rent.stepYourInfo",
+  "rent.stepPayment",
+  "rent.stepVerify",
+] as const;
+
+// Driver's-licence number bounds — MUST match the server (updateUserSchema:
+// z.string().min(3).max(40)) so the app never lets through a value the API 400s.
+const LICENSE_MIN = 3;
+const LICENSE_MAX = 40;
+
+type IdImg = { uri: string | null; mime: string };
+
+/** Upload a locally-picked image to storage and return its absolute URL. A URL
+ *  that's already remote (already on the profile) is passed through untouched,
+ *  and a missing image yields null. Absolute URLs keep updateUserSchema's
+ *  z.string().url() checks happy — a relative URL was a prime "invalid form" cause. */
+async function uploadIfLocal(img: IdImg, prefix: string): Promise<string | null> {
+  if (!img.uri) return null;
+  if (!img.uri.startsWith("file:")) return img.uri;
+  const { uploadUrl, fileUrl } = await api.getUploadUrl(img.mime, prefix);
+  const blob = await fetch(img.uri).then((r) => r.blob());
+  await fetch(uploadUrl, { method: "PUT", body: blob, headers: { "Content-Type": img.mime } });
+  return fileUrl;
+}
 
 function StepIndicator({ current }: { current: number }): JSX.Element {
   const { palette } = useTheme();
@@ -88,7 +115,7 @@ export default function BookScreen(): JSX.Element {
   const insets = useSafeAreaInsets();
   const { vehicleId } = useLocalSearchParams<{ vehicleId: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [step, setStep] = useState(0);
 
   const [startDate, setStartDate] = useState("");
@@ -96,11 +123,25 @@ export default function BookScreen(): JSX.Element {
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
-  const [licenseNum, setLicenseNum] = useState("");
   const [fulfillment, setFulfillment] = useState<FulfillmentValue>({ type: null, location: "" });
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
   const [booked, setBooked] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
+
+  // Identity (last step) — pre-filled from the profile so returning customers
+  // just tap through; persisted back to the profile on Confirm.
+  const [idFront, setIdFront] = useState<IdImg>({
+    uri: user?.idFrontUrl ?? null,
+    mime: "image/jpeg",
+  });
+  const [idBack, setIdBack] = useState<IdImg>({ uri: user?.idBackUrl ?? null, mime: "image/jpeg" });
+  const [licenseNum, setLicenseNum] = useState(user?.licenseNumber ?? "");
+  const [licenseExpiry, setLicenseExpiry] = useState(user?.licenseExpiry ?? "");
+  const [licensePhoto, setLicensePhoto] = useState<IdImg>({
+    uri: user?.licensePhotoUrl ?? null,
+    mime: "image/jpeg",
+  });
+  const [showExpiry, setShowExpiry] = useState(false);
 
   const { data: vehicleData } = useQuery({
     queryKey: ["vehicle", vehicleId],
@@ -116,8 +157,73 @@ export default function BookScreen(): JSX.Element {
 
   const totalCost = days * Number(vehicle?.dailyRate ?? 0);
 
+  // Weekly availability: which weekdays in the picked range the vehicle isn't
+  // available on (empty availableDays = every day → []). Shared rule so this
+  // block matches the server's rejection exactly.
+  const blockedDays = useMemo(
+    () =>
+      startDate && endDate ? unavailableWeekdays(startDate, endDate, vehicle?.availableDays) : [],
+    [startDate, endDate, vehicle?.availableDays],
+  );
+
+  // Inline licence validation — bounds match the server (LICENSE_MIN/MAX).
+  const licenseTrimmed = licenseNum.trim();
+  const licenseError =
+    licenseTrimmed.length === 0
+      ? null
+      : licenseTrimmed.length < LICENSE_MIN
+        ? t("rent.licenseTooShort")
+        : licenseTrimmed.length > LICENSE_MAX
+          ? t("rent.licenseTooLong")
+          : null;
+  const licenseValid = licenseTrimmed.length >= LICENSE_MIN && licenseTrimmed.length <= LICENSE_MAX;
+  const identityComplete = !!idFront.uri && !!idBack.uri && licenseValid && !!licenseExpiry;
+
+  // Step-advance gate (steps 0–2; step 3 uses the Confirm button + identityComplete).
+  const canGoNext =
+    step === 0
+      ? !!startDate &&
+        !!endDate &&
+        new Date(endDate) > new Date(startDate) &&
+        blockedDays.length === 0
+      : step === 1
+        ? !!name && !!email && !!phone
+        : true;
+
+  const dowLabel = (d: number): string => t(`rent.dow${d}` as Parameters<typeof t>[0]);
+
+  const pickImage = async (set: (s: IdImg) => void): Promise<void> => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsEditing: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      set({ uri: result.assets[0].uri, mime: result.assets[0].mimeType ?? "image/jpeg" });
+    }
+  };
+
   const mutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      // 1. Persist identity to the profile first (upload any newly-picked images).
+      //    Sends a strict ISO expiry + absolute photo URLs so the server never
+      //    400s the licence the way the old up-front form could ("invalid form").
+      if (user) {
+        const [idFrontUrl, idBackUrl, licensePhotoUrl] = await Promise.all([
+          uploadIfLocal(idFront, "id-documents"),
+          uploadIfLocal(idBack, "id-documents"),
+          uploadIfLocal(licensePhoto, "licenses"),
+        ]);
+        const updated = await api.updateUser(user.id, {
+          idFrontUrl,
+          idBackUrl,
+          licenseNumber: licenseTrimmed,
+          licenseExpiry: licenseExpiry ? new Date(licenseExpiry).toISOString() : null,
+          licensePhotoUrl: licensePhotoUrl ?? null,
+        });
+        setUser(updated.data);
+      }
+      // 2. Create the booking.
       const payload = {
         vehicleId: vehicleId!,
         startDate: new Date(startDate).toISOString(),
@@ -181,6 +287,22 @@ export default function BookScreen(): JSX.Element {
           {step === 0 && (
             <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
               <Text style={styles.stepHeading}>{t("rent.selectDates")}</Text>
+              {vehicle?.availableDays &&
+              vehicle.availableDays.length > 0 &&
+              vehicle.availableDays.length < 7 ? (
+                <View style={styles.availNote}>
+                  <Ionicons name="calendar-outline" size={15} color={colors.brand.friendlyBlue} />
+                  <Text style={styles.availNoteText}>
+                    {t("rent.availableOnDays")}{" "}
+                    <Text style={styles.availNoteDays}>
+                      {[...vehicle.availableDays]
+                        .sort((a, b) => a - b)
+                        .map((d) => dowLabel(d))
+                        .join(" · ")}
+                    </Text>
+                  </Text>
+                </View>
+              ) : null}
               <DateField label={t("rent.pickupDate")} value={startDate} onChange={setStartDate} />
               <DateField
                 label={t("rent.returnDate")}
@@ -188,7 +310,11 @@ export default function BookScreen(): JSX.Element {
                 onChange={setEndDate}
                 minimumDate={startDate ? new Date(startDate) : undefined}
               />
-              {days > 0 && (
+              {blockedDays.length > 0 ? (
+                <Text style={styles.blockedText}>
+                  {t("rent.notAvailableOnPrefix")} {blockedDays.map((d) => dowLabel(d)).join(", ")}.
+                </Text>
+              ) : days > 0 ? (
                 <View style={styles.summaryCard}>
                   <Text style={styles.summaryText}>
                     {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} ·{" "}
@@ -198,7 +324,7 @@ export default function BookScreen(): JSX.Element {
                     </Text>
                   </Text>
                 </View>
-              )}
+              ) : null}
             </Animated.View>
           )}
 
@@ -224,12 +350,6 @@ export default function BookScreen(): JSX.Element {
                 onChangeText={setPhone}
                 placeholder={t("rent.phonePlaceholder")}
                 keyboardType="phone-pad"
-              />
-              <LabeledInput
-                label={t("rent.driversLicense")}
-                value={licenseNum}
-                onChangeText={setLicenseNum}
-                placeholder={t("rent.licensePlaceholder")}
               />
               <FulfillmentPicker side="buy" value={fulfillment} onChange={setFulfillment} />
             </Animated.View>
@@ -274,17 +394,100 @@ export default function BookScreen(): JSX.Element {
               </View>
             </Animated.View>
           )}
+
+          {step === 3 && (
+            <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
+              <Text style={styles.stepHeading}>{t("rent.verifyIdentity")}</Text>
+              <Text style={styles.verifySub}>{t("rent.verifyIdentitySub")}</Text>
+
+              <View style={styles.idRow}>
+                <IdPhoto
+                  label={t("rent.idFront")}
+                  img={idFront}
+                  onPress={() => pickImage(setIdFront)}
+                />
+                <IdPhoto
+                  label={t("rent.idBack")}
+                  img={idBack}
+                  onPress={() => pickImage(setIdBack)}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t("rent.licenseNumberLabel")}</Text>
+                <TextInput
+                  style={[styles.input, !!licenseError && styles.inputError]}
+                  value={licenseNum}
+                  onChangeText={setLicenseNum}
+                  placeholder={t("rent.licensePlaceholder")}
+                  placeholderTextColor={palette.muted}
+                  autoCapitalize="characters"
+                />
+                {licenseError ? <Text style={styles.fieldError}>{licenseError}</Text> : null}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t("rent.licenseExpiryLabel")}</Text>
+                <Pressable
+                  style={[styles.input, { justifyContent: "center" }]}
+                  onPress={() => setShowExpiry(true)}
+                >
+                  <Text
+                    style={{ color: licenseExpiry ? palette.text : palette.muted, fontSize: 15 }}
+                  >
+                    {licenseExpiry
+                      ? new Date(licenseExpiry).toLocaleDateString()
+                      : t("rent.pickDate")}
+                  </Text>
+                </Pressable>
+                {showExpiry && (
+                  <DateTimePicker
+                    value={licenseExpiry ? new Date(licenseExpiry) : new Date()}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    minimumDate={new Date()}
+                    onChange={(e, picked) => {
+                      if (Platform.OS !== "ios") setShowExpiry(false);
+                      if (e.type === "set" && picked) setLicenseExpiry(picked.toISOString());
+                    }}
+                  />
+                )}
+                {showExpiry && Platform.OS === "ios" && (
+                  <Pressable onPress={() => setShowExpiry(false)} style={styles.pickerDoneBtn}>
+                    <Text style={styles.pickerDoneBtnText}>{t("rent.done")}</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t("rent.licensePhotoLabel")}</Text>
+                <Pressable
+                  onPress={() => pickImage(setLicensePhoto)}
+                  style={styles.licensePhotoBtn}
+                >
+                  {licensePhoto.uri ? (
+                    <Image
+                      source={{ uri: licensePhoto.uri }}
+                      style={StyleSheet.absoluteFill}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={styles.photoEmpty}>
+                      <Ionicons name="camera-outline" size={26} color={palette.muted} />
+                      <Text style={styles.photoEmptyText}>{t("rent.tapToUpload")}</Text>
+                    </View>
+                  )}
+                </Pressable>
+              </View>
+            </Animated.View>
+          )}
         </ScrollView>
 
         <View style={styles.footer}>
-          {step < 2 ? (
+          {step < 3 ? (
             <Pressable
-              style={[
-                styles.nextBtn,
-                !canProceed(step, { startDate, endDate, name, email, phone, licenseNum }) &&
-                  styles.btnDisabled,
-              ]}
-              disabled={!canProceed(step, { startDate, endDate, name, email, phone, licenseNum })}
+              style={[styles.nextBtn, !canGoNext && styles.btnDisabled]}
+              disabled={!canGoNext}
               onPress={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setStep((s) => s + 1);
@@ -295,11 +498,14 @@ export default function BookScreen(): JSX.Element {
             </Pressable>
           ) : (
             <Pressable
-              style={[styles.confirmBtn, (mutation.isPending || !vehicle) && styles.btnDisabled]}
+              style={[
+                styles.confirmBtn,
+                (mutation.isPending || !vehicle || !identityComplete) && styles.btnDisabled,
+              ]}
               // Block confirm until the vehicle (and thus the real price) has
               // loaded — otherwise a slow/failed fetch lets a booking submit
-              // against a "NaN / 0 EGP" breakdown.
-              disabled={mutation.isPending || !vehicle}
+              // against a "NaN / 0 EGP" breakdown — and until identity is complete.
+              disabled={mutation.isPending || !vehicle || !identityComplete}
               onPress={() => mutation.mutate()}
             >
               {mutation.isPending ? (
@@ -318,25 +524,33 @@ export default function BookScreen(): JSX.Element {
   );
 }
 
-function canProceed(
-  step: number,
-  fields: {
-    startDate: string;
-    endDate: string;
-    name: string;
-    email: string;
-    phone: string;
-    licenseNum: string;
-  },
-): boolean {
-  if (step === 0)
-    return (
-      !!fields.startDate &&
-      !!fields.endDate &&
-      new Date(fields.endDate) > new Date(fields.startDate)
-    );
-  if (step === 1) return !!fields.name && !!fields.email && !!fields.phone && !!fields.licenseNum;
-  return true;
+// One side of the national-ID capture (front / back). Shows the picked/stored
+// image or a dashed upload placeholder.
+function IdPhoto({
+  label,
+  img,
+  onPress,
+}: {
+  label: string;
+  img: IdImg;
+  onPress: () => void;
+}): JSX.Element {
+  const { palette } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
+  return (
+    <View style={{ flex: 1, gap: 6 }}>
+      <Text style={styles.inputLabel}>{label}</Text>
+      <Pressable onPress={onPress} style={styles.idPhotoBtn}>
+        {img.uri ? (
+          <Image source={{ uri: img.uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+        ) : (
+          <View style={styles.photoEmpty}>
+            <Ionicons name="camera-outline" size={24} color={palette.muted} />
+          </View>
+        )}
+      </Pressable>
+    </View>
+  );
 }
 
 function DateField({
@@ -525,6 +739,49 @@ function makeStyles(palette: Palette) {
     summaryPrice: { color: colors.accent.DEFAULT, fontWeight: "700" },
     inputGroup: { gap: 6 },
     inputLabel: { color: palette.muted, fontSize: 13 },
+    verifySub: { color: palette.muted, fontSize: 13, lineHeight: 19, marginBottom: spacing.sm },
+    idRow: { flexDirection: "row", gap: spacing.md },
+    idPhotoBtn: {
+      height: 120,
+      borderRadius: 12,
+      overflow: "hidden",
+      backgroundColor: palette.card,
+      borderWidth: 1,
+      borderColor: palette.border,
+      borderStyle: "dashed",
+    },
+    licensePhotoBtn: {
+      height: 150,
+      borderRadius: 12,
+      overflow: "hidden",
+      backgroundColor: palette.card,
+      borderWidth: 1,
+      borderColor: palette.border,
+      borderStyle: "dashed",
+    },
+    photoEmpty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4 },
+    photoEmptyText: { color: palette.muted, fontSize: 12 },
+    inputError: { borderColor: colors.error },
+    fieldError: { color: colors.error, fontSize: 12, marginTop: 2 },
+    availNote: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: `${colors.brand.friendlyBlue}18`,
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+    },
+    availNoteText: { color: palette.text, fontSize: 13, flex: 1 },
+    availNoteDays: { color: colors.brand.friendlyBlue, fontWeight: "700" },
+    blockedText: {
+      color: colors.error,
+      fontSize: 13,
+      fontWeight: "600",
+      backgroundColor: `${colors.error}14`,
+      borderRadius: 10,
+      padding: 12,
+    },
     pickerDoneBtn: {
       alignSelf: "flex-end",
       paddingHorizontal: spacing.md,

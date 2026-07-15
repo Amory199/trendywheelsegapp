@@ -26,7 +26,6 @@ import { logEvent } from "../../lib/analytics";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
-import { ensureId } from "../../lib/require-id";
 import { useDisplay, useTracking } from "../../lib/typography";
 import { useTheme } from "../../lib/use-theme";
 
@@ -271,6 +270,49 @@ export default function RentDetailScreen(): React.JSX.Element {
               {/* Pink fuel pill — combustion vehicles only, electric stays clean. */}
               <FuelBadge fuelType={vehicle.fuelType} />
             </View>
+            {vehicle.availableDays &&
+            vehicle.availableDays.length > 0 &&
+            vehicle.availableDays.length < 7 ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 10,
+                }}
+              >
+                <Ionicons name="calendar-outline" size={14} color={palette.muted} />
+                <Text
+                  style={{ color: palette.muted, fontSize: 12, fontWeight: "600", marginRight: 2 }}
+                >
+                  {t("rent.availableOnDays")}
+                </Text>
+                {[...vehicle.availableDays]
+                  .sort((a, b) => a - b)
+                  .map((d) => (
+                    <View
+                      key={d}
+                      style={{
+                        backgroundColor: `${colors.brand.friendlyBlue}1f`,
+                        borderRadius: 999,
+                        paddingHorizontal: 9,
+                        paddingVertical: 3,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: colors.brand.friendlyBlue,
+                          fontSize: 12,
+                          fontWeight: "700",
+                        }}
+                      >
+                        {t(`rent.dow${d}` as Parameters<typeof t>[0])}
+                      </Text>
+                    </View>
+                  ))}
+              </View>
+            ) : null}
             <View
               style={{
                 flexDirection: "row",
@@ -574,22 +616,16 @@ export default function RentDetailScreen(): React.JSX.Element {
               icon="arrow-forward"
               iconRight
               onPress={() => {
-                const u = useAuth.getState().user;
-                const bookParams = {
-                  vehicleId: vehicle.id,
-                  dailyRate: String(vehicle.dailyRate),
-                  name: vehicle.name,
-                };
-                // Every transaction requires the customer's ID on file first.
-                if (!ensureId(u, router, `/rent/${vehicle.id}`)) return;
-                if (!u?.licenseNumber) {
-                  router.push({
-                    pathname: "/profile/license",
-                    params: { next: "/rent/book", ...bookParams },
-                  });
-                } else {
-                  router.push({ pathname: "/rent/book", params: bookParams });
-                }
+                // Identity (ID + licence) is now collected as the LAST step of
+                // the booking wizard, not gated up front — go straight in.
+                router.push({
+                  pathname: "/rent/book",
+                  params: {
+                    vehicleId: vehicle.id,
+                    dailyRate: String(vehicle.dailyRate),
+                    name: vehicle.name,
+                  },
+                });
               }}
               style={{ paddingHorizontal: 28 }}
             >

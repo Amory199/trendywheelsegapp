@@ -71,6 +71,36 @@ export default {
   viewMyBookings: "View My Bookings",
   backToBrowse: "Back to Browse",
 
+  // Verify-identity step (last step of the wizard) — app/rent/book.tsx
+  stepVerify: "Verify",
+  verifyIdentity: "Verify your identity",
+  verifyIdentitySub:
+    "We need your national ID and driver's licence to hand over the vehicle. It's saved to your profile for next time.",
+  idFront: "National ID — front",
+  idBack: "National ID — back",
+  tapToUpload: "Tap to upload",
+  licenseNumberLabel: "Driver's licence number",
+  licenseExpiryLabel: "Licence expiry",
+  licensePhotoLabel: "Licence photo (optional)",
+  pickDate: "Pick a date",
+  licenseTooShort: "Licence number looks too short",
+  licenseTooLong: "Licence number is too long",
+  licenseExpiryRequired: "Add your licence expiry date",
+  idRequired: "Upload both sides of your national ID",
+  identityVerified: "Identity on file",
+
+  // Weekly availability
+  availableOnDays: "Available on",
+  notAvailableOnPrefix: "Not available on",
+  rentsOnPrefix: "rents on",
+  dow0: "Sun",
+  dow1: "Mon",
+  dow2: "Tue",
+  dow3: "Wed",
+  dow4: "Thu",
+  dow5: "Fri",
+  dow6: "Sat",
+
   // Category list — app/rent/category/[key].tsx
   allCategories: "All categories",
   vehiclesFallback: "Vehicles",
