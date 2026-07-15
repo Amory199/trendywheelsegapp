@@ -103,6 +103,11 @@ const rent: Stringify<typeof enNs> = {
   dow4: "خميس",
   dow5: "جمعة",
   dow6: "سبت",
+  pickDatesHint: "اختر تاريخ الاستلام والإرجاع من التقويم. الأيام الرمادية غير متاحة.",
+  legendSelected: "المحدد",
+  legendUnavailable: "غير متاح",
+  weeklyRateShort: "أسبوعي",
+  monthlyRateShort: "شهري",
 
   // Category list — app/rent/category/[key].tsx
   allCategories: "كل الفئات",

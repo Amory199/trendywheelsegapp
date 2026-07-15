@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { rentalDays, unavailableWeekdays } from "@trendywheels/types";
+import { rentalDays, rentalQuote } from "@trendywheels/types";
 import { colors, type Palette, spacing, typography } from "@trendywheels/ui-tokens";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -43,6 +43,7 @@ import {
   type FulfillmentValue,
 } from "../../components/FulfillmentPicker";
 import { GuestGate } from "../../components/GuestGate";
+import { RentCalendar } from "../../components/RentCalendar";
 import { TWSkiaConfetti } from "../../components/skia/confetti";
 import { openContextChat } from "../../lib/context-chat";
 import { logEvent } from "../../lib/analytics";
@@ -151,20 +152,31 @@ export default function BookScreen(): JSX.Element {
 
   const vehicle = vehicleData?.data;
 
+  // Availability for the calendar: weekday pattern + admin blackout dates +
+  // fully-booked dates. Falls back to the vehicle DTO's own fields while loading.
+  const { data: availData } = useQuery({
+    queryKey: ["availability", vehicleId],
+    queryFn: () => api.getVehicleAvailability(vehicleId!),
+    enabled: !!vehicleId,
+  });
+  const avail = availData?.data;
+  const availableDays = avail?.availableDays ?? vehicle?.availableDays ?? [];
+  const blockedDates = avail?.blockedDates ?? [];
+  const bookedDates = avail?.bookedDates ?? [];
+
   // Shared billable-days rule (@trendywheels/types) so the estimate shown here
   // matches what the API charges. 0 until both dates are picked.
   const days = startDate && endDate ? rentalDays(startDate, endDate) : 0;
 
-  const totalCost = days * Number(vehicle?.dailyRate ?? 0);
-
-  // Weekly availability: which weekdays in the picked range the vehicle isn't
-  // available on (empty availableDays = every day → []). Shared rule so this
-  // block matches the server's rejection exactly.
-  const blockedDays = useMemo(
-    () =>
-      startDate && endDate ? unavailableWeekdays(startDate, endDate, vehicle?.availableDays) : [],
-    [startDate, endDate, vehicle?.availableDays],
-  );
+  // Cheapest daily/weekly/monthly mix — same engine the server charges with.
+  const totalCost =
+    days > 0 && vehicle?.dailyRate != null
+      ? rentalQuote(days, {
+          daily: Number(vehicle.dailyRate),
+          weekly: vehicle.weeklyRate != null ? Number(vehicle.weeklyRate) : null,
+          monthly: vehicle.monthlyRate != null ? Number(vehicle.monthlyRate) : null,
+        }).total
+      : 0;
 
   // Inline licence validation — bounds match the server (LICENSE_MIN/MAX).
   const licenseTrimmed = licenseNum.trim();
@@ -180,17 +192,14 @@ export default function BookScreen(): JSX.Element {
   const identityComplete = !!idFront.uri && !!idBack.uri && licenseValid && !!licenseExpiry;
 
   // Step-advance gate (steps 0–2; step 3 uses the Confirm button + identityComplete).
+  // The calendar only ever yields a contiguous available range, so start+end is
+  // sufficient here — no separate weekday re-check needed.
   const canGoNext =
     step === 0
-      ? !!startDate &&
-        !!endDate &&
-        new Date(endDate) > new Date(startDate) &&
-        blockedDays.length === 0
+      ? !!startDate && !!endDate && endDate > startDate
       : step === 1
         ? !!name && !!email && !!phone
         : true;
-
-  const dowLabel = (d: number): string => t(`rent.dow${d}` as Parameters<typeof t>[0]);
 
   const pickImage = async (set: (s: IdImg) => void): Promise<void> => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -287,34 +296,18 @@ export default function BookScreen(): JSX.Element {
           {step === 0 && (
             <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
               <Text style={styles.stepHeading}>{t("rent.selectDates")}</Text>
-              {vehicle?.availableDays &&
-              vehicle.availableDays.length > 0 &&
-              vehicle.availableDays.length < 7 ? (
-                <View style={styles.availNote}>
-                  <Ionicons name="calendar-outline" size={15} color={colors.brand.friendlyBlue} />
-                  <Text style={styles.availNoteText}>
-                    {t("rent.availableOnDays")}{" "}
-                    <Text style={styles.availNoteDays}>
-                      {[...vehicle.availableDays]
-                        .sort((a, b) => a - b)
-                        .map((d) => dowLabel(d))
-                        .join(" · ")}
-                    </Text>
-                  </Text>
-                </View>
-              ) : null}
-              <DateField label={t("rent.pickupDate")} value={startDate} onChange={setStartDate} />
-              <DateField
-                label={t("rent.returnDate")}
-                value={endDate}
-                onChange={setEndDate}
-                minimumDate={startDate ? new Date(startDate) : undefined}
+              <RentCalendar
+                availableDays={availableDays}
+                blockedDates={blockedDates}
+                bookedDates={bookedDates}
+                startDate={startDate}
+                endDate={endDate}
+                onSelect={(s, e) => {
+                  setStartDate(s);
+                  setEndDate(e);
+                }}
               />
-              {blockedDays.length > 0 ? (
-                <Text style={styles.blockedText}>
-                  {t("rent.notAvailableOnPrefix")} {blockedDays.map((d) => dowLabel(d)).join(", ")}.
-                </Text>
-              ) : days > 0 ? (
+              {days > 0 ? (
                 <View style={styles.summaryCard}>
                   <Text style={styles.summaryText}>
                     {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} ·{" "}
@@ -324,7 +317,9 @@ export default function BookScreen(): JSX.Element {
                     </Text>
                   </Text>
                 </View>
-              ) : null}
+              ) : (
+                <Text style={styles.pickHint}>{t("rent.pickDatesHint")}</Text>
+              )}
             </Animated.View>
           )}
 
@@ -377,8 +372,7 @@ export default function BookScreen(): JSX.Element {
               <View style={styles.totalCard}>
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>
-                    {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")} ×{" "}
-                    {Number(vehicle?.dailyRate ?? 0).toLocaleString()} {t("rent.currency")}
+                    {days} {days !== 1 ? t("rent.dayMany") : t("rent.dayOne")}
                   </Text>
                   <Text style={styles.breakdownValue}>
                     {totalCost.toLocaleString()} {t("rent.currency")}
@@ -553,63 +547,6 @@ function IdPhoto({
   );
 }
 
-function DateField({
-  label,
-  value,
-  onChange,
-  minimumDate,
-}: {
-  label: string;
-  value: string; // YYYY-MM-DD
-  onChange: (next: string) => void;
-  minimumDate?: Date;
-}): JSX.Element {
-  const { palette } = useTheme();
-  const t = useT();
-  const styles = useMemo(() => makeStyles(palette), [palette]);
-  const [show, setShow] = useState(false);
-  const dateValue = value ? new Date(value) : new Date();
-  const formatted = value
-    ? dateValue.toLocaleDateString(undefined, {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : t("rent.tapToChoose");
-
-  return (
-    <View style={styles.inputGroup}>
-      <Text style={styles.inputLabel}>{label}</Text>
-      <Pressable style={[styles.input, { justifyContent: "center" }]} onPress={() => setShow(true)}>
-        <Text style={{ color: value ? palette.text : palette.muted, fontSize: 15 }}>
-          {formatted}
-        </Text>
-      </Pressable>
-      {show && (
-        <DateTimePicker
-          value={dateValue}
-          mode="date"
-          display={Platform.OS === "ios" ? "inline" : "default"}
-          minimumDate={minimumDate ?? new Date()}
-          onChange={(_, picked) => {
-            if (Platform.OS !== "ios") setShow(false);
-            if (picked) {
-              const iso = picked.toISOString().slice(0, 10);
-              onChange(iso);
-            }
-          }}
-        />
-      )}
-      {show && Platform.OS === "ios" && (
-        <Pressable onPress={() => setShow(false)} style={styles.pickerDoneBtn}>
-          <Text style={styles.pickerDoneBtnText}>{t("rent.done")}</Text>
-        </Pressable>
-      )}
-    </View>
-  );
-}
-
 function LabeledInput({
   label,
   value,
@@ -737,6 +674,7 @@ function makeStyles(palette: Palette) {
     },
     summaryText: { color: palette.text, fontSize: 14 },
     summaryPrice: { color: colors.accent.DEFAULT, fontWeight: "700" },
+    pickHint: { color: palette.muted, fontSize: 13, textAlign: "center", marginTop: 4 },
     inputGroup: { gap: 6 },
     inputLabel: { color: palette.muted, fontSize: 13 },
     verifySub: { color: palette.muted, fontSize: 13, lineHeight: 19, marginBottom: spacing.sm },

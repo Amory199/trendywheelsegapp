@@ -354,6 +354,38 @@ export default function RentDetailScreen(): React.JSX.Element {
                 </PriceGate>
               </View>
             </View>
+            {vehicle.weeklyRate != null || vehicle.monthlyRate != null ? (
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                {vehicle.weeklyRate != null ? (
+                  <View
+                    style={{
+                      backgroundColor: `${colors.brand.friendlyBlue}14`,
+                      borderRadius: 999,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                    }}
+                  >
+                    <Text style={{ color: palette.text, fontSize: 12, fontWeight: "700" }}>
+                      {t("rent.weeklyRateShort")} {twEGP(Number(vehicle.weeklyRate))}
+                    </Text>
+                  </View>
+                ) : null}
+                {vehicle.monthlyRate != null ? (
+                  <View
+                    style={{
+                      backgroundColor: `${colors.brand.friendlyBlue}14`,
+                      borderRadius: 999,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                    }}
+                  >
+                    <Text style={{ color: palette.text, fontSize: 12, fontWeight: "700" }}>
+                      {t("rent.monthlyRateShort")} {twEGP(Number(vehicle.monthlyRate))}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
           </Animated.View>
 
           {!user ? (

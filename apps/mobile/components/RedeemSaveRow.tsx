@@ -61,7 +61,11 @@ export function RedeemSaveRow(): JSX.Element {
         <Pressable
           style={({ pressed }) => [
             styles.guestCard,
-            { backgroundColor: colors.brand.trendyPink + "12" },
+            {
+              backgroundColor: palette.card,
+              borderColor: colors.brand.trendyPink,
+              borderWidth: 1.5,
+            },
             pressed && styles.pressed,
           ]}
           onPress={() => requireAuth()}
@@ -99,7 +103,11 @@ export function RedeemSaveRow(): JSX.Element {
       <Pressable
         style={({ pressed }) => [
           styles.card,
-          { backgroundColor: colors.brand.ecoLimelight + "1A" },
+          {
+            backgroundColor: palette.card,
+            borderColor: colors.brand.ecoLimelight,
+            borderWidth: 1.5,
+          },
           pressed && styles.pressed,
         ]}
         onPress={() => router.push("/(tabs)/profile")}
@@ -126,7 +134,7 @@ export function RedeemSaveRow(): JSX.Element {
       <Pressable
         style={({ pressed }) => [
           styles.card,
-          { backgroundColor: colors.brand.poolBlue + "1A" },
+          { backgroundColor: palette.card, borderColor: colors.brand.poolBlue, borderWidth: 1.5 },
           pressed && styles.pressed,
         ]}
         onPress={() => requireAuth(() => router.push("/(tabs)/profile"))}
@@ -158,10 +166,10 @@ const styles = StyleSheet.create({
     padding: 14,
     minHeight: 132,
     shadowColor: "#02011F",
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.14,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    elevation: 4,
   },
   pressed: { transform: [{ scale: 0.98 }] },
   iconWrap: {
@@ -189,10 +197,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     shadowColor: "#02011F",
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.14,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    elevation: 4,
   },
   guestText: { flex: 1 },
   guestTitle: { fontSize: 16, color: INK },

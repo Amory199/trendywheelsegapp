@@ -100,6 +100,11 @@ export default {
   dow4: "Thu",
   dow5: "Fri",
   dow6: "Sat",
+  pickDatesHint: "Pick your pickup and return dates on the calendar. Greyed days aren't available.",
+  legendSelected: "Selected",
+  legendUnavailable: "Unavailable",
+  weeklyRateShort: "Weekly",
+  monthlyRateShort: "Monthly",
 
   // Category list — app/rent/category/[key].tsx
   allCategories: "All categories",
