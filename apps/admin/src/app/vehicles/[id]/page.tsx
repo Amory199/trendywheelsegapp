@@ -63,6 +63,7 @@ export default function VehicleEditPage(): JSX.Element {
   const [salePrice, setSalePrice] = useState(0);
   const [originalPriceEgp, setOriginalPriceEgp] = useState(0);
   const [saleDescription, setSaleDescription] = useState("");
+  const [availableDays, setAvailableDays] = useState<number[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<Array<{ file: File; preview: string }>>([]);
   const [loading, setLoading] = useState(false);
@@ -84,6 +85,7 @@ export default function VehicleEditPage(): JSX.Element {
       setSalePrice(vehicle.salePrice ?? 0);
       setOriginalPriceEgp(vehicle.originalPriceEgp ?? 0);
       setSaleDescription(vehicle.saleDescription ?? "");
+      setAvailableDays(vehicle.availableDays ?? []);
       // The API returns images as { url, sortOrder, ... } objects; the update
       // contract expects string URLs, so flatten on load.
       const imgs = (vehicle.images as unknown as Array<string | { url: string }>) ?? [];
@@ -168,6 +170,8 @@ export default function VehicleEditPage(): JSX.Element {
         location,
         status,
         listingType,
+        // Weekly availability only applies to rentable vehicles.
+        availableDays: needsRent ? availableDays : [],
         images: [...existingImages, ...uploadedUrls],
         features: features
           .split(",")
@@ -356,6 +360,38 @@ export default function VehicleEditPage(): JSX.Element {
               </select>
             </div>
           </div>
+          {listingType !== "sale" && (
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">Available days</label>
+              <div className="flex flex-wrap gap-2">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => {
+                  const on = availableDays.includes(i);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() =>
+                        setAvailableDays((prev) =>
+                          on ? prev.filter((x) => x !== i) : [...prev, i].sort((a, b) => a - b),
+                        )
+                      }
+                      className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
+                        on
+                          ? "bg-primary-600 text-white border-primary-600"
+                          : "bg-white text-gray-600 border-gray-300 hover:border-primary-400"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Customers can only book dates that fall on the selected days. Leave all off =
+                available every day.
+              </p>
+            </div>
+          )}
           <div>
             <label className="text-xs font-medium text-gray-500 block mb-1">Listing type</label>
             <select

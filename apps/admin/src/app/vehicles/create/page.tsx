@@ -38,7 +38,12 @@ interface VehicleForm {
   salePrice: number;
   originalPriceEgp: number;
   saleDescription: string;
+  // Weekdays this vehicle can be rented on (0=Sun … 6=Sat). Empty = every day.
+  availableDays: number[];
 }
+
+// Weekday toggles for the rental-availability picker (index = JS getDay).
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const FEATURES_SUGGESTIONS = [
   "AC",
@@ -70,6 +75,7 @@ export default function VehicleCreatePage(): JSX.Element {
     salePrice: 0,
     originalPriceEgp: 0,
     saleDescription: "",
+    availableDays: [],
   });
   // The `type` field is a general, optional vehicle kind ("off-road" /
   // "on-road" / "utility" / "luxury") that applies across every category.
@@ -152,6 +158,9 @@ export default function VehicleCreatePage(): JSX.Element {
         originalPriceEgp:
           needsSale && form.originalPriceEgp > 0 ? form.originalPriceEgp : undefined,
         saleDescription: needsSale ? form.saleDescription || undefined : undefined,
+        // Weekly availability only applies to rentable vehicles; a sale-only
+        // cart carries no day restriction.
+        availableDays: needsRent ? form.availableDays : [],
         images: uploadedUrls,
         features: form.features
           .split(",")
@@ -380,6 +389,41 @@ export default function VehicleCreatePage(): JSX.Element {
               </select>
             </div>
           </div>
+          {form.listingType !== "sale" && (
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">Available days</label>
+              <div className="flex flex-wrap gap-2">
+                {WEEKDAYS.map((d, i) => {
+                  const on = form.availableDays.includes(i);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          availableDays: on
+                            ? f.availableDays.filter((x) => x !== i)
+                            : [...f.availableDays, i].sort((a, b) => a - b),
+                        }))
+                      }
+                      className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
+                        on
+                          ? "bg-primary-600 text-white border-primary-600"
+                          : "bg-white text-gray-600 border-gray-300 hover:border-primary-400"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Customers can only book dates that fall on the selected days. Leave all off =
+                available every day.
+              </p>
+            </div>
+          )}
           <div>
             <label className="text-xs font-medium text-gray-500 block mb-1">
               Features (comma-separated)
