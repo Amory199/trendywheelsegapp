@@ -16,6 +16,13 @@ const router: RouterType = Router();
 
 router.get("/", validate({ query: vehicleFiltersSchema }), vehicleController.list);
 router.get("/:id", validate({ params: idParamSchema }), vehicleController.getById);
+// Public rental availability for the booking calendar: weekday pattern + admin
+// blackout dates + fully-booked dates. No auth (customers browse before signing in).
+router.get(
+  "/:id/availability",
+  validate({ params: idParamSchema }),
+  vehicleController.availability,
+);
 router.post(
   "/",
   authenticate,

@@ -54,6 +54,68 @@ export function unavailableWeekdays(
   return [...hit].sort((a, b) => a - b);
 }
 
+/** A date (or ISO/Date) as a `YYYY-MM-DD` string, in UTC. */
+export function toISODate(day: Date | string): string {
+  if (typeof day === "string") return day.slice(0, 10);
+  return day.toISOString().slice(0, 10);
+}
+
+/** The admin-blocked dates (YYYY-MM-DD) that fall within [start, end] inclusive. */
+export function blockedDatesInRange(
+  start: Date | string,
+  end: Date | string,
+  blockedDates: Array<Date | string> | null | undefined,
+): string[] {
+  if (!blockedDates || blockedDates.length === 0) return [];
+  const blocked = new Set(blockedDates.map(toISODate));
+  const s = new Date(`${toISODate(start)}T00:00:00Z`);
+  const e = new Date(`${toISODate(end)}T00:00:00Z`);
+  const hit: string[] = [];
+  for (let t = s.getTime(); t <= e.getTime(); t += MS_PER_DAY) {
+    const iso = new Date(t).toISOString().slice(0, 10);
+    if (blocked.has(iso)) hit.push(iso);
+  }
+  return hit;
+}
+
+export interface RentalRates {
+  daily: number;
+  weekly?: number | null;
+  monthly?: number | null;
+}
+
+export interface RentalQuoteResult {
+  /** Billable days (>= 1). */
+  days: number;
+  /** Cheapest total across daily/weekly/monthly blocks. */
+  total: number;
+}
+
+/**
+ * Cheapest rental total for `days` billable days given daily/weekly/monthly rates.
+ * A missing weekly/monthly rate falls back to daily×7 / daily×30 (no discount).
+ * Uses a DP over days so the customer always gets the cheapest mix of blocks and
+ * is never charged more than the next tier up — the CANONICAL rental price. The
+ * booking charge and the app estimate MUST both use this.
+ */
+export function rentalQuote(days: number, rates: RentalRates): RentalQuoteResult {
+  const daily = rates.daily;
+  const weekly = rates.weekly != null && rates.weekly > 0 ? rates.weekly : daily * 7;
+  const monthly = rates.monthly != null && rates.monthly > 0 ? rates.monthly : daily * 30;
+  const n = Math.max(1, Math.ceil(days));
+  // f[i] = cheapest cost to cover i billable days. A block may over-cover the
+  // tail (max(0, i-7)), so a short rental is never charged above the weekly rate.
+  const f = [0];
+  for (let i = 1; i <= n; i++) {
+    f[i] = Math.min(
+      f[i - 1] + daily,
+      f[Math.max(0, i - 7)] + weekly,
+      f[Math.max(0, i - 30)] + monthly,
+    );
+  }
+  return { days: n, total: Math.round(f[n] * 100) / 100 };
+}
+
 interface SalePriced {
   salePrice?: number | string | null;
   originalPriceEgp?: number | string | null;
@@ -216,6 +278,9 @@ export interface Vehicle {
   // rent/both listings. Render as a rent price ONLY when listingType is
   // rent/both — never show it for a sale-only cart.
   dailyRate: number | null;
+  // Optional longer-term rates (null = derive from daily in rentalQuote).
+  weeklyRate: number | null;
+  monthlyRate: number | null;
   location: string;
   status: VehicleStatus;
   listingType: ListingType;
@@ -228,6 +293,8 @@ export interface Vehicle {
   features: string[];
   // Weekdays this vehicle can be rented on (0=Sun … 6=Sat). Empty = every day.
   availableDays: number[];
+  // One-off admin blackout dates (YYYY-MM-DD) on top of the weekday pattern.
+  blockedDates: string[];
   createdAt: string;
   updatedAt: string;
 }

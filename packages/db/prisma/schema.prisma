@@ -301,6 +301,10 @@ model Vehicle {
   fuelType         FuelType        @map("fuel_type")
   transmission     Transmission
   dailyRate        Decimal?        @map("daily_rate") @db.Decimal(10, 2)
+  // Optional longer-term rates. When set, the booking engine charges the cheapest
+  // mix of monthly/weekly/daily blocks; when null they fall back to daily×7 / ×30.
+  weeklyRate       Decimal?        @map("weekly_rate") @db.Decimal(10, 2)
+  monthlyRate      Decimal?        @map("monthly_rate") @db.Decimal(10, 2)
   location         String
   status           VehicleStatus   @default(available)
   listingType      ListingType     @default(rent) @map("listing_type")
@@ -315,6 +319,9 @@ model Vehicle {
   // Empty array = available every day (all existing vehicles → no restriction).
   // A booking whose date range touches a weekday not in this set is rejected.
   availableDays    Int[]           @default([]) @map("available_days")
+  // One-off admin blackout dates (maintenance, holidays, offline rentals) on top
+  // of the weekday pattern. A booking touching any of these dates is rejected.
+  blockedDates     DateTime[]      @map("blocked_dates") @db.Date
   features         Json            @default("[]")
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")

@@ -327,6 +327,16 @@ class ApiClient {
     return this.request("GET", `/api/vehicles/${encodeURIComponent(id)}`);
   }
 
+  // Rental availability for the booking calendar: weekday pattern + admin blackout
+  // dates + fully-booked dates (all as YYYY-MM-DD).
+  async getVehicleAvailability(
+    id: string,
+  ): Promise<
+    ApiResponse<{ availableDays: number[]; blockedDates: string[]; bookedDates: string[] }>
+  > {
+    return this.request("GET", `/api/vehicles/${encodeURIComponent(id)}/availability`);
+  }
+
   async createVehicle(data: Partial<Vehicle>): Promise<ApiResponse<Vehicle>> {
     return this.request("POST", "/api/vehicles", { body: data });
   }

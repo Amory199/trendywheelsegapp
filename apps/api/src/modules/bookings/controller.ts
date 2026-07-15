@@ -1,7 +1,14 @@
 import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 
-import { LOYALTY, rentalDays, unavailableWeekdays, WEEKDAY_LABELS } from "@trendywheels/types";
+import {
+  blockedDatesInRange,
+  LOYALTY,
+  rentalDays,
+  rentalQuote,
+  unavailableWeekdays,
+  WEEKDAY_LABELS,
+} from "@trendywheels/types";
 
 import { prisma } from "../../config/database.js";
 import { requireOwner, scopeListToOwner } from "../../utils/auth-roles.js";
@@ -100,6 +107,19 @@ export async function create(req: Request, res: Response): Promise<void> {
     );
   }
 
+  // One-off admin blackout dates (maintenance / holidays) within the range.
+  const blockedHit = blockedDatesInRange(
+    startDate as string,
+    endDate as string,
+    vehicle.blockedDates,
+  );
+  if (blockedHit.length > 0) {
+    throw AppError.badRequest(
+      `Not available on ${blockedHit.join(", ")} — those dates are blocked. Please pick other days.`,
+      "VEHICLE_DATE_BLOCKED",
+    );
+  }
+
   // Stock check: count active overlapping bookings against the vehicle's
   // quantity. A vehicle with quantity > 1 represents N identical units that
   // can be rented in parallel; quantity = 1 (default) is single-unit.
@@ -115,9 +135,14 @@ export async function create(req: Request, res: Response): Promise<void> {
     throw AppError.conflict("Out of stock for these dates");
   }
 
-  // Calculate total cost (shared billable-days rule — see @trendywheels/types).
+  // Calculate total cost — cheapest mix of daily/weekly/monthly blocks (shared
+  // rentalQuote so the app estimate and the charge can never disagree).
   const days = rentalDays(startDate as string, endDate as string);
-  const baseCost = Number(vehicle.dailyRate) * days;
+  const baseCost = rentalQuote(days, {
+    daily: Number(vehicle.dailyRate),
+    weekly: vehicle.weeklyRate != null ? Number(vehicle.weeklyRate) : null,
+    monthly: vehicle.monthlyRate != null ? Number(vehicle.monthlyRate) : null,
+  }).total;
 
   // Apply promo code if provided
   let promoDiscount = 0;

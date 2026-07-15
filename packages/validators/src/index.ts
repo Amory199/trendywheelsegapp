@@ -96,6 +96,13 @@ export const availableDaysSchema = z
   .transform((days) => [...new Set(days)].sort((a, b) => a - b))
   .optional();
 
+// One-off admin blackout dates as YYYY-MM-DD strings (deduped + sorted).
+export const blockedDatesSchema = z
+  .array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dates must be YYYY-MM-DD"))
+  .max(366)
+  .transform((d) => [...new Set(d)].sort())
+  .optional();
+
 export const createVehicleSchema = z
   .object({
     name: z.string().min(1).max(100),
@@ -118,6 +125,10 @@ export const createVehicleSchema = z
     saleDescription: z.string().max(2000).optional(),
     // Weekdays the vehicle can be rented on (0=Sun … 6=Sat). Empty = every day.
     availableDays: availableDaysSchema.default([]),
+    // Optional longer-term rates + one-off blackout dates.
+    weeklyRate: z.coerce.number().positive().nullable().optional(),
+    monthlyRate: z.coerce.number().positive().nullable().optional(),
+    blockedDates: blockedDatesSchema.default([]),
   })
   .refine((v) => v.listingType === "rent" || (v.salePrice !== undefined && v.salePrice > 0), {
     message: "salePrice is required when listingType is 'sale' or 'both'",
@@ -161,6 +172,9 @@ export const updateVehicleSchema = z
     originalPriceEgp: z.coerce.number().positive().nullable().optional(),
     saleDescription: z.string().max(2000).nullable().optional(),
     availableDays: availableDaysSchema,
+    weeklyRate: z.coerce.number().positive().nullable().optional(),
+    monthlyRate: z.coerce.number().positive().nullable().optional(),
+    blockedDates: blockedDatesSchema,
   })
   .refine(
     // If this update sets the listing to rent/both AND touches dailyRate, the rate

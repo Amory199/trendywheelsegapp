@@ -132,6 +132,47 @@ export async function getById(req: Request, res: Response): Promise<void> {
   res.json({ data: serializeVehicle(vehicle) });
 }
 
+// Rental availability for the booking calendar: the weekday pattern, admin
+// blackout dates, and the set of FULLY-booked dates (overlap count >= quantity).
+// The client greys any date that fails weekday/blackout/booked/past.
+export async function availability(req: Request, res: Response): Promise<void> {
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: req.params.id },
+    select: { id: true, availableDays: true, blockedDates: true, quantity: true },
+  });
+  if (!vehicle) throw AppError.notFound("Vehicle not found");
+
+  const bookings = await prisma.booking.findMany({
+    where: { vehicleId: vehicle.id, status: { in: ["pending", "confirmed"] } },
+    select: { startDate: true, endDate: true },
+  });
+
+  // Count active bookings covering each calendar date; a date is "booked" only
+  // once every parallel unit (quantity) is taken.
+  const DAY_MS = 86_400_000;
+  const counts = new Map<string, number>();
+  for (const b of bookings) {
+    const s = new Date(`${b.startDate.toISOString().slice(0, 10)}T00:00:00Z`).getTime();
+    const e = new Date(`${b.endDate.toISOString().slice(0, 10)}T00:00:00Z`).getTime();
+    for (let t = s; t <= e; t += DAY_MS) {
+      const iso = new Date(t).toISOString().slice(0, 10);
+      counts.set(iso, (counts.get(iso) ?? 0) + 1);
+    }
+  }
+  const bookedDates = [...counts.entries()]
+    .filter(([, c]) => c >= vehicle.quantity)
+    .map(([d]) => d)
+    .sort();
+
+  res.json({
+    data: {
+      availableDays: vehicle.availableDays,
+      blockedDates: vehicle.blockedDates.map((d) => d.toISOString().slice(0, 10)),
+      bookedDates,
+    },
+  });
+}
+
 export async function create(req: Request, res: Response): Promise<void> {
   const { images = [], ...rawData } = req.body as { images?: string[]; [k: string]: unknown };
   const vehicleData = normalizeVehicleData(rawData);

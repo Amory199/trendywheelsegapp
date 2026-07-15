@@ -1166,6 +1166,42 @@ curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/vehicles/$WA_ID" -H "Authorization: Bea
   || fail "cleanup availability vehicle failed"
 pass "availability-vehicle cleanup"
 
+# ─── 12y. Blocked dates + availability endpoint + weekly pricing ───
+# Admin blackout dates block bookings; the public availability endpoint surfaces
+# them; and a 7-day rental uses the weekly rate, not daily×7.
+note "12y. Blocked dates, availability endpoint, weekly pricing"
+PB_BLOCKED=$(date -u -d '+70 days' +%Y-%m-%d)
+PB_BLK_START=$(date -u -d '+70 days' +%Y-%m-%dT10:00:00.000Z)
+PB_BLK_END=$(date -u -d '+70 days' +%Y-%m-%dT14:00:00.000Z)
+WK_START=$(date -u -d '+50 days' +%Y-%m-%dT10:00:00.000Z)
+WK_END=$(date -u -d '+57 days' +%Y-%m-%dT10:00:00.000Z)
+PB_CREATE=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/vehicles" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"name\":\"Smoke Sale Cart\",\"category\":\"golf-cart\",\"seating\":4,\"fuelType\":\"electric\",\"transmission\":\"automatic\",\"location\":\"6th October\",\"listingType\":\"rent\",\"dailyRate\":500,\"weeklyRate\":2800,\"blockedDates\":[\"$PB_BLOCKED\"]}") \
+  || fail "create rentable vehicle with rates+blocked rejected"
+PB_ID=$(echo "$PB_CREATE" | jq -r '.id // .data.id')
+[ -n "$PB_ID" ] && [ "$PB_ID" != "null" ] || fail "no rates-vehicle id: $PB_CREATE"
+[ "$(echo "$PB_CREATE" | jq -r '.data.weeklyRate')" = "2800" ] || fail "weeklyRate not persisted: $PB_CREATE"
+AV=$(curl -fsS -A "$SMOKE_UA" "$BASE/vehicles/$PB_ID/availability")
+echo "$AV" | jq -e --arg d "$PB_BLOCKED" '(.data.blockedDates | index($d)) != null' >/dev/null \
+  || fail "availability endpoint missing blocked date: $AV"
+PB_BLK=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/bookings" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"vehicleId\":\"$PB_ID\",\"startDate\":\"$PB_BLK_START\",\"endDate\":\"$PB_BLK_END\"}")
+echo "$PB_BLK" | grep -qi "blocked" || fail "booking on a blocked date was not rejected: $PB_BLK"
+WK_BODY=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/bookings" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"vehicleId\":\"$PB_ID\",\"startDate\":\"$WK_START\",\"endDate\":\"$WK_END\"}")
+WK_ID=$(echo "$WK_BODY" | jq -r '.data.id // empty')
+[ -n "$WK_ID" ] || fail "7-day booking should succeed: $WK_BODY"
+echo "$WK_BODY" | jq -e '(.data.totalCost | tonumber) == 2800' >/dev/null \
+  || fail "7-day total should use weekly rate 2800: $(echo "$WK_BODY" | jq -r '.data.totalCost')"
+pass "blocked-date rejected, availability endpoint ok, weekly pricing applied (2800)"
+curl -sS -A "$SMOKE_UA" -XDELETE "$BASE/bookings/$WK_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
+curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/vehicles/$PB_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
+  || fail "cleanup rates vehicle failed"
+pass "rates-vehicle cleanup"
+
 # ─── 12t. Logout revokes ONLY the presented session ──────────
 # Any logout used to revoke every refresh token the user had — logging out on
 # one device silently forced-logged-out all their other devices.
