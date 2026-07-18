@@ -1,5 +1,6 @@
 import {
   bookingFiltersSchema,
+  checkInBookingSchema,
   createBookingSchema,
   updateBookingSchema,
   idParamSchema,
@@ -20,6 +21,16 @@ const staffOnly = authorize("admin", "staff");
 
 router.get("/", authenticate, validate({ query: bookingFiltersSchema }), bookingController.list);
 router.post("/", authenticate, validate({ body: createBookingSchema }), bookingController.create);
+// Single booking (staff or owner) — backs the QR check-in lookup.
+router.get("/:id", authenticate, validate({ params: idParamSchema }), bookingController.getOne);
+// Handover / pickup: scan the pass (or confirm by code) → stamp check-in.
+router.post(
+  "/:id/check-in",
+  authenticate,
+  staffOnly,
+  validate({ params: idParamSchema, body: checkInBookingSchema }),
+  bookingController.checkIn,
+);
 router.put(
   "/:id",
   authenticate,

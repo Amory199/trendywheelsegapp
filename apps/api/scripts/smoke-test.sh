@@ -1197,6 +1197,36 @@ WK_ID=$(echo "$WK_BODY" | jq -r '.data.id // empty')
 echo "$WK_BODY" | jq -e '(.data.totalCost | tonumber) == 2800' >/dev/null \
   || fail "7-day total should use weekly rate 2800: $(echo "$WK_BODY" | jq -r '.data.totalCost')"
 pass "blocked-date rejected, availability endpoint ok, weekly pricing applied (2800)"
+
+# ─── 12z. QR check-in / handover ─────────────────────────────
+# Staff scan the pickup pass → we stamp checkedInAt + (optionally) collect the
+# cash payment. Reuses WK_ID (the confirmed 7-day booking from 12y).
+note "12z. Booking check-in (handover + collect payment)"
+# Check-in requires a confirmed booking — bookings are created pending.
+curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/bookings/$WK_ID/approve" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || fail "approve before check-in failed"
+# Anonymous cannot check in.
+CI_ANON=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
+  -XPOST "$BASE/bookings/$WK_ID/check-in" -H "$JSON" -d '{}')
+[ "$CI_ANON" = "401" ] || [ "$CI_ANON" = "403" ] \
+  || fail "anonymous check-in got $CI_ANON (expected 401/403)"
+# Staff check-in, collecting the cash payment at handover.
+CI_BODY=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/bookings/$WK_ID/check-in" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" -d '{"collectPayment":true}')
+echo "$CI_BODY" | jq -e '.data.checkedInAt != null' >/dev/null \
+  || fail "check-in did not stamp checkedInAt: $CI_BODY"
+[ "$(echo "$CI_BODY" | jq -r '.data.paymentStatus')" = "paid" ] \
+  || fail "collectPayment did not mark booking paid: $CI_BODY"
+# A second check-in is refused (409).
+CI_DUP=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
+  -XPOST "$BASE/bookings/$WK_ID/check-in" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" -d '{}')
+[ "$CI_DUP" = "409" ] || fail "double check-in got $CI_DUP (expected 409)"
+# GET /:id surfaces the stamp for the lookup screen.
+curl -fsS -A "$SMOKE_UA" "$BASE/bookings/$WK_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  | jq -e '.data.checkedInAt != null' >/dev/null || fail "GET /bookings/:id missing checkedInAt"
+pass "check-in stamped, payment collected, double check-in 409, anon blocked"
+
 curl -sS -A "$SMOKE_UA" -XDELETE "$BASE/bookings/$WK_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
 curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/vehicles/$PB_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
   || fail "cleanup rates vehicle failed"

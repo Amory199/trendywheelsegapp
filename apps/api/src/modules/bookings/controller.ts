@@ -433,6 +433,78 @@ export async function cancel(req: Request, res: Response): Promise<void> {
   res.json({ data: updated });
 }
 
+// user (+ id images) + vehicle so the staff check-in screen can verify the
+// renter and show what they're handing over.
+const CHECKIN_INCLUDE = {
+  vehicle: true,
+  user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      idFrontUrl: true,
+      idBackUrl: true,
+    },
+  },
+} satisfies Prisma.BookingInclude;
+
+// Single booking by id — staff (any) or the booking's own customer. Backs the
+// QR check-in lookup: a scanned pass carries the full booking id.
+export async function getOne(req: Request, res: Response): Promise<void> {
+  const booking = await prisma.booking.findUnique({
+    where: { id: req.params.id },
+    include: CHECKIN_INCLUDE,
+  });
+  if (!booking) throw AppError.notFound("Booking not found");
+  if (!STAFF_TYPES.has(req.user!.accountType) && booking.userId !== req.user!.userId) {
+    throw AppError.forbidden();
+  }
+  res.json({ data: booking });
+}
+
+// Handover / pickup. Staff scan the pass (or confirm by code) and hand the
+// vehicle over: we stamp checkedInAt + who did it, and optionally mark a
+// cash booking paid at the same moment. Status stays "confirmed" for the
+// active rental — completion happens on return via update → "completed".
+export async function checkIn(req: Request, res: Response): Promise<void> {
+  if (!STAFF_TYPES.has(req.user!.accountType)) throw AppError.forbidden();
+  const booking = await prisma.booking.findUnique({ where: { id: req.params.id } });
+  if (!booking) throw AppError.notFound("Booking not found");
+  if (booking.status === "cancelled") {
+    throw AppError.conflict("Cannot check in a cancelled booking");
+  }
+  if (booking.status === "pending") {
+    throw AppError.conflict("Approve this booking before checking it in");
+  }
+  if (booking.checkedInAt) {
+    throw AppError.conflict("This booking was already checked in");
+  }
+
+  const collectPayment = req.body?.collectPayment === true;
+  const data: Prisma.BookingUpdateInput = {
+    checkedInAt: new Date(),
+    checkedInById: req.user!.userId,
+  };
+  if (collectPayment && booking.paymentStatus !== "paid") {
+    data.paymentStatus = "paid";
+  }
+
+  const updated = await prisma.booking.update({
+    where: { id: booking.id },
+    data,
+    include: CHECKIN_INCLUDE,
+  });
+  emitDomainEvent("booking.updated", booking.id, booking.userId, { checkedIn: true });
+  await notifyUser(booking.userId, `booking-checkedin-${booking.id}`, {
+    type: "booking_checked_in",
+    title: "Vehicle handed over",
+    body: "Enjoy the ride — your rental has started.",
+    data: { bookingId: booking.id, url: `/rent/booking/${booking.id}` },
+  });
+  res.json({ data: updated });
+}
+
 export async function markPaid(req: Request, res: Response): Promise<void> {
   if (!STAFF_TYPES.has(req.user!.accountType)) throw AppError.forbidden();
   const updated = await prisma.booking.update({
