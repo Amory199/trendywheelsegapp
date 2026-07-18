@@ -282,6 +282,11 @@ export const updateBookingSchema = z.object({
   endDate: z.string().datetime().optional(),
 });
 
+// Staff handover: optionally collect a cash payment at the same moment.
+export const checkInBookingSchema = z.object({
+  collectPayment: z.boolean().optional(),
+});
+
 export const bookingFiltersSchema = z.object({
   status: bookingStatusEnum.optional(),
   userId: z.string().uuid().optional(),
