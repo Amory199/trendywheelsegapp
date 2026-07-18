@@ -638,6 +638,18 @@ class ApiClient {
     });
   }
 
+  // Single booking (staff or owner) — resolves a scanned/entered pickup pass.
+  async getBooking(id: string): Promise<{ data: unknown }> {
+    return this.request("GET", `/api/bookings/${encodeURIComponent(id)}`);
+  }
+
+  // Staff handover: stamp the check-in, optionally collecting cash payment.
+  async checkInBooking(id: string, collectPayment?: boolean): Promise<{ data: unknown }> {
+    return this.request("POST", `/api/bookings/${encodeURIComponent(id)}/check-in`, {
+      body: collectPayment ? { collectPayment: true } : {},
+    });
+  }
+
   async approveBooking(id: string): Promise<{ data: unknown }> {
     return this.request("POST", `/api/bookings/${encodeURIComponent(id)}/approve`);
   }
