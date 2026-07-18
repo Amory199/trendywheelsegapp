@@ -414,6 +414,11 @@ model Booking {
   dropoffLocationUrl String?   @map("dropoff_location_url")
   // How the deal is fulfilled — delivery_now / delivery_scheduled / showroom_visit.
   fulfillmentType    String?   @map("fulfillment_type")
+  // QR check-in / handover. Set when staff scan the pickup pass (or confirm it
+  // by code) and hand the vehicle to the customer. checkedInById is the staff
+  // user who did it — stored as a plain id (no relation) to keep the model lean.
+  checkedInAt   DateTime? @map("checked_in_at")
+  checkedInById String?   @map("checked_in_by_id") @db.Uuid
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
