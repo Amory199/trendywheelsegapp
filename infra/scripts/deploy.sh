@@ -43,6 +43,17 @@ if [ -f "$APP_DIR/apps/api/.env" ]; then
   . "$APP_DIR/apps/api/.env"
   set +a
 fi
+# Sourcing a .env in the shell is fragile: any UNQUOTED value containing a shell
+# metacharacter silently mis-parses. A `&` in DATABASE_URL's query string
+# (?connection_limit=10&pool_timeout=20) backgrounded the assignment, so the var
+# never landed and every migrate run died on "Environment variable not found" —
+# see the 2026-07-18 deploy. Values are quoted in .env now; this guard makes a
+# regression fail loudly here instead of deep inside Prisma.
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "✗ DATABASE_URL is empty after sourcing apps/api/.env." >&2
+  echo "  Check that its value is QUOTED — an unquoted & or space breaks sourcing." >&2
+  exit 1
+fi
 pnpm --filter @trendywheels/db exec prisma migrate deploy
 
 # Restart / reload PM2.
