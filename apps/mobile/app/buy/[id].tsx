@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 
 import { ErrorState } from "../../components/ErrorState";
+import { FuelBadge } from "../../components/FuelBadge";
 import { ImageCarousel } from "../../components/ImageCarousel";
 import { PriceGate } from "../../components/PriceGate";
 import { ShareButton } from "../../components/ShareButton";
@@ -28,6 +29,8 @@ interface Product {
   brand?: string | null;
   model?: string | null;
   year?: number | null;
+  // Flattened from the linked vehicle so a combustion cart is badged here too.
+  vehicleFuelType?: string | null;
 }
 
 const W = Dimensions.get("window").width;
@@ -160,6 +163,7 @@ export default function ProductDetailScreen(): React.JSX.Element {
           <Text style={[{ fontSize: 30, color: palette.text, lineHeight: 32 }, display(0)]}>
             {p.name}
           </Text>
+          <FuelBadge fuelType={p.vehicleFuelType} style={{ marginTop: 8 }} />
           <View style={{ marginTop: 14 }}>
             <PriceGate size="lg">
               <Text

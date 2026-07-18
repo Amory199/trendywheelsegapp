@@ -26,6 +26,9 @@ interface Product {
   images: string[];
   inStock: boolean;
   brand?: string | null;
+  // Flattened from the linked vehicle — drives the category outline + fuel pill.
+  vehicleCategory?: string | null;
+  vehicleFuelType?: string | null;
 }
 
 type Result = { kind: "vehicle"; item: Vehicle } | { kind: "product"; item: Product };
@@ -103,6 +106,8 @@ export default function SearchScreen(): JSX.Element {
         priceLabel={`${t("home.egp")} ${Number(p.priceEgp).toLocaleString()}`}
         image={p.images?.[0]}
         overlayLabel={!p.inStock ? t("buy.outOfStock") : null}
+        categoryKey={p.vehicleCategory}
+        fuelType={p.vehicleFuelType}
         onPress={() => router.push(`/buy/${p.id}` as never)}
       />
     );

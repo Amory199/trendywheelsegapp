@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { FuelBadge } from "../../components/FuelBadge";
 import { GuestGate } from "../../components/GuestGate";
 import { TWSkeletonCard } from "../../components/ui";
 import { logEvent } from "../../lib/analytics";
@@ -22,6 +23,7 @@ interface FavoriteVehicle {
   name: string;
   category: string;
   type: string;
+  fuelType?: string | null;
   dailyRate: number;
   salePrice: number | null;
   listingType: string;
@@ -155,6 +157,7 @@ export default function FavoritesScreen(): JSX.Element {
                         ? twEGP(Number(item.vehicle.salePrice))
                         : `${twEGP(Number(item.vehicle.dailyRate))} ${t("profile.favorites.perDay")}`}
                     </Text>
+                    <FuelBadge fuelType={item.vehicle.fuelType} style={{ marginTop: 4 }} />
                     <View style={styles.metaRow}>
                       {item.vehicle.reviewCount > 0 && (
                         <View style={styles.ratingWrap}>
