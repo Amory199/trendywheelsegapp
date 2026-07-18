@@ -1232,6 +1232,33 @@ curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/vehicles/$PB_ID" -H "Authorization: Bea
   || fail "cleanup rates vehicle failed"
 pass "rates-vehicle cleanup"
 
+# ─── 12aa. Akedly delivery webhook (svix signature) ──────────
+# Observability only (we own OTP verification), but it must never accept an
+# unsigned/forged delivery report. Unconfigured → hard 503, never a silent 200.
+note "12aa. Akedly webhook signature verification"
+WH_URL="$BASE/auth/akedly/webhook"
+WH_BODY='{"status":"delivered","transactionID":"smoke-tx","channel":"whatsapp"}'
+WH_SECRET=$(grep -m1 '^AKEDLY_WEBHOOK_SECRET=' /opt/trendywheels/apps/api/.env 2>/dev/null \
+  | cut -d= -f2- | tr -d '"' || true)
+if [ -z "$WH_SECRET" ]; then
+  CODE=$(curl -sS -o /dev/null -w "%{http_code}" -A "$SMOKE_UA" -XPOST "$WH_URL" -H "$JSON" -d "$WH_BODY")
+  [ "$CODE" = "503" ] || fail "unconfigured akedly webhook returned $CODE (expected 503)"
+  pass "(AKEDLY_WEBHOOK_SECRET unset — endpoint refuses with 503 as designed)"
+else
+  BAD=$(curl -sS -o /dev/null -w "%{http_code}" -A "$SMOKE_UA" -XPOST "$WH_URL" -H "$JSON" \
+    -H "svix-id: smoke-1" -H "svix-timestamp: $(date +%s)" \
+    -H "svix-signature: v1,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" -d "$WH_BODY")
+  [ "$BAD" = "401" ] || fail "bad-signature webhook got $BAD (expected 401)"
+  WH_TS=$(date +%s)
+  WH_KEYHEX=$(printf '%s' "${WH_SECRET#whsec_}" | base64 -d | xxd -p -c 256)
+  WH_SIG=$(printf '%s' "smoke-1.${WH_TS}.${WH_BODY}" \
+    | openssl dgst -sha256 -mac HMAC -macopt hexkey:"$WH_KEYHEX" -binary | base64)
+  GOOD=$(curl -sS -o /dev/null -w "%{http_code}" -A "$SMOKE_UA" -XPOST "$WH_URL" -H "$JSON" \
+    -H "svix-id: smoke-1" -H "svix-timestamp: $WH_TS" -H "svix-signature: v1,$WH_SIG" -d "$WH_BODY")
+  [ "$GOOD" = "200" ] || fail "correctly-signed webhook got $GOOD (expected 200)"
+  pass "akedly webhook: forged signature 401, valid signature 200"
+fi
+
 # ─── 12t. Logout revokes ONLY the presented session ──────────
 # Any logout used to revoke every refresh token the user had — logging out on
 # one device silently forced-logged-out all their other devices.

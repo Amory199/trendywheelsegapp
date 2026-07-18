@@ -13,6 +13,7 @@ import rateLimit from "express-rate-limit";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 
+import { akedlyWebhook } from "./akedly-webhook.js";
 import * as authController from "./controller.js";
 
 const router: RouterType = Router();
@@ -87,5 +88,10 @@ router.post(
 );
 router.post("/refresh-token", validate({ body: refreshTokenSchema }), authController.refreshToken);
 router.post("/logout", authenticate, authController.logout);
+
+// Akedly delivery callback. Unauthenticated by design — the caller is Akedly,
+// not a user — but every request must carry a valid svix HMAC signature, and
+// the route hard-refuses (503) until AKEDLY_WEBHOOK_SECRET is configured.
+router.post("/akedly/webhook", akedlyWebhook);
 
 export { router as authRoutes };

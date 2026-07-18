@@ -32,6 +32,10 @@ export const env = cleanEnv(process.env, {
   AKEDLY_API_KEY: str({ default: "" }),
   AKEDLY_PIPELINE_ID: str({ default: "" }),
   AKEDLY_BASE_URL: str({ default: "https://api.akedly.io/api/v1.2" }),
+  // Svix-style HMAC secret ("whsec_…") for Akedly's back-end callback. Set it to
+  // enable POST /auth/akedly/webhook — while empty the route refuses every call
+  // (503) rather than trusting an unverified delivery report.
+  AKEDLY_WEBHOOK_SECRET: str({ default: "" }),
 
   // Local filesystem-backed object storage (replaced MinIO/S3).
   UPLOADS_DIR: str({ default: "/var/lib/trendywheels/uploads" }),
