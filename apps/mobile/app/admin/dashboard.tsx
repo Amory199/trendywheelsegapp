@@ -143,6 +143,15 @@ export default function AdminDashboard(): JSX.Element {
         </View>
 
         <Pressable
+          onPress={() => router.push("/booking-check-in")}
+          style={({ pressed }) => [styles.linkRow, pressed && { opacity: 0.85 }]}
+        >
+          <Ionicons name="qr-code-outline" size={18} color={colors.brand.poolBlue} />
+          <Text style={styles.linkLabel}>{t("checkin.title")}</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
+        </Pressable>
+
+        <Pressable
           onPress={() => router.push("/admin/otp-requests")}
           style={({ pressed }) => [
             styles.linkRow,
@@ -150,7 +159,7 @@ export default function AdminDashboard(): JSX.Element {
             pressed && { opacity: 0.85 },
           ]}
         >
-          <Ionicons name="key-outline" size={18} color={colors.brand.trendyPink} />
+          <Ionicons name="shield-checkmark-outline" size={18} color={colors.brand.trendyPink} />
           <Text style={styles.linkLabel}>{t("admin.otpInboxTitle")}</Text>
           {pendingOtp > 0 ? (
             <View style={styles.otpBadge}>

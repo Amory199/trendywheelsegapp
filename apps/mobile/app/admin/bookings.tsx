@@ -24,6 +24,7 @@ interface AdminBooking {
   startDate: string;
   endDate: string;
   totalCost: string | number;
+  checkedInAt?: string | null;
   vehicle?: { name: string };
   user?: { name?: string; phone?: string };
 }
@@ -143,6 +144,12 @@ export default function AdminBookings(): JSX.Element {
                 <Text style={styles.cardCost}>
                   {t("admin.egp")} {Number(item.totalCost).toLocaleString()}
                 </Text>
+                {item.checkedInAt ? (
+                  <View style={styles.pickedUpChip}>
+                    <Ionicons name="checkmark-done" size={13} color={colors.brand.ecoLimelight} />
+                    <Text style={styles.pickedUpText}>{t("checkin.pickedUp")}</Text>
+                  </View>
+                ) : null}
               </View>
               {status === "pending" && (
                 <View style={{ gap: 6 }}>
@@ -221,6 +228,18 @@ const styles = StyleSheet.create({
   cardCustomer: { color: colors.text.secondary, fontSize: 12 },
   cardDates: { color: colors.text.secondary, fontSize: 12 },
   cardCost: { color: colors.brand.trendyPink, fontWeight: "700", marginTop: 2 },
+  pickedUpChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-start",
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "rgba(169,244,83,0.15)",
+  },
+  pickedUpText: { color: colors.brand.ecoLimelight, fontSize: 11, fontWeight: "800" },
   btn: {
     flexDirection: "row",
     alignItems: "center",

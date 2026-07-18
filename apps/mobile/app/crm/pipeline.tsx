@@ -220,6 +220,15 @@ export default function CrmPipeline(): React.JSX.Element {
         </View>
       </View>
 
+      <Pressable
+        onPress={() => router.push("/booking-check-in")}
+        style={({ pressed }) => [styles.checkInRow, pressed && { opacity: 0.9 }]}
+      >
+        <Ionicons name="qr-code-outline" size={18} color="#fff" />
+        <Text style={styles.checkInText}>{t("checkin.title")}</Text>
+        <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.85)" />
+      </Pressable>
+
       <View style={styles.searchBar}>
         <Ionicons name="search" size={16} color={palette.muted} />
         <TextInput
@@ -453,6 +462,18 @@ function makeStyles(palette: Palette) {
       fontWeight: "800",
       marginTop: 2,
     },
+    checkInRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginHorizontal: 14,
+      marginTop: 10,
+      paddingHorizontal: 16,
+      height: 50,
+      borderRadius: 14,
+      backgroundColor: colors.brand.poolBlue,
+    },
+    checkInText: { flex: 1, color: "#fff", fontSize: 15, fontWeight: "800" },
     wonChip: {
       flexDirection: "row",
       alignItems: "center",
