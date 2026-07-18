@@ -15,6 +15,7 @@ store-assets/screenshot-builder/work/
 .env
 .env.local
 .env.*.local
+.env.bak*
 !.env.example
 
 # OS files
