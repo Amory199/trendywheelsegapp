@@ -1,6 +1,7 @@
 import type { TranslationKeys } from "./en";
 import admin from "./ar/admin";
 import buy from "./ar/buy";
+import checkin from "./ar/checkin";
 import components from "./ar/components";
 import crm from "./ar/crm";
 import home from "./ar/home";
@@ -173,6 +174,7 @@ const ar: TranslationKeys = {
   crm,
   support,
   components,
+  checkin,
 };
 
 export default ar;

@@ -1,5 +1,6 @@
 import admin from "./en/admin";
 import buy from "./en/buy";
+import checkin from "./en/checkin";
 import components from "./en/components";
 import crm from "./en/crm";
 import home from "./en/home";
@@ -181,6 +182,7 @@ const en = {
   crm,
   support,
   components,
+  checkin,
 } as const;
 
 export default en;
