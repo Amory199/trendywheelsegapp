@@ -129,6 +129,8 @@ router.get("/favorites", async (req, res) => {
           name: true,
           category: true,
           type: true,
+          // Drives the pink fuel pill on the saved-ride card (combustion only).
+          fuelType: true,
           dailyRate: true,
           salePrice: true,
           listingType: true,
