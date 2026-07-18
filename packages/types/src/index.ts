@@ -311,6 +311,10 @@ export interface Booking {
   notes: string | null;
   dropoffLocationUrl?: string | null;
   fulfillmentType?: string | null;
+  paymentMethod?: string | null;
+  // QR check-in / handover — set once staff hand the vehicle over at pickup.
+  checkedInAt?: string | null;
+  checkedInById?: string | null;
   createdAt: string;
   updatedAt: string;
 }
