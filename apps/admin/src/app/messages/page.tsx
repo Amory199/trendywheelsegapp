@@ -10,6 +10,10 @@ import { authedFetch } from "../../lib/fetcher";
 interface ConversationRow {
   id: string;
   lastMessageAt: string | null;
+  // All null on plain support/DM threads; set when the chat is about a record.
+  contextType: string | null;
+  contextId: string | null;
+  contextTitle: string | null;
   participants: Array<{
     user: { id: string; name: string; email: string | null };
   }>;
@@ -20,6 +24,22 @@ interface ConversationRow {
     createdAt: string;
   }>;
 }
+
+const CONTEXT_LABELS: Record<string, string> = {
+  booking: "Booking",
+  reservation: "Reservation",
+  repair: "Repair",
+  order: "Order",
+  listing: "Listing",
+};
+
+const CONTEXT_STYLES: Record<string, string> = {
+  booking: "bg-blue-100 text-blue-700",
+  reservation: "bg-purple-100 text-purple-700",
+  repair: "bg-amber-100 text-amber-700",
+  order: "bg-green-100 text-green-700",
+  listing: "bg-pink-100 text-pink-700",
+};
 
 export default function AdminMessagesPage(): JSX.Element {
   const router = useRouter();
@@ -44,7 +64,7 @@ export default function AdminMessagesPage(): JSX.Element {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
             <tr>
-              <th className="text-left px-4 py-3">Participants</th>
+              <th className="text-left px-4 py-3">Conversation</th>
               <th className="text-left px-4 py-3">Last message</th>
               <th className="text-left px-4 py-3">When</th>
             </tr>
@@ -79,16 +99,38 @@ export default function AdminMessagesPage(): JSX.Element {
                     className="hover:bg-gray-50 cursor-pointer"
                   >
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {c.participants.map((p) => (
-                          <span
-                            key={p.user.id}
-                            className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700"
-                          >
-                            {p.user.name}
-                          </span>
-                        ))}
-                      </div>
+                      {c.contextTitle ? (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            {c.contextType ? (
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                  CONTEXT_STYLES[c.contextType] ?? "bg-gray-100 text-gray-700"
+                                }`}
+                              >
+                                {CONTEXT_LABELS[c.contextType] ?? c.contextType}
+                              </span>
+                            ) : null}
+                            <span className="text-sm font-medium text-gray-900 line-clamp-1">
+                              {c.contextTitle}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 line-clamp-1">
+                            {c.participants.map((p) => p.user.name).join(", ")}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {c.participants.map((p) => (
+                            <span
+                              key={p.user.id}
+                              className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700"
+                            >
+                              {p.user.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-sm text-gray-800 line-clamp-1 max-w-xl">

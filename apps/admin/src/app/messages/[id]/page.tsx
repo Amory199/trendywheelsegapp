@@ -27,9 +27,29 @@ interface Msg {
 interface Conversation {
   id: string;
   lastMessageAt: string | null;
+  // All null on plain support/DM threads; set when the chat is about a record.
+  contextType: string | null;
+  contextId: string | null;
+  contextTitle: string | null;
   participants: Participant[];
   messages: Msg[];
 }
+
+const CONTEXT_LABELS: Record<string, string> = {
+  booking: "Booking",
+  reservation: "Reservation",
+  repair: "Repair",
+  order: "Order",
+  listing: "Listing",
+};
+
+const CONTEXT_STYLES: Record<string, string> = {
+  booking: "bg-blue-100 text-blue-700",
+  reservation: "bg-purple-100 text-purple-700",
+  repair: "bg-amber-100 text-amber-700",
+  order: "bg-green-100 text-green-700",
+  listing: "bg-pink-100 text-pink-700",
+};
 
 export default function AdminConversationPage(): JSX.Element {
   const params = useParams<{ id: string }>();
@@ -73,6 +93,28 @@ export default function AdminConversationPage(): JSX.Element {
         <h1 className="text-2xl font-bold mt-1">{customer ? customer.name : "Conversation"}</h1>
         {customer ? <p className="text-sm text-gray-500">{customer.phone}</p> : null}
       </header>
+
+      {conversation?.contextType ? (
+        <div className="mb-3 bg-white border rounded-lg px-4 py-3 flex items-center gap-3">
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
+              CONTEXT_STYLES[conversation.contextType] ?? "bg-gray-100 text-gray-700"
+            }`}
+          >
+            {CONTEXT_LABELS[conversation.contextType] ?? conversation.contextType}
+          </span>
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-gray-900 truncate">
+              {conversation.contextTitle ?? "Linked record"}
+            </div>
+            {conversation.contextId ? (
+              <div className="text-xs text-gray-500 font-mono truncate">
+                {conversation.contextId}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex-1 overflow-y-auto bg-gray-50 rounded-lg border p-4 space-y-3">
         {isLoading ? (
