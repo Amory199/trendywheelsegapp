@@ -908,6 +908,14 @@ export const cannedReplySchema = z.object({
   category: z.string().max(40).optional(),
 });
 
+// Staff advancing a booking/order along its fulfilment pipeline. The stage is a
+// loose string here — the route knows which vocabulary applies and rejects
+// anything outside it (and anything backwards) with canAdvance().
+export const advanceStageSchema = z.object({
+  stage: z.string().min(2).max(40),
+  note: z.string().max(500).optional(),
+});
+
 // ─── Response schemas (opt-in runtime validation) ────────────
 // Pass these to `api.request(..., { parse: schemaName })` to validate the
 // response shape at runtime. Useful when the local TypeScript type drifts

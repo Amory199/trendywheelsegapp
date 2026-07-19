@@ -315,8 +315,71 @@ export interface Booking {
   // QR check-in / handover — set once staff hand the vehicle over at pickup.
   checkedInAt?: string | null;
   checkedInById?: string | null;
+  // Staff fulfilment pipeline position. Optional because older cached payloads
+  // (and any endpoint that hasn't been widened yet) won't carry it.
+  stage?: BookingStage;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Staff fulfilment pipeline ───────────────────────────────
+// Owner-approved vocabulary, shared verbatim by the API and the mobile app so a
+// chip label and a server guard can never disagree. The legacy status /
+// paymentStatus columns are still the source of truth for existing consumers —
+// the server derives them from the stage, not the other way round.
+
+export const BOOKING_STAGES = [
+  "requested",
+  "approved",
+  "customer_confirmed",
+  "payment_collected",
+  "handed_over",
+  "returned",
+] as const;
+
+export const ORDER_STAGES = [
+  "requested",
+  "approved",
+  "customer_confirmed",
+  "payment_collected",
+  "delivered",
+  "closed",
+] as const;
+
+export type BookingStage = (typeof BOOKING_STAGES)[number];
+export type OrderStage = (typeof ORDER_STAGES)[number];
+
+/** Position of `stage` in its vocabulary, or -1 if it isn't a known stage. */
+export function stageIndex(stages: readonly string[], stage: string): number {
+  return stages.indexOf(stage);
+}
+
+/**
+ * Whether staff may move `from` → `to`. Movement is forward-only: a mistake is
+ * corrected with a note on the timeline, never by rewinding the pipeline (the
+ * stage drives one-way side effects — payout, payment status, handover stamp —
+ * so a rewind would let them fire twice).
+ */
+export function canAdvance(stages: readonly string[], from: string, to: string): boolean {
+  const a = stageIndex(stages, from);
+  const b = stageIndex(stages, to);
+  if (a < 0 || b < 0) return false;
+  // EXACTLY one step. Allowing an arbitrary forward jump was a real hazard: each
+  // stage writes only its OWN side effects, so "requested" → "returned" would
+  // complete a booking (and mint its loyalty payout) while skipping the clauses
+  // that mark it paid and handed over. Every stage must be walked through.
+  return b === a + 1;
+}
+
+/** One timeline row for a staged entity — what changed, who did it, and why. */
+export interface StageEvent {
+  id: string;
+  entityType: "booking" | "order";
+  entityId: string;
+  stage: string;
+  note: string | null;
+  actorId: string | null;
+  createdAt: string;
 }
 
 export interface Message {
