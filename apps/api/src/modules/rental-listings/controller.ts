@@ -53,27 +53,30 @@ export async function update(req: Request, res: Response): Promise<void> {
   requireOwner(req, existing.userId);
 
   const input = updateRentalListingSchema.parse(req.body);
-  // Reviewers = admin + staff. The owner widened listing approval to staff, and
-  // the admin board was widened to match; without this the staff approvals tab
-  // would list submissions whose Approve/Decline buttons 403 every time.
-  const admin =
+  // Reviewers = admin + staff (listing approval was widened to staff so the
+  // staff approvals tab isn't a wall of buttons that 403), but NEVER on your
+  // own listing. A staffer who lists their own vehicle is an applicant here,
+  // not a reviewer — self-approval would skip review entirely.
+  const isReviewerRole =
     isAdmin(req.user) || req.user?.accountType === "staff" || req.user?.accountType === "admin";
+  const reviewer = isReviewerRole && existing.userId !== req.user?.userId;
 
   // Listing owners can only pause / withdraw. Reviewers can do anything.
-  if (!admin) {
+  if (!reviewer) {
     const allowedOwnerStatuses = new Set(["paused", "withdrawn"]);
     if (input.status && !allowedOwnerStatuses.has(input.status)) {
-      throw AppError.forbidden("Only admins can transition to that status");
+      throw AppError.forbidden("A listing can only be approved or declined by someone else");
     }
     if (input.declineReason !== undefined || input.vehicleId !== undefined) {
-      throw AppError.forbidden("Only admins can set decline reason or link a vehicle");
+      throw AppError.forbidden("Only a reviewer can set a decline reason or link a vehicle");
     }
   }
 
+  // reviewedById is only meaningful when an actual reviewer acted.
   const updated = await transitionRentalListing(
     req.params.id,
     input,
-    admin ? req.user!.userId : undefined,
+    reviewer ? req.user!.userId : undefined,
   );
   res.json({ data: updated });
 }
