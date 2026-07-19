@@ -424,6 +424,11 @@ model Booking {
   // user who did it — stored as a plain id (no relation) to keep the model lean.
   checkedInAt   DateTime? @map("checked_in_at")
   checkedInById String?   @map("checked_in_by_id") @db.Uuid
+  // Staff-facing fulfilment pipeline (requested → … → returned). Kept beside
+  // status/paymentStatus rather than replacing them — those stay the source of
+  // truth for everything already built; the stage is what staff advance in the
+  // inbox and the server syncs the legacy fields from it.
+  stage         String        @default("requested")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -442,6 +447,7 @@ model Booking {
   @@index([status])
   @@index([startDate, endDate])
   @@index([userId, status])
+  @@index([stage])
   @@map("bookings")
 }
 
@@ -954,6 +960,24 @@ model LeadActivity {
   @@map("lead_activities")
 }
 
+// Timeline row for the staff fulfilment pipeline. Deliberately entity-agnostic
+// (entityType + entityId, no FK) so bookings and orders — and whatever gets a
+// pipeline next — share one table instead of one timeline model per entity.
+// actorId is a plain id for the same reason: a relation would force a back-ref
+// on User per entity type.
+model StageEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  entityType String   @map("entity_type") // "booking" | "order"
+  entityId   String   @map("entity_id") @db.Uuid
+  stage      String
+  note       String?
+  actorId    String?  @map("actor_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@map("stage_events")
+}
+
 model AlertEvent {
   id         String    @id @default(uuid()) @db.Uuid
   type       String
@@ -1299,6 +1323,10 @@ model Order {
   dropoffLocationUrl String? @map("dropoff_location_url")
   // How the deal is fulfilled — delivery_now / delivery_scheduled / showroom_visit.
   fulfillmentType    String? @map("fulfillment_type")
+  // Staff-facing fulfilment pipeline (requested → … → closed). Parallel to the
+  // Booking stage; `status` stays authoritative for existing consumers and is
+  // synced from the stage server-side.
+  stage     String   @default("requested")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -1308,6 +1336,7 @@ model Order {
 
   @@index([userId, createdAt])
   @@index([status])
+  @@index([stage])
   @@map("orders")
 }
 
