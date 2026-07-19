@@ -12,7 +12,7 @@ import { Sentry } from "../../utils/sentry.js";
 import { emitDomainEvent, notifyAdmins } from "../../utils/notify.js";
 import { assignLeadRoundRobin, recordActivity } from "../crm/service.js";
 
-import { sendAkedlyOtp, AkedlyError } from "./akedly.js";
+import { sendAkedlyOtp, verifyAkedlyTransaction, AkedlyError } from "./akedly.js";
 
 // Push every admin so they know a new customer just joined. Fire-and-forget
 // from inside the signup setImmediate block — failure here must not break the
@@ -143,7 +143,7 @@ export async function sendOtp(
   // Find existing user or create placeholder
   const user = await prisma.user.findUnique({ where: { phone } });
 
-  await prisma.otpCode.create({
+  const otpRow = await prisma.otpCode.create({
     data: {
       phone,
       code: otp,
@@ -159,7 +159,23 @@ export async function sendOtp(
   // already written, so an admin-issued code for the same phone still verifies.
   if (env.AKEDLY_ENABLED) {
     try {
-      await sendAkedlyOtp(phone, otp, endUserIp);
+      const sent = await sendAkedlyOtp(phone, otp, endUserIp);
+      // Remember Akedly's handle so verifyOtp can close the loop on their side.
+      // Best-effort: a failure here only costs a "Pending" dashboard row, so it
+      // must never turn a delivered code into a failed send.
+      if (sent.transactionReqID) {
+        await prisma.otpCode
+          .update({
+            where: { id: otpRow.id },
+            data: { akedlyTransactionReqId: sent.transactionReqID },
+          })
+          .catch((err) => {
+            logger.warn(
+              { msg: "akedly_txn_persist_failed", err: (err as Error)?.message },
+              "Could not store Akedly transactionReqID",
+            );
+          });
+      }
     } catch (err) {
       const e = err as AkedlyError;
       logger.error(
@@ -331,6 +347,22 @@ export async function verifyOtp(
       where: { id: otpRecord.id },
       data: { usedAt: new Date() },
     });
+
+    // Tell Akedly this code checked out, so their dashboard shows the
+    // transaction verified rather than leaving every real signup "Pending".
+    // STRICTLY fire-and-forget: the user is already authenticated by the check
+    // above, so this must never delay the response or reject into the login
+    // path. Akedly expires transactions ~3 minutes after send — a slower user
+    // fails here harmlessly and just stays "Pending".
+    if (otpRecord.akedlyTransactionReqId) {
+      void verifyAkedlyTransaction(otpRecord.akedlyTransactionReqId, otp).catch((err) => {
+        const e = err as AkedlyError;
+        logger.info(
+          { phone: phone.slice(-4), code: e?.code, msg: "akedly_verify_report_failed" },
+          "Could not report verification to Akedly (cosmetic only)",
+        );
+      });
+    }
   }
 
   // Find or create user

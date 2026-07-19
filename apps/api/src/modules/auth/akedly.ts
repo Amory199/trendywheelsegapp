@@ -141,3 +141,27 @@ export async function sendAkedlyOtp(
   );
   return { transactionReqID: data.transactionReqID, channels: data.channels ?? [] };
 }
+
+/**
+ * Report a successful local verification back to Akedly so its dashboard shows
+ * the transaction as verified instead of leaving every real signup "Pending".
+ *
+ * PURELY COSMETIC — our own otp_codes check is what actually authenticates the
+ * user, and it has already passed by the time this runs. Callers MUST invoke
+ * this fire-and-forget: never await it on the login path, and never let a
+ * rejection surface. Akedly expires a transaction ~3 minutes after send, so a
+ * user who took longer legitimately fails here and simply stays "Pending".
+ */
+export async function verifyAkedlyTransaction(
+  transactionReqID: string,
+  code: string,
+): Promise<void> {
+  if (!env.AKEDLY_API_KEY || !transactionReqID) return;
+  const base = env.AKEDLY_BASE_URL.replace(/\/$/, "");
+  await akedlyFetch(`${base}/transactions/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    // otp MUST be a string — a numeric literal is rejected by the API.
+    body: JSON.stringify({ transactionReqID, otp: String(code) }),
+  });
+}
