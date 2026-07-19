@@ -23,10 +23,10 @@ export async function openContextChat(
   context: ChatContext,
 ): Promise<void> {
   try {
-    const res = await api.request<{ data: { id: string } }>(
-      "POST",
-      "/api/messages/context-thread",
-      { body: context },
+    const res = await api.openContextThread(
+      context.contextType,
+      context.contextId,
+      context.contextTitle,
     );
     router.push(`/messages/${res.data.id}` as never);
   } catch (err) {

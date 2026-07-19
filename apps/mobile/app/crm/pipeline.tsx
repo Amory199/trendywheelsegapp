@@ -229,6 +229,15 @@ export default function CrmPipeline(): React.JSX.Element {
         <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.85)" />
       </Pressable>
 
+      <Pressable
+        onPress={() => router.push("/staff/requests")}
+        style={({ pressed }) => [styles.checkInRow, pressed && { opacity: 0.9 }]}
+      >
+        <Ionicons name="file-tray-full-outline" size={18} color="#fff" />
+        <Text style={styles.checkInText}>{t("ops.requestsTitle")}</Text>
+        <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.85)" />
+      </Pressable>
+
       <View style={styles.searchBar}>
         <Ionicons name="search" size={16} color={palette.muted} />
         <TextInput

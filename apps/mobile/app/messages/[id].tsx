@@ -55,14 +55,23 @@ export default function ChatScreen(): JSX.Element {
         data: {
           contextType?: string | null;
           contextTitle?: string | null;
-          participants?: Array<{ user?: { id: string; name?: string | null } }>;
+          participants?: Array<{
+            user?: { id: string; name?: string | null; accountType?: string | null };
+          }>;
         };
       }>("GET", `/api/messages/conversations/${id}`),
     enabled: !!id && !!user,
     staleTime: 60000,
   });
   const conv = convQ.data?.data;
-  const peerName = conv?.participants?.find((p) => p.user && p.user.id !== user?.id)?.user?.name;
+  // Every active staff member is a participant of a context thread, so "the
+  // other participant" is ambiguous for a staff viewer — name the customer.
+  const isStaff = user?.accountType === "admin" || user?.accountType === "staff";
+  const others = conv?.participants?.filter((p) => p.user && p.user.id !== user?.id) ?? [];
+  const peer = isStaff
+    ? (others.find((p) => p.user?.accountType === "customer") ?? others[0])
+    : others[0];
+  const peerName = peer?.user?.name;
 
   const messages = (data?.data ?? []) as Message[];
 
@@ -72,11 +81,7 @@ export default function ChatScreen(): JSX.Element {
       // opener passed (covers the empty-thread case where the old code sent to
       // an empty recipient and silently failed).
       const other = messages.find((m) => m.senderId !== user?.id);
-      const recipientId =
-        other?.senderId ??
-        peerId ??
-        conv?.participants?.find((p) => p.user && p.user.id !== user?.id)?.user?.id ??
-        "";
+      const recipientId = other?.senderId ?? peerId ?? peer?.user?.id ?? "";
       if (!recipientId) throw new Error(t("messages.noRecipient"));
       // Pin the message to THIS thread — context threads must not fall back
       // to the recipient's default support conversation.

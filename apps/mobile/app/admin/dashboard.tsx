@@ -152,6 +152,15 @@ export default function AdminDashboard(): JSX.Element {
         </Pressable>
 
         <Pressable
+          onPress={() => router.push("/staff/requests")}
+          style={({ pressed }) => [styles.linkRow, pressed && { opacity: 0.85 }]}
+        >
+          <Ionicons name="file-tray-full-outline" size={18} color={colors.brand.poolBlue} />
+          <Text style={styles.linkLabel}>{t("ops.requestsTitle")}</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
+        </Pressable>
+
+        <Pressable
           onPress={() => router.push("/admin/otp-requests")}
           style={({ pressed }) => [
             styles.linkRow,
