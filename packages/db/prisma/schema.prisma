@@ -162,6 +162,11 @@ model OtpCode {
   code      String
   expiresAt DateTime  @map("expires_at")
   usedAt    DateTime? @map("used_at")
+  // Akedly's transaction handle for this code. Kept so that when the user
+  // verifies locally we can close the loop on Akedly's side, flipping their
+  // dashboard row from "Pending" to "Successful". Null for admin-issued /
+  // bypass codes, which never touch Akedly.
+  akedlyTransactionReqId String? @map("akedly_transaction_req_id")
   createdAt DateTime  @default(now()) @map("created_at")
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
