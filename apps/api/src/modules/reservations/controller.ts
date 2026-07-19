@@ -3,7 +3,6 @@ import type { Request, Response } from "express";
 import { createReservationSchema, updateReservationSchema } from "@trendywheels/validators";
 
 import { prisma } from "../../config/database.js";
-import { isAdmin } from "../../utils/auth-roles.js";
 import { AppError } from "../../utils/errors.js";
 
 import { createReservation, setReservationStatus } from "./service.js";
@@ -21,9 +20,16 @@ export async function create(req: Request, res: Response): Promise<void> {
   res.status(201).json({ data: created });
 }
 
-// GET /api/reservations — admins see all; customers see only their own.
+// GET /api/reservations — staff see all; customers see only their own. Staff
+// approve/reject was explicitly enabled by the owner, so they need the full
+// board to act on: an admin-only list would make the widened PATCH unusable.
 export async function list(req: Request, res: Response): Promise<void> {
-  const where = isAdmin(req.user) ? {} : { userId: req.user!.userId };
+  // Allow-list, not deny-list: name the roles that may see the whole board and
+  // scope everyone else to their own rows. Keying off `isCustomer` instead would
+  // fail OPEN — any account type that isn't literally "customer" (a future role,
+  // or a token missing the claim) would read every customer's contact details.
+  const isStaff = req.user?.accountType === "admin" || req.user?.accountType === "staff";
+  const where = isStaff ? {} : { userId: req.user!.userId };
   const items = await prisma.reservation.findMany({
     where,
     include: {
@@ -36,7 +42,8 @@ export async function list(req: Request, res: Response): Promise<void> {
   res.json({ data: items });
 }
 
-// PATCH /api/reservations/:id — admin-only status transitions.
+// PATCH /api/reservations/:id — status transitions (admin + staff, widened by
+// the owner so staff can work the approvals board).
 export async function update(req: Request, res: Response): Promise<void> {
   const existing = await prisma.reservation.findUnique({ where: { id: req.params.id } });
   if (!existing) throw AppError.notFound("Reservation not found");

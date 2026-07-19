@@ -8,6 +8,8 @@ const router: RouterType = Router();
 
 router.post("/", authenticate, controller.create);
 router.get("/", authenticate, controller.list);
-router.patch("/:id", authenticate, authorize("admin"), controller.update);
+// Staff approve/reject was explicitly enabled by the owner — sales agents work
+// reservations too, so status transitions are no longer admin-only.
+router.patch("/:id", authenticate, authorize("admin", "staff"), controller.update);
 
 export { router as reservationRoutes };

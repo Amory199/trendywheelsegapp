@@ -12,6 +12,8 @@ router.get("/:id", authenticate, controller.getById);
 
 // Admin
 router.get("/admin/all", authenticate, authorize("admin"), controller.listAll);
-router.post("/:id/quote", authenticate, authorize("admin"), controller.quote);
+// Staff approve/reject was explicitly enabled by the owner — sales agents price
+// trade-ins as part of closing a sale.
+router.post("/:id/quote", authenticate, authorize("admin", "staff"), controller.quote);
 
 export { router as tradeInRoutes };

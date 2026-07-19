@@ -53,9 +53,13 @@ export async function update(req: Request, res: Response): Promise<void> {
   requireOwner(req, existing.userId);
 
   const input = updateRentalListingSchema.parse(req.body);
-  const admin = isAdmin(req.user);
+  // Reviewers = admin + staff. The owner widened listing approval to staff, and
+  // the admin board was widened to match; without this the staff approvals tab
+  // would list submissions whose Approve/Decline buttons 403 every time.
+  const admin =
+    isAdmin(req.user) || req.user?.accountType === "staff" || req.user?.accountType === "admin";
 
-  // Owners can only pause / withdraw / withdraw-back-to-paused. Admins can do anything.
+  // Listing owners can only pause / withdraw. Reviewers can do anything.
   if (!admin) {
     const allowedOwnerStatuses = new Set(["paused", "withdrawn"]);
     if (input.status && !allowedOwnerStatuses.has(input.status)) {

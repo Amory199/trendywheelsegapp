@@ -8,7 +8,9 @@ const router: RouterType = Router();
 
 router.post("/", authenticate, controller.submit);
 router.get("/", authenticate, controller.listMine);
-router.get("/admin/all", authenticate, authorize("admin"), controller.listAll);
+// Staff approve/reject was explicitly enabled by the owner — the whole team
+// triages incoming rental listings, so the directory is no longer admin-only.
+router.get("/admin/all", authenticate, authorize("admin", "staff"), controller.listAll);
 router.get("/:id", authenticate, controller.getById);
 router.patch("/:id", authenticate, controller.update);
 router.delete("/:id", authenticate, controller.remove);

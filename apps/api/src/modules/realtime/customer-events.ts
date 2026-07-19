@@ -25,7 +25,8 @@ export type CustomerEventType =
   | "rental-listing.created"
   | "rental-listing.updated"
   | "reservation.created"
-  | "reservation.updated";
+  | "reservation.updated"
+  | "order.updated";
 
 interface CustomerEventPayload {
   id: string;

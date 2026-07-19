@@ -1282,6 +1282,154 @@ curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/auth/refresh-token" \
   || fail "OTHER session was revoked by a scoped logout — revoke-all regression"
 pass "scoped logout: own session dead, other session alive"
 
+# ─── 12ab. Booking stage pipeline ────────────────────────────
+# The pipeline is a second view over fields other features already own, so each
+# stage MUST keep the legacy state in sync (status / paymentStatus / checkedInAt)
+# or the QR check-in, the customer's my-bookings screen and the metrics all drift.
+# Also asserts the forward-only guard and that plain staff — not just admin — can
+# drive it, since approvals were widened to authorize("admin","staff").
+note "12ab. Stage pipeline (state sync, forward-only, staff auth)"
+SP_START=$(date -u -d '+100 days' +%Y-%m-%dT10:00:00.000Z)
+SP_END=$(date -u -d '+102 days' +%Y-%m-%dT10:00:00.000Z)
+# Non-overlapping window so the staff-approve check below always gets a booking.
+SP_START2=$(date -u -d '+110 days' +%Y-%m-%dT10:00:00.000Z)
+SP_END2=$(date -u -d '+112 days' +%Y-%m-%dT10:00:00.000Z)
+SP_VEH=$(curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/vehicles" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"name\":\"Smoke Sale Cart\",\"category\":\"golf-cart\",\"seating\":4,\"fuelType\":\"electric\",\"transmission\":\"automatic\",\"location\":\"6th October\",\"listingType\":\"rent\",\"dailyRate\":500}") \
+  || fail "create stage-pipeline vehicle rejected"
+SP_VEH_ID=$(echo "$SP_VEH" | jq -r '.id // .data.id')
+[ -n "$SP_VEH_ID" ] && [ "$SP_VEH_ID" != "null" ] || fail "no stage-pipeline vehicle id: $SP_VEH"
+
+SP_BK=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/bookings" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"vehicleId\":\"$SP_VEH_ID\",\"startDate\":\"$SP_START\",\"endDate\":\"$SP_END\"}")
+SP_ID=$(echo "$SP_BK" | jq -r '.data.id // empty')
+[ -n "$SP_ID" ] || fail "stage-pipeline booking create failed: $SP_BK"
+[ "$(echo "$SP_BK" | jq -r '.data.stage')" = "requested" ] \
+  || fail "new booking should start at stage=requested: $SP_BK"
+
+# advance() helper — POST the stage, echo the updated booking, fail on non-2xx.
+sp_move() {
+  local token="$1" stage="$2" body
+  body=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/bookings/$SP_ID/stage" \
+    -H "Authorization: Bearer $token" -H "$JSON" -d "{\"stage\":\"$stage\"}")
+  [ "$(echo "$body" | jq -r '.data.stage // empty')" = "$stage" ] \
+    || fail "stage move to $stage failed: $body"
+  echo "$body"
+}
+
+# SKIPPING a stage is refused. This is the sharp edge: each stage writes only
+# its OWN side effects, so a jump straight to "returned" would complete the
+# booking and mint its loyalty payout while it was still unpaid and never
+# handed over. The pipeline must be walked one step at a time.
+SP_SKIP=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
+  -XPOST "$BASE/bookings/$SP_ID/stage" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" -d '{"stage":"returned"}')
+[ "$SP_SKIP" = "409" ] || fail "stage skip requested→returned got $SP_SKIP (expected 409)"
+SP_SKIP2=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
+  -XPOST "$BASE/bookings/$SP_ID/stage" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" -d '{"stage":"payment_collected"}')
+[ "$SP_SKIP2" = "409" ] || fail "two-step stage skip got $SP_SKIP2 (expected 409)"
+pass "stage skipping refused (no unpaid booking can reach 'returned')"
+
+# approved => status flips pending → confirmed.
+SP_A=$(sp_move "$ADMIN_TOKEN" "approved")
+[ "$(echo "$SP_A" | jq -r '.data.status')" = "confirmed" ] \
+  || fail "stage approved did not sync status=confirmed: $SP_A"
+# customer_confirmed touches no legacy field — status must stay confirmed.
+SP_C=$(sp_move "$ADMIN_TOKEN" "customer_confirmed")
+[ "$(echo "$SP_C" | jq -r '.data.status')" = "confirmed" ] \
+  || fail "customer_confirmed should not disturb status: $SP_C"
+# payment_collected => paymentStatus paid.
+SP_P=$(sp_move "$ADMIN_TOKEN" "payment_collected")
+[ "$(echo "$SP_P" | jq -r '.data.paymentStatus')" = "paid" ] \
+  || fail "stage payment_collected did not sync paymentStatus=paid: $SP_P"
+# handed_over => checkedInAt stamped, so the QR check-in screen agrees.
+SP_H=$(sp_move "$ADMIN_TOKEN" "handed_over")
+echo "$SP_H" | jq -e '.data.checkedInAt != null' >/dev/null \
+  || fail "stage handed_over did not stamp checkedInAt: $SP_H"
+pass "stage sync: approved→confirmed, payment_collected→paid, handed_over→checkedInAt"
+
+# Backward moves are refused (409) — the timeline is append-only and `returned`
+# pays out loyalty, so replaying a stage must never be possible.
+SP_BACK=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
+  -XPOST "$BASE/bookings/$SP_ID/stage" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" -d '{"stage":"approved"}')
+[ "$SP_BACK" = "409" ] || fail "backward stage move got $SP_BACK (expected 409)"
+# Re-sending the CURRENT stage is a backward move too (not > current index).
+SP_SAME=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
+  -XPOST "$BASE/bookings/$SP_ID/stage" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" -d '{"stage":"handed_over"}')
+[ "$SP_SAME" = "409" ] || fail "repeating the current stage got $SP_SAME (expected 409)"
+# A stage name outside the booking vocabulary is a 400, not a silent write.
+SP_BAD=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
+  -XPOST "$BASE/bookings/$SP_ID/stage" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" -d '{"stage":"teleported"}')
+[ "$SP_BAD" = "400" ] || fail "invalid stage name got $SP_BAD (expected 400)"
+# An order-only stage must not be accepted on a booking either.
+SP_XOVER=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
+  -XPOST "$BASE/bookings/$SP_ID/stage" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" -d '{"stage":"delivered"}')
+[ "$SP_XOVER" = "400" ] || fail "order-only stage on a booking got $SP_XOVER (expected 400)"
+pass "forward-only guard: backward 409, repeat 409, unknown stage 400, cross-vocabulary 400"
+
+# Plain staff (not admin) can drive the pipeline — the widened authorize().
+SP_R=$(sp_move "$SALES_TOKEN" "returned")
+[ "$(echo "$SP_R" | jq -r '.data.status')" = "completed" ] \
+  || fail "stage returned did not sync status=completed: $SP_R"
+pass "staff (non-admin) advanced a stage and returned→completed synced"
+
+# Timeline: newest first, one row per accepted move, notes preserved.
+SP_EV=$(curl -fsS -A "$SMOKE_UA" "$BASE/bookings/$SP_ID/stage-events" \
+  -H "Authorization: Bearer $SALES_TOKEN")
+[ "$(echo "$SP_EV" | jq -r '.data | length')" = "5" ] \
+  || fail "expected 5 stage events, got: $(echo "$SP_EV" | jq -r '.data | length')"
+[ "$(echo "$SP_EV" | jq -r '.data[0].stage')" = "returned" ] \
+  || fail "stage events not newest-first: $SP_EV"
+echo "$SP_EV" | jq -e '[.data[].stage] == ["returned","handed_over","payment_collected","customer_confirmed","approved"]' \
+  >/dev/null || fail "rejected moves leaked into the timeline: $SP_EV"
+pass "stage-events timeline: 5 rows, newest first, no rejected moves recorded"
+
+# Staff can also approve a booking outright (widened POST /:id/approve).
+SP_BK2=$(curl -sS -A "$SMOKE_UA" -XPOST "$BASE/bookings" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" \
+  -d "{\"vehicleId\":\"$SP_VEH_ID\",\"startDate\":\"$SP_START2\",\"endDate\":\"$SP_END2\"}")
+SP_ID2=$(echo "$SP_BK2" | jq -r '.data.id // empty')
+if [ -n "$SP_ID2" ]; then
+  curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/bookings/$SP_ID2/approve" \
+    -H "Authorization: Bearer $SALES_TOKEN" >/dev/null \
+    || fail "staff could not approve a booking — auth widening regressed"
+  pass "staff approve accepted"
+  # A CANCELLED booking is off the pipeline. Without this guard a cancelled,
+  # refunded booking could be walked forward again — flipping refunded back to
+  # paid, stamping a handover, and re-firing the loyalty payout on a dead deal.
+  curl -fsS -A "$SMOKE_UA" -XPOST "$BASE/bookings/$SP_ID2/cancel" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || fail "cancel for stage guard failed"
+  SP_DEAD=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w "%{http_code}" \
+    -XPOST "$BASE/bookings/$SP_ID2/stage" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "$JSON" -d '{"stage":"customer_confirmed"}')
+  [ "$SP_DEAD" = "409" ] || fail "advancing a cancelled booking got $SP_DEAD (expected 409)"
+  pass "cancelled booking refused by the pipeline"
+  curl -sS -A "$SMOKE_UA" -XDELETE "$BASE/bookings/$SP_ID2" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
+else
+  note "second booking not created (vehicle busy) — staff approve covered by the stage move above"
+fi
+
+# Cleanup. Bookings/vehicles soft-delete, and stage_events has no FK, so purge
+# this run's rows by id the same way section 13 purges its own artifacts.
+curl -sS -A "$SMOKE_UA" -XDELETE "$BASE/bookings/$SP_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
+curl -fsS -A "$SMOKE_UA" -XDELETE "$BASE/vehicles/$SP_VEH_ID" -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null \
+  || fail "cleanup stage-pipeline vehicle failed"
+SP_DB=$(grep -m1 '^DATABASE_URL=' "$(dirname "$0")/../.env" 2>/dev/null \
+  | cut -d= -f2- | sed 's/^"//;s/"$//;s/?.*//')
+if [ -n "${SP_DB:-}" ] && command -v psql >/dev/null 2>&1; then
+  psql "$SP_DB" -q -c \
+    "DELETE FROM stage_events WHERE entity_type = 'booking' AND entity_id IN ('${SP_ID}','${SP_ID2:-00000000-0000-0000-0000-000000000000}');" \
+    >/dev/null 2>&1 || true
+fi
+pass "stage-pipeline cleanup"
+
 # ─── 13. Cleanup test lead — best-effort soft delete ─────────
 note "13. Cleanup"
 # No DELETE endpoint on /crm/leads, so leave the smoke-test lead. The contact

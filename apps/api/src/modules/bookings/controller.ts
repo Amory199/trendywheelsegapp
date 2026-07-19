@@ -3,12 +3,17 @@ import type { Request, Response } from "express";
 
 import {
   blockedDatesInRange,
+  BOOKING_STAGES,
+  canAdvance,
   LOYALTY,
   rentalDays,
   rentalQuote,
+  stageIndex,
   unavailableWeekdays,
   WEEKDAY_LABELS,
+  type BookingStage,
 } from "@trendywheels/types";
+import { advanceStageSchema } from "@trendywheels/validators";
 
 import { prisma } from "../../config/database.js";
 import { requireOwner, scopeListToOwner } from "../../utils/auth-roles.js";
@@ -503,6 +508,133 @@ export async function checkIn(req: Request, res: Response): Promise<void> {
     data: { bookingId: booking.id, url: `/rent/booking/${booking.id}` },
   });
   res.json({ data: updated });
+}
+
+// Customer-facing copy for each pipeline stage. The customer sees the same
+// milestones staff tick off, so the chip row and the push can never tell two
+// different stories about where the booking is.
+const BOOKING_STAGE_NOTICE: Record<BookingStage, { title: string; body: string }> = {
+  requested: { title: "Booking received", body: "We're reviewing your booking now." },
+  approved: { title: "Booking confirmed", body: "Your booking has been approved. See you soon." },
+  customer_confirmed: {
+    title: "Booking locked in",
+    body: "Thanks for confirming — we're getting your ride ready.",
+  },
+  payment_collected: { title: "Payment received", body: "Your booking is fully paid. Thank you." },
+  handed_over: { title: "Vehicle handed over", body: "Enjoy the ride — your rental has started." },
+  returned: { title: "Rental complete", body: "Thanks for riding with us. Your points are in." },
+};
+
+// POST /api/bookings/:id/stage — staff move the booking one step down the
+// fulfilment pipeline. The legacy status/paymentStatus/checkedInAt columns stay
+// authoritative for everything already built, so each stage writes them in the
+// SAME update: the stage is a label over existing state, never a second truth.
+export async function advanceStage(req: Request, res: Response): Promise<void> {
+  if (!STAFF_TYPES.has(req.user!.accountType)) throw AppError.forbidden();
+  const input = advanceStageSchema.parse(req.body);
+  if (stageIndex(BOOKING_STAGES, input.stage) < 0) {
+    throw AppError.badRequest(`"${input.stage}" is not a booking stage`);
+  }
+  const stage = input.stage as BookingStage;
+
+  const booking = await prisma.booking.findUnique({ where: { id: req.params.id } });
+  if (!booking) throw AppError.notFound("Booking not found");
+  // A closed booking is off the pipeline. Without this, a cancelled+refunded
+  // booking could be walked forward again — flipping "refunded" back to "paid",
+  // stamping a handover, and re-firing the loyalty payout on a dead rental.
+  // Mirrors the same refusal in checkIn().
+  if (booking.status === "cancelled") {
+    throw AppError.conflict("This booking was cancelled — it can no longer move down the pipeline");
+  }
+  if (booking.status === "completed") {
+    throw AppError.conflict("This booking is already complete");
+  }
+  if (!canAdvance(BOOKING_STAGES, booking.stage, stage)) {
+    throw AppError.conflict(
+      `Cannot move this booking from "${booking.stage}" to "${stage}" — the pipeline moves one step at a time. Add a note instead.`,
+    );
+  }
+
+  const data: Prisma.BookingUpdateInput = { stage };
+  if (stage === "approved" && booking.status === "pending") data.status = "confirmed";
+  if (stage === "payment_collected") data.paymentStatus = "paid";
+  if (stage === "handed_over" && !booking.checkedInAt) {
+    data.checkedInAt = new Date();
+    data.checkedInById = req.user!.userId;
+  }
+  if (stage === "returned") data.status = "completed";
+
+  // Compare-and-set on the stage we read. Two staff advancing the same booking
+  // at once would otherwise BOTH pass the payout guard above (read/read/write/
+  // write) and each mint loyalty points. The loser matches 0 rows and 409s.
+  // Interactive tx so the timeline row is only written when the claim wins —
+  // a batch would record an event for a move that never happened.
+  const updated = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.booking.updateMany({
+      where: { id: booking.id, stage: booking.stage },
+      data,
+    });
+    if (claimed.count !== 1) return null;
+    await tx.stageEvent.create({
+      data: {
+        entityType: "booking",
+        entityId: booking.id,
+        stage,
+        note: input.note ?? null,
+        actorId: req.user!.userId,
+      },
+    });
+    return tx.booking.findUniqueOrThrow({ where: { id: booking.id } });
+  });
+  if (!updated) {
+    throw AppError.conflict("Someone else just moved this booking — reopen it to see where it is");
+  }
+
+  // Loyalty + referral payout. onBookingCompleted() is NOT idempotent — it mints
+  // points unconditionally — so exactly one caller must ever reach it per
+  // booking. Three things guarantee that, which is why there is no status check
+  // here (TypeScript proves it would be dead code):
+  //   1. the terminal guard above rejects an already-completed booking outright;
+  //   2. canAdvance permits only "handed_over" → "returned", so this line is
+  //      reachable once per booking;
+  //   3. the compare-and-set update means concurrent callers can't both win.
+  if (stage === "returned") {
+    await onBookingCompleted(updated.id, updated.userId, Number(updated.totalCost));
+  }
+
+  emitDomainEvent("booking.updated", booking.id, booking.userId, { stage });
+  const notice = BOOKING_STAGE_NOTICE[stage];
+  await notifyUser(booking.userId, `booking-stage-${stage}-${booking.id}`, {
+    type: "booking_stage_changed",
+    title: notice.title,
+    body: notice.body,
+    data: { bookingId: booking.id, stage, url: `/rent/booking/${booking.id}` },
+  });
+  res.json({ data: updated });
+}
+
+// GET /api/bookings/:id/stage-events — pipeline history, newest first. Staff or
+// the booking's own customer, matching getOne's visibility rule.
+export async function stageEvents(req: Request, res: Response): Promise<void> {
+  const booking = await prisma.booking.findUnique({
+    where: { id: req.params.id },
+    select: { id: true, userId: true },
+  });
+  if (!booking) throw AppError.notFound("Booking not found");
+  const isStaff = STAFF_TYPES.has(req.user!.accountType);
+  if (!isStaff && booking.userId !== req.user!.userId) {
+    throw AppError.forbidden();
+  }
+  const events = await prisma.stageEvent.findMany({
+    where: { entityType: "booking", entityId: booking.id },
+    orderBy: { createdAt: "desc" },
+  });
+  // Staff notes are internal ("ID looks doctored, verify before handover") and
+  // the composer doesn't warn otherwise — so the customer gets the timeline
+  // without the note or the actor.
+  res.json({
+    data: isStaff ? events : events.map(({ note: _n, actorId: _a, ...rest }) => rest),
+  });
 }
 
 export async function markPaid(req: Request, res: Response): Promise<void> {

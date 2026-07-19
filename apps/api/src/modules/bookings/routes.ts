@@ -1,4 +1,5 @@
 import {
+  advanceStageSchema,
   bookingFiltersSchema,
   checkInBookingSchema,
   createBookingSchema,
@@ -64,6 +65,21 @@ router.post(
   staffOnly,
   validate({ params: idParamSchema }),
   bookingController.approve,
+);
+// Staff fulfilment pipeline: advance a stage, or read the timeline (staff or
+// the booking's own customer — the handler enforces the owner case).
+router.post(
+  "/:id/stage",
+  authenticate,
+  staffOnly,
+  validate({ params: idParamSchema, body: advanceStageSchema }),
+  bookingController.advanceStage,
+);
+router.get(
+  "/:id/stage-events",
+  authenticate,
+  validate({ params: idParamSchema }),
+  bookingController.stageEvents,
 );
 router.post(
   "/:id/reject",
