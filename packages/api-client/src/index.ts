@@ -3,15 +3,18 @@ import type {
   AuthTokens,
   Booking,
   BookingFilters,
+  BookingStage,
   LoginResponse,
   Message,
   Notification,
+  OrderStage,
   PaginatedResponse,
   RentalListing,
   RentalListingStatus,
   Reservation,
   RepairRequest,
   SalesListing,
+  StageEvent,
   SupportTicket,
   TicketMessage,
   TradeIn,
@@ -626,6 +629,23 @@ class ApiClient {
     return this.request("POST", "/api/messages/conversations", { body: { recipientId } });
   }
 
+  async getConversation(id: string): Promise<ApiResponse<unknown>> {
+    return this.request("GET", `/api/messages/conversations/${encodeURIComponent(id)}`);
+  }
+
+  // Open (or reuse) the thread attached to one booking/order/repair/etc. The
+  // server dedupes by contextType+contextId and fans the thread out to staff,
+  // so calling this twice returns the same conversation.
+  async openContextThread(
+    contextType: "booking" | "reservation" | "repair" | "order" | "listing",
+    contextId: string,
+    contextTitle?: string,
+  ): Promise<ApiResponse<{ id: string }>> {
+    return this.request("POST", "/api/messages/context-thread", {
+      body: { contextType, contextId, contextTitle },
+    });
+  }
+
   // ─── Admin (mobile role workspaces) ──────────────────────
 
   async adminMetrics(): Promise<{ data: Record<string, unknown> }> {
@@ -658,6 +678,37 @@ class ApiClient {
     return this.request("POST", `/api/bookings/${encodeURIComponent(id)}/reject`, {
       body: reason ? { reason } : undefined,
     });
+  }
+
+  // ─── Staff fulfilment pipeline ───────────────────────────
+  // Forward-only: the server rejects a backward move with a 409.
+
+  async advanceBookingStage(
+    id: string,
+    stage: BookingStage,
+    note?: string,
+  ): Promise<{ data: Booking }> {
+    return this.request("POST", `/api/bookings/${encodeURIComponent(id)}/stage`, {
+      body: { stage, note },
+    });
+  }
+
+  async getBookingStageEvents(id: string): Promise<{ data: StageEvent[] }> {
+    return this.request("GET", `/api/bookings/${encodeURIComponent(id)}/stage-events`);
+  }
+
+  async advanceOrderStage(
+    id: string,
+    stage: OrderStage,
+    note?: string,
+  ): Promise<{ data: unknown }> {
+    return this.request("POST", `/api/orders/${encodeURIComponent(id)}/stage`, {
+      body: { stage, note },
+    });
+  }
+
+  async getOrderStageEvents(id: string): Promise<{ data: StageEvent[] }> {
+    return this.request("GET", `/api/orders/${encodeURIComponent(id)}/stage-events`);
   }
 
   async adminListUsers(params?: {

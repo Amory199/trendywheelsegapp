@@ -6,6 +6,7 @@ import components from "./ar/components";
 import crm from "./ar/crm";
 import home from "./ar/home";
 import messages from "./ar/messages";
+import ops from "./ar/ops";
 import profile from "./ar/profile";
 import rent from "./ar/rent";
 import sale from "./ar/sale";
@@ -175,6 +176,7 @@ const ar: TranslationKeys = {
   support,
   components,
   checkin,
+  ops,
 };
 
 export default ar;

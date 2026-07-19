@@ -5,6 +5,7 @@ import components from "./en/components";
 import crm from "./en/crm";
 import home from "./en/home";
 import messages from "./en/messages";
+import ops from "./en/ops";
 import profile from "./en/profile";
 import rent from "./en/rent";
 import sale from "./en/sale";
@@ -183,6 +184,7 @@ const en = {
   support,
   components,
   checkin,
+  ops,
 } as const;
 
 export default en;
