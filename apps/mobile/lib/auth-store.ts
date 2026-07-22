@@ -83,6 +83,8 @@ interface AuthState {
   sendOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, otp: string) => Promise<void>;
   loginWithPassword: (email: string, password: string) => Promise<void>;
+  requestPasswordReset: (phone: string) => Promise<void>;
+  resetPassword: (phone: string, code: string, password: string) => Promise<void>;
   verifyFirebaseIdToken: (idToken: string) => Promise<void>;
   assumeRole: (role: "customer" | "staff", staffRole?: string) => Promise<void>;
   exitActing: () => Promise<void>;
@@ -208,6 +210,27 @@ export const useAuth = create<AuthState>((set, get) => ({
     set({ user: res.user });
     setAnalyticsUser(res.user.id);
     logEvent("login", { method: "password" });
+  },
+
+  // Kick off a password reset: the server sends a one-time code to the phone
+  // (via Akedly, same channel as the login OTP). No session is issued here.
+  async requestPasswordReset(phone) {
+    await api.request("POST", "/api/auth/forgot-password", { body: { phone } });
+  },
+
+  // Complete a password reset with the emailed/SMS code + a new password. The
+  // server returns a fresh session, so we persist tokens + user EXACTLY like
+  // loginWithPassword — the reset screen auto-lands the now-signed-in user.
+  async resetPassword(phone, code, password) {
+    const res = await api.request<{ token: string; refreshToken: string; user: User }>(
+      "POST",
+      "/api/auth/reset-password",
+      { body: { phone, code, password } },
+    );
+    await setTokens(res.token, res.refreshToken);
+    set({ user: res.user });
+    setAnalyticsUser(res.user.id);
+    logEvent("login", { method: "password_reset" });
   },
 
   async verifyFirebaseIdToken(idToken) {

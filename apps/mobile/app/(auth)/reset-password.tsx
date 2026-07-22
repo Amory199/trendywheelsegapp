@@ -1,8 +1,7 @@
 import { spacing, typography, borderRadius, colors, type Palette } from "@trendywheels/ui-tokens";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-  View,
   Text,
   TextInput,
   TouchableOpacity,
@@ -19,49 +18,44 @@ import { useAuth } from "../../lib/auth-store";
 import { useT } from "../../lib/locale";
 import { useTheme } from "../../lib/use-theme";
 
-// Credentials login. Customers who set an email + password at signup (and all
-// staff/admin) sign in here instead of re-doing OTP every time. On success we
-// bounce to "/" so the index router lands them by role.
-export default function LoginEmailScreen(): JSX.Element {
+// Step 2 of the password reset: verify the code, set the new password, and (on
+// success) the store persists the returned session — so we auto-land the now
+// signed-in user on "/" (the index router places them by role).
+export default function ResetPasswordScreen(): JSX.Element {
   const router = useRouter();
-  const loginWithPassword = useAuth((s) => s.loginWithPassword);
+  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const resetPassword = useAuth((s) => s.resetPassword);
   const t = useT();
   const { palette: p } = useTheme();
   const styles = useMemo(() => makeStyles(p), [p]);
 
-  const [identifier, setIdentifier] = useState("");
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // The identifier is the username — a phone number or an email. Don't gate the
-  // button on a strict email regex anymore; just require something + a password.
-  const canSubmit = identifier.trim().length > 0 && password.length >= 1 && !loading;
+  const canSubmit = code.length === 6 && password.length >= 8 && confirm.length >= 8 && !loading;
 
-  const handleLogin = async (): Promise<void> => {
-    setLoading(true);
+  const handleSubmit = async (): Promise<void> => {
     setError(null);
+    if (password.length < 8) {
+      setError(t("auth.passwordTooShort"));
+      return;
+    }
+    if (password !== confirm) {
+      setError(t("auth.passwordsDontMatch"));
+      return;
+    }
+    setLoading(true);
     try {
-      await loginWithPassword(identifier.trim(), password);
-      // Clear the pre-auth stack (guest catalog + auth screens) before landing
-      // on the role home, so Back can't drop a staff/admin into the customer
-      // interface they can't escape. (INC-053)
+      await resetPassword(phone ?? "", code, password);
+      // The store persisted the returned tokens + user — clear the pre-auth
+      // stack and land by role, exactly like a fresh login. (INC-053)
       if (router.canDismiss()) router.dismissAll();
       router.replace("/");
     } catch (err) {
-      // The API now returns a specific reason + a machine code. Prefer a
-      // localised string for the known cases (keeps Arabic), and fall back to
-      // the server's own message — which is already a clear sentence — so the
-      // user always learns what's actually wrong instead of "Login failed".
-      const code = (err as { code?: string } | null)?.code;
-      const byCode: Record<string, string> = {
-        NO_ACCOUNT: t("auth.noAccount"),
-        NO_PASSWORD_SET: t("auth.noPasswordSet"),
-        WRONG_PASSWORD: t("auth.wrongPassword"),
-        ACCOUNT_INACTIVE: t("auth.accountInactive"),
-      };
-      const serverMsg = err instanceof Error ? err.message : "";
-      setError((code && byCode[code]) || serverMsg || t("auth.loginFailed"));
+      setError(err instanceof Error ? err.message : t("auth.resetFailed"));
     } finally {
       setLoading(false);
     }
@@ -81,24 +75,23 @@ export default function LoginEmailScreen(): JSX.Element {
           <BackButton
             color={p.text}
             style={{ marginLeft: -8, marginBottom: 6 }}
-            fallback="/(auth)/phone"
+            fallback="/(auth)/login-email"
           />
-          <Text style={styles.title}>{t("auth.loginTitle")}</Text>
-          <Text style={styles.subtitle}>{t("auth.loginSubtitle")}</Text>
+          <Text style={styles.title}>{t("auth.resetTitle")}</Text>
+          <Text style={styles.subtitle}>{t("auth.resetSubtitle")}</Text>
 
-          <Text style={styles.label}>{t("auth.identifierLabel")}</Text>
+          <Text style={styles.label}>{t("auth.resetCodeLabel")}</Text>
           <TextInput
             style={styles.input}
-            placeholder={t("auth.identifierPlaceholder")}
+            placeholder="000000"
             placeholderTextColor={colors.text.placeholder}
-            keyboardType="default"
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={identifier}
-            onChangeText={setIdentifier}
+            keyboardType="number-pad"
+            value={code}
+            onChangeText={(v) => setCode(v.replace(/[^0-9]/g, "").slice(0, 6))}
+            maxLength={6}
           />
 
-          <Text style={styles.label}>{t("auth.passwordLabel")}</Text>
+          <Text style={styles.label}>{t("auth.newPasswordLabel")}</Text>
           <TextInput
             style={styles.input}
             placeholder={t("auth.passwordPlaceholder")}
@@ -108,38 +101,34 @@ export default function LoginEmailScreen(): JSX.Element {
             autoCorrect={false}
             value={password}
             onChangeText={setPassword}
-            onSubmitEditing={() => canSubmit && void handleLogin()}
+          />
+
+          <Text style={styles.label}>{t("auth.confirmPasswordLabel")}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder={t("auth.passwordPlaceholder")}
+            placeholderTextColor={colors.text.placeholder}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={confirm}
+            onChangeText={setConfirm}
+            onSubmitEditing={() => canSubmit && void handleSubmit()}
           />
 
           {error && <Text style={styles.error}>{error}</Text>}
 
           <TouchableOpacity
-            style={styles.forgotLink}
-            onPress={() => router.push("/(auth)/forgot-password")}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.forgotLinkText}>{t("auth.forgotLink")}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
             style={[styles.button, !canSubmit && styles.buttonDisabled]}
-            onPress={() => void handleLogin()}
+            onPress={() => void handleSubmit()}
             disabled={!canSubmit}
             activeOpacity={0.85}
           >
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.buttonText}>{t("auth.loginCta")}</Text>
+              <Text style={styles.buttonText}>{t("auth.resetCta")}</Text>
             )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.altLink}
-            onPress={() => router.replace("/(auth)/phone")}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.altLinkText}>{t("auth.noAccountSignup")}</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
@@ -193,19 +182,6 @@ function makeStyles(p: Palette) {
       fontSize: typography.fontSize.bodyLarge,
       fontWeight: typography.fontWeight.bold,
       color: "#fff",
-    },
-    forgotLink: { alignSelf: "flex-end", paddingVertical: spacing.xs, marginBottom: spacing.xs },
-    forgotLinkText: {
-      fontSize: typography.fontSize.caption,
-      fontWeight: typography.fontWeight.semibold,
-      color: p.blue,
-    },
-    altLink: { marginTop: spacing.lg, alignItems: "center", paddingVertical: spacing.sm },
-    altLinkText: {
-      fontSize: typography.fontSize.bodyLarge,
-      fontWeight: typography.fontWeight.semibold,
-      color: p.blue,
-      textDecorationLine: "underline",
     },
   });
 }
