@@ -479,6 +479,124 @@ export async function verifyOtp(
 }
 
 /**
+ * Password reset — step 1. Send an OTP to a CUSTOMER phone so they can set a new
+ * password. SILENT for staff/admin (privileged accounts don't reset via a single
+ * SMS factor) and for unknown numbers. The controller ALWAYS returns a generic
+ * success regardless of what happens here, so this never reveals whether an
+ * account exists (anti-enumeration).
+ */
+export async function requestPasswordReset(phone: string, endUserIp?: string): Promise<void> {
+  const user = await prisma.user.findFirst({
+    where: { phone: { in: phoneVariants(phone) } },
+  });
+  // Only real, active customers get a reset code. Staff/admin reset is out of
+  // band; an unknown/inactive number gets nothing — but the caller can't tell
+  // the difference (the controller returns the same generic 200 either way).
+  if (!user || user.accountType !== "customer" || user.status !== "active") {
+    logger.info({ phone: phone.slice(-4), msg: "password_reset_ignored" });
+    return;
+  }
+  // Reuse the exact OTP send path — writes an otp_codes row + dispatches Akedly.
+  // Pass the SAME phone value the client sent so reset-password (which also
+  // receives it verbatim) matches the row, mirroring the send-otp/verify-otp pair.
+  //
+  // STRICTLY fire-and-forget: we must NOT await the multi-step Akedly send on the
+  // response path. Awaiting it makes an active-customer request take hundreds of
+  // ms/seconds (challenge -> PoW -> send round-trips) while every other branch
+  // returns after a single DB lookup, and that response-time delta leaks account
+  // existence via timing — defeating the anti-enumeration guarantee above. Kicking
+  // the send off in the background keeps all branches indistinguishable in latency.
+  void sendOtp(phone, endUserIp).catch((err) => {
+    logger.error(
+      { phone: phone.slice(-4), msg: "password_reset_send_failed", err: (err as Error)?.message },
+      "Could not dispatch password-reset OTP",
+    );
+  });
+}
+
+/**
+ * Password reset — step 2. Verify the OTP the customer received and set the new
+ * password, then AUTO-LOGIN. The code is validated EXACTLY like verifyOtp (real,
+ * single-use, unexpired otp_codes row) — the static trial-bypass codes are never
+ * consulted here, so a reset can only ever use a genuine OTP. Returns the same
+ * { token, refreshToken, user } shape as verifyOtp so the client signs in straight
+ * away.
+ */
+export async function resetPassword(
+  phone: string,
+  code: string,
+  newPassword: string,
+): Promise<{ token: string; refreshToken: string; user: object }> {
+  // Validate the OTP exactly like verifyOtp. Note: TRIAL_OTP_BYPASS is
+  // deliberately NOT checked — a password reset must use a real, single-use code,
+  // never a static demo code.
+  const otpRecord = await prisma.otpCode.findFirst({
+    where: {
+      phone,
+      code,
+      usedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!otpRecord) {
+    throw AppError.badRequest("Invalid or expired code");
+  }
+
+  // Resolve + validate the account BEFORE burning the code. If the reset is
+  // ultimately refused (non-customer, inactive, ambiguous number), a genuine
+  // one-time code must survive so the customer can retry after reactivation
+  // rather than having to request a brand-new code. Staff/admin must never
+  // reset a password via SMS OTP.
+  const matches = await prisma.user.findMany({
+    where: { phone: { in: phoneVariants(phone) } },
+  });
+  // Fail closed on an ambiguous number: if variant forms of this phone resolve
+  // to more than one DISTINCT account (e.g. "01001234567" and "+201001234567"),
+  // refuse rather than arbitrarily pick one and reset/auto-login the wrong
+  // account the code wasn't issued for. Mirrors loginWithPassword (INC-059).
+  const distinctIds = new Set(matches.map((u) => u.id));
+  if (distinctIds.size > 1) {
+    throw AppError.forbidden(
+      "This number matches more than one account. Please sign in with your email address.",
+      "AMBIGUOUS_IDENTIFIER",
+    );
+  }
+  const user = matches[0] ?? null;
+  if (!user || user.accountType !== "customer") {
+    throw AppError.forbidden("This account cannot reset its password here.");
+  }
+  if (user.status !== "active") {
+    throw AppError.forbidden("Account is not active");
+  }
+
+  // Single-use: stamp usedAt so this code can't reset again (a used or expired
+  // code never matched above). Only reached once the reset is authorised.
+  await prisma.otpCode.update({
+    where: { id: otpRecord.id },
+    data: { usedAt: new Date() },
+  });
+
+  // Report the verification back to Akedly, exactly like verifyOtp — STRICTLY
+  // fire-and-forget; the reset is already authorised by the checks above.
+  if (otpRecord.akedlyTransactionReqId) {
+    void verifyAkedlyTransaction(otpRecord.akedlyTransactionReqId, code).catch((err) => {
+      const e = err as AkedlyError;
+      logger.info(
+        { phone: phone.slice(-4), code: e?.code, msg: "akedly_verify_report_failed" },
+        "Could not report verification to Akedly (cosmetic only)",
+      );
+    });
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+
+  // Auto-login after a successful reset — same token pair as a normal sign-in.
+  return issueTokensForPhone(user.phone);
+}
+
+/**
  * Issue a JWT pair for a given phone number. Caller is responsible for having
  * already verified the phone (via OTP, Firebase ID token, etc.). Auto-creates
  * the user + signup lead on first call. Returns the same shape as verifyOtp().

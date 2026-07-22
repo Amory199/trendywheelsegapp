@@ -6,6 +6,8 @@ import {
   setCredentialsSchema,
   assumeRoleSchema,
   otpRequestSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "@trendywheels/validators";
 import { Router, type Router as RouterType } from "express";
 import rateLimit from "express-rate-limit";
@@ -71,6 +73,22 @@ router.post(
 
 router.post("/login-method", validate({ body: sendOtpSchema }), authController.loginMethod);
 router.post("/verify-otp", validate({ body: verifyOtpSchema }), authController.verifyOtp);
+
+// Password reset via OTP (customer accounts only). forgot-password sends a code
+// (silent + anti-enumeration); reset-password verifies it, sets the new password,
+// and returns a token pair for auto-login. Both are OTP-class SMS endpoints: they
+// carry the tight app-level limiter in app.ts AND the nginx tw_otp zone, not just
+// the generic ^/api/auth/ auth limit (which would allow SMS flooding).
+router.post(
+  "/forgot-password",
+  validate({ body: forgotPasswordSchema }),
+  authController.forgotPassword,
+);
+router.post(
+  "/reset-password",
+  validate({ body: resetPasswordSchema }),
+  authController.resetPassword,
+);
 router.post("/firebase-token", authController.firebaseToken);
 router.post("/login", validate({ body: staffLoginSchema }), authController.login);
 router.post(

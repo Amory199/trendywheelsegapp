@@ -211,8 +211,18 @@ app.use("/", healthRoutes);
 // /api/healthz + /api/readyz now resolve to the same handlers — closes INC-009.
 app.use("/api", healthRoutes);
 app.use("/api/auth/send-otp", authLimiter);
+// forgot-password dispatches a real SMS OTP (silent, anti-enumeration) exactly like
+// send-otp, so it gets the same IP-keyed cap. Without this it fell through to the
+// looser generic handling and could be abused to flood a known phone with SMS
+// (Akedly cost amplification). Mirrors send-otp; nginx also gates it via tw_otp.
+app.use("/api/auth/forgot-password", authLimiter);
 app.use("/api/auth/login-method", authLimiter);
 app.use("/api/auth/verify-otp", otpVerifyLimiter);
+// reset-password verifies a 6-digit reset code and, on success, sets the password
+// AND issues auto-login tokens — same takeover surface as verify-otp. Guard it with
+// the same phone-keyed limiter so brute force can't be spread across IPs (both share
+// the phone-keyed store, so guesses can't be split between the two endpoints either).
+app.use("/api/auth/reset-password", otpVerifyLimiter);
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/refresh-token", refreshTokenLimiter);
 app.use("/api/auth", authRoutes);

@@ -22,6 +22,28 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
   res.json(result);
 }
 
+// Password reset — step 1. Sends an OTP only to a real customer phone; silent for
+// staff/admin/unknown numbers. ALWAYS returns a generic success so the response
+// never reveals whether an account exists (anti-enumeration). Forward the real
+// client IP so Akedly's per-IP rate-limit sees the user, not our server.
+export async function forgotPassword(req: Request, res: Response): Promise<void> {
+  const { phone } = req.body as { phone: string };
+  await authService.requestPasswordReset(phone, req.ip);
+  res.json({ success: true });
+}
+
+// Password reset — step 2. Verifies the OTP, sets the new password, and returns a
+// fresh token pair so the app signs the user straight in.
+export async function resetPassword(req: Request, res: Response): Promise<void> {
+  const { phone, code, password } = req.body as {
+    phone: string;
+    code: string;
+    password: string;
+  };
+  const result = await authService.resetPassword(phone, code, password);
+  res.json(result);
+}
+
 // Admin-only: generate a manual login code for a user who can't get a Firebase
 // SMS. Returns the code to the admin, who relays it to the user out-of-band.
 // Recorded so there's an audit trail of who issued a code for which phone.
