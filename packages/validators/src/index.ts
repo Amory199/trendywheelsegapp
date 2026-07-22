@@ -23,6 +23,19 @@ export const otpRequestSchema = z.object({
   phone: sendOtpSchema.shape.phone,
 });
 
+// Password reset via Akedly OTP. forgot-password sends a code to a CUSTOMER phone
+// (silent for staff/admin/unknown numbers — anti-enumeration); reset-password
+// verifies that code and sets the new password.
+export const forgotPasswordSchema = z.object({
+  phone: sendOtpSchema.shape.phone,
+});
+
+export const resetPasswordSchema = z.object({
+  phone: sendOtpSchema.shape.phone,
+  code: verifyOtpSchema.shape.otp,
+  password: z.string().min(8, "Password must be at least 8 characters").max(100),
+});
+
 export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, "Refresh token is required"),
 });
