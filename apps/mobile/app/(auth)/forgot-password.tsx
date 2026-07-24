@@ -45,7 +45,14 @@ export default function ForgotPasswordScreen(): JSX.Element {
       await requestPasswordReset(fullPhone);
       router.push({ pathname: "/(auth)/reset-password", params: { phone: fullPhone } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("auth.forgotFailed"));
+      // Prefer a localised string for the known code (keeps Arabic), fall back to
+      // the server's own sentence, then a generic. Mirrors the login screen.
+      const code = (err as { code?: string } | null)?.code;
+      const byCode: Record<string, string> = {
+        NOT_FOUND: t("auth.forgotNoAccount"),
+      };
+      const serverMsg = err instanceof Error ? err.message : "";
+      setError((code && byCode[code]) || serverMsg || t("auth.forgotFailed"));
     } finally {
       setLoading(false);
     }
