@@ -489,23 +489,22 @@ export async function requestPasswordReset(phone: string, endUserIp?: string): P
   const user = await prisma.user.findFirst({
     where: { phone: { in: phoneVariants(phone) } },
   });
-  // Only real, active customers get a reset code. Staff/admin reset is out of
-  // band; an unknown/inactive number gets nothing — but the caller can't tell
-  // the difference (the controller returns the same generic 200 either way).
+  // Only real, active customers can reset here. Staff/admin reset is out of band.
+  // Product decision (owner, 2026-07-23): tell the caller plainly when no account
+  // matches, rather than the anti-enumeration generic success — the Egypt customer
+  // base finds a silent "check your phone" that never arrives more confusing than
+  // useful. This DOES let someone probe which numbers have accounts; accepted.
   if (!user || user.accountType !== "customer" || user.status !== "active") {
-    logger.info({ phone: phone.slice(-4), msg: "password_reset_ignored" });
-    return;
+    logger.info({ phone: phone.slice(-4), msg: "password_reset_no_account" });
+    throw AppError.notFound("No account found with this phone number", "NOT_FOUND");
   }
   // Reuse the exact OTP send path — writes an otp_codes row + dispatches Akedly.
   // Pass the SAME phone value the client sent so reset-password (which also
   // receives it verbatim) matches the row, mirroring the send-otp/verify-otp pair.
   //
-  // STRICTLY fire-and-forget: we must NOT await the multi-step Akedly send on the
-  // response path. Awaiting it makes an active-customer request take hundreds of
-  // ms/seconds (challenge -> PoW -> send round-trips) while every other branch
-  // returns after a single DB lookup, and that response-time delta leaks account
-  // existence via timing — defeating the anti-enumeration guarantee above. Kicking
-  // the send off in the background keeps all branches indistinguishable in latency.
+  // Fire-and-forget: don't block the response on the multi-step Akedly send
+  // (challenge -> PoW -> send round-trips take hundreds of ms/seconds). The caller
+  // gets a fast 200 and the OTP arrives moments later, exactly like send-otp.
   void sendOtp(phone, endUserIp).catch((err) => {
     logger.error(
       { phone: phone.slice(-4), msg: "password_reset_send_failed", err: (err as Error)?.message },

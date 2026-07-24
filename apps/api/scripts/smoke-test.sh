@@ -1027,20 +1027,20 @@ OTP_2ND_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w '%{http_code}' -XPOST "$B
 [ "$OTP_2ND_CODE" = "409" ] || fail "second otp-request for same phone returned $OTP_2ND_CODE (expected 409)"
 pass "manual-OTP lifecycle: request→issue→poll(code)→exhausted(409)"
 
-# ─── 12t. Password reset via OTP (anti-enumeration + bad-code guard) ──
-# forgot-password must return a generic 200 even for a number that has no account
-# (never leaks whether the account exists). reset-password with a bogus code must
-# fail closed with 400 (a reset requires a real, single-use OTP — the static
+# ─── 12t. Password reset via OTP (no-account 404 + bad-code guard) ──
+# forgot-password must return 404 for a number with no account (owner product
+# decision 2026-07-23: tell the user plainly). reset-password with a bogus code
+# must fail closed with 400 (a reset requires a real, single-use OTP — the static
 # trial-bypass codes are never accepted here).
-note "12t. Password reset (forgot-password anti-enumeration + reset bad-code 400)"
+note "12t. Password reset (forgot-password no-account 404 + reset bad-code 400)"
 UNKNOWN_PHONE="+201999000${RANDOM:0:3}"
 FP_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w '%{http_code}' -XPOST "$BASE/auth/forgot-password" \
   -H "$JSON" -d "{\"phone\":\"$UNKNOWN_PHONE\"}")
-[ "$FP_CODE" = "200" ] || fail "forgot-password for unknown phone returned $FP_CODE (expected 200 — anti-enumeration)"
+[ "$FP_CODE" = "404" ] || fail "forgot-password for unknown phone returned $FP_CODE (expected 404 — no account)"
 RP_CODE=$(curl -sS -A "$SMOKE_UA" -o /dev/null -w '%{http_code}' -XPOST "$BASE/auth/reset-password" \
   -H "$JSON" -d "{\"phone\":\"$UNKNOWN_PHONE\",\"code\":\"000000\",\"password\":\"Sm0keReset!23\"}")
 [ "$RP_CODE" = "400" ] || fail "reset-password with a bogus code returned $RP_CODE (expected 400)"
-pass "forgot-password 200 for unknown phone; reset-password 400 on bogus code"
+pass "forgot-password 404 for unknown phone; reset-password 400 on bogus code"
 
 # ─── 12u. Booking paymentMethod + context chat thread ────────
 note "12u. Booking paymentMethod persisted + booking-scoped chat"
