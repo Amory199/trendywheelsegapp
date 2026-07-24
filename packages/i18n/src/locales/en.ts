@@ -114,6 +114,7 @@ const en = {
     passwordsDontMatch: "Passwords don't match.",
     resetFailed: "Couldn't reset your password. Check the code and try again.",
     forgotFailed: "Couldn't send a reset code. Please try again.",
+    forgotNoAccount: "No account found with this phone number.",
   },
   roleSwitch: {
     viewAs: "View as another role",

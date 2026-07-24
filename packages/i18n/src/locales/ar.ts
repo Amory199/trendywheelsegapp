@@ -109,6 +109,7 @@ const ar: TranslationKeys = {
     passwordsDontMatch: "كلمتا المرور غير متطابقتين.",
     resetFailed: "تعذّر إعادة تعيين كلمة المرور. تحقق من الرمز وحاول مرة أخرى.",
     forgotFailed: "تعذّر إرسال رمز الاستعادة. حاول مرة أخرى.",
+    forgotNoAccount: "لا يوجد حساب مرتبط بهذا الرقم.",
   },
   roleSwitch: {
     viewAs: "العرض كدور آخر",
